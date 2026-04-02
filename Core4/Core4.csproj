@@ -6,4 +6,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="sessions\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\cl_01.md" Link="sessions\cl_01.md" />
+  </ItemGroup>
+
 </Project>
