@@ -4,6 +4,8 @@ namespace Core4.Engine;
 
 public readonly record struct Ratio(Measure Numerator, Measure Denominator)
 {
+    public static Ratio Zero(Measure denominator) => new(Measure.Zero, denominator);
+
     public bool IsDefined => Denominator.Raw != 0;
 
     public Measure Sign
@@ -24,6 +26,37 @@ public readonly record struct Ratio(Measure Numerator, Measure Denominator)
     public Measure Remainder => IsDefined ? new Measure(Numerator.Raw % Denominator.Raw) : Measure.Zero;
 
     public double Approximate => IsDefined ? (double)Numerator.Raw / Denominator.Raw : 0d;
+
+    public Ratio Add(Ratio other)
+    {
+        if (!IsDefined || !other.IsDefined)
+        {
+            return new Ratio(Measure.Zero, Measure.Zero);
+        }
+
+        if (Denominator == other.Denominator)
+        {
+            return new Ratio(
+                new Measure(checked(Numerator.Raw + other.Numerator.Raw)),
+                Denominator).Normalize();
+        }
+
+        return new Ratio(
+            new Measure(checked((Numerator.Raw * other.Denominator.Raw) + (other.Numerator.Raw * Denominator.Raw))),
+            new Measure(checked(Denominator.Raw * other.Denominator.Raw))).Normalize();
+    }
+
+    public Ratio Multiply(Ratio other)
+    {
+        if (!IsDefined || !other.IsDefined)
+        {
+            return new Ratio(Measure.Zero, Measure.Zero);
+        }
+
+        return new Ratio(
+            new Measure(checked(Numerator.Raw * other.Numerator.Raw)),
+            new Measure(checked(Denominator.Raw * other.Denominator.Raw))).Normalize();
+    }
 
     public Ratio Normalize()
     {

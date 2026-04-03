@@ -20,6 +20,8 @@ public sealed class Attachment
 
     public bool IsComposite => Basis.IsComposite;
 
+    public bool IsAtomicPair => IsComposite && First.IsAtomic && Second.IsAtomic;
+
     public Measure MeasureCount => new(_measures.Length);
 
     public ImmutableArray<Measure> Measures => _measures;
@@ -34,6 +36,18 @@ public sealed class Attachment
 
     public Attachment Second => IsComposite ? _inputs[1] : throw new InvalidOperationException("Only composite attachments expose a second child.");
 
+    public Measure KernelCode => IsAtomicPair ? Basis.KernelCode() : throw new InvalidOperationException("Only atomic pairs expose a kernel code.");
+
+    public bool IsSameCarrierPair => IsAtomicPair && Basis.IsSameCarrierPair();
+
+    public bool IsAlignedPair => IsAtomicPair && Basis.IsAlignedPair();
+
+    public bool IsOpposedPair => IsAtomicPair && Basis.IsOpposedPair();
+
+    public bool IsSelfPair => IsSameCarrierPair && IsAlignedPair;
+
+    public bool HasSharedOriginPerCarrier => Basis.HasSharedOriginPerCarrier();
+
     public ImmutableArray<Ratio> Components()
     {
         var components = ImmutableArray.CreateBuilder<Ratio>(_measures.Length);
@@ -44,6 +58,66 @@ public sealed class Attachment
         }
 
         return components.MoveToImmutable();
+    }
+
+    public Ratio ResolvedCoefficient()
+    {
+        if (!IsAtomicPair)
+        {
+            throw new InvalidOperationException("Only atomic pairs expose a resolved coefficient.");
+        }
+
+        return First.Projection.Multiply(Second.Projection);
+    }
+
+    public ImmutableArray<Ratio> QuadrantCoefficients()
+    {
+        if (!IsAtomicPair)
+        {
+            throw new InvalidOperationException("Only atomic pairs expose ordered quadrant coefficients.");
+        }
+
+        var resolved = ResolvedCoefficient();
+        var zero = Ratio.Zero(resolved.Denominator);
+        var coefficients = new Ratio[4];
+
+        for (var index = 0; index < coefficients.Length; index++)
+        {
+            coefficients[index] = zero;
+        }
+
+        coefficients[(int)KernelCode.Raw] = resolved;
+        return coefficients.ToImmutableArray();
+    }
+
+    public Measure SegmentStart()
+    {
+        EnsureOpposedSameCarrierPair();
+        return First.Measures[0];
+    }
+
+    public Measure SegmentPivot()
+    {
+        EnsureOpposedSameCarrierPair();
+        return First.Basis.Origin;
+    }
+
+    public Measure SegmentEnd()
+    {
+        EnsureOpposedSameCarrierPair();
+        return Second.Measures[0];
+    }
+
+    public Measure SegmentSpanMeasure()
+    {
+        EnsureOpposedSameCarrierPair();
+        return SegmentEnd() - SegmentStart();
+    }
+
+    public Ratio SegmentSpanProjection()
+    {
+        EnsureOpposedSameCarrierPair();
+        return First.Projection.Add(Second.Projection);
     }
 
     public static Attachment Attach(Basis basis, params Measure[] measures)
@@ -80,5 +154,13 @@ public sealed class Attachment
         }
 
         return new Attachment(basis, measures, inputs.MoveToImmutable());
+    }
+
+    private void EnsureOpposedSameCarrierPair()
+    {
+        if (!IsAtomicPair || !IsSameCarrierPair || !IsOpposedPair || !HasSharedOriginPerCarrier)
+        {
+            throw new InvalidOperationException("This view only applies to same-carrier opposed atomic pairs with a shared origin.");
+        }
     }
 }

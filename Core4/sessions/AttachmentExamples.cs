@@ -71,6 +71,34 @@ public static class AttachmentExamples
 
         return
             $"measures=[{string.Join(", ", attachment.Measures.Select(measure => measure.Raw))}], " +
-            $"components=[{componentText}]";
+            $"components=[{componentText}], " +
+            $"{DescribeComposite(attachment)}";
+    }
+
+    private static string DescribeComposite(Attachment attachment)
+    {
+        if (!attachment.IsAtomicPair)
+        {
+            return "composite=atomic";
+        }
+
+        if (attachment.IsSelfPair)
+        {
+            return $"self[coefficient={attachment.ResolvedCoefficient().Normalize()}]";
+        }
+
+        if (attachment.IsSameCarrierPair && attachment.IsOpposedPair && attachment.HasSharedOriginPerCarrier)
+        {
+            var span = attachment.SegmentSpanProjection();
+
+            return
+                $"segment[start={attachment.SegmentStart().Raw}, pivot={attachment.SegmentPivot().Raw}, end={attachment.SegmentEnd().Raw}, " +
+                $"span={attachment.SegmentSpanMeasure().Raw}, projection={span.Normalize()}]";
+        }
+
+        var quadrants = attachment.QuadrantCoefficients();
+
+        return
+            $"quadrants[rr={quadrants[0].Normalize()}, rd={quadrants[1].Normalize()}, dr={quadrants[2].Normalize()}, dd={quadrants[3].Normalize()}]";
     }
 }
