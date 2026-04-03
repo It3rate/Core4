@@ -12,3 +12,17 @@ foreach (var line in GradeOneExamples.DescribeShiftedOrigins())
 {
     Console.WriteLine(line);
 }
+
+Console.WriteLine();
+Console.WriteLine("Attached values (origin = 0)");
+foreach (var line in AttachmentExamples.Describe())
+{
+    Console.WriteLine(line);
+}
+
+Console.WriteLine();
+Console.WriteLine("Attached values (shifted origins)");
+foreach (var line in AttachmentExamples.DescribeShiftedOrigins())
+{
+    Console.WriteLine(line);
+}

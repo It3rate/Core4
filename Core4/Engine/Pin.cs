@@ -8,7 +8,7 @@ public readonly record struct Pin(Carrier Carrier, Measure Origin, Measure Ancho
 
     public Pin Flip() => new(Carrier, Anchor, Origin);
 
-    public Ratio Attach(Measure measure) => new(measure - Origin, Delta);
+    public Ratio Project(Measure measure) => new(measure - Origin, Delta);
 
     public Basis Freeze() => Basis.Freeze(this);
 }

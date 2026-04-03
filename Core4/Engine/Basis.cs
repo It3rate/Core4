@@ -135,15 +135,17 @@ public sealed class Basis
         return Fuse(inputs);
     }
 
-    public Ratio Attach(Measure measure)
+    public Ratio Project(Measure measure)
     {
         if (!IsAtomic)
         {
             throw new InvalidOperationException("Only atomic bases attach a single measure directly.");
         }
 
-        return Pin.Attach(measure);
+        return Pin.Project(measure);
     }
+
+    public Attachment Attach(params Measure[] measures) => Attachment.Attach(this, measures);
 
     public ImmutableArray<Pin> SelectPins() => _pins;
 
