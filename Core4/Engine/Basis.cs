@@ -159,7 +159,7 @@ public sealed class Basis
             }
         }
 
-        return pins.MoveToImmutable();
+        return pins.ToImmutable();
     }
 
     public ImmutableArray<Carrier> SelectCarriers()
@@ -174,7 +174,7 @@ public sealed class Basis
             }
         }
 
-        return carriers.MoveToImmutable();
+        return carriers.ToImmutable();
     }
 
     public bool HasSharedOriginPerCarrier()

@@ -28,9 +28,47 @@ public static class GradeOneExamples
         ];
     }
 
+    public static ImmutableArray<(string Name, Basis Basis)> CreateShiftedOrigins()
+    {
+        var x = new Carrier(1);
+        var y = new Carrier(2);
+
+        var xRecessive = Basis.Freeze(new Pin(x, 100, 90));
+        var xDominant = Basis.Freeze(new Pin(x, 100, 110));
+        var xDominantWide = Basis.Freeze(new Pin(x, 100, 120));
+
+        var yRecessive = Basis.Freeze(new Pin(y, 300, 290));
+        var yDominant = Basis.Freeze(new Pin(y, 300, 310));
+
+        return
+        [
+            ("self-shifted", Basis.Fuse(xDominant, xDominantWide)),
+            ("segment-shifted", Basis.Fuse(xRecessive, xDominant)),
+            ("rr-shifted", Basis.Fuse(xRecessive, yRecessive)),
+            ("rd-shifted", Basis.Fuse(xRecessive, yDominant)),
+            ("dr-shifted", Basis.Fuse(xDominant, yRecessive)),
+            ("dd-shifted", Basis.Fuse(xDominant, yDominant))
+        ];
+    }
+
     public static ImmutableArray<string> Describe()
     {
         var examples = Create();
+        var descriptions = ImmutableArray.CreateBuilder<string>(examples.Length);
+
+        foreach (var (name, basis) in examples)
+        {
+            descriptions.Add(
+                $"{name}: grade={basis.Grade.Raw}, pins={basis.PinCount.Raw}, carriers={basis.CarrierCount.Raw}, " +
+                $"sameCarrier={basis.IsSameCarrierPair()}, aligned={basis.IsAlignedPair()}, opposed={basis.IsOpposedPair()}, kernel={basis.KernelCode().Raw}");
+        }
+
+        return descriptions.MoveToImmutable();
+    }
+
+    public static ImmutableArray<string> DescribeShiftedOrigins()
+    {
+        var examples = CreateShiftedOrigins();
         var descriptions = ImmutableArray.CreateBuilder<string>(examples.Length);
 
         foreach (var (name, basis) in examples)

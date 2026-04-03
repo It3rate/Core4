@@ -1,0 +1,14 @@
+using Core4.Sessions;
+
+Console.WriteLine("Grade 1 examples (origin = 0)");
+foreach (var line in GradeOneExamples.Describe())
+{
+    Console.WriteLine(line);
+}
+
+Console.WriteLine();
+Console.WriteLine("Grade 1 examples (shifted origins)");
+foreach (var line in GradeOneExamples.DescribeShiftedOrigins())
+{
+    Console.WriteLine(line);
+}
