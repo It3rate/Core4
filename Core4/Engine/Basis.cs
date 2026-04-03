@@ -23,11 +23,11 @@ public sealed class Basis
         _pins = pins.MoveToImmutable();
     }
 
-    public bool IsLeaf => _inputs.IsEmpty;
+    public bool IsAtomic => _inputs.IsEmpty;
 
-    public bool IsFused => !IsLeaf;
+    public bool IsComposite => !IsAtomic;
 
-    public Measure Grade => IsLeaf ? Measure.Zero : new Measure(Math.Max(First.Grade.Raw, Second.Grade.Raw) + 1);
+    public Measure Grade => IsAtomic ? Measure.Zero : new Measure(Math.Max(First.Grade.Raw, Second.Grade.Raw) + 1);
 
     public Measure PinCount => new(_pins.Length);
 
@@ -39,7 +39,7 @@ public sealed class Basis
 
     public ImmutableArray<Pin> Pins => _pins;
 
-    public Pin Pin => IsLeaf ? _pins[0] : throw new InvalidOperationException("Only leaf bases expose a pinned interval.");
+    public Pin Pin => IsAtomic ? _pins[0] : throw new InvalidOperationException("Only atomic bases expose a pinned interval.");
 
     public Carrier Carrier => Pin.Carrier;
 
@@ -51,19 +51,19 @@ public sealed class Basis
 
     public Measure Orientation => Pin.Orientation;
 
-    public Basis First => IsFused ? _inputs[0] : throw new InvalidOperationException("Only fused bases expose a first child.");
+    public Basis First => IsComposite ? _inputs[0] : throw new InvalidOperationException("Only composite bases expose a first child.");
 
-    public Basis Second => IsFused ? _inputs[1] : throw new InvalidOperationException("Only fused bases expose a second child.");
+    public Basis Second => IsComposite ? _inputs[1] : throw new InvalidOperationException("Only composite bases expose a second child.");
 
-    public bool IsRecessive => IsLeaf && Orientation.Raw < 0;
+    public bool IsRecessive => IsAtomic && Orientation.Raw < 0;
 
-    public bool IsDominant => IsLeaf && Orientation.Raw > 0;
+    public bool IsDominant => IsAtomic && Orientation.Raw > 0;
 
     public static Basis Freeze(Pin pin) => new(pin);
 
     public static Basis Freeze(Carrier carrier, Measure origin, Measure anchor) => new(new Pin(carrier, origin, anchor));
 
-    public static Basis Freeze(params Pin[] pins)
+    public static Basis Fuse(params Pin[] pins)
     {
         ArgumentNullException.ThrowIfNull(pins);
 
@@ -120,7 +120,7 @@ public sealed class Basis
 
     public Basis Flip()
     {
-        if (IsLeaf)
+        if (IsAtomic)
         {
             return Freeze(Pin.Flip());
         }
@@ -137,9 +137,9 @@ public sealed class Basis
 
     public Ratio Attach(Measure measure)
     {
-        if (!IsLeaf)
+        if (!IsAtomic)
         {
-            throw new InvalidOperationException("Only leaf bases attach a single measure directly.");
+            throw new InvalidOperationException("Only atomic bases attach a single measure directly.");
         }
 
         return Pin.Attach(measure);
@@ -230,9 +230,9 @@ public sealed class Basis
 
     private (Pin first, Pin second) AsLeafPinPair()
     {
-        if (!IsFused || !First.IsLeaf || !Second.IsLeaf)
+        if (!IsComposite || !First.IsAtomic || !Second.IsAtomic)
         {
-            throw new InvalidOperationException("This view only applies to a fused pair of leaf bases.");
+            throw new InvalidOperationException("This view only applies to a composite pair of atomic bases.");
         }
 
         return (First.Pin, Second.Pin);
