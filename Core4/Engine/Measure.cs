@@ -1,0 +1,22 @@
+using System.Globalization;
+
+namespace Core4.Engine;
+
+public readonly record struct Measure(long Raw)
+{
+    public static Measure Zero => new(0);
+
+    public Measure Sign => new(Raw < 0 ? -1L : Raw > 0 ? 1L : 0L);
+
+    public static Measure operator +(Measure left, Measure right) => new(left.Raw + right.Raw);
+
+    public static Measure operator -(Measure left, Measure right) => new(left.Raw - right.Raw);
+
+    public static Measure operator -(Measure value) => new(-value.Raw);
+
+    public static implicit operator Measure(long raw) => new(raw);
+
+    public static implicit operator long(Measure value) => value.Raw;
+
+    public override string ToString() => Raw.ToString(CultureInfo.InvariantCulture);
+}
