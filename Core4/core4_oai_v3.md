@@ -193,6 +193,17 @@ The unit may be free or bound:
 This keeps the engine leaf small while allowing the bootstrapping story to stay
 origin-first and interval-first.
 
+The same calibrated structure can also be used in four observer modes without
+becoming a different kind of thing:
+
+- **Claim:** assert that some quantity or segment is so
+- **Measure:** record that an encountered fact matches that quantity
+- **Inspect:** traverse or interpolate within the committed structure
+- **Act:** apply the quantity through scaling, addition, or another law
+
+These are different stances toward one number, not four different number
+ontologies.
+
 ### Axiom 5 - Sign Is Constructed, Not Primitive
 
 Sign appears only after an oriented interval exists.
@@ -297,7 +308,7 @@ bookkeeping.
 
 ---
 
-## Part III. Dual Units On One Carrier
+## Part III. Dual And Zero Units On One Carrier
 
 ### Axiom 10 - Opposed Units On One Carrier Can Form A Dual Unit
 
@@ -323,6 +334,23 @@ Here:
 
 These names do not imply better or worse. They identify the ordered roles of
 the two sides.
+
+There is also a third local case: the **zero unit**. A zero-unit reading means
+the system recognizes that some value is present, but cannot honestly interpret
+it within either the dominant or recessive unit meaning currently available.
+
+Example:
+
+- a light-based frame notices extra heat from a non-light source
+- the value is present
+- the light unit cannot calibrate it
+- the reading therefore sits locally at `u = 0`
+
+Geometrically, dominant and recessive are the two visible directions of one
+line. A zero-unit reading is like a slider moving out of the page toward the
+viewer: its magnitude is real, but the current line directions cannot measure
+it. So the zero unit should be read as unknown current meaning, preserved
+tension potential, and a candidate site for later orthogonal explanation.
 
 ### Axiom 11 - A Dual Unit Can Bind Two Partial Values Into One Number
 
@@ -493,6 +521,9 @@ Examples:
 
 Tension is not meaningless failure. It is structured non-settlement.
 
+A zero-unit reading is one explicit local form of this condition. The system
+knows there is value here, but not yet which settled unit family should own it.
+
 ### Axiom 17 - Residual Tension Can Become Association
 
 Not every mismatch deserves a new dimension. The useful ladder is:
@@ -526,6 +557,12 @@ The deeper rule is:
 
 That preserved mismatch is orthogonal in the Core4 sense.
 
+The zero unit is the local sign of this condition. It says:
+
+- there is magnitude here
+- the current dominant/recessive frame cannot read it honestly
+- some later calibration may attach and explain it
+
 This includes:
 
 - light mixed with heat
@@ -534,7 +571,8 @@ This includes:
 - expected reward mixed with unexplained excess
 
 New axes appear when such persistent mismatch becomes committed explanatory
-structure.
+structure. When a later unit family successfully calibrates what was previously
+carried by `u = 0`, tension has been given a lawful home.
 
 ---
 
@@ -683,6 +721,12 @@ So the full structure is:
 - the kernel resolves their joint interaction
 - the area and complex parts are lawful summaries of that interaction
 
+Not every lawful fusion has to realize all four directional contributions with
+equal weight. Some cases use only a subset of the available subunit potentials
+in a meaningful way. One axis may carry growing and shrinking while another is
+held effectively constant, so the realized interaction is sparse even though
+the full directional basis exists.
+
 ---
 
 ## Part VII. Symmetric And Asymmetric Fusion
@@ -728,6 +772,23 @@ The better distinction is:
 - symmetric versus asymmetric fusion
 - surviving degrees of freedom
 
+A special case is **self-fusion**, where a unit family fuses with itself. This
+is the power or repetition case:
+
+- length with length
+- rate with rate
+- volatility with volatility
+- intensity with itself
+
+This is not the same as many values attaching to one unit. It is the unit side
+repeating against itself. In practice this appears as squared, cubed, or higher
+power behavior, and it can be read as changing the calibration spacing of the
+resulting family rather than merely stacking more same-kind data.
+
+Because self-fusion can iterate, the number of final realized elements need not
+stay capped at four, even though any one immediate fusion of two directions
+starts from a four-way directional basis.
+
 ---
 
 ## Part VIII. Revised Construction Ladder
@@ -742,7 +803,7 @@ A compact statement of the revised growth process is:
 4. calibrated value/unit pair
 5. shared-unit family or history
 6. committed dual-unit relation on one carrier
-7. preserved tension across repeated mismatch
+7. preserved tension, including explicit zero-unit readings
 8. committed new association or axis
 9. fusion of independent grade-1 axes into grade 2
 
@@ -782,16 +843,23 @@ The updated Core4 picture is now:
 - negative values are constructed from oriented calibration, not given at the
   bottom
 - many values sharing one unit remain data unless their relation is committed
+- dominant, recessive, and zero units are three distinct local states
 - dual units on one carrier give a more physical representation of ranges and
   intervals than raw paired data does
 - sequential history and true fusion reuse similar math but are structurally
   different
 - orthogonality means preserved explanatory mismatch
+- zero-unit readings are the local sign of recognized but not yet explained
+  magnitude
+- one number can be claimed, measured, inspected, or applied without becoming a
+  different kind of thing
 - grade 2 begins when independent grade-1 structures are fused, not merely when
   many values have been recorded
 - the four-term kernel remains the right resolution law, but matched and
   diagonal terms are now explained through the physical meaning of the chosen
   unit orientations
+- self-fusion is the power or repetition case, and can scale beyond one
+  immediate four-way interaction
 
 This keeps the Core4 emphasis on lawful structural emergence, but starts from a
 more primitive and more physical base.

@@ -229,7 +229,35 @@ precision made when the unit was frozen.
 
 A single-unit element is **grade 0**: the simplest complete structure.
 
-### Axiom 4 — Perspective and Direction
+### Axiom 4 — The Four Modes of Use
+
+A number — any element with a value and a unit — can be used in four
+distinct modes. These are not properties of the number itself but of the
+observer's intention. The same segment from zero to three participates
+differently depending on how it is being used:
+
+| Mode | What happens | Example |
+|------|-------------|---------|
+| **Claim** | State a fact. Assert that a value exists at this magnitude. | "There is a segment from 0 to 3." |
+| **Measure** | Read a fact. Calibrate an observed phenomenon against the unit. | "This rod measures 3 units long." |
+| **Inspect** | Explore a fact. Interpolate along the element, discover internal structure. | "The midpoint is at 1.5. There is a pin at 2." |
+| **Act** | Generate a fact. Use this element to modify another element. | "Scale that segment by 3." / "Add 3 to the accumulator." |
+
+Claim is passive assertion. Measure is passive reception. Inspect is
+active reading (the Experience phase). Act is active writing (the
+Manipulate phase). These correspond loosely to the lifecycle phases, but
+any element in any phase can be used in any mode — a value discovered
+during Experience (measure mode) can immediately be used to scale another
+value (act mode).
+
+When balancing tensions, the system can self-adjust which mode is
+appropriate. A claimed segment that receives contradictory measurement
+creates tension; the system may switch to inspect mode to discover why,
+or to act mode to correct the discrepancy. The four modes are not
+sequential — they are simultaneously available orientations toward the
+same numeric structure.
+
+### Axiom 5 — Perspective and Direction
 
 Direction does not come from extents having endpoints. It comes from
 **perspective** — the choice of where to freeze the origin and which way
@@ -273,7 +301,7 @@ their interaction. All elements in this system are composed of
 these opposing perspectives, because any quantity that can increase can
 also decrease, and the system needs both views.
 
-### Axiom 5 — The Interval and Negative Values
+### Axiom 6 — The Interval and Negative Values
 
 An **interval** is formed when an origin is frozen and extents are
 measured from it. This is the general case — the standard bootstrap.
@@ -290,7 +318,7 @@ There is an assumption hidden here: we assume subsequent measures are
 larger than the frozen origin, establishing which direction is "positive."
 If someone freezes a different reading and measures in the opposite
 direction, they get an equally valid system that points the other way
-(Axiom 4). Both work, but they are incompatible without explicit
+(Axiom 5). Both work, but they are incompatible without explicit
 conversion.
 
 **Special case (pre-pinned zero):** Some measuring systems come with a
@@ -313,9 +341,77 @@ is not at the physical floor.
 
 ---
 
-## Part II: Dual Units and Grade 1
+## Part II: The Three Aspects
 
-### Axiom 6 — The Dual Unit
+### Axiom 7 — Unit Sign Determines Aspect
+
+The sign of an element's unit determines its **aspect** — its
+physical role in any encounter:
+
+| Unit sign | Aspect | Meaning |
+|-----------|--------|---------|
+| `u > 0` (positive) | **Value** | Aligned with its context. A calibrated measurement in a known space. "One" is established. The element contributes magnitude. |
+| `u < 0` (negative) | **Structure** | Orthogonal to its context. A force acting on the context without being the context. Organizes, constrains, imposes a dimension. Does not contribute magnitude — contributes arrangement. |
+| `u = 0` | **Generative** | Unresolved. The element has magnitude — a value is detectable — but it cannot be interpreted within any current unit. It is between unit spaces. It demands resolution. |
+
+At grade 0, a unit is always positive (measuring from the origin
+outward). Negative units first appear at grade 1, when opposing
+perspectives create the possibility of structural opposition. Generative
+(zero) units appear whenever the system encounters magnitude it cannot
+yet calibrate.
+
+**The zero unit in detail.** A zero unit is not the absence of a value.
+It is the recognition that a value exists, paired with the inability to
+interpret it within any available unit's meaning. If a system is using
+a light unit as a proxy for heat, and heat arrives from a non-light
+source, that heat is detectable as a value — the system registers
+energy — but it cannot calibrate it using the light unit. The value
+sits on a zero unit: present but uninterpretable.
+
+**Geometric intuition.** Imagine a line with a dominant direction
+(pointing right) and a recessive direction (pointing left). Now imagine
+a second line coming straight out of the page toward the viewer. You can
+see a slider on that line going up and down — the value is changing —
+but neither the dominant unit nor the recessive unit measures anything
+along that axis. The value is real, the change is real, but the current
+dimensional structure has no unit for it. This is a zero-unit value.
+
+The zero unit is therefore a **tension potential** — it signals that
+there is an unknown dimension the system has not yet accounted for. The
+extra energy sitting on a zero unit is looking for an explanation.
+Attaching a new unit that explains the source of that energy (e.g., a
+heat unit to explain the non-light thermal input) would satisfy the
+tension and resolve the zero unit into a proper value or structure.
+
+This is the mechanism that drives dimensional promotion (Axiom 22):
+unresolvable zero-unit tension creates the demand for a new dimension.
+
+### Axiom 8 — Aspects Are Relational
+
+An element's aspect is not intrinsic — it depends on the frame through
+which it is read. The same element can be value in one context, structure
+in another, and generative potential in a third.
+
+### Axiom 9 — The Multiplication Table of Aspects
+
+When two elements interact through multiplication or scaling, their unit
+signs multiply:
+
+    (+1) x (+1) = +1    Value x Value = Value
+    (-1) x (-1) = +1    Structure x Structure = Value
+    (+1) x (-1) = -1    Value x Structure = Structure
+    ( 0) x ( n) =  0    Generative x Anything = Generative
+
+Key physical implications:
+- Two orthogonal forces meeting produce something aligned
+- A value applied through structure produces structural position
+- Anything touching the unresolved stays unresolved — generation absorbs
+
+---
+
+## Part III: Dual Units and Grade 1
+
+### Axiom 10 — The Dual Unit
 
 A **dual unit** is formed by combining two single units that point in
 opposite directions into a single structure:
@@ -356,7 +452,7 @@ components. The recessive component measures how far below the boundary,
 the dominant measures how far above. The boundary itself is the zero of
 the dual unit.
 
-### Axiom 7 — Grade Increase (Grade 1)
+### Axiom 11 — Grade Increase (Grade 1)
 
 A **grade-1 element** is a pair of two grade-0 elements measured in
 opposing units:
@@ -388,7 +484,7 @@ This is the only way to increase grade. A grade-1 element has two
 grade-0 children. A grade-2 element has two grade-1 children (four
 grade-0 leaves). Grade N has 2^N grade-0 leaves.
 
-### Axiom 8 — Ordering and Direction
+### Axiom 12 — Ordering and Direction
 
 Every composite has inherent direction: recessive → dominant.
 This is not a convention. The recessive provides context for the dominant.
@@ -399,9 +495,42 @@ Traversal from recessive to dominant is the most primitive form of time
 (see Part VIII). No external clock is needed, just the tendency to flow
 from beginning to end.
 
+### Axiom 13 — Dual Units vs Data
+
+There are two ways to track intervals and changes: **data** (multiple
+values sharing one unit) and **dual units** (one number with two
+components in opposing units). Both work. They have different properties.
+
+**Data approach (single unit, multiple values):**
+- Store pairs of readings: (low, high), (before, after)
+- Requires external rules to delineate pairs vs triplets vs sequences
+- Missing a single recording misaligns all subsequent pairs
+- Range requires subtraction: high - low
+- Range alone (e.g., "7 degrees") discards the zero point
+- Flexible — can store any number of values with the same unit
+
+**Dual unit approach (two opposing units, one number):**
+- Each number inherently contains both components: `2r + 5d`
+- Pairing is structural, not imposed by convention
+- Missing data loses one number, not the alignment of all subsequent ones
+- Range is computed by addition: recessive + dominant = total span
+- The zero point is embedded (the boundary between recessive and dominant)
+- Less flexible — each number is exactly two components
+
+The dual unit approach is more **physical** — it represents the
+underlying reality more directly because the structure of the number
+mirrors the structure of the phenomenon. The data approach is more
+**computational** — it is easier to manipulate, sort, and process, but
+requires rules that are external to the data itself.
+
+Neither is better in all situations. The system supports both. But grade
+increases specifically require the dual unit approach, because grade
+increase is about creating new structural levels, not accumulating data
+at the current level.
+
 ---
 
-## Part III: The Lifecycle
+## Part IV: The Lifecycle
 
 Every event in this system — from the first unit bootstrapping itself
 out of raw measures, to dimensional emergence, to a pin firing during
@@ -410,12 +539,19 @@ visible from two complementary perspectives: the **structural** perspective
 (what happens to the structure) and the **observer** perspective (what
 happens to the participant element moving through the structure).
 
+The four lifecycle phases correspond to the four modes of use (Axiom 4):
+Observe is where claims and measurements originate. Experience is
+inspection. Manipulate is action. Resolve is when the result becomes
+available for others to claim, measure, inspect, or act upon. But any
+mode can be exercised in any phase — the correspondence is a tendency,
+not a constraint.
+
 Any event in the system is one of:
 1. **A single phase** within a larger lifecycle
 2. **A complete lifecycle** instance
 3. **A composite event** built from multiple lifecycles
 
-### Axiom 9 — The Four Phases
+### Axiom 14 — The Four Phases
 
 Each phase is described from both perspectives. The structural view
 names the mechanical event; the observer view names the experiential
@@ -428,7 +564,7 @@ is meaningful on its own:
 
 > **Pin (to a single measure):** A pin attaches to one measure. This
 > alone gives the pin a **location** (here), a **direction** (one way
-> to go — from the implicit zero upward along this measure), and the
+> to go — from the origin outward along this measure), and the
 > **potential to interpolate** along that direction.
 >
 > At this stage — pinned to one measure — the observer already has
@@ -453,13 +589,13 @@ passive character of this phase.
 *Structural:* The interpolation potential is exercised. The element moves
 along the attached measure, producing an ordered sequence of positions.
 This is traversal — the structure is being read, generating feedback at
-each position.
+each position. This is the **inspect** mode (Axiom 4) made structural.
 
 *Observer:* The element **experiences** the measure by moving through it.
-This is like running an equation — at each position, the structure
-provides feedback (what is here, how does this compare to where I was).
-The experience is informational, not transformative: the element is
-learning about the structure, not changing it.
+At each position, the structure provides feedback (what is here, how does
+this compare to where I was). The experience is informational, not
+transformative: the element is learning about the structure, not changing
+it.
 
 The drive to interpolate is not innate in the observer. It requires
 **structure** to achieve — either external structure pushing the element
@@ -476,7 +612,8 @@ ordered sequence of positions. If it interpolates past the end, it gains
 
 *Structural:* The ability to compare (from Observe) and the feedback
 from traversal (from Experience) together imply the potential for
-**change**. Laws emerge from abilities already present:
+**change**. This is the **act** mode (Axiom 4) made structural. Laws
+emerge from abilities already present:
 
 - **Track:** Use one measure to measure changes in the other
 - **Repeat:** Re-attach to the start when you reach the end
@@ -514,14 +651,15 @@ recognition from Phase 2; you gain action in Phase 3.
 *Observer:* The element reaches a **resolution** — a stopping point. The
 negotiation is complete. The structure is committed. The element is now
 *available for others to observe*. Its Independence is the beginning of
-other elements' Observe phase.
+other elements' Observe phase — they can claim it, measure with it,
+inspect it, or act through it (Axiom 4).
 
 This is the mechanism by which the system creates abstractions. A symbol
 carries the memory of its formation (direction, resolution, structure)
 but has no ongoing dependency on the specific values that formed it.
 A different value can attach to the unit and be measured by it.
 
-### Axiom 10 — Abilities Accumulate
+### Axiom 15 — Abilities Accumulate
 
 Abilities unlocked at any phase remain available in all subsequent phases
 and in all subsequent lifecycle instances at higher grades. Nothing is lost.
@@ -542,7 +680,7 @@ After **Resolve/Commit**: unit, measurement, resolution.
 
 After **Independence**: symbol, portability, calibration of others.
 
-### Axiom 11 — The Reverse Lifecycle
+### Axiom 16 — The Reverse Lifecycle
 
 The lifecycle runs backward for decomposition:
 
@@ -567,55 +705,13 @@ is context dependent.
 
 ---
 
-## Part IV: The Three Aspects
-
-### Axiom 12 — Unit Sign Determines Aspect
-
-The sign of an element's unit determines its **aspect** — its
-physical role in any encounter:
-
-| Unit sign | Aspect | Meaning |
-|-----------|--------|---------|
-| `u > 0` (positive) | **Value** | Aligned. A calibrated measurement in a known space. "One" is established. |
-| `u < 0` (negative) | **Structure** | Orthogonal. A force acting on the context without being the context. Organizes, constrains, imposes a dimension. Does not contribute magnitude — contributes arrangement. |
-| `u = 0` | **Generative** | Unresolved. Has magnitude but no "one" to measure against. Between unit spaces. Demands resolution through a law. |
-
-At grade 0, a unit is always positive (measuring from the implicit zero
-upward). Negative units first appear at grade 1, when opposing
-perspectives create the possibility of structural opposition. Generative
-(zero) units appear whenever the system encounters magnitude it cannot
-yet calibrate.
-
-### Axiom 13 — Aspects Are Relational
-
-An element's aspect is not intrinsic — it depends on the frame through
-which it is read. The same element can be value in one context, structure
-in another, and generative potential in a third.
-
-### Axiom 14 — The Multiplication Table of Aspects
-
-When two elements interact through multiplication or scaling, their unit
-signs multiply:
-
-    (+1) x (+1) = +1    Value x Value = Value
-    (-1) x (-1) = +1    Structure x Structure = Value
-    (+1) x (-1) = -1    Value x Structure = Structure
-    ( 0) x ( n) =  0    Generative x Anything = Generative
-
-Key physical implications:
-- Two orthogonal forces meeting produce something aligned
-- A value applied through structure produces structural position
-- Anything touching the unresolved stays unresolved
-
----
-
-## Part V: Bootstrap - The First Lifecycle Instance
+## Part V: Bootstrap — The First Lifecycle Instance
 
 The number system is the first complete run of the lifecycle.
 
-### Axiom 15 - Measures and the Pinned Origin (Observe Phase)
+### Axiom 17 — Measures and the Pinned Origin (Observe Phase)
 
-A system begins with raw measures on one common substrate - for example
+A system begins with raw measures on one common substrate — for example
 long values produced by a sensor, timer, or counter. At this stage the
 values are only ordered magnitudes. They can be compared (this one is
 bigger than that one) but not yet calibrated in any reusable way.
@@ -637,24 +733,24 @@ chosen explicitly by freezing some reading. Mathematically these are the
 same pattern; the default-zero case is only the special case where the
 origin arrives pre-pinned.
 
-### Axiom 16 - Origin Pinning and First Unit Formation (Experience + Manipulate + Resolve)
+### Axiom 18 — Origin Pinning and First Unit Formation (Experience + Manipulate + Resolve)
 
 Measurement becomes calibrated when the system first fixes an origin and
 then freezes one outward interval from that origin as a reusable unit.
 This is the Experience, Manipulate, and Resolve phases running in sequence.
 
-**Step 1 - Experience provides candidate distinction (Phase 2).**
+**Step 1 — Experience provides candidate distinction (Phase 2).**
 Multiple raw measures are encountered over time or across instances. The
-system experiences variation - some readings are higher, some lower. This
+system experiences variation — some readings are higher, some lower. This
 variation is the basis for wanting a stable reference.
 
-**Step 2 - Manipulation pins an origin (Phase 3).** Some reading is
+**Step 2 — Manipulation pins an origin (Phase 3).** Some reading is
 selected and fixed as the origin. This may be the default zero supplied by
 the measuring situation, or it may be an explicitly frozen reading. At
 this point the system has a reference position, but not yet a portable
 measurement interval.
 
-**Step 3 - Resolution freezes the first unit interval (Phase 4).** A
+**Step 3 — Resolution freezes the first unit interval (Phase 4).** A
 second reading is taken relative to the pinned origin, and the span from
 origin to that reading is committed as the first unit. This is the first
 portable declaration of precision: "this much difference counts as one."
@@ -674,7 +770,7 @@ Once this interval is frozen, later readings can be calibrated by how many
 such unit spans they contain from the same origin and in the same
 orientation:
 
-    Calibrate(reading, origin, unit) -> v
+    Calibrate(reading, origin, unit) → v
 
 This is why creating a unit of size 10 is a declaration of usable
 precision. The raw substrate may always have contained finer ticks, but
@@ -693,7 +789,7 @@ pattern with one step hidden by the situation.
 Once an origin/unit pair exists and is independent, other measures can be
 **calibrated** to it:
 
-    measure.CalibrateWith(origin, unit) -> calibrated value
+    measure.CalibrateWith(origin, unit) → calibrated value
 
 Calibration reexpresses a raw measure in terms of the committed interval.
 The measure becomes a **number**: a value expressed in terms of a portable
@@ -701,25 +797,25 @@ The measure becomes a **number**: a value expressed in terms of a portable
 not the reverse.
 
 The complete bootstrap lifecycle:
-1. **Observe:** Receive raw substrate measures (Axiom 15)
-2. **Experience:** Encounter variation across measures (Axiom 16, Step 1)
-3. **Manipulate:** Pin an origin (Axiom 16, Step 2)
-4. **Resolve:** Freeze the first outward interval as a unit (Axiom 16, Step 3)
-5. Others calibrate to the origin/unit pair -> numbers
+1. **Observe:** Receive raw substrate measures (Axiom 17)
+2. **Experience:** Encounter variation across measures (Axiom 18, Step 1)
+3. **Manipulate:** Pin an origin (Axiom 18, Step 2)
+4. **Resolve:** Freeze the first outward interval as a unit (Axiom 18, Step 3)
+5. Others calibrate to the origin/unit pair → numbers
 
 From raw comparable measures alone, the number system is constructed.
 In default-zero systems the first calibrated numbers are non-negative.
 
 ---
 
-## Part VI: Dimensional Emergence - Perspectives and Tension
+## Part VI: Dimensional Emergence — Perspectives and Tension
 
 Dimensions are not stated. They **emerge** from tension that cannot
 be expressed at the current dimensionality. Each dimensional increase
 follows the same lifecycle pattern, driven by the system encountering
 information it cannot account for within its current structure.
 
-### Axiom 17 — Tension as Demand
+### Axiom 19 — Tension as Demand
 
 When the system's predictions do not match its inputs — when feedback
 disagrees with output — **tension** arises. This tension is not passive.
@@ -739,15 +835,20 @@ A light sensor with unexplained extra readings and a food system with
 unexplained extra energy can resolve each other's tension if the signals
 are routed together.
 
+Unresolved tension manifests as **zero-unit values** (Axiom 7): the
+system registers magnitude but cannot calibrate it within any existing
+unit. The zero unit is the numeric face of tension — it is how tension
+appears in the number system.
+
 **Equilibrium, not zero.** The system does not seek to eliminate all
 tension. It seeks the point where remaining tension cannot be reduced by
 any currently available signal. This is a stable state — the loads
 between confusion and information cannot help each other further. New
 information can always disturb this equilibrium and restart the process.
 
-### Axiom 18 — Opposing Perspectives Create Direction (Grade 0 → 1)
+### Axiom 20 — Opposing Perspectives Create Direction (Grade 0 → 1)
 
-A single unit measures from the implicit zero in one direction. Direction
+A single unit measures from the origin in one direction. Direction
 and negative values emerge when a **second perspective** creates an
 opposing unit.
 
@@ -761,7 +862,7 @@ This opposition is the origin of sign. It is not abstract. It comes from
 the physical fact that two observers can calibrate the same property in
 opposite directions.
 
-When these two perspectives are combined into a **dual unit** (Axiom 6),
+When these two perspectives are combined into a **dual unit** (Axiom 10),
 the result is a grade-1 element: a directed interval with a meaningful
 zero between the recessive and dominant components. For the first time,
 the system can express negative values — not as a mathematical extension,
@@ -771,52 +872,20 @@ but as the natural consequence of having two opposing viewpoints.
 can say "it's lighter than normal" or "darker than normal." If the light
 suddenly changes in a way the system's feedback cannot explain — say,
 extra light reflecting off food — the feedback system carries tension.
-This tension is a vacancy (Axiom 17). If the current light reading is
-routed to fill that vacancy, the system now has two values (previous
+This tension appears as a zero-unit value (Axiom 7): energy is detected
+but not interpretable within the light unit. If the current light reading
+is routed to fill that vacancy, the system now has two values (previous
 light and current light) with one dual unit (the original perspective
 and its recessive counterpart). It can now say not just "lighter than
 normal" but "light has increased." The second value is recessive to the
 first — it is "before" to the first's "after."
 
 **The mechanism:** unresolved tension from feedback disagreement creates
-the demand. A new signal dimension fills the demand. The grade increases
-from 0 to 1. This is not invention — it is the environment forcing the
-system to expand its dimensional structure.
+zero-unit values. A new signal dimension fills the demand. The grade
+increases from 0 to 1. This is not invention — it is the environment
+forcing the system to expand its dimensional structure.
 
-### Axiom 19 — Dual Units vs Data
-
-There are two ways to track intervals and changes: **data** (multiple
-values sharing one unit) and **dual units** (one number with two
-components in opposing units). Both work. They have different properties.
-
-**Data approach (single unit, multiple values):**
-- Store pairs of readings: (low, high), (before, after)
-- Requires external rules to delineate pairs vs triplets vs sequences
-- Missing a single recording misaligns all subsequent pairs
-- Range requires subtraction: high - low
-- Range alone (e.g., "7 degrees") discards the zero point
-- Flexible — can store any number of values with the same unit
-
-**Dual unit approach (two opposing units, one number):**
-- Each number inherently contains both components: `2r + 5d`
-- Pairing is structural, not imposed by convention
-- Missing data loses one number, not the alignment of all subsequent ones
-- Range is computed by addition: recessive + dominant = total span
-- The zero point is embedded (the boundary between recessive and dominant)
-- Less flexible — each number is exactly two components
-
-The dual unit approach is more **physical** — it represents the
-underlying reality more directly because the structure of the number
-mirrors the structure of the phenomenon. The data approach is more
-**computational** — it is easier to manipulate, sort, and process, but
-requires rules that are external to the data itself.
-
-Neither is better in all situations. The system supports both. But grade
-increases specifically require the dual unit approach, because grade
-increase is about creating new structural levels, not accumulating data
-at the current level.
-
-### Axiom 20 — The 1x1 Requirement and Degrees of Freedom
+### Axiom 21 — The 1x1 Requirement and Degrees of Freedom
 
 For dimensional fusion to produce a coherent space, the unit cell must be
 **1x1**: each axis contributes exactly one of its own measure.
@@ -842,7 +911,7 @@ a ratio into a thing.
 **Consequence:** Units must be settled before fusion can happen. If either
 axis has no committed unit, you cannot construct the 1x1 cell.
 
-### Axiom 21 — Grade 1 → Grade 2: The Four-Term Kernel
+### Axiom 22 — Grade 1 → Grade 2: The Four-Term Kernel
 
 When two grade-1 elements (directed intervals with dual units) are
 combined, each has a recessive (r) and dominant (d) component. Their
@@ -887,13 +956,20 @@ to describe whether it got wider or thinner. Together, the four terms
 give you two directed segments forming an area that describes the
 *change* on both axes simultaneously.
 
-This is the same data-vs-dual-unit distinction from Axiom 19, applied
+This is the same data-vs-dual-unit distinction from Axiom 13, applied
 one grade higher. You could measure change with multiple snapshots (data
 approach: record the area now, record the area later, compare). Or you
 could use the full four-term kernel as a fused unit that inherently
 captures change on both axes (dual unit approach). Both work. The fused
 version is more physical — the structure of the number mirrors the
 structure of the phenomenon.
+
+**Partial fusion.** When two units fuse, they need not use all four
+subunit terms equally. If one axis is constant — say the iceberg's width
+does not change, only its height — then only three of the four subunit
+terms carry meaningful variation. The constant axis contributes its unit
+to the fusion but its value does not change. The fusion is real (it is
+still a grade-2 structure), but one degree of freedom is dormant.
 
 **Why rays are not area:** When one component is expanding and the other
 is contracting, they work against each other dimensionally. The expansion
@@ -926,7 +1002,50 @@ have to subtract one from the other. The unit tells you the *kind* of
 measurement; the value tells you the *direction* of the reading. Both
 matter for determining whether the result is genuine area or a residue.
 
-### Axiom 22 — Higher Dimensional Promotion
+### Axiom 23 — Self-Interaction (Powers)
+
+When a unit is paired with **itself** to fuse — the same grade-1 dual
+unit on both sides of the kernel — the result is **self-interaction**.
+This is not two different properties combining (height x width = area),
+but one property combining with itself (height x height = height²).
+
+Self-interaction leads to squared, cubed, and higher power progressions:
+acceleration (velocity x velocity's own axis), increasing volatility
+(change x change), changing intensity, compound growth. These are all
+forms of **repetition in the unit domain** — the unit is applied to
+itself repeatedly.
+
+The effect on calibration is that the unit's ticks are no longer linearly
+spaced. A unit² has ticks that grow quadratically — the difference
+between 2² and 3² (5) is not the same as between 1² and 2² (3). The
+self-interacting unit changes the geometry of measurement from linear
+to curved.
+
+This is not fundamentally different from data — multiple values attaching
+to a single unit also represents repeated measurement of the same thing.
+Self-interaction is the fused-unit version of that same pattern. Where
+data says "here are five readings of height," self-interaction says "here
+is a unit that accounts for height changing with height."
+
+**Scaling beyond four terms.** The four-term kernel (Axiom 22) is the
+structure of fusing two grade-1 concepts, producing four directional
+combinations. This limit of four directions holds whenever two
+*different* concepts fuse. But when a unit self-interacts, it can do so
+repeatedly: height² is one self-interaction, height³ is two, and so on.
+Each self-interaction produces another layer of the kernel. The
+directional possibilities are still four per layer (rr, rd, dr, dd), but
+the total number of terms involved scales with the power. A cubic
+self-interaction has more structural elements than a square one, even
+though each step is the same four-term kernel applied again.
+
+This reveals an important asymmetry: fusing two different concepts is
+limited to four directional terms and produces area or rays. Fusing a
+concept with itself is unlimited in depth and produces power
+progressions. Both are genuine fusions — both create new units that
+transcend their components — but self-interaction can build arbitrarily
+deep structures from a single starting unit.
+
+### Axiom 24 — Higher Dimensional Promotion
 
 New dimensions emerge from tension that cannot be expressed at the
 current dimensionality. The recipe is recursive:
@@ -934,11 +1053,13 @@ current dimensionality. The recipe is recursive:
 **0D → 1D:** A single measure frozen as a unit can only measure in one
 direction. When the system encounters information that opposes this
 direction (a second perspective, a feedback disagreement), it creates
-a dual unit. The grade increases to 1. This is the transition from
-"positive values only" to "directed intervals with sign."
+a dual unit. The zero-unit tension (Axiom 7) that signaled the unknown
+dimension is resolved by the new opposing perspective. The grade
+increases to 1. This is the transition from "positive values only" to
+"directed intervals with sign."
 
 **1D → 2D:** Two directed intervals are combined. The four-term kernel
-(Axiom 21) produces area and rays. Area emerges specifically when both
+(Axiom 22) produces area and rays. Area emerges specifically when both
 components share the same dominance pattern (both expanding or both
 contracting). Rays emerge when the patterns are mixed. The grade
 increases to 2.
@@ -956,9 +1077,10 @@ different dominance pattern than the existing entity.
 **The search space collapses.** A machine navigating this system does not
 explore arbitrary axes. It follows the forced path of tension resolution.
 The only new dimensions that appear are those demanded by unresolvable
-tension at the current grade.
+tension at the current grade — signaled by zero-unit values that no
+existing unit can absorb.
 
-### Axiom 23 — Cross-Modal Bonds and Weak Units
+### Axiom 25 — Cross-Modal Bonds and Weak Units
 
 Tension does not discriminate by source. A light sensor with unexplained
 extra readings and a food system with unexplained extra energy can form a
@@ -982,7 +1104,7 @@ exported to any area that needs imported energy to explain something.
 The bond is not a committed unit (Axiom 2) — it is a lifecycle that
 remains in the Manipulate phase, repeatedly negotiating. If the evidence
 supports it, the bond eventually reaches Resolve and becomes a true unit.
-If not, it weakens through the reverse lifecycle (Axiom 11) and
+If not, it weakens through the reverse lifecycle (Axiom 16) and
 disconnects.
 
 ---
@@ -995,7 +1117,7 @@ A network of pins and segments is a network of lifecycle instances
 interleaving and feeding into each other — each resolved symbol becoming
 the observed measure of the next lifecycle.
 
-### Axiom 24 — The Pin
+### Axiom 26 — The Pin
 
 Every structural transition happens at a **pin**. A pin is a lifecycle
 site: the place where observation, experience, manipulation, or resolution
@@ -1011,7 +1133,7 @@ The pin position is a value. The host is structure. The inbound and
 outbound are **generated**: new elements that didn't exist in the inputs.
 The pin is the site of generation.
 
-### Axiom 25 — Merge and Branch
+### Axiom 27 — Merge and Branch
 
 There are exactly two topological events. Everything else is traversal
 along a segment between pins.
@@ -1027,7 +1149,7 @@ forms.
 the **reverse lifecycle**: one thing is captured, cleaved, separated,
 and disconnected into two.
 
-### Axiom 26 — Segments and Flow
+### Axiom 28 — Segments and Flow
 
 A **segment** is a grade-1 composite: `(start, end)`. It has direction
 (recessive → dominant), extent, and is traversable.
@@ -1042,7 +1164,7 @@ physical character of the encounter:
 | **Parallel** | → → | Co-directional. The space between is structure. |
 | **Anti-parallel** | → over ← | Same line, opposite direction. Loop or standing wave. |
 
-### Axiom 27 — Loops
+### Axiom 29 — Loops
 
 A **loop** is a segment whose dominant end is identified with a recessive
 end earlier in the structure: "this end IS that beginning."
@@ -1055,7 +1177,7 @@ A loop creates:
 A loop is a lifecycle that feeds its Resolve phase back into its Observe
 phase. This is self-sustaining structure.
 
-### Axiom 28 — Boundary Conditions from Structure
+### Axiom 30 — Boundary Conditions from Structure
 
 When traversal reaches the end of an axis, it creates tension. **The
 orthogonal structure absorbs or fails to absorb that tension.** The
@@ -1067,9 +1189,9 @@ boundary behavior is determined by what exists on the structural axes:
 | Mirror | **Reflect.** Tension reverses traversal direction. |
 | Expand | **Extend.** The boundary moves outward to accommodate. |
 | Nothing | **Clamp.** Tension stays at the boundary. Accumulates. |
-| Unresolved (u = 0) | **Promote.** Tension cannot be absorbed. May become a new dimensional direction (Axiom 22). |
+| Unresolved (u = 0) | **Promote.** Tension cannot be absorbed. The zero-unit value signals an unknown dimension (Axiom 7). May become a new dimensional direction (Axiom 24). |
 
-### Axiom 29 — Dimensional Transition (Rivers and Lakes)
+### Axiom 31 — Dimensional Transition (Rivers and Lakes)
 
 Structure can vary in dimensionality along traversal. A pin can connect
 segments of different structural freedom:
@@ -1082,7 +1204,7 @@ segments of different structural freedom:
 
 ## Part VIII: Traversal and Time
 
-### Axiom 30 — Traversal
+### Axiom 32 — Traversal
 
 A **mover** is a grade-0 element used as a cursor: `(currentTick, endTick)`.
 The value is the current position. The unit is the route's extent.
@@ -1095,7 +1217,7 @@ Traversal IS the Experience phase made structural. The mover is an
 observer being driven through a route by its internal or external
 structure. The drive to advance — the "clock" — is structure, not will.
 
-### Axiom 31 — Time Is Traversal
+### Axiom 33 — Time Is Traversal
 
 Time is not external. It is what you get when you traverse any ordered
 structure.
@@ -1109,7 +1231,7 @@ the clock:
 
 No seconds, no hours — just positions within a directed structure.
 
-### Axiom 32 — Operations as Pinned Events
+### Axiom 34 — Operations as Pinned Events
 
 Operations are **pins on the traversal route**. An operation attachment
 specifies:
@@ -1124,10 +1246,10 @@ events that produce values as the mover passes through.
 
 ## Part IX: Laws
 
-### Axiom 33 — Laws Are Abilities from the Manipulate Phase
+### Axiom 35 — Laws Are Abilities from the Manipulate Phase
 
 Laws are not external rules. They are the abilities that emerge during
-the Manipulate phase (Axiom 9), formalized and named:
+the Manipulate phase (Axiom 14), formalized and named:
 
 | Law | Derived from | Character |
 |-----|-------------|-----------|
@@ -1142,7 +1264,7 @@ the Manipulate phase (Axiom 9), formalized and named:
 | **Split/Merge** | Attach/disconnect | Branch and join |
 | **Associate** (tension) | Halt/tension | Relate unlike forces. Preserve without resolving. |
 
-### Axiom 34 — Two-Level Law System
+### Axiom 36 — Two-Level Law System
 
 Laws operate at two levels:
 
@@ -1151,11 +1273,12 @@ What the axes "naturally want" to do.
 
 **Explicit law:** Specified by the pin or operation. Can override the
 implicit law. When the explicit law conflicts with what the axes
-naturally support, **tension arises**.
+naturally support, **tension arises** — manifesting as zero-unit values
+on the result (Axiom 7).
 
-### Axiom 35 — The Kernel as Natural Law
+### Axiom 37 — The Kernel as Natural Law
 
-At grade 2+, the four-term multiply kernel (Axiom 21) is the **natural
+At grade 2+, the four-term multiply kernel (Axiom 22) is the **natural
 law** for combining two directed structures.
 
 - `dd` terms → area contribution (aligned)
@@ -1163,11 +1286,15 @@ law** for combining two directed structures.
 - `rd + dr` terms → directed extent contribution (orthogonal)
 - Net result: `(rr + dd)` aligned + `(rd + dr)` orthogonal
 
+When the same unit appears on both sides (self-interaction, Axiom 23),
+the kernel produces power progressions rather than area. The law is the
+same — the structure of the input determines the character of the output.
+
 ---
 
 ## Part X: Views, Frames, and Collections
 
-### Axiom 36 — A View Is Measurement Without Ownership
+### Axiom 38 — A View Is Measurement Without Ownership
 
 A **view** relates a subject to a frame:
 
@@ -1178,18 +1305,20 @@ The frame is a composite. Its recessive child is the **calibration**
 current measurement).
 
 Reading commits the subject to the frame's calibration. The result is a
-new element: the subject as seen through the frame.
+new element: the subject as seen through the frame. A view exercises
+the **measure** mode (Axiom 4) — it reads a fact without modifying it.
 
-### Axiom 37 — Frame-Driven Dispatch
+### Axiom 39 — Frame-Driven Dispatch
 
 When reading through a composite frame, each grade-0 leaf in the frame
 tree determines its own behavior via unit sign:
 
 - **Positive leaf** → value calibration at that position
 - **Negative leaf** → structural organization at that position
-- **Zero leaf** → generative demand at that position
+- **Zero leaf** → generative demand at that position (the frame is
+  requesting information it cannot yet interpret — Axiom 7)
 
-### Axiom 38 — Families
+### Axiom 40 — Families
 
 A **family** is an ordered collection of elements read in one frame:
 
@@ -1199,7 +1328,7 @@ A **family** is an ordered collection of elements read in one frame:
 
 **Focusing** shifts what counts as structure vs value: a member becomes
 the new frame, and the remaining members are reorganized within it.
-Aspects are relational (Axiom 13).
+Aspects are relational (Axiom 8).
 
 ---
 
@@ -1207,27 +1336,28 @@ Aspects are relational (Axiom 13).
 
 ### Theorem 1 — Construction Completeness
 
-From the bootstrap lifecycle (Axioms 15-16), the entire number system
+From the bootstrap lifecycle (Axioms 17-18), the entire number system
 is constructed:
-- Measures -> pinned origins -> frozen unit intervals -> calibrated numbers
+- Measures → pinned origins → frozen unit intervals → calibrated numbers
 - No real numbers assumed. All arithmetic is exact integer operations on
   value/unit pairs.
 - Negative values emerge at grade 1, not grade 0.
 
 ### Theorem 2 — Dimensional Completeness
 
-From the dimensional lifecycle (Axioms 18-22), all dimensions emerge:
+From the dimensional lifecycle (Axioms 20-24), all dimensions emerge:
 - Grade 0: positive measures with a single unit (no direction)
 - Grade 1: directed intervals with dual units (sign exists)
 - Grade 2: the four-term kernel separates into area (2D) and complex
-  lines (1D with rotation)
+  lines (1D with rotation). Self-interaction produces power progressions.
 - Grade 3+: each grade produces the next dimension through symmetry
   breaking of the previous grade's kernel
-- No dimensions are assumed. Each is forced by unresolvable tension.
+- No dimensions are assumed. Each is forced by unresolvable tension,
+  signaled by zero-unit values (Axiom 7).
 
 ### Theorem 3 — Structural Completeness
 
-From lifecycle composition (Axioms 24-29), all topology is constructed:
+From lifecycle composition (Axioms 26-31), all topology is constructed:
 - Merge and branch are the only two topological events
 - All structures are networks of segments connected at pins
 - Loops, boundaries, and dimensional transitions follow from
@@ -1235,7 +1365,7 @@ From lifecycle composition (Axioms 24-29), all topology is constructed:
 
 ### Theorem 4 — Temporal Completeness
 
-From traversal (Axioms 30-32), time emerges:
+From traversal (Axioms 32-34), time emerges:
 - Every ordered structure contains "before" and "after"
 - Traversal actualizes the Experience phase into sequence
 - Causation follows from ordering
@@ -1243,27 +1373,36 @@ From traversal (Axioms 30-32), time emerges:
 ### Theorem 5 — The Aspect Trichotomy Is Exhaustive
 
 Every element in the system plays exactly one of three roles determined
-by its unit sign. The multiplication table (Axiom 14) governs all aspect
-transitions and is closed under composition.
+by its unit sign. The multiplication table (Axiom 9) governs all aspect
+transitions and is closed under composition. The zero-unit role
+(generative) is the bridge between the other two — it is where tension
+lives and where new dimensions originate.
 
 ### Theorem 6 — Lifecycle Universality
 
 Every event in the system is an instance of the four-phase lifecycle
-(Axiom 9) or a composition of such instances:
-- The bootstrap is a lifecycle (Axioms 15-16)
-- Dimensional emergence is a lifecycle per dimension (Axiom 22)
-- Every merge is a forward lifecycle, every branch a reverse (Axiom 25)
-- Every operation is a lifecycle at a pin (Axiom 32)
-- Every view/measurement is a lifecycle (Axiom 36)
-- Every boundary resolution is a lifecycle (Axiom 28)
-- Loops are self-feeding lifecycles (Axiom 27)
-- Cross-modal bonds are lifecycles in the Manipulate phase (Axiom 23)
+(Axiom 14) or a composition of such instances:
+- The bootstrap is a lifecycle (Axioms 17-18)
+- Dimensional emergence is a lifecycle per dimension (Axiom 24)
+- Every merge is a forward lifecycle, every branch a reverse (Axiom 27)
+- Every operation is a lifecycle at a pin (Axiom 34)
+- Every view/measurement is a lifecycle (Axiom 38)
+- Every boundary resolution is a lifecycle (Axiom 30)
+- Loops are self-feeding lifecycles (Axiom 29)
+- Cross-modal bonds are lifecycles in the Manipulate phase (Axiom 25)
 
 ### Theorem 7 — Observer-Structure Duality
 
 The observer perspective and the structural perspective describe the same
 events. Every structural phase has an observer correlate and vice versa.
 No event exists that is purely structural or purely experiential.
+
+### Theorem 8 — Modal Completeness
+
+The four modes of use (Axiom 4) — claim, measure, inspect, act — exhaust
+the ways an element can participate in the system. Every interaction
+between an observer and a number is one of these four modes. The modes
+correspond to but are not constrained by the lifecycle phases.
 
 ---
 
@@ -1275,30 +1414,31 @@ No event exists that is purely structural or purely experiential.
 **Constructed (in order of emergence):**
 1. Frozen origins and frozen unit intervals from measures (Axiom 2)
 2. Elements as composites of origin/value/unit (Axiom 3)
-3. Perspective and direction from opposing calibrations (Axiom 4)
-4. Intervals and negative values from perspective (Axiom 5)
-5. The four-phase lifecycle (Axiom 9)
-6. Dual units from opposing perspectives (Axiom 6)
-7. Grade-1 elements from opposing grade-0 elements (Axiom 7)
-8. Three aspects from unit sign (Axiom 12)
-9. Numbers from calibration to origin/unit pairs (Axiom 16)
-10. Tension as active demand for information (Axiom 17)
-11. Dimensional promotion through tension and opposing perspectives (Axiom 18)
-12. Data vs dual unit representations (Axiom 19)
-13. The four-term kernel: area, anti-area, and complex numbers (Axiom 21)
-14. Higher dimensions from symmetry breaking (Axiom 22)
-15. Cross-modal bonds and weak units (Axiom 23)
-16. Topology from pins, merges, branches (Axioms 24-27)
-17. Boundary behavior from structural absorption (Axiom 28)
-18. Time from traversal of ordered structure (Axiom 31)
-19. Laws from Manipulate-phase abilities (Axiom 33)
+3. Four modes of numeric use: claim, measure, inspect, act (Axiom 4)
+4. Perspective and direction from opposing calibrations (Axiom 5)
+5. Intervals and negative values from perspective (Axiom 6)
+6. Three aspects from unit sign, including zero unit as tension (Axiom 7)
+7. Dual units from opposing perspectives (Axiom 10)
+8. Grade-1 elements from opposing grade-0 elements (Axiom 11)
+9. The four-phase lifecycle (Axiom 14)
+10. Numbers from calibration to origin/unit pairs (Axiom 18)
+11. Tension as active demand for information (Axiom 19)
+12. Dimensional promotion through tension and opposing perspectives (Axiom 20)
+13. The four-term kernel: area, anti-area, and complex numbers (Axiom 22)
+14. Self-interaction and power progressions (Axiom 23)
+15. Higher dimensions from symmetry breaking (Axiom 24)
+16. Cross-modal bonds and weak units (Axiom 25)
+17. Topology from pins, merges, branches (Axioms 26-29)
+18. Boundary behavior from structural absorption (Axiom 30)
+19. Time from traversal of ordered structure (Axiom 33)
+20. Laws from Manipulate-phase abilities (Axiom 35)
 
 Nothing is assumed except that comparable long value measures exist (and
 that not everything is orderable). Everything else — origins, units,
 numbers, direction, sign, dimensions, topology, time, area, complex
-arithmetic, boundary conditions, laws, symbols, and the lifecycle
-itself — is constructed through freezing, observation, experience,
-manipulation, and resolution.
+arithmetic, power progressions, boundary conditions, laws, symbols,
+and the lifecycle itself — is constructed through freezing, observation,
+experience, manipulation, and resolution.
 
 ---
 
@@ -1314,14 +1454,17 @@ and the extent's structure influences how the pin advances.
 minimal sensory system: a creature with a single light sensor. A raw
 reading is a long value measure (Axiom 1). Freezing a reading as origin
 and then freezing an interval as unit creates the first calibrated
-element (Axiom 2). Feedback disagreement creates tension (Axiom 17).
-Routing a second signal to fill the tension creates a dual unit and
-grade-1 structure (Axiom 18). Calibrating "normal change" from two
-grade-1 intervals creates grade-2 structure (Axiom 21). Cross-modal
-associations (light correlating with food) form weak bonds that
-strengthen or dissolve through evidence (Axiom 23). The entire
-dimensional hierarchy emerges from a single sensor interacting with
-its environment, not from stated axes or assumed spaces.
+element (Axiom 2). When heat arrives from a non-light source, it
+registers as a zero-unit value — detectable but not calibratable
+(Axiom 7). Feedback disagreement creates tension (Axiom 19). Routing a
+second signal to fill the tension creates a dual unit and grade-1
+structure (Axiom 20). Calibrating "normal change" from two grade-1
+intervals creates grade-2 structure (Axiom 22). Self-interaction of the
+light unit creates sensitivity to acceleration of light change
+(Axiom 23). Cross-modal associations (light correlating with food) form
+weak bonds that strengthen or dissolve through evidence (Axiom 25). The
+entire dimensional hierarchy emerges from a single sensor interacting
+with its environment, not from stated axes or assumed spaces.
 
 **Grade 2 objects and lossy compression.** A grade-2 unit of change
 (e.g., "normal amount of increase") is composed of two grade-0 values
@@ -1330,4 +1473,4 @@ anything within its resolution — change of pressure, hunger, position.
 But decomposing it does not recover the original measurements: a large
 amount of light with a small change looks the same as a small amount of
 light with a large change, and you might decompose it into pressure or
-position instead of light. Symbol creation is lossy (Axiom 11).
+position instead of light. Symbol creation is lossy (Axiom 16).

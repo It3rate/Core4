@@ -1,20 +1,29 @@
-**Axiom 1: The Primitive Measure**  
-The foundational primitive is a single, isolated measure. A single measure does not possess an implicit zero, it represents a single reading that is uncalibrated.   
-**Axiom 2: The Origin**  
-Before an extent or distance can exist, a single measure must be frozen to act as a fixed origin point.  
-**Axiom 3: The Unit Interval**  
-An interval is created by recording a second measure relative to the frozen origin. Freezing this interval establishes a **unit**—a portable denominator with a fixed magnitude that persists independently of changing values around it.  
-**Axiom 4: Polarity and Perspective**  
-Because units are derived from directed intervals from an origin, they inherently possess direction. Calibrating an interval in the opposite direction establishes a secondary, opposing perspective (e.g., hot vs. cold, or growing vs. shrinking), which is equally valid but structurally inverted.  
-**Axiom 5: Data vs. Fused Structure**  
-Recording multiple values against a single, shared unit produces uncalibrated **data** (sequential arrays), which are fragile and require external rules to interpret. Combining multiple values with differing or opposing units internalizes these rules into a physical, self-describing **fused structure**.  
-**Axiom 6: The Directed Segment (1D Dual-Unit)**  
-Fusing two opposing units—one recessive (e.g., negative offset) and one dominant (e.g., positive offset)—creates a stable dual-unit. This structure inherently represents a bounded range or **directed segment**, allowing calculations like total length to fall out naturally via addition.  
-**Axiom 7: Orthogonality and Area (2D Dual-Units)**  
-Fusing two independent, orthogonal units defines higher-grade 2D structures:
+**Axioms of Multi-Dimensional Structural Fusions**
 
-* **Area:** Fusing two *aligned* orthogonal units (e.g., growing and widening, or shrinking and narrowing) generates positive or negative area.  
-* **Complex Rays:** Fusing two *opposed* orthogonal units (e.g., growing and narrowing) causes the axes to act against each other, generating complex numbers that define a length and angle rather than a bounded area.
+**Axiom 1: The Primitive Measure** The foundational primitive is a single, isolated measure. A single measure does not possess an implicit zero; it represents a single reading that is entirely uncalibrated.
 
-**Axiom 8: Multi-Dimensional Change**  
-To fully describe structural *change* across two dimensions, a system cannot rely on single values; it requires **four values forming two directed segments** (one structural dual-unit per orthogonal axis) to capture both the start and end states of the entire dimensional plane.  
+**Axiom 2: The Origin** Before an extent or distance can exist, a single measure must be frozen to act as a fixed origin point.
+
+**Axiom 3: The Unit Interval** An interval is created by recording a second measure relative to the frozen origin. Freezing this interval establishes a **unit**—a portable denominator with a fixed magnitude that persists independently of changing values around it.
+
+**Axiom 4: Polarity, Perspective, and the Zero Unit** Because units are derived from directed intervals from an origin, they inherently possess direction, establishing dominant and recessive perspectives (e.g., growing vs. shrinking) which are structurally inverted. However, a detected value that cannot be interpreted within these known unit directions manifests as a **Zero Unit (0)**. The Zero Unit acts as an unknown "tension potential"—geometrically orthogonal to the established dimensions, like a value moving on a z-axis slider straight out of a 2D page. This uncalibrated energy seeks resolution by attaching to a newly defined unit that can explain it.
+
+**Axiom 5: The Four Modalities of Number** Once units and intervals are established, numbers dynamically fulfill four observer-dependent intentions:
+
+1. *Claiming* (stating a structural fact, e.g., "There is a segment").  
+2. *Measuring* (recording a new fact against a unit).  
+3. *Inspecting* (interpolating within a structure, e.g., finding a midpoint).  
+4. *Generating* (acting upon another segment to scale or translate it). 
+
+While driven by observer intention, these modalities inherently self-adjust when balancing structural tensions within the system. The system can observe itself, and use all these modalities with local structure, data and tension.
+
+**Axiom 6: Data vs. Fused Structure** Recording multiple values against a single, shared unit produces uncalibrated **data** (sequential arrays), which are fragile and require external rules to interpret. Combining multiple values with differing or opposing units internalizes these rules into a physical, self-describing **fused structure**.
+
+**Axiom 7: The Directed Segment (1D Dual-Unit)** Fusing two opposing units—one recessive and one dominant—creates a stable dual-unit. This structure inherently represents a bounded range or **directed segment**, allowing calculations like total length to fall out naturally via addition.
+
+**Axiom 8: Orthogonality and Area (2D Dual-Units)** Fusing two independent, orthogonal units defines higher-grade 2D structures. Fusing *aligned* orthogonal units generates bounded positive or negative area, while fusing *opposed* orthogonal units causes the axes to act against each other, generating complex rays that define a length and angle.
+
+**Axiom 9: Unit Self-Fusion and Non-Linearity** When a unit pairs and fuses with *itself*, rather than an orthogonal unit, it becomes self-interacting. This internal repetition alters the calibration of the unit so that intervals are no longer linearly spaced. This yields power progressions (squared, cubed) that model dynamically changing attributes such as acceleration, volatility, or changing intensity.
+
+**Axiom 10: Multi-Dimensional Change and Subunit Scaling** To fully describe structural change across two dimensions, a system generally requires four values forming two directed segments (one structural dual-unit per orthogonal axis) to capture both the start and end states of the dimensional plane. However, this subunit fusion is dynamically scalable: expressing change requires fewer subunits if a dimension remains constant, but can scale to involve more than four final elements when self-interacting potentials (powers) multiply the relationships.
+
