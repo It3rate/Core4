@@ -2,73 +2,81 @@ using System.Globalization;
 
 namespace Core4.Engine;
 
-public readonly record struct Ratio(Measure Numerator, Measure Denominator)
+public readonly record struct Ratio(Measure Recessive, Measure Dominant)
 {
-    public static Ratio Zero(Measure denominator) => new(Measure.Zero, denominator);
+    public Measure Numerator => Recessive;
 
-    public bool IsDefined => Denominator.Raw != 0;
+    public Measure Denominator => Dominant;
+
+    public static Ratio Zero(Measure dominant) => new(Measure.Zero, dominant);
+
+    public static Ratio Tension(Measure energy) => new(energy, Measure.Zero);
+
+    public bool IsResolved => Dominant.Raw != 0;
+
+    public bool IsTension => !IsResolved;
 
     public Measure Sign
     {
         get
         {
-            if (!IsDefined || Numerator.Raw == 0)
+            if (!IsResolved || Recessive.Raw == 0)
             {
                 return Measure.Zero;
             }
 
-            return Numerator.Sign == Denominator.Sign ? new Measure(1) : new Measure(-1);
+            return Recessive.Sign == Dominant.Sign ? new Measure(1) : new Measure(-1);
         }
     }
 
-    public Measure Whole => IsDefined ? new Measure(Numerator.Raw / Denominator.Raw) : Measure.Zero;
+    public Measure Whole => IsResolved ? new Measure(Recessive.Raw / Dominant.Raw) : Measure.Zero;
 
-    public Measure Remainder => IsDefined ? new Measure(Numerator.Raw % Denominator.Raw) : Measure.Zero;
+    public Measure Remainder => IsResolved ? new Measure(Recessive.Raw % Dominant.Raw) : Recessive;
 
-    public double Approximate => IsDefined ? (double)Numerator.Raw / Denominator.Raw : 0d;
+    public double Approximate => IsResolved ? (double)Recessive.Raw / Dominant.Raw : 0d;
 
     public Ratio Add(Ratio other)
     {
-        if (!IsDefined || !other.IsDefined)
+        if (IsTension || other.IsTension)
         {
-            return new Ratio(Measure.Zero, Measure.Zero);
+            return Tension(Recessive + other.Recessive);
         }
 
-        if (Denominator == other.Denominator)
+        if (Dominant == other.Dominant)
         {
             return new Ratio(
-                new Measure(checked(Numerator.Raw + other.Numerator.Raw)),
-                Denominator).Normalize();
+                new Measure(checked(Recessive.Raw + other.Recessive.Raw)),
+                Dominant).Normalize();
         }
 
         return new Ratio(
-            new Measure(checked((Numerator.Raw * other.Denominator.Raw) + (other.Numerator.Raw * Denominator.Raw))),
-            new Measure(checked(Denominator.Raw * other.Denominator.Raw))).Normalize();
+            new Measure(checked((Recessive.Raw * other.Dominant.Raw) + (other.Recessive.Raw * Dominant.Raw))),
+            new Measure(checked(Dominant.Raw * other.Dominant.Raw))).Normalize();
     }
 
     public Ratio Multiply(Ratio other)
     {
-        if (!IsDefined || !other.IsDefined)
+        if (IsTension || other.IsTension)
         {
-            return new Ratio(Measure.Zero, Measure.Zero);
+            return Tension(new Measure(checked(Recessive.Raw * other.Recessive.Raw)));
         }
 
         return new Ratio(
-            new Measure(checked(Numerator.Raw * other.Numerator.Raw)),
-            new Measure(checked(Denominator.Raw * other.Denominator.Raw))).Normalize();
+            new Measure(checked(Recessive.Raw * other.Recessive.Raw)),
+            new Measure(checked(Dominant.Raw * other.Dominant.Raw))).Normalize();
     }
 
     public Ratio Normalize()
     {
-        if (!IsDefined || Denominator.Raw > 0)
+        if (IsTension || Dominant.Raw > 0)
         {
             return this;
         }
 
-        return new Ratio(-Numerator, -Denominator);
+        return new Ratio(-Recessive, -Dominant);
     }
 
     public override string ToString() => string.Create(
         CultureInfo.InvariantCulture,
-        $"{Numerator.Raw}/{Denominator.Raw}");
+        $"{Recessive.Raw}/{Dominant.Raw}");
 }

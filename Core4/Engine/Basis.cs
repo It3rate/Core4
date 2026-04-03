@@ -13,13 +13,13 @@ public sealed class Basis
         _pins = ImmutableArray.Create(pin);
     }
 
-    private Basis(Basis first, Basis second)
+    private Basis(Basis recessive, Basis dominant)
     {
-        _inputs = ImmutableArray.Create(first, second);
+        _inputs = ImmutableArray.Create(recessive, dominant);
 
-        var pins = ImmutableArray.CreateBuilder<Pin>(first._pins.Length + second._pins.Length);
-        pins.AddRange(first._pins);
-        pins.AddRange(second._pins);
+        var pins = ImmutableArray.CreateBuilder<Pin>(recessive._pins.Length + dominant._pins.Length);
+        pins.AddRange(recessive._pins);
+        pins.AddRange(dominant._pins);
         _pins = pins.MoveToImmutable();
     }
 
@@ -27,7 +27,9 @@ public sealed class Basis
 
     public bool IsComposite => !IsAtomic;
 
-    public Measure Grade => IsAtomic ? Measure.Zero : new Measure(Math.Max(First.Grade.Raw, Second.Grade.Raw) + 1);
+    public bool IsAtomicPair => IsComposite && Recessive.IsAtomic && Dominant.IsAtomic;
+
+    public Measure Grade => IsAtomic ? Measure.Zero : new Measure(Math.Max(Recessive.Grade.Raw, Dominant.Grade.Raw) + 1);
 
     public Measure PinCount => new(_pins.Length);
 
@@ -39,111 +41,78 @@ public sealed class Basis
 
     public ImmutableArray<Pin> Pins => _pins;
 
-    public Pin Pin => IsAtomic ? _pins[0] : throw new InvalidOperationException("Only atomic bases expose a pinned interval.");
+    public Basis Recessive => IsComposite ? _inputs[0] : this;
 
-    public Carrier Carrier => Pin.Carrier;
+    public Basis Dominant => IsComposite ? _inputs[1] : this;
 
-    public Measure Origin => Pin.Origin;
+    public Measure Potential => IsAtomic
+        ? Absolute(AtomicPin.Delta)
+        : IsSameCarrierPair() && IsOpposedPair() && HasSharedOriginPerCarrier()
+            ? Recessive.Potential + Dominant.Potential
+            : new Measure(checked(Recessive.Potential.Raw * Dominant.Potential.Raw));
 
-    public Measure Anchor => Pin.Anchor;
+    public Ratio Ratio => IsComposite
+        ? new Ratio(Recessive.Potential, Dominant.Potential).Normalize()
+        : Ratio.Tension(Potential);
 
-    public Measure Span => Pin.Delta;
-
-    public Measure Orientation => Pin.Orientation;
-
-    public Basis First => IsComposite ? _inputs[0] : throw new InvalidOperationException("Only composite bases expose a first child.");
-
-    public Basis Second => IsComposite ? _inputs[1] : throw new InvalidOperationException("Only composite bases expose a second child.");
+    public Measure Orientation => IsAtomic ? AtomicPin.Orientation : Measure.Zero;
 
     public bool IsRecessive => IsAtomic && Orientation.Raw < 0;
 
     public bool IsDominant => IsAtomic && Orientation.Raw > 0;
 
+    internal Pin AtomicPin => _pins[0];
+
     public static Basis Freeze(Pin pin) => new(pin);
 
     public static Basis Freeze(Carrier carrier, Measure origin, Measure anchor) => new(new Pin(carrier, origin, anchor));
 
-    public static Basis Fuse(params Pin[] pins)
+    public static Basis Fuse(Pin recessive, Pin dominant, params Pin[] remaining)
     {
-        ArgumentNullException.ThrowIfNull(pins);
+        var bases = new Basis[remaining.Length + 2];
+        bases[0] = Freeze(recessive);
+        bases[1] = Freeze(dominant);
 
-        if (pins.Length == 0)
+        for (var index = 0; index < remaining.Length; index++)
         {
-            throw new ArgumentException("At least one pin is required.", nameof(pins));
+            bases[index + 2] = Freeze(remaining[index]);
         }
 
-        if (pins.Length == 1)
+        var rest = new Basis[Math.Max(0, bases.Length - 2)];
+
+        for (var index = 2; index < bases.Length; index++)
         {
-            return Freeze(pins[0]);
+            rest[index - 2] = bases[index];
         }
 
-        var bases = new Basis[pins.Length];
-
-        for (var index = 0; index < pins.Length; index++)
-        {
-            bases[index] = Freeze(pins[index]);
-        }
-
-        return Fuse(bases);
+        return Fuse(bases[0], bases[1], rest);
     }
 
-    public static Basis Fuse(params Basis[] inputs)
+    public static Basis Fuse(Basis recessive, Basis dominant, params Basis[] remaining)
     {
-        ArgumentNullException.ThrowIfNull(inputs);
+        var fused = new Basis(recessive, dominant);
 
-        if (inputs.Length == 0)
+        for (var index = 0; index < remaining.Length; index++)
         {
-            throw new ArgumentException("At least one basis is required.", nameof(inputs));
+            fused = new Basis(fused, remaining[index]);
         }
 
-        if (inputs.Length == 1)
-        {
-            return inputs[0];
-        }
-
-        if (inputs.Length == 2)
-        {
-            return new(inputs[0], inputs[1]);
-        }
-
-        var next = new List<Basis>((inputs.Length + 1) / 2);
-
-        for (var index = 0; index < inputs.Length; index += 2)
-        {
-            next.Add(index + 1 < inputs.Length
-                ? new Basis(inputs[index], inputs[index + 1])
-                : inputs[index]);
-        }
-
-        return Fuse(next.ToArray());
+        return fused;
     }
 
     public Basis Flip()
     {
         if (IsAtomic)
         {
-            return Freeze(Pin.Flip());
+            return Freeze(AtomicPin.Flip());
         }
 
-        var inputs = new Basis[_inputs.Length];
-
-        for (var index = 0; index < _inputs.Length; index++)
-        {
-            inputs[index] = _inputs[index].Flip();
-        }
-
-        return Fuse(inputs);
+        return Fuse(Recessive.Flip(), Dominant.Flip());
     }
 
-    public Ratio Project(Measure measure)
-    {
-        if (!IsAtomic)
-        {
-            throw new InvalidOperationException("Only atomic bases attach a single measure directly.");
-        }
-
-        return Pin.Project(measure);
-    }
+    public Ratio Project(Measure measure) => IsAtomic
+        ? AtomicPin.Project(measure).Normalize()
+        : Ratio.Tension(measure);
 
     public Attachment Attach(params Measure[] measures) => Attachment.Attach(this, measures);
 
@@ -207,38 +176,55 @@ public sealed class Basis
 
     public bool IsSameCarrierPair()
     {
-        var pair = AsLeafPinPair();
-        return pair.first.Carrier == pair.second.Carrier;
+        if (!IsAtomicPair)
+        {
+            return false;
+        }
+
+        return Recessive.AtomicPin.Carrier == Dominant.AtomicPin.Carrier;
     }
 
     public bool IsAlignedPair()
     {
-        var pair = AsLeafPinPair();
-        return pair.first.Orientation.Raw != 0 && pair.first.Orientation == pair.second.Orientation;
+        if (!IsAtomicPair)
+        {
+            return false;
+        }
+
+        return Recessive.AtomicPin.Orientation.Raw != 0 &&
+               Recessive.AtomicPin.Orientation == Dominant.AtomicPin.Orientation;
     }
 
     public bool IsOpposedPair()
     {
-        var pair = AsLeafPinPair();
-        return pair.first.Orientation.Raw != 0 && pair.first.Orientation == -pair.second.Orientation;
+        if (!IsAtomicPair)
+        {
+            return false;
+        }
+
+        return Recessive.AtomicPin.Orientation.Raw != 0 &&
+               Recessive.AtomicPin.Orientation == -Dominant.AtomicPin.Orientation;
     }
 
     public Measure KernelCode()
     {
-        var pair = AsLeafPinPair();
-
-        return new Measure((SideCode(pair.first) << 1) | SideCode(pair.second));
-    }
-
-    private (Pin first, Pin second) AsLeafPinPair()
-    {
-        if (!IsComposite || !First.IsAtomic || !Second.IsAtomic)
+        if (!IsAtomicPair)
         {
-            throw new InvalidOperationException("This view only applies to a composite pair of atomic bases.");
+            return Measure.Zero;
         }
 
-        return (First.Pin, Second.Pin);
+        var recessive = SideCode(Recessive.AtomicPin);
+        var dominant = SideCode(Dominant.AtomicPin);
+
+        if (recessive < 0 || dominant < 0)
+        {
+            return Measure.Zero;
+        }
+
+        return new Measure((recessive << 1) | dominant);
     }
+
+    private static Measure Absolute(Measure value) => value.Raw < 0 ? -value : value;
 
     private static long SideCode(Pin pin)
     {
@@ -252,6 +238,6 @@ public sealed class Basis
             return 1L;
         }
 
-        throw new InvalidOperationException("A zero-span basis does not resolve to a recessive or dominant side.");
+        return -1L;
     }
 }

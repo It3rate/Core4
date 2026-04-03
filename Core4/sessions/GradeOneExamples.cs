@@ -5,6 +5,17 @@ namespace Core4.Sessions;
 
 public static class GradeOneExamples
 {
+    public static ImmutableArray<(string Name, Basis Basis)> CreateAtomic()
+    {
+        var x = new Carrier(1);
+
+        return
+        [
+            ("atomic", Basis.Freeze(new Pin(x, 0, 10))),
+            ("atomic-shifted", Basis.Freeze(new Pin(x, 100, 110)))
+        ];
+    }
+
     public static ImmutableArray<(string Name, Basis Basis)> Create()
     {
         var x = new Carrier(1);
@@ -60,7 +71,23 @@ public static class GradeOneExamples
         {
             descriptions.Add(
                 $"{name}: grade={basis.Grade.Raw}, pins={basis.PinCount.Raw}, carriers={basis.CarrierCount.Raw}, " +
-                $"sameCarrier={basis.IsSameCarrierPair()}, aligned={basis.IsAlignedPair()}, opposed={basis.IsOpposedPair()}, kernel={basis.KernelCode().Raw}");
+                $"sameCarrier={basis.IsSameCarrierPair()}, aligned={basis.IsAlignedPair()}, opposed={basis.IsOpposedPair()}, kernel={basis.KernelCode().Raw}, " +
+                $"potential={basis.Potential.Raw}, ratio={basis.Ratio.Normalize()}");
+        }
+
+        return descriptions.MoveToImmutable();
+    }
+
+    public static ImmutableArray<string> DescribeAtomic()
+    {
+        var examples = CreateAtomic();
+        var descriptions = ImmutableArray.CreateBuilder<string>(examples.Length);
+
+        foreach (var (name, basis) in examples)
+        {
+            descriptions.Add(
+                $"{name}: grade={basis.Grade.Raw}, pins={basis.PinCount.Raw}, carriers={basis.CarrierCount.Raw}, " +
+                $"potential={basis.Potential.Raw}, ratio={basis.Ratio.Normalize()}, orientation={basis.Orientation.Raw}");
         }
 
         return descriptions.MoveToImmutable();
@@ -75,7 +102,8 @@ public static class GradeOneExamples
         {
             descriptions.Add(
                 $"{name}: grade={basis.Grade.Raw}, pins={basis.PinCount.Raw}, carriers={basis.CarrierCount.Raw}, " +
-                $"sameCarrier={basis.IsSameCarrierPair()}, aligned={basis.IsAlignedPair()}, opposed={basis.IsOpposedPair()}, kernel={basis.KernelCode().Raw}");
+                $"sameCarrier={basis.IsSameCarrierPair()}, aligned={basis.IsAlignedPair()}, opposed={basis.IsOpposedPair()}, kernel={basis.KernelCode().Raw}, " +
+                $"potential={basis.Potential.Raw}, ratio={basis.Ratio.Normalize()}");
         }
 
         return descriptions.MoveToImmutable();

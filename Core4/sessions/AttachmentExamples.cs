@@ -5,6 +5,17 @@ namespace Core4.Sessions;
 
 public static class AttachmentExamples
 {
+    public static ImmutableArray<(string Name, Attachment Attachment)> CreateAtomic()
+    {
+        var bases = GradeOneExamples.CreateAtomic();
+
+        return
+        [
+            (bases[0].Name, bases[0].Basis.Attach(7)),
+            (bases[1].Name, bases[1].Basis.Attach(107))
+        ];
+    }
+
     public static ImmutableArray<(string Name, Attachment Attachment)> Create()
     {
         var bases = GradeOneExamples.Create();
@@ -48,6 +59,19 @@ public static class AttachmentExamples
         return descriptions.MoveToImmutable();
     }
 
+    public static ImmutableArray<string> DescribeAtomic()
+    {
+        var attachments = CreateAtomic();
+        var descriptions = ImmutableArray.CreateBuilder<string>(attachments.Length);
+
+        foreach (var (name, attachment) in attachments)
+        {
+            descriptions.Add($"{name}: {Describe(attachment)}");
+        }
+
+        return descriptions.MoveToImmutable();
+    }
+
     public static ImmutableArray<string> DescribeShiftedOrigins()
     {
         var attachments = CreateShiftedOrigins();
@@ -71,6 +95,7 @@ public static class AttachmentExamples
 
         return
             $"measures=[{string.Join(", ", attachment.Measures.Select(measure => measure.Raw))}], " +
+            $"potential={attachment.Potential.Raw}, ratio={attachment.Ratio.Normalize()}, projection={attachment.Projection.Normalize()}, " +
             $"components=[{componentText}], " +
             $"{DescribeComposite(attachment)}";
     }

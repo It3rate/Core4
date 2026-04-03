@@ -20,7 +20,7 @@ public sealed class Attachment
 
     public bool IsComposite => Basis.IsComposite;
 
-    public bool IsAtomicPair => IsComposite && First.IsAtomic && Second.IsAtomic;
+    public bool IsAtomicPair => Basis.IsAtomicPair;
 
     public Measure MeasureCount => new(_measures.Length);
 
@@ -28,21 +28,29 @@ public sealed class Attachment
 
     public ImmutableArray<Attachment> Inputs => _inputs;
 
-    public Ratio Projection => IsAtomic
-        ? Basis.Pin.Project(_measures[0]).Normalize()
-        : throw new InvalidOperationException("Only atomic attachments expose a single projection.");
+    public Attachment Recessive => IsComposite ? _inputs[0] : this;
 
-    public Attachment First => IsComposite ? _inputs[0] : throw new InvalidOperationException("Only composite attachments expose a first child.");
+    public Attachment Dominant => IsComposite ? _inputs[1] : this;
 
-    public Attachment Second => IsComposite ? _inputs[1] : throw new InvalidOperationException("Only composite attachments expose a second child.");
+    public Ratio Projection => IsAtomic ? Basis.Project(_measures[0]) : Ratio.Tension(Potential);
 
-    public Measure KernelCode => IsAtomicPair ? Basis.KernelCode() : throw new InvalidOperationException("Only atomic pairs expose a kernel code.");
+    public Measure Potential => IsAtomic
+        ? Absolute(Projection.Recessive)
+        : IsSameCarrierPair && IsOpposedPair && HasSharedOriginPerCarrier
+            ? Recessive.Potential + Dominant.Potential
+            : new Measure(checked(Recessive.Potential.Raw * Dominant.Potential.Raw));
 
-    public bool IsSameCarrierPair => IsAtomicPair && Basis.IsSameCarrierPair();
+    public Ratio Ratio => IsComposite
+        ? new Ratio(Recessive.Potential, Dominant.Potential).Normalize()
+        : Ratio.Tension(Potential);
 
-    public bool IsAlignedPair => IsAtomicPair && Basis.IsAlignedPair();
+    public Measure KernelCode => Basis.KernelCode();
 
-    public bool IsOpposedPair => IsAtomicPair && Basis.IsOpposedPair();
+    public bool IsSameCarrierPair => Basis.IsSameCarrierPair();
+
+    public bool IsAlignedPair => Basis.IsAlignedPair();
+
+    public bool IsOpposedPair => Basis.IsOpposedPair();
 
     public bool IsSelfPair => IsSameCarrierPair && IsAlignedPair;
 
@@ -60,25 +68,14 @@ public sealed class Attachment
         return components.MoveToImmutable();
     }
 
-    public Ratio ResolvedCoefficient()
-    {
-        if (!IsAtomicPair)
-        {
-            throw new InvalidOperationException("Only atomic pairs expose a resolved coefficient.");
-        }
-
-        return First.Projection.Multiply(Second.Projection);
-    }
+    public Ratio ResolvedCoefficient() => IsAtomicPair
+        ? Recessive.Projection.Multiply(Dominant.Projection)
+        : Ratio.Tension(Potential);
 
     public ImmutableArray<Ratio> QuadrantCoefficients()
     {
-        if (!IsAtomicPair)
-        {
-            throw new InvalidOperationException("Only atomic pairs expose ordered quadrant coefficients.");
-        }
-
         var resolved = ResolvedCoefficient();
-        var zero = Ratio.Zero(resolved.Denominator);
+        var zero = Ratio.Zero(resolved.Dominant);
         var coefficients = new Ratio[4];
 
         for (var index = 0; index < coefficients.Length; index++)
@@ -86,61 +83,35 @@ public sealed class Attachment
             coefficients[index] = zero;
         }
 
-        coefficients[(int)KernelCode.Raw] = resolved;
+        var kernel = KernelCode.Raw;
+        var slot = kernel >= 0 && kernel < coefficients.Length ? (int)kernel : 0;
+        coefficients[slot] = resolved;
         return coefficients.ToImmutableArray();
     }
 
-    public Measure SegmentStart()
-    {
-        EnsureOpposedSameCarrierPair();
-        return First.Measures[0];
-    }
+    public Measure SegmentStart() => IsSegmentPair() ? Recessive.Measures[0] : Measure.Zero;
 
-    public Measure SegmentPivot()
-    {
-        EnsureOpposedSameCarrierPair();
-        return First.Basis.Origin;
-    }
+    public Measure SegmentPivot() => IsSegmentPair() ? Recessive.Basis.AtomicPin.Origin : Measure.Zero;
 
-    public Measure SegmentEnd()
-    {
-        EnsureOpposedSameCarrierPair();
-        return Second.Measures[0];
-    }
+    public Measure SegmentEnd() => IsSegmentPair() ? Dominant.Measures[0] : Measure.Zero;
 
-    public Measure SegmentSpanMeasure()
-    {
-        EnsureOpposedSameCarrierPair();
-        return SegmentEnd() - SegmentStart();
-    }
+    public Measure SegmentSpanMeasure() => IsSegmentPair() ? SegmentEnd() - SegmentStart() : Potential;
 
-    public Ratio SegmentSpanProjection()
-    {
-        EnsureOpposedSameCarrierPair();
-        return First.Projection.Add(Second.Projection);
-    }
+    public Ratio SegmentSpanProjection() => IsSegmentPair()
+        ? Recessive.Projection.Add(Dominant.Projection)
+        : Ratio.Tension(Potential);
 
-    public static Attachment Attach(Basis basis, params Measure[] measures)
-    {
-        ArgumentNullException.ThrowIfNull(measures);
-
-        return Attach(basis, measures.ToImmutableArray());
-    }
+    public static Attachment Attach(Basis basis, params Measure[] measures) => Attach(
+        basis,
+        measures.ToImmutableArray());
 
     private static Attachment Attach(Basis basis, ImmutableArray<Measure> measures)
     {
-        ArgumentNullException.ThrowIfNull(basis);
-
-        if (measures.Length != basis.PinCount.Raw)
-        {
-            throw new ArgumentException(
-                $"Basis expects {basis.PinCount.Raw} measure(s) but received {measures.Length}.",
-                nameof(measures));
-        }
+        var aligned = AlignMeasures(basis, measures);
 
         if (basis.IsAtomic)
         {
-            return new Attachment(basis, measures, ImmutableArray<Attachment>.Empty);
+            return new Attachment(basis, aligned, ImmutableArray<Attachment>.Empty);
         }
 
         var inputs = ImmutableArray.CreateBuilder<Attachment>(basis.Inputs.Length);
@@ -149,18 +120,27 @@ public sealed class Attachment
         foreach (var input in basis.Inputs)
         {
             var count = (int)input.PinCount.Raw;
-            inputs.Add(Attach(input, measures.Slice(offset, count)));
+            inputs.Add(Attach(input, aligned.Slice(offset, count)));
             offset += count;
         }
 
-        return new Attachment(basis, measures, inputs.MoveToImmutable());
+        return new Attachment(basis, aligned, inputs.MoveToImmutable());
     }
 
-    private void EnsureOpposedSameCarrierPair()
+    private bool IsSegmentPair() => IsAtomicPair && IsSameCarrierPair && IsOpposedPair && HasSharedOriginPerCarrier;
+
+    private static ImmutableArray<Measure> AlignMeasures(Basis basis, ImmutableArray<Measure> measures)
     {
-        if (!IsAtomicPair || !IsSameCarrierPair || !IsOpposedPair || !HasSharedOriginPerCarrier)
+        var count = (int)basis.PinCount.Raw;
+        var aligned = new Measure[count];
+
+        for (var index = 0; index < count; index++)
         {
-            throw new InvalidOperationException("This view only applies to same-carrier opposed atomic pairs with a shared origin.");
+            aligned[index] = index < measures.Length ? measures[index] : Measure.Zero;
         }
+
+        return aligned.ToImmutableArray();
     }
+
+    private static Measure Absolute(Measure value) => value.Raw < 0 ? -value : value;
 }
