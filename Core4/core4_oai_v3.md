@@ -3,11 +3,11 @@
 A rewrite of the Core4 starting axioms with one major change:
 
 The primitive is not an extent.
-The primitive is a measure.
+The primitive is a measure on a common raw substrate.
 
 An extent already has two ends, so it is not primitive enough. It is a later
-construction from at least two measures, even when one of those measures is an
-implicit zero.
+construction from a pinned origin and at least one later measure, even when the
+origin is an implicit zero.
 
 This document takes that change as primary, while preserving the recent Core4
 direction around:
@@ -37,12 +37,13 @@ This does not mean signed space is primitive. It means the measuring system
 already has a local origin, whether explicit or implicit.
 
 To create a true interval, or a signed reading that can go both ways, the
-system must first preserve an origin measure, then compare later measures to it.
+system must first pin an origin measure, then compare later measures to it.
 So the minimal constructive pattern is:
 
-1. freeze an origin
-2. measure outward from that frozen origin
-3. preserve one such interval as a reusable unit
+1. receive raw measures on one substrate
+2. pin an origin
+3. measure outward from that pinned origin
+4. freeze one such outward span as a reusable unit
 
 So what looks like a one-ended number is often shorthand for a hidden
 two-point structure.
@@ -61,11 +62,12 @@ This changes the foundation:
 
 ### Axiom 1 - Primitive Measures
 
-A **measure** is a single reading on one carrier within one local measuring
+A **measure** is a single raw reading on one carrier within one local measuring
 system.
 
 Examples:
 
+- one `long` value in the engine substrate
 - one timer reading
 - one light reading
 - one pressure reading
@@ -73,6 +75,19 @@ Examples:
 
 At the primitive level, a measure is not yet a two-ended extent. It is simply
 "where the system currently reads."
+
+The important point is that all such readings may share one low-level
+representation. We do not need to bootstrap the storage type itself. What needs
+bootstrapping is calibration.
+
+The substrate may already contain finer ticks, but before calibration those
+ticks are not yet usable public resolution. The system may know only:
+
+- this reading is larger
+- this reading is smaller
+- this reading is the same
+
+It does not yet know which distinctions are lawfully reusable as units.
 
 The simplest local system has a default origin and therefore produces
 nonnegative readings only. This is the first useful case:
@@ -82,7 +97,7 @@ nonnegative readings only. This is the first useful case:
 Negative values do not exist yet. There is no "below zero side" until an
 interval with orientation has been constructed.
 
-### Axiom 2 - Extents Are Derived From A Frozen Origin
+### Axiom 2 - Extents Are Derived From A Pinned Origin
 
 An **extent** is not primitive. It is a derived interval:
 
@@ -90,8 +105,7 @@ An **extent** is not primitive. It is a derived interval:
 
 This is true even when the origin is omitted in writing.
 
-But the origin is not just "there." For the structure to be reusable, the
-origin must be frozen first.
+But the origin is not just "there." It must be pinned first.
 
 If the origin is fixed at local zero, then:
 
@@ -112,31 +126,37 @@ So whenever earlier Core4 language spoke of primitive extents, it is more
 accurate to read:
 
 - primitive measure when only one reading is present
-- interval or extent only after two positions are held together
+- interval or extent only after an origin and a later measure are held together
 
-### Axiom 3 - Origin Freeze Precedes Unit Freeze
+### Axiom 3 - The First Unit Is A Frozen Outward Interval
 
-A **unit** is formed when an interval from a frozen origin is preserved for
-reuse.
+A **unit** is formed when one outward interval from a pinned origin is preserved
+for reuse.
 
 The simplest case starts from a local zero:
 
-    origin = Freeze(0)
-    Unit   = Freeze(origin, a)
+    origin = 0    (already pinned)
+    unit   = Freeze(Span(origin, a))
 
 This produces a reusable interval from origin to anchor.
 
 The more general case starts from two observed readings:
 
-    origin = Freeze(a)
-    Unit   = Freeze(origin, b)
+    origin = Pin(a)
+    unit   = Freeze(Span(origin, b))
 
-Now the first reading is preserved as origin, and the interval from that frozen
+Now the first reading is preserved as origin, and the interval from that pinned
 origin to `b` becomes the reusable calibration.
 
 This is the correct pattern for carriers such as temperature, where the useful
 calibration may not come from a metaphysically meaningful zero encountered by
 the system itself.
+
+This is also the first declaration of usable precision. If the committed unit
+has size `10` in the raw substrate, the system is declaring that this interval
+supports ten reusable divisions of precision for this unit family. The raw
+substrate may contain finer distinctions, but until calibration the system has
+not yet exposed them as lawful measurement.
 
 Once frozen, the unit becomes portable:
 
@@ -148,36 +168,36 @@ Once frozen, the unit becomes portable:
 If inspected while unattached, the unit is still just a preserved interval. It
 is not actively measuring anything until a value binds to it.
 
-### Axiom 4 - The Atomic Element Remains A Value/Unit Pair
+### Axiom 4 - Storage May Stay Atomic While Meaning Is Relational
 
-The atomic Core4 element remains:
+The engine may still store a calibrated reading as:
 
     Atomic(v, u)
 
-but its interpretation is now sharper.
+but the bootstrap meaning is relational rather than solitary.
 
-- `u` is a frozen interval
-- `v` is a reading expressed in units of that interval
+At minimum, every calibrated reading implies:
 
-So the atomic element is not "one raw measure plus one extent."
-It is:
+- a pinned origin
+- a frozen unit interval from that origin
+- a current reading expressed against that interval
 
-- one current reading
-- one portable interval used to calibrate that reading
+So the storage may remain atomic, but the meaning is already composite in the
+larger structural sense.
 
 The unit may be free or bound:
 
 - **Free unit:** the interval persists without a current value attached
 - **Bound measurement:** a value is currently being read through the unit
 
-This keeps the atomic leaf small while allowing the unit to be portable and
-reused across many later values.
+This keeps the engine leaf small while allowing the bootstrapping story to stay
+origin-first and interval-first.
 
 ### Axiom 5 - Sign Is Constructed, Not Primitive
 
 Sign appears only after an oriented interval exists.
 
-If the system freezes `a` as origin and calibrates toward `b`, then "positive"
+If the system pins `a` as origin and calibrates toward `b`, then "positive"
 means "in the orientation from `a` toward `b`."
 
 If another system calibrates from `b` to `a`, then the same physical carrier is
@@ -716,9 +736,9 @@ The better distinction is:
 
 A compact statement of the revised growth process is:
 
-1. primitive measure
-2. preserved interval
-3. portable unit
+1. primitive raw measure
+2. pinned origin
+3. first frozen interval / portable unit
 4. calibrated value/unit pair
 5. shared-unit family or history
 6. committed dual-unit relation on one carrier
@@ -756,9 +776,9 @@ Everything else is constructed:
 
 The updated Core4 picture is now:
 
-- the primitive is a measure, not an extent
-- an extent is already a two-point construction
-- a unit is a frozen interval and the first portable frame-capable object
+- the primitive is a measure on a common raw substrate, not an extent
+- an extent is already an origin-plus-endpoint construction
+- a unit is the first frozen outward interval from a pinned origin
 - negative values are constructed from oriented calibration, not given at the
   bottom
 - many values sharing one unit remain data unless their relation is committed
