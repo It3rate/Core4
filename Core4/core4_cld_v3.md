@@ -1,8 +1,8 @@
 # Core4 Axiom System — Version 3
 
-A mathematics bootstrapped from single measures and an implicit zero.
+A mathematics bootstrapped from long values and frozen reference points.
 No real numbers, no stated axes, no assumed dimensions.
-Everything is constructed from measures, frozen intervals,
+Everything is constructed from measures, frozen origins, frozen units,
 opposing perspectives, and the tension between them.
 
 ---
@@ -13,22 +13,27 @@ This is not an axiom — it is a guide to help readers orient themselves
 geometrically as the system unfolds. The grades of this system correspond
 loosely to familiar geometric objects, but with important differences.
 
-**Pre-grade (raw measures).** Before any unit is formed, measures are
-positive values from an implicit zero. They can be compared by size, but
-there is no unit, no resolution, and no interval. You can say one
-measure is bigger than another, but you cannot say how much bigger in
-any reusable way. You cannot measure backwards from zero — there are no
-negative values. A light sensor that has never experienced total darkness
+**Pre-grade (raw measures).** Before any origin or unit is frozen,
+measures are long values — they have inherent ticks (the finest
+distinctions the measuring system can physically produce), but those
+ticks are not usable because the system does not know its own resolution.
+A light sensor detecting single photons has ticks at the photon level,
+but the observing system may have no hope of distinguishing them.
+Measures can be compared by size, but you cannot say how much bigger in
+any reusable way. A light sensor that has never experienced total darkness
 still produces measures. A thermometer that has never reached absolute
 zero still produces measures.
 
-**Grade 0 — the "calibrated measure."** A measure is frozen and declared
-a unit. It is just a regular measure that has been committed to not
-changing, and it persists. Any other measure of the same property can now
-be expressed as a count of this unit. Grade 0 is a single value with a
-single unit, measuring from the implicit zero. It is one-dimensional and
-positive only. You can measure any runner's time, but you cannot measure
-a runner going backwards.
+**Grade 0 — the "element."** An origin is frozen (pinned), and a measure
+is taken from it. Then a second measure is frozen as the unit — a
+declaration of precision ("I can handle 10 divisions" means the unit
+is 10 ticks long). Any other measure from the same origin can now be
+expressed as a count of this unit. In the special case where a natural
+zero exists (a race timer, absolute darkness), the origin comes
+pre-pinned and we only need to freeze the unit. Grade 0 is a single
+value with a single unit, always positive. Every element is composite
+— it is at minimum an origin and a value, even when the origin is
+implicit.
 
 **Grade 1 — the "interval."** Two measures taken from different positions,
 or two units calibrated from different perspectives, create an interval.
@@ -114,25 +119,23 @@ restart the resolution process.
 
 ### Axiom 1 — Measures and Chaos
 
-There exist **measures**: positive comparable magnitudes from an implicit
-zero. A measure has no unit, no resolution, no sign. It is simply "some
-amount" that can be compared to another measure by size. This is the sole
-assumption.
+There exist **measures**: comparable magnitudes represented as long
+values. A measure is a single reading — a light level, a voltage, a
+duration, a weight. This is the sole assumption.
 
-A measure is not an extent with two endpoints. It is a single reading — a
-light level, a voltage, a duration, a weight. We think of extents as
-primitive because we are accustomed to measuring from a convenient zero
-(the height of something, the time of a race), but the zero is implicit
-in the measuring system. A light sensor may never experience total
-darkness. A thermometer may never reach absolute zero. The measure is
-what the sensor reports, and it starts from whatever the sensor's
-natural floor is.
+A measure is not an extent with two endpoints. An extent already has
+structure (a start and an end), so it cannot be primitive. A measure is
+simpler: it is what a sensor reports. It has inherent **ticks** — the
+finest distinctions the physical measuring system can produce — but
+those ticks are not yet usable. The system does not necessarily know
+what its smallest possible measurement is. A sensor detecting single
+photons has ticks at the photon level, but the observing system may have
+no hope of distinguishing them. The ticks are physically real but
+informationally inaccessible until calibration.
 
-Because the zero is implicit and the measure is always from that zero
-upward, **there are no negative values** at this stage. Temperature
-does not go below absolute zero. Absolute darkness does not get darker.
-A runner in a race does not run backwards. Every measure is positive by
-default.
+Measures can be compared by size (this one is bigger than that one), but
+without a frozen reference point, you cannot say how much bigger in any
+reusable way.
 
 Not everything is a measure. Some phenomena are **chaotic** — not
 orderable, not comparable. The system can only observe these; it cannot
@@ -142,76 +145,110 @@ the system is to discover frames that render previously chaotic phenomena
 orderable — but that is never guaranteed, and some residual chaos is
 always acceptable.
 
-We write a measure as a bare value: `a`, `b`, `c`. All are non-negative.
+We write a measure as a bare long value: `a`, `b`, `c`.
 
-### Axiom 2 — The Unit (Freezing a Measure)
+### Axiom 2 — Freezing (The Universal Prerequisite)
 
-A **unit** is a measure that has been frozen: its value is fixed and it
-persists.
+**Freezing** is the act of taking a measure and declaring it permanent —
+its value is fixed and it persists. This is the universal prerequisite
+for creating any structure. Raw measures are just magnitudes. To turn
+them into extents, intervals, or units, you must first freeze a
+reference point.
 
-To create a unit, pick any measure and declare it permanent. That is all.
-The unit is not attached to any particular value at this point. If you
-inspected it, you would find it to be just a regular measure like the
-others, except that it does not change value and it persists through time.
+    Freeze(m) → pinned reference    where m is preserved permanently
 
-    Freeze(m) → u    where u = m, permanently
+Freezing applies at every grade:
+- Freeze a measure as an **origin** before you can create extents from it
+- Freeze an extent as a **unit** before you can calibrate other extents
+- Freeze an area before you can measure larger and smaller areas
+- Freeze a rate before you can measure faster and slower rates
 
-The unit can now be used to express any other measure of the same property
-as a count: "this measure is 3.2 of that unit." This is calibration. The
-unit's magnitude becomes the **resolution** — how fine the measurement
-grid is.
+The act of freezing is what turns the current grade's raw material into
+a reference frame that subsequent material can be expressed against.
 
-We did not create a numerator/denominator relation. We simply took a value
-and froze it, declaring it a denominator. The numerator is whatever measure
-we subsequently compare to it. The unit exists independently, waiting for
-values to attach.
+**Step 1 — Freeze an origin.** To measure anything, you first need a
+zero point. Pin a measure as the origin. All subsequent measures become
+extents from this frozen origin — they now have a start point and a
+direction (away from the origin). Before this freeze, measures were just
+magnitudes with no anchor. After it, they are extents with position.
 
-**Freezing is the universal prerequisite for creating extents.** A raw
-measure is just a magnitude. To turn measures into extents — spans that
-can be compared, combined, and structured — you must first freeze a
-reference point. At grade 0, the frozen measure is the unit (what "one"
-is). When the implicit zero is not available, a frozen measure serves as
-the origin (what "zero" is). At higher grades the same pattern applies:
-freeze an area before measuring larger and smaller areas, freeze a rate
-before measuring faster and slower rates. The act of freezing is what
-turns the current grade's raw material into a reference frame that
-subsequent material can be expressed against.
+**Step 2 — Freeze a unit.** Take one of the extents created by Step 1
+and freeze it, declaring it the unit. This is a **declaration of
+precision**: a unit of magnitude 10 says "I can handle 10 divisions of
+precision." The unit's inherent ticks (from the physical measuring
+system) now become accessible as resolution — the frozen extent defines
+what "one" is, and its tick count defines how finely "one" can be
+subdivided.
 
-**What a single unit cannot do:** A single unit starts from the implicit
-zero and extends in one direction. You can use it to measure any runner's
-time. You cannot use it to measure a runner going in the opposite direction.
+The unit is just a regular measure that has been frozen twice — once as
+part of the origin-to-extent step, and once as the permanent reference.
+If you inspected it, you would find it to be a long value like any other,
+except it does not change and it persists. We did not create a
+numerator/denominator relation. We simply took a value and froze it,
+declaring it a denominator. The numerator is whatever extent we
+subsequently compare to it.
+
+**The default-zero special case.** Some measuring systems come with a
+natural zero — a race timer starts at zero, absolute darkness is zero
+light, an empty scale reads zero weight. In these cases the origin is
+**pre-pinned**: Step 1 is free because there is nothing smaller than
+zero, so only positive values exist. This is common in practice but not
+mathematically significant — it is the same two-step process with the
+first step already done. The important consequence of a pre-pinned zero
+is that **there can only be positive numbers**, because there is nothing
+below the floor to measure. That is interesting but does not affect the
+bootstrap until we explore unit categories more carefully.
+
+**What a single unit cannot do:** A single unit extends from the origin
+in one direction. You can use it to measure any runner's time. You
+cannot use it to measure a runner going in the opposite direction.
 That would be error and tension — a real runner, really being timed, but
 producing values the system cannot express. This is not a flaw; it is the
 honest limitation of a system with one perspective.
 
-### Axiom 3 — The Atomic Element
+### Axiom 3 — The Element
 
-An **atomic element** is a pair `(v, u)` where:
-- `v` is a non-negative integer: the **value** (how many units)
-- `u` is a frozen measure: the **unit** (what "one" is)
+An **element** is a composite of at minimum an origin and a value,
+expressed through a unit:
 
-At this stage, `v` is always non-negative because there is only one
-direction: from the implicit zero toward larger values. The unit
-magnitude `|u|` is the **resolution**: how many ticks compose one unit.
+    Element(origin, value, unit)
 
-An atomic element is **grade 0**: the leaf of all structure.
+- `origin` is a frozen measure: the zero point (where measurement starts)
+- `value` is a non-negative integer: the measurement (how many units from origin)
+- `unit` is a frozen extent: the calibration (what "one" is)
+
+Every element is composite. Even the simplest measurement — "the light
+level is 3" — is composed of an origin (where zero is), a value (3), and
+a unit (what "one" means). When the origin is a pre-pinned default zero,
+we omit it for convenience, but it is structurally present.
+
+At this stage, `value` is always non-negative because there is only one
+direction: from the origin outward. The unit magnitude `|u|` is the
+**resolution**: how many ticks compose one unit — the declaration of
+precision made when the unit was frozen.
+
+A single-unit element is **grade 0**: the simplest complete structure.
 
 ### Axiom 4 — Perspective and Direction
 
 Direction does not come from extents having endpoints. It comes from
-**perspective** — the choice of where to start measuring and which way
+**perspective** — the choice of where to freeze the origin and which way
 to call "increasing."
 
-Consider calibrating a temperature sensor. You take a reading and
-**freeze it** as the origin — just as Axiom 2 freezes a measure into a
-unit, here you freeze a measure into a zero point. Only after the origin
-is frozen can subsequent readings become extents measured from it. If
-you freeze a morning reading (cool) and subsequent readings are warmer,
-larger numbers mean hotter. If someone else freezes an evening reading
-(warm) and subsequent readings are cooler, larger numbers mean colder.
+Consider calibrating a temperature sensor. The sensor produces long
+values — voltages, really — that go up when it is hotter and down when
+it is cooler. To make these useful, you need at least two readings. You
+freeze the first as the origin (Axiom 2, Step 1), and the second reading
+becomes an extent from that origin. Then you freeze that extent as the
+unit (Axiom 2, Step 2), declaring your precision.
+
+If you freeze a morning reading (cool) as origin, subsequent warmer
+readings are positive extents — larger numbers mean hotter. If someone
+else freezes an evening reading (warm) as origin, subsequent cooler
+readings are positive extents — larger numbers mean colder.
 
 Both systems measure temperature correctly. Both have the same physical
-resolution if their intervals are the same size. They can even share
+resolution if their units are the same size. They can even share
 the same zero point. But they are **incompatible** because their units
 point in opposite directions. A formula could convert between them —
 they measure the same underlying physical thing — but that conversion
@@ -232,41 +269,22 @@ are the foundation for everything that follows. We call them:
 These labels are relative. A diver thinks in depth (dominant); a
 mountaineer thinks in height (dominant). Neither is inherently primary.
 The terms simply distinguish the two directions so we can reason about
-their interaction. All composite objects in this system are composed of
+their interaction. All elements in this system are composed of
 these opposing perspectives, because any quantity that can increase can
 also decrease, and the system needs both views.
 
 ### Axiom 5 — The Interval and Negative Values
 
-An **interval** is formed when two measures create a span that includes
-a meaningful zero point between them:
+An **interval** is formed when an origin is frozen and extents are
+measured from it. This is the general case — the standard bootstrap.
 
-**Simple case (implicit zero):** When you measure many runners in a race,
-they all start from zero. You only need one unit and one value per runner.
-The zero is implicit — you do not record it. This is the grade-0 case:
-one unit, one value, always non-negative.
-
-**General case (explicit origin):** You take a reading from a temperature
-sensor and **freeze it** as the origin — a permanent zero point. This is
-the same act as Axiom 2 (freezing a measure), but here the frozen measure
-serves as a reference position rather than a unit size. Only after the
-origin is frozen can subsequent readings become extents measured from it.
-The difference between a new reading and the frozen origin is an extent,
-and for the first time, **negative values exist** — a reading below the
-frozen origin is negative relative to it.
-
-This is a universal pattern: **you always freeze before you can create
-extents.** At grade 0, you freeze a measure to create a unit, and other
-measures become counts of that unit. At grade 0 with a non-default zero,
-you freeze a measure to create an origin, and other measures become
-extents from it. At grade 2, you would freeze an area before you could
-measure larger and smaller areas. The act of freezing is what turns raw
-measures into a reference frame that subsequent measures can be expressed
-against.
-
-Both cases require an interval with two numbers. In the simple case, the
-first number is always zero (the implicit floor), so we omit it. In the
-general case, both numbers matter.
+**General case (frozen origin):** You freeze a reading as the origin
+(Axiom 2, Step 1). Subsequent readings become extents from that origin.
+You freeze one of those extents as the unit (Axiom 2, Step 2). Now you
+can measure calibrated values. But because the frozen origin is not at
+the bottom of the physical scale, readings can fall below it. For the
+first time, **negative values exist** — a reading below the frozen origin
+is negative relative to it.
 
 There is an assumption hidden here: we assume subsequent measures are
 larger than the frozen origin, establishing which direction is "positive."
@@ -275,9 +293,23 @@ direction, they get an equally valid system that points the other way
 (Axiom 4). Both work, but they are incompatible without explicit
 conversion.
 
+**Special case (pre-pinned zero):** Some measuring systems come with a
+natural floor — a race timer starts at zero, absolute darkness is zero
+light, an empty scale reads zero weight. In these cases the origin is
+pre-pinned: Step 1 of Axiom 2 is free. You only need to freeze a unit.
+Because there is nothing below the floor, there can only be positive
+numbers. This is common in everyday measurement (timing races, weighing
+objects) but it is the special case, not the general one. Mathematically
+the system is the same — it is just that one step has been done for you,
+and the constraint "no negative values" comes as a side effect.
+
+Both cases produce an element with an origin, a value, and a unit
+(Axiom 3). In the special case the origin is zero and omitted. In the
+general case both the origin and value matter.
+
 Negative values are not a fundamental feature of measures. They are an
 artifact of perspective — the consequence of having chosen an origin that
-is not at the implicit zero.
+is not at the physical floor.
 
 ---
 
@@ -324,36 +356,37 @@ components. The recessive component measures how far below the boundary,
 the dominant measures how far above. The boundary itself is the zero of
 the dual unit.
 
-### Axiom 7 — The Composite Element (Grade 1)
+### Axiom 7 — Grade Increase (Grade 1)
 
-A **composite element** is a pair of two grade-0 elements measured in
+A **grade-1 element** is a pair of two grade-0 elements measured in
 opposing units:
 
-    Composite(recessive, dominant)
+    Grade1(recessive, dominant)
 
-where the recessive and dominant are each atomic `(v, u)` pairs whose
-units point in opposite directions. The composite's grade is
-`children's grade + 1`.
+where the recessive and dominant are each grade-0 elements whose units
+point in opposite directions. The grade is `children's grade + 1`.
 
 - **Recessive**: the reference side, the context, the "before"
 - **Dominant**: the applied side, the measured, the "after"
 
 This is the structure that dual units measure. A grade-1 element has two
-independent atomic children, each with its own value and unit. The
-identity of the composite is in the relationship between its two
-endpoints — a directed interval from recessive to dominant.
+grade-0 children, each with its own value and unit. The identity of
+the grade-1 element is in the relationship between its two components —
+a directed interval from recessive to dominant.
 
-**Why opposition is required:** Two elements with same-direction units
-are in the same space. Combining them adds within that space but does
-not create a new grade of structure. Same-unit, same-direction values
-are just data — a list of measures sharing a calibration. To build a
-composite that represents a genuinely new structural level, the two
-children must carry opposing perspectives. The recessive provides the
-reference frame and the dominant provides the measurement against it.
+Since every element is already composite (Axiom 3 — even a grade-0
+element has origin, value, and unit), what distinguishes a grade increase
+is not the introduction of composition but the introduction of
+**opposing perspectives**. Two elements with same-direction units are in
+the same space. Combining them adds within that space but does not create
+a new grade of structure. Same-unit, same-direction values are just
+data — a list of measures sharing a calibration. To increase the grade,
+the two children must carry opposing perspectives. The recessive provides
+the reference frame and the dominant provides the measurement against it.
 
-This is the only way to build higher-grade structure. A grade-1 element
-has two atomic children. A grade-2 element has two grade-1 children
-(four atomic leaves). Grade N has 2^N atomic leaves.
+This is the only way to increase grade. A grade-1 element has two
+grade-0 children. A grade-2 element has two grade-1 children (four
+grade-0 leaves). Grade N has 2^N grade-0 leaves.
 
 ### Axiom 8 — Ordering and Direction
 
@@ -538,7 +571,7 @@ is context dependent.
 
 ### Axiom 12 — Unit Sign Determines Aspect
 
-The sign of an atomic element's unit determines its **aspect** — its
+The sign of an element's unit determines its **aspect** — its
 physical role in any encounter:
 
 | Unit sign | Aspect | Meaning |
@@ -576,80 +609,110 @@ Key physical implications:
 
 ---
 
-## Part V: Bootstrap — The First Lifecycle Instance
+## Part V: Bootstrap - The First Lifecycle Instance
 
 The number system is the first complete run of the lifecycle.
 
-### Axiom 15 — Measures as the Starting Point (Observe Phase)
+### Axiom 15 - Measures and the Pinned Origin (Observe Phase)
 
-A system begins with raw measures — positive values from an implicit
-zero. These are the sensor readings, the durations, the magnitudes. They
-can be compared (this one is bigger than that one) but not calibrated
-(we cannot say how much bigger in reusable terms).
+A system begins with raw measures on one common substrate - for example
+long values produced by a sensor, timer, or counter. At this stage the
+values are only ordered magnitudes. They can be compared (this one is
+bigger than that one) but not yet calibrated in any reusable way.
+
+The substrate may already contain ticks, but those ticks are not yet a
+usable public resolution. Before calibration, the system does not know
+which distinctions it can lawfully preserve and reuse as measurement.
+A raw value may represent a physically tiny difference that the observer
+cannot actually resolve in practice.
 
 This is the Observe phase: the system is receiving information passively.
-A light sensor detects some amount of light. It can use the energy from
-the light it detects, but it cannot understand whether the reading is
-large or small because it has nothing to compare against in a lasting way.
+A light sensor detects some amount of light. It can react to that input,
+but it cannot yet say how much light there is in a portable way.
 
-Multiple measures can be observed. Many runners can be timed. Many
-temperatures can be recorded. But without a unit, these are just raw
-magnitudes — comparable in the moment but not systematically.
+To bootstrap measurement, the first structural act is to pin an origin.
+In a race timer or simple counter, that origin may come already pinned as
+the default zero. In a temperature-like system, the origin may need to be
+chosen explicitly by freezing some reading. Mathematically these are the
+same pattern; the default-zero case is only the special case where the
+origin arrives pre-pinned.
 
-### Axiom 16 — Unit Formation (Experience + Manipulate + Resolve)
+### Axiom 16 - Origin Pinning and First Unit Formation (Experience + Manipulate + Resolve)
 
-A measure can be **frozen** into a unit. This is the Experience,
-Manipulate, and Resolve phases running in sequence.
+Measurement becomes calibrated when the system first fixes an origin and
+then freezes one outward interval from that origin as a reusable unit.
+This is the Experience, Manipulate, and Resolve phases running in sequence.
 
-**Step 1 — Experience provides context (Phase 2).** Multiple measures
-are observed over time or across instances. The system experiences
-variation — some readings are higher, some lower. This traversal through
-different values is the experiential basis for wanting a reference point.
+**Step 1 - Experience provides candidate distinction (Phase 2).**
+Multiple raw measures are encountered over time or across instances. The
+system experiences variation - some readings are higher, some lower. This
+variation is the basis for wanting a stable reference.
 
-**Step 2 — Manipulation selects a reference (Phase 3).** Some measure is
-chosen as the reference. This may be driven by physics (the most common
-reading, the first reading, the reading at some notable event) or by
-engineering (an arbitrary but convenient value). The selection is an act
-of manipulation — the system is writing to its own structure.
+**Step 2 - Manipulation pins an origin (Phase 3).** Some reading is
+selected and fixed as the origin. This may be the default zero supplied by
+the measuring situation, or it may be an explicitly frozen reading. At
+this point the system has a reference position, but not yet a portable
+measurement interval.
+
+**Step 3 - Resolution freezes the first unit interval (Phase 4).** A
+second reading is taken relative to the pinned origin, and the span from
+origin to that reading is committed as the first unit. This is the first
+portable declaration of precision: "this much difference counts as one."
 
 > In reality this may be enacted by physics or biology. In this system
 > it is future machines made of these values, structures and laws.
 > 'Averaging' may be a good first approximation.
 
-**Step 3 — Resolution commits the unit (Phase 4).** The chosen measure
-is frozen — it commits to **not changing value**. It becomes the unit.
-This is irreversible in the sense that the unit now persists independently
-of the values that motivated its creation.
+The unit is therefore not a primitive extent and not a ratio that existed
+in advance. It is the first preserved interval produced after origin
+pinning:
 
-The frozen measure IS the unit. It is not a ratio of two things. It is
-a single value that has been declared permanent. The numerator is whatever
-measure you subsequently compare to it.
+    origin = Pin(m0)
+    unit   = Freeze(Span(origin, m1))
 
-    Freeze(m) → u
-    Compare(reading, u) → v    (v = reading / u)
+Once this interval is frozen, later readings can be calibrated by how many
+such unit spans they contain from the same origin and in the same
+orientation:
 
-Once a unit exists and is independent, other measures can be **calibrated**
-to it:
+    Calibrate(reading, origin, unit) -> v
 
-    measure.CalibrateWith(unit) → calibrated value
+This is why creating a unit of size 10 is a declaration of usable
+precision. The raw substrate may always have contained finer ticks, but
+until the unit is committed the system has not yet declared what one
+meaningful reusable division is.
 
-Calibration reexpresses a measure in terms of the unit's resolution.
-The measure becomes a **number**: a value expressed in terms of the
-self-declared "one." Numbers are born from units, not the reverse.
+In the default-zero case, the pinned origin is supplied for free, so the
+construction appears simpler:
+
+    origin = 0    (already pinned)
+    unit   = Freeze(Span(0, m1))
+
+But this is not a different mathematics. It is the same origin-first
+pattern with one step hidden by the situation.
+
+Once an origin/unit pair exists and is independent, other measures can be
+**calibrated** to it:
+
+    measure.CalibrateWith(origin, unit) -> calibrated value
+
+Calibration reexpresses a raw measure in terms of the committed interval.
+The measure becomes a **number**: a value expressed in terms of a portable
+"one" anchored to a pinned origin. Numbers are born from frozen intervals,
+not the reverse.
 
 The complete bootstrap lifecycle:
-1. **Observe:** Receive raw measures (Axiom 15)
+1. **Observe:** Receive raw substrate measures (Axiom 15)
 2. **Experience:** Encounter variation across measures (Axiom 16, Step 1)
-3. **Manipulate:** Select a reference measure (Axiom 16, Step 2)
-4. **Resolve:** Freeze the reference into a permanent unit (Axiom 16, Step 3)
-5. Others calibrate to the unit → numbers
+3. **Manipulate:** Pin an origin (Axiom 16, Step 2)
+4. **Resolve:** Freeze the first outward interval as a unit (Axiom 16, Step 3)
+5. Others calibrate to the origin/unit pair -> numbers
 
-From "positive comparable measures exist" alone, the number system is
-constructed. At this stage all numbers are non-negative.
+From raw comparable measures alone, the number system is constructed.
+In default-zero systems the first calibrated numbers are non-negative.
 
 ---
 
-## Part VI: Dimensional Emergence — Perspectives and Tension
+## Part VI: Dimensional Emergence - Perspectives and Tension
 
 Dimensions are not stated. They **emerge** from tension that cannot
 be expressed at the current dimensionality. Each dimensional increase
@@ -1021,7 +1084,7 @@ segments of different structural freedom:
 
 ### Axiom 30 — Traversal
 
-A **mover** is an atomic element used as a cursor: `(currentTick, endTick)`.
+A **mover** is a grade-0 element used as a cursor: `(currentTick, endTick)`.
 The value is the current position. The unit is the route's extent.
 
 Traversal is the act of advancing the mover from tick 0 to tick `endTick`.
@@ -1119,7 +1182,7 @@ new element: the subject as seen through the frame.
 
 ### Axiom 37 — Frame-Driven Dispatch
 
-When reading through a composite frame, each atomic leaf in the frame
+When reading through a composite frame, each grade-0 leaf in the frame
 tree determines its own behavior via unit sign:
 
 - **Positive leaf** → value calibration at that position
@@ -1146,7 +1209,7 @@ Aspects are relational (Axiom 13).
 
 From the bootstrap lifecycle (Axioms 15-16), the entire number system
 is constructed:
-- Measures → frozen units → calibrated numbers
+- Measures -> pinned origins -> frozen unit intervals -> calibrated numbers
 - No real numbers assumed. All arithmetic is exact integer operations on
   value/unit pairs.
 - Negative values emerge at grade 1, not grade 0.
@@ -1207,18 +1270,18 @@ No event exists that is purely structural or purely experiential.
 ## Summary: What Is Assumed vs What Is Constructed
 
 **Assumed:**
-- Positive comparable measures from an implicit zero exist (Axiom 1)
+- Comparable long value measures exist (Axiom 1)
 
 **Constructed (in order of emergence):**
-1. Units from freezing measures (Axiom 2)
-2. Atomic elements with value/unit pairs, non-negative (Axiom 3)
+1. Frozen origins and frozen unit intervals from measures (Axiom 2)
+2. Elements as composites of origin/value/unit (Axiom 3)
 3. Perspective and direction from opposing calibrations (Axiom 4)
 4. Intervals and negative values from perspective (Axiom 5)
 5. The four-phase lifecycle (Axiom 9)
 6. Dual units from opposing perspectives (Axiom 6)
-7. Grade-1 composite elements (Axiom 7)
+7. Grade-1 elements from opposing grade-0 elements (Axiom 7)
 8. Three aspects from unit sign (Axiom 12)
-9. Numbers from calibration to frozen units (Axiom 16)
+9. Numbers from calibration to origin/unit pairs (Axiom 16)
 10. Tension as active demand for information (Axiom 17)
 11. Dimensional promotion through tension and opposing perspectives (Axiom 18)
 12. Data vs dual unit representations (Axiom 19)
@@ -1230,12 +1293,12 @@ No event exists that is purely structural or purely experiential.
 18. Time from traversal of ordered structure (Axiom 31)
 19. Laws from Manipulate-phase abilities (Axiom 33)
 
-Nothing is assumed except that positive measures from an implicit zero
-exist (and that not everything is orderable). Everything else — units,
+Nothing is assumed except that comparable long value measures exist (and
+that not everything is orderable). Everything else — origins, units,
 numbers, direction, sign, dimensions, topology, time, area, complex
 arithmetic, boundary conditions, laws, symbols, and the lifecycle
-itself — is constructed through observation, experience, manipulation,
-and resolution.
+itself — is constructed through freezing, observation, experience,
+manipulation, and resolution.
 
 ---
 
@@ -1249,8 +1312,9 @@ and the extent's structure influences how the pin advances.
 
 **The sensory grounding.** The bootstrap can be understood through a
 minimal sensory system: a creature with a single light sensor. A raw
-reading is a measure (Axiom 1). Freezing a typical reading creates a
-unit (Axiom 2). Feedback disagreement creates tension (Axiom 17).
+reading is a long value measure (Axiom 1). Freezing a reading as origin
+and then freezing an interval as unit creates the first calibrated
+element (Axiom 2). Feedback disagreement creates tension (Axiom 17).
 Routing a second signal to fill the tension creates a dual unit and
 grade-1 structure (Axiom 18). Calibrating "normal change" from two
 grade-1 intervals creates grade-2 structure (Axiom 21). Cross-modal
