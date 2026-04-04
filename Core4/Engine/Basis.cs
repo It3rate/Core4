@@ -2,6 +2,11 @@ using System.Collections.Immutable;
 
 namespace Core4.Engine;
 
+/// <summary>
+/// A frozen relation, or a frozen fusion of relations. Because a basis is also a support, placements can travel
+/// along it by ratio just like they do on a carrier.
+/// Example: <c>var segment = Basis.Fuse(leftBasis, rightBasis); var point = segment.Place(new Ratio(1, 2));</c>
+/// </summary>
 public sealed class Basis : ISupport
 {
     private readonly ImmutableArray<Basis> _inputs;

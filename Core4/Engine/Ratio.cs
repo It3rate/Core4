@@ -2,6 +2,11 @@ using System.Globalization;
 
 namespace Core4.Engine;
 
+/// <summary>
+/// An ordered recessive/dominant relation. <c>m/0</c> carries unresolved tension, while <c>m/u</c> is a resolved
+/// relation against a denominator. This is the shared numeric form behind placement, projection, and slot state.
+/// Example: <c>var halfway = new Ratio(5, 10);</c>
+/// </summary>
 public readonly record struct Ratio(Measure Recessive, Measure Dominant)
 {
     public Measure Numerator => Recessive;

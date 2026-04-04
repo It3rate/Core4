@@ -2,6 +2,12 @@ using System.Collections.Immutable;
 
 namespace Core4.Engine;
 
+/// <summary>
+/// The finite local field at one site. For the current two-carrier engine this exposes four slots:
+/// aligned recessive, aligned dominant, orthogonal recessive, and orthogonal dominant.
+/// Slots stay numeric, so open <c>0/0</c>, unresolved <c>m/0</c>, and committed <c>m/u</c> all share one form.
+/// Example: <c>var field = SiteField.Open.Add(1, Ratio.Tension(10));</c>
+/// </summary>
 public readonly record struct SiteField(
     Ratio AlignedRecessive,
     Ratio AlignedDominant,

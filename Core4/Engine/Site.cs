@@ -1,5 +1,10 @@
 namespace Core4.Engine;
 
+/// <summary>
+/// A local place where connection can happen. A site has a placement on some support and a four-slot local field
+/// describing what is open, unresolved, or committed there.
+/// Example: <c>var site = Site.Open(x, 0).Load(1, Ratio.Tension(10));</c>
+/// </summary>
 public readonly record struct Site(Placement Placement, SiteField Field)
 {
     public static Site Open(Carrier carrier, Measure location) => new(carrier.At(location), SiteField.Open);

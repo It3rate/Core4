@@ -1,5 +1,10 @@
 namespace Core4.Engine;
 
+/// <summary>
+/// A live ordered coupling between two sites on a chosen carrier. Freezing a relation produces the first reusable
+/// basis, while leaving it live keeps it available for negotiation or future dynamic motion.
+/// Example: <c>var relation = origin.Relate(anchor);</c>
+/// </summary>
 public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor)
 {
     public Relation(Site origin, Site anchor) : this(origin.Carrier, origin, anchor)

@@ -2,6 +2,11 @@ using System.Globalization;
 
 namespace Core4.Engine;
 
+/// <summary>
+/// The primitive Core4 reading. All canonical numeric storage stays wrapped as a measure so the backing type
+/// can change later without changing the engine vocabulary.
+/// Example: <c>var heat = new Measure(10);</c>
+/// </summary>
 public readonly record struct Measure(long Raw)
 {
     public static Measure Zero => new(0);

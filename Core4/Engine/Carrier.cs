@@ -2,6 +2,10 @@ using System.Globalization;
 
 namespace Core4.Engine;
 
+/// <summary>
+/// A primitive support: a directly traversable axis that can host exact placements and frozen relations.
+/// Example: <c>var x = new Carrier(1); var point = x.At(10);</c>
+/// </summary>
 public readonly record struct Carrier(long Id) : ISupport
 {
     public Carrier PrimaryCarrier => this;

@@ -2,6 +2,11 @@ using System.Collections.Immutable;
 
 namespace Core4.Engine;
 
+/// <summary>
+/// A basis-wide binding of live sites into a frozen basis. This is not a single local place; it is a read of one
+/// whole basis through one site per atomic relation slot.
+/// Example: <c>var reading = basis.Attach(5, 4);</c>
+/// </summary>
 public sealed class Attachment
 {
     private readonly ImmutableArray<Site> _sites;
