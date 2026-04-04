@@ -34,6 +34,8 @@ public sealed class Attachment
 
     public ImmutableArray<Measure> Measures => _sites.Select(site => site.Location).ToImmutableArray();
 
+    public ImmutableArray<Placement> Placements => _sites.Select(site => site.Placement).ToImmutableArray();
+
     public Ratio Projection => IsAtomic ? Basis.Project(_sites[0]) : Ratio.Tension(Potential);
 
     public Measure Potential => IsAtomic

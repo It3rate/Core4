@@ -1,5 +1,12 @@
 using Core4.Sessions;
 
+Console.WriteLine("Site field examples");
+foreach (var line in SiteExamples.Describe())
+{
+    Console.WriteLine(line);
+}
+
+Console.WriteLine();
 Console.WriteLine("Atomic basis examples");
 foreach (var line in GradeOneExamples.DescribeAtomic())
 {

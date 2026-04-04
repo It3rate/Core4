@@ -1,24 +1,37 @@
 namespace Core4.Engine;
 
-public readonly record struct Relation(Site Origin, Site Anchor)
+public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor)
 {
-    public Carrier Carrier => Origin.Carrier;
+    public Relation(Site origin, Site anchor) : this(origin.Carrier, origin, anchor)
+    {
+    }
 
-    public Measure Delta => Anchor.Location - Origin.Location;
+    public Ratio OriginPosition => Origin.On(Carrier);
 
-    public Measure Orientation => Delta.Sign;
+    public Ratio AnchorPosition => Anchor.On(Carrier);
 
-    public Measure Potential => Absolute(Delta);
+    public Ratio Span => AnchorPosition.Subtract(OriginPosition).Normalize();
 
-    public Relation Flip() => new(Anchor, Origin);
+    public Measure Delta => Span.Recessive;
 
-    public Ratio Project(Site site) => site.Carrier == Carrier
-        ? new Ratio(site.Location - Origin.Location, Delta).Normalize()
-        : Ratio.Tension(site.Potential);
+    public Measure Orientation => Span.Recessive.Sign;
+
+    public Measure Potential => Span.Potential;
+
+    public Relation Flip() => new(Carrier, Anchor, Origin);
+
+    public Ratio Project(Site site)
+    {
+        var sitePosition = site.On(Carrier);
+        var delta = sitePosition.Subtract(OriginPosition);
+        return delta.Divide(Span);
+    }
 
     public Ratio Project(Measure measure) => Project(Site.Open(Carrier, measure));
 
-    public Basis Freeze() => Basis.Freeze(this);
+    public Ratio Locate(Ratio position, Carrier carrier) => carrier == Carrier
+        ? OriginPosition.Add(Span.Multiply(position)).Normalize()
+        : Ratio.Tension(position.Potential);
 
-    private static Measure Absolute(Measure value) => value.Raw < 0 ? -value : value;
+    public Basis Freeze() => Basis.Freeze(this);
 }

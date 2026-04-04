@@ -92,9 +92,14 @@ public static class AttachmentExamples
             ", ",
             components.Select(component =>
                 $"{component.Normalize()} sign={component.Sign.Raw} whole={component.Whole.Raw} rem={component.Remainder.Raw} approx={component.Approximate:0.###}"));
+        var siteText = string.Join(
+            ", ",
+            attachment.Sites.Select(site =>
+                $"pos={site.Position.Normalize()} on={site.On(site.Carrier).Normalize()} slots=[{string.Join(", ", site.Field.Slots().Select(slot => slot.Normalize().ToString()))}]"));
 
         return
             $"measures=[{string.Join(", ", attachment.Measures.Select(measure => measure.Raw))}], " +
+            $"sites=[{siteText}], " +
             $"potential={attachment.Potential.Raw}, ratio={attachment.Ratio.Normalize()}, projection={attachment.Projection.Normalize()}, " +
             $"components=[{componentText}], " +
             $"{DescribeComposite(attachment)}";

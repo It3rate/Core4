@@ -6,7 +6,11 @@ public readonly record struct Measure(long Raw)
 {
     public static Measure Zero => new(0);
 
+    public static Measure One => new(1);
+
     public Measure Sign => new(Raw < 0 ? -1L : Raw > 0 ? 1L : 0L);
+
+    public Measure Absolute => Raw < 0 ? -this : this;
 
     public static Measure operator +(Measure left, Measure right) => new(left.Raw + right.Raw);
 

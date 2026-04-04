@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace Core4.Engine;
 
-public sealed class Basis
+public sealed class Basis : ISupport
 {
     private readonly ImmutableArray<Basis> _inputs;
     private readonly ImmutableArray<Relation> _relations;
@@ -30,6 +30,10 @@ public sealed class Basis
     public bool IsAtomicPair => IsComposite && Recessive.IsAtomic && Dominant.IsAtomic;
 
     public Measure Grade => IsAtomic ? Measure.Zero : new Measure(Math.Max(Recessive.Grade.Raw, Dominant.Grade.Raw) + 1);
+
+    public Carrier PrimaryCarrier => _relations.IsEmpty ? new Carrier(0) : _relations[0].Carrier;
+
+    public Measure SupportGrade => Grade;
 
     public Measure RelationCount => new(_relations.Length);
 
@@ -66,10 +70,13 @@ public sealed class Basis
     public static Basis Freeze(Relation relation) => new(relation);
 
     public static Basis Freeze(Carrier carrier, Measure origin, Measure anchor) => new(new Relation(
+        carrier,
         Site.Open(carrier, origin),
         Site.Open(carrier, anchor)));
 
     public static Basis Freeze(Site origin, Site anchor) => new(new Relation(origin, anchor));
+
+    public static Basis Freeze(Carrier carrier, Site origin, Site anchor) => new(new Relation(carrier, origin, anchor));
 
     public static Basis Fuse(Relation recessive, Relation dominant, params Relation[] remaining)
     {
@@ -107,6 +114,21 @@ public sealed class Basis
     public Basis Flip() => IsAtomic
         ? Freeze(AtomicRelation.Flip())
         : Fuse(Recessive.Flip(), Dominant.Flip());
+
+    public Ratio Locate(Ratio position, Carrier carrier)
+    {
+        if (IsAtomic)
+        {
+            return AtomicRelation.Locate(position, carrier);
+        }
+
+        if (IsAtomicPair && IsSameCarrierPair() && IsOpposedPair() && HasSharedOriginPerCarrier())
+        {
+            return LocateSegment(position, carrier);
+        }
+
+        return Ratio.Tension(position.Potential);
+    }
 
     public Ratio Project(Site site) => IsAtomic
         ? AtomicRelation.Project(site)
@@ -220,5 +242,17 @@ public sealed class Basis
         }
 
         return -1L;
+    }
+
+    private Ratio LocateSegment(Ratio position, Carrier carrier)
+    {
+        if (Recessive.AtomicRelation.Carrier != carrier || Dominant.AtomicRelation.Carrier != carrier)
+        {
+            return Ratio.Tension(position.Potential);
+        }
+
+        var start = Recessive.AtomicRelation.AnchorPosition;
+        var end = Dominant.AtomicRelation.AnchorPosition;
+        return start.Add(end.Subtract(start).Multiply(position)).Normalize();
     }
 }

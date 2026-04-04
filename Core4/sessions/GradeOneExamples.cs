@@ -72,7 +72,7 @@ public static class GradeOneExamples
             descriptions.Add(
                 $"{name}: grade={basis.Grade.Raw}, relations={basis.RelationCount.Raw}, carriers={basis.CarrierCount.Raw}, " +
                 $"sameCarrier={basis.IsSameCarrierPair()}, aligned={basis.IsAlignedPair()}, opposed={basis.IsOpposedPair()}, kernel={basis.KernelCode().Raw}, " +
-                $"potential={basis.Potential.Raw}, ratio={basis.Ratio.Normalize()}");
+                $"potential={basis.Potential.Raw}, ratio={basis.Ratio.Normalize()}, supportCarrier={basis.PrimaryCarrier.Id}");
         }
 
         return descriptions.MoveToImmutable();
@@ -87,7 +87,7 @@ public static class GradeOneExamples
         {
             descriptions.Add(
                 $"{name}: grade={basis.Grade.Raw}, relations={basis.RelationCount.Raw}, carriers={basis.CarrierCount.Raw}, " +
-                $"potential={basis.Potential.Raw}, ratio={basis.Ratio.Normalize()}, orientation={basis.Orientation.Raw}");
+                $"potential={basis.Potential.Raw}, ratio={basis.Ratio.Normalize()}, orientation={basis.Orientation.Raw}, supportCarrier={basis.PrimaryCarrier.Id}");
         }
 
         return descriptions.MoveToImmutable();
@@ -103,7 +103,7 @@ public static class GradeOneExamples
             descriptions.Add(
                 $"{name}: grade={basis.Grade.Raw}, relations={basis.RelationCount.Raw}, carriers={basis.CarrierCount.Raw}, " +
                 $"sameCarrier={basis.IsSameCarrierPair()}, aligned={basis.IsAlignedPair()}, opposed={basis.IsOpposedPair()}, kernel={basis.KernelCode().Raw}, " +
-                $"potential={basis.Potential.Raw}, ratio={basis.Ratio.Normalize()}");
+                $"potential={basis.Potential.Raw}, ratio={basis.Ratio.Normalize()}, supportCarrier={basis.PrimaryCarrier.Id}");
         }
 
         return descriptions.MoveToImmutable();
