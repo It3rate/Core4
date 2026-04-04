@@ -5,22 +5,22 @@ namespace Core4.Engine;
 public sealed class Basis
 {
     private readonly ImmutableArray<Basis> _inputs;
-    private readonly ImmutableArray<Pin> _pins;
+    private readonly ImmutableArray<Relation> _relations;
 
-    private Basis(Pin pin)
+    private Basis(Relation relation)
     {
         _inputs = ImmutableArray<Basis>.Empty;
-        _pins = ImmutableArray.Create(pin);
+        _relations = ImmutableArray.Create(relation);
     }
 
     private Basis(Basis recessive, Basis dominant)
     {
         _inputs = ImmutableArray.Create(recessive, dominant);
 
-        var pins = ImmutableArray.CreateBuilder<Pin>(recessive._pins.Length + dominant._pins.Length);
-        pins.AddRange(recessive._pins);
-        pins.AddRange(dominant._pins);
-        _pins = pins.MoveToImmutable();
+        var relations = ImmutableArray.CreateBuilder<Relation>(recessive._relations.Length + dominant._relations.Length);
+        relations.AddRange(recessive._relations);
+        relations.AddRange(dominant._relations);
+        _relations = relations.MoveToImmutable();
     }
 
     public bool IsAtomic => _inputs.IsEmpty;
@@ -31,22 +31,22 @@ public sealed class Basis
 
     public Measure Grade => IsAtomic ? Measure.Zero : new Measure(Math.Max(Recessive.Grade.Raw, Dominant.Grade.Raw) + 1);
 
-    public Measure PinCount => new(_pins.Length);
+    public Measure RelationCount => new(_relations.Length);
 
-    public Measure Arity => PinCount;
+    public Measure AttachmentArity => RelationCount;
 
     public Measure CarrierCount => new(SelectCarriers().Length);
 
     public ImmutableArray<Basis> Inputs => _inputs;
 
-    public ImmutableArray<Pin> Pins => _pins;
+    public ImmutableArray<Relation> Relations => _relations;
 
     public Basis Recessive => IsComposite ? _inputs[0] : this;
 
     public Basis Dominant => IsComposite ? _inputs[1] : this;
 
     public Measure Potential => IsAtomic
-        ? Absolute(AtomicPin.Delta)
+        ? AtomicRelation.Potential
         : IsSameCarrierPair() && IsOpposedPair() && HasSharedOriginPerCarrier()
             ? Recessive.Potential + Dominant.Potential
             : new Measure(checked(Recessive.Potential.Raw * Dominant.Potential.Raw));
@@ -55,19 +55,23 @@ public sealed class Basis
         ? new Ratio(Recessive.Potential, Dominant.Potential).Normalize()
         : Ratio.Tension(Potential);
 
-    public Measure Orientation => IsAtomic ? AtomicPin.Orientation : Measure.Zero;
+    public Measure Orientation => IsAtomic ? AtomicRelation.Orientation : Measure.Zero;
 
     public bool IsRecessive => IsAtomic && Orientation.Raw < 0;
 
     public bool IsDominant => IsAtomic && Orientation.Raw > 0;
 
-    internal Pin AtomicPin => _pins[0];
+    internal Relation AtomicRelation => _relations[0];
 
-    public static Basis Freeze(Pin pin) => new(pin);
+    public static Basis Freeze(Relation relation) => new(relation);
 
-    public static Basis Freeze(Carrier carrier, Measure origin, Measure anchor) => new(new Pin(carrier, origin, anchor));
+    public static Basis Freeze(Carrier carrier, Measure origin, Measure anchor) => new(new Relation(
+        Site.Open(carrier, origin),
+        Site.Open(carrier, anchor)));
 
-    public static Basis Fuse(Pin recessive, Pin dominant, params Pin[] remaining)
+    public static Basis Freeze(Site origin, Site anchor) => new(new Relation(origin, anchor));
+
+    public static Basis Fuse(Relation recessive, Relation dominant, params Relation[] remaining)
     {
         var bases = new Basis[remaining.Length + 2];
         bases[0] = Freeze(recessive);
@@ -100,48 +104,48 @@ public sealed class Basis
         return fused;
     }
 
-    public Basis Flip()
-    {
-        if (IsAtomic)
-        {
-            return Freeze(AtomicPin.Flip());
-        }
+    public Basis Flip() => IsAtomic
+        ? Freeze(AtomicRelation.Flip())
+        : Fuse(Recessive.Flip(), Dominant.Flip());
 
-        return Fuse(Recessive.Flip(), Dominant.Flip());
-    }
+    public Ratio Project(Site site) => IsAtomic
+        ? AtomicRelation.Project(site)
+        : Ratio.Tension(site.Potential);
 
     public Ratio Project(Measure measure) => IsAtomic
-        ? AtomicPin.Project(measure).Normalize()
+        ? Project(Site.Open(AtomicRelation.Carrier, measure))
         : Ratio.Tension(measure);
+
+    public Attachment Attach(params Site[] sites) => Attachment.Attach(this, sites);
 
     public Attachment Attach(params Measure[] measures) => Attachment.Attach(this, measures);
 
-    public ImmutableArray<Pin> SelectPins() => _pins;
+    public ImmutableArray<Relation> SelectRelations() => _relations;
 
-    public ImmutableArray<Pin> SelectPins(Carrier carrier)
+    public ImmutableArray<Relation> SelectRelations(Carrier carrier)
     {
-        var pins = ImmutableArray.CreateBuilder<Pin>();
+        var relations = ImmutableArray.CreateBuilder<Relation>();
 
-        foreach (var pin in _pins)
+        foreach (var relation in _relations)
         {
-            if (pin.Carrier == carrier)
+            if (relation.Carrier == carrier)
             {
-                pins.Add(pin);
+                relations.Add(relation);
             }
         }
 
-        return pins.ToImmutable();
+        return relations.ToImmutable();
     }
 
     public ImmutableArray<Carrier> SelectCarriers()
     {
         var carriers = ImmutableArray.CreateBuilder<Carrier>();
 
-        foreach (var pin in _pins)
+        foreach (var relation in _relations)
         {
-            if (!carriers.Contains(pin.Carrier))
+            if (!carriers.Contains(relation.Carrier))
             {
-                carriers.Add(pin.Carrier);
+                carriers.Add(relation.Carrier);
             }
         }
 
@@ -155,16 +159,16 @@ public sealed class Basis
             var origin = default(Measure);
             var hasOrigin = false;
 
-            foreach (var pin in SelectPins(carrier))
+            foreach (var relation in SelectRelations(carrier))
             {
                 if (!hasOrigin)
                 {
-                    origin = pin.Origin;
+                    origin = relation.Origin.Location;
                     hasOrigin = true;
                     continue;
                 }
 
-                if (pin.Origin != origin)
+                if (relation.Origin.Location != origin)
                 {
                     return false;
                 }
@@ -174,37 +178,16 @@ public sealed class Basis
         return true;
     }
 
-    public bool IsSameCarrierPair()
-    {
-        if (!IsAtomicPair)
-        {
-            return false;
-        }
+    public bool IsSameCarrierPair() => IsAtomicPair &&
+        Recessive.AtomicRelation.Carrier == Dominant.AtomicRelation.Carrier;
 
-        return Recessive.AtomicPin.Carrier == Dominant.AtomicPin.Carrier;
-    }
+    public bool IsAlignedPair() => IsAtomicPair &&
+        Recessive.AtomicRelation.Orientation.Raw != 0 &&
+        Recessive.AtomicRelation.Orientation == Dominant.AtomicRelation.Orientation;
 
-    public bool IsAlignedPair()
-    {
-        if (!IsAtomicPair)
-        {
-            return false;
-        }
-
-        return Recessive.AtomicPin.Orientation.Raw != 0 &&
-               Recessive.AtomicPin.Orientation == Dominant.AtomicPin.Orientation;
-    }
-
-    public bool IsOpposedPair()
-    {
-        if (!IsAtomicPair)
-        {
-            return false;
-        }
-
-        return Recessive.AtomicPin.Orientation.Raw != 0 &&
-               Recessive.AtomicPin.Orientation == -Dominant.AtomicPin.Orientation;
-    }
+    public bool IsOpposedPair() => IsAtomicPair &&
+        Recessive.AtomicRelation.Orientation.Raw != 0 &&
+        Recessive.AtomicRelation.Orientation == -Dominant.AtomicRelation.Orientation;
 
     public Measure KernelCode()
     {
@@ -213,8 +196,8 @@ public sealed class Basis
             return Measure.Zero;
         }
 
-        var recessive = SideCode(Recessive.AtomicPin);
-        var dominant = SideCode(Dominant.AtomicPin);
+        var recessive = SideCode(Recessive.AtomicRelation);
+        var dominant = SideCode(Dominant.AtomicRelation);
 
         if (recessive < 0 || dominant < 0)
         {
@@ -224,16 +207,14 @@ public sealed class Basis
         return new Measure((recessive << 1) | dominant);
     }
 
-    private static Measure Absolute(Measure value) => value.Raw < 0 ? -value : value;
-
-    private static long SideCode(Pin pin)
+    private static long SideCode(Relation relation)
     {
-        if (pin.Orientation.Raw < 0)
+        if (relation.Orientation.Raw < 0)
         {
             return 0L;
         }
 
-        if (pin.Orientation.Raw > 0)
+        if (relation.Orientation.Raw > 0)
         {
             return 1L;
         }
