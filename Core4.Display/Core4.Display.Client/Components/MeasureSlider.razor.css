@@ -1,8 +1,8 @@
 .measure-slider {
     background: color-mix(in srgb, var(--surface-soft) 90%, white 10%);
     border: 1px solid color-mix(in srgb, var(--tone) 26%, transparent);
-    border-radius: 1rem;
-    padding: 0.85rem 0.95rem 0.95rem;
+    border-radius: 0.95rem;
+    padding: 0.62rem 0.75rem 0.72rem;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
@@ -24,16 +24,16 @@
 }
 
 .measure-slider__caption {
-    margin: 0.25rem 0 0.7rem;
+    margin: 0.18rem 0 0.45rem;
     color: var(--tone-muted);
-    font-size: 0.84rem;
-    line-height: 1.35;
+    font-size: 0.77rem;
+    line-height: 1.28;
 }
 
 .measure-slider__inputs {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 6rem;
-    gap: 0.8rem;
+    grid-template-columns: minmax(0, 1fr) 5.1rem;
+    gap: 0.55rem;
     align-items: center;
 }
 
@@ -43,8 +43,8 @@
 
 .measure-slider input[type="number"] {
     border: 1px solid color-mix(in srgb, var(--tone) 28%, transparent);
-    border-radius: 0.75rem;
-    padding: 0.55rem 0.65rem;
+    border-radius: 0.68rem;
+    padding: 0.42rem 0.5rem;
     background: rgba(255, 255, 255, 0.75);
     color: var(--tone-ink);
     font: inherit;

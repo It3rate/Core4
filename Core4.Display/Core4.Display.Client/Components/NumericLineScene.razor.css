@@ -6,12 +6,12 @@
 
 .scene-surface {
     fill: color-mix(in srgb, var(--surface) 92%, white 8%);
-    stroke: color-mix(in srgb, var(--tone-ink) 12%, transparent);
+    stroke: color-mix(in srgb, var(--tone-ink) 10%, transparent);
     stroke-width: 1;
 }
 
 .scene-hidden {
-    fill: color-mix(in srgb, var(--tone-recessive-soft) 28%, transparent);
+    fill: color-mix(in srgb, var(--tone-recessive-soft) 22%, transparent);
 }
 
 .scene-grid {
@@ -20,37 +20,48 @@
 }
 
 .scene-axis {
-    stroke: color-mix(in srgb, var(--tone-ink) 40%, transparent);
+    stroke: color-mix(in srgb, var(--tone-ink) 42%, transparent);
     stroke-width: 2;
 }
 
-.scene-origin {
-    stroke: var(--tone-gold);
-    stroke-width: 3;
+.scene-origin-node {
+    fill: color-mix(in srgb, var(--surface-soft) 88%, white 12%);
+    stroke: color-mix(in srgb, var(--tone-ink) 78%, transparent);
+    stroke-width: 4;
+}
+
+.scene-dominant,
+.scene-recessive,
+.scene-value-line,
+.scene-branch-other,
+.scene-branch-shared,
+.scene-branch-residual,
+.scene-tension {
+    stroke-linecap: round;
 }
 
 .scene-dominant {
     stroke: url(#dominantGlow);
-    stroke-linecap: round;
 }
 
 .scene-recessive {
     stroke: url(#recessiveGlow);
-    stroke-linecap: round;
 }
 
-.scene-dominant-node {
-    fill: var(--tone-dominant);
+.scene-recessive-node,
+.scene-branch-node-other,
+.scene-branch-node-shared {
+    fill: color-mix(in srgb, var(--surface) 92%, white 8%);
+    stroke-width: 5;
 }
 
 .scene-recessive-node {
-    fill: var(--tone-recessive);
+    stroke: var(--tone-recessive);
 }
 
 .scene-value-line {
-    stroke: color-mix(in srgb, var(--tone-gold) 70%, white 30%);
+    stroke: color-mix(in srgb, var(--tone-gold) 72%, white 28%);
     stroke-width: 4;
-    stroke-linecap: round;
 }
 
 .scene-value-node {
@@ -69,19 +80,12 @@
     fill: var(--tone-tension);
 }
 
-.scene-branch-other,
-.scene-branch-shared,
-.scene-branch-residual {
-    stroke-linecap: round;
-}
-
 .scene-branch-other {
     stroke: var(--tone-orthogonal);
 }
 
 .scene-branch-shared {
-    stroke: color-mix(in srgb, var(--tone-gold) 80%, var(--tone-orthogonal) 20%);
-    stroke-dasharray: 6 5;
+    stroke: var(--tone-gold);
 }
 
 .scene-branch-residual {
@@ -90,13 +94,9 @@
 }
 
 .scene-branch-node-other {
-    fill: var(--tone-orthogonal);
+    stroke: var(--tone-orthogonal);
 }
 
 .scene-branch-node-shared {
-    fill: var(--tone-gold);
-}
-
-.scene-branch-node-residual {
-    fill: var(--tone-tension);
+    stroke: var(--tone-gold);
 }

@@ -1,68 +1,89 @@
 .home-page {
     display: grid;
-    gap: 1.4rem;
+    gap: 0.9rem;
 }
 
-.hero {
-    background:
-        radial-gradient(circle at top right, rgba(235, 118, 52, 0.22), transparent 28rem),
-        radial-gradient(circle at left center, rgba(34, 91, 140, 0.18), transparent 24rem),
-        linear-gradient(135deg, color-mix(in srgb, var(--surface) 88%, white 12%), color-mix(in srgb, var(--surface-soft) 86%, white 14%));
+.topbar,
+.control-panel,
+.scene-panel,
+.info-card {
     border: 1px solid color-mix(in srgb, var(--tone-ink) 10%, transparent);
-    border-radius: 1.8rem;
-    padding: 1.5rem 1.6rem 1.6rem;
-    box-shadow: 0 1.5rem 3rem rgba(67, 47, 18, 0.08);
+    border-radius: 1.3rem;
+    background: color-mix(in srgb, var(--surface) 89%, white 11%);
+    box-shadow: 0 1rem 2.4rem rgba(62, 49, 23, 0.07);
 }
 
-.hero__eyebrow,
-.info-card__eyebrow,
-.scene-panel__eyebrow {
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 1rem;
+    padding: 1rem 1.15rem;
+    background:
+        radial-gradient(circle at top right, rgba(235, 118, 52, 0.16), transparent 22rem),
+        radial-gradient(circle at left center, rgba(34, 91, 140, 0.14), transparent 18rem),
+        linear-gradient(135deg, color-mix(in srgb, var(--surface) 90%, white 10%), color-mix(in srgb, var(--surface-soft) 88%, white 12%));
+}
+
+.topbar__eyebrow,
+.panel-heading__eyebrow,
+.scene-panel__eyebrow,
+.info-card__eyebrow {
     margin: 0;
     color: var(--tone-muted);
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.12em;
     text-transform: uppercase;
 }
 
-.hero h1,
-.scene-panel h2,
-.info-card h3,
-.panel-heading h2 {
-    margin: 0.35rem 0 0.45rem;
+.topbar h1,
+.panel-heading h2,
+.scene-panel h2 {
+    margin: 0.16rem 0 0.3rem;
     font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
     font-weight: 700;
-    line-height: 1.06;
+    line-height: 1.05;
     color: var(--tone-ink);
 }
 
-.hero h1 {
-    font-size: clamp(2.25rem, 6vw, 4.4rem);
+.topbar h1 {
+    font-size: clamp(1.75rem, 4vw, 2.6rem);
 }
 
-.hero__text,
-.panel-heading p {
-    max-width: 54rem;
+.topbar__text,
+.panel-heading p,
+.scene-panel__text {
     margin: 0;
     color: var(--tone-muted);
-    font-size: 1.02rem;
-    line-height: 1.6;
+    line-height: 1.45;
+}
+
+.topbar__stats,
+.scene-panel__summary {
+    display: grid;
+    gap: 0.25rem;
+    justify-items: end;
+    color: var(--tone-muted);
+    font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+    font-size: 0.82rem;
+    white-space: nowrap;
 }
 
 .preset-strip {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-    gap: 0.85rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
 }
 
 .preset-chip {
     border: 1px solid color-mix(in srgb, var(--tone-ink) 12%, transparent);
-    background: color-mix(in srgb, var(--surface-soft) 86%, white 14%);
-    border-radius: 1.15rem;
-    padding: 0.9rem 1rem;
-    text-align: left;
+    background: color-mix(in srgb, var(--surface-soft) 88%, white 12%);
+    border-radius: 999px;
+    padding: 0.52rem 0.9rem;
     color: var(--tone-ink);
     cursor: pointer;
+    font-weight: 700;
     transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
 }
 
@@ -74,148 +95,137 @@
 .preset-chip.is-active {
     background: linear-gradient(135deg, color-mix(in srgb, var(--tone-gold) 12%, white 88%), color-mix(in srgb, var(--tone-dominant) 10%, white 90%));
     border-color: color-mix(in srgb, var(--tone-dominant) 35%, transparent);
-    box-shadow: 0 1rem 2rem rgba(208, 74, 28, 0.12);
-}
-
-.preset-chip span,
-.preset-chip small {
-    display: block;
-}
-
-.preset-chip span {
-    font-weight: 700;
-    margin-bottom: 0.35rem;
-}
-
-.preset-chip small {
-    color: var(--tone-muted);
-    line-height: 1.45;
+    box-shadow: 0 0.6rem 1.3rem rgba(208, 74, 28, 0.1);
 }
 
 .main-grid {
     display: grid;
-    grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
-    gap: 1.2rem;
+    grid-template-columns: minmax(16rem, 18rem) minmax(0, 1fr);
+    gap: 0.9rem;
+    align-items: start;
 }
 
 .control-panel,
-.scene-panel,
-.info-card {
-    border: 1px solid color-mix(in srgb, var(--tone-ink) 10%, transparent);
-    border-radius: 1.5rem;
-    background: color-mix(in srgb, var(--surface) 88%, white 12%);
-    box-shadow: 0 1rem 2.5rem rgba(62, 49, 23, 0.07);
+.scene-panel {
+    padding: 0.95rem;
 }
 
 .control-panel {
-    padding: 1.1rem;
+    position: sticky;
+    top: 0.9rem;
 }
 
 .panel-heading {
-    padding: 0.35rem 0.2rem 1rem;
+    padding: 0.15rem 0.1rem 0.75rem;
 }
 
 .control-stack {
     display: grid;
-    gap: 0.8rem;
+    gap: 0.55rem;
 }
 
 .scene-panel {
-    padding: 1rem;
+    display: grid;
+    gap: 0.85rem;
 }
 
 .scene-panel__header {
     display: flex;
     justify-content: space-between;
-    align-items: end;
+    align-items: start;
     gap: 1rem;
-    padding: 0.2rem 0.15rem 1rem;
-}
-
-.scene-panel__summary {
-    display: grid;
-    gap: 0.3rem;
-    justify-items: end;
-    color: var(--tone-muted);
-    font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
-    font-size: 0.86rem;
 }
 
 .info-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.75rem;
 }
 
 .info-card {
-    padding: 1.05rem 1.1rem 1.15rem;
+    padding: 0.85rem 0.9rem;
+    background: color-mix(in srgb, var(--surface-soft) 82%, white 18%);
 }
 
 .info-card dl {
     display: grid;
-    gap: 0.45rem;
+    gap: 0.32rem;
     margin: 0;
 }
 
 .info-card dl div {
     display: flex;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.75rem;
     border-bottom: 1px dashed color-mix(in srgb, var(--tone-ink) 8%, transparent);
-    padding-bottom: 0.35rem;
+    padding-bottom: 0.24rem;
 }
 
 .info-card dt {
     color: var(--tone-muted);
+    font-size: 0.86rem;
 }
 
 .info-card dd {
     margin: 0;
     font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
     color: var(--tone-ink);
+    font-size: 0.86rem;
+    text-align: right;
 }
 
 .channel-list,
 .term-list {
-    margin: 0.85rem 0 0;
+    margin: 0.65rem 0 0;
     padding: 0;
     list-style: none;
     display: grid;
-    gap: 0.55rem;
+    gap: 0.42rem;
 }
 
 .channel-list li,
 .term-list li {
     display: grid;
     grid-template-columns: auto 1fr auto;
-    gap: 0.75rem;
+    gap: 0.55rem;
     align-items: center;
-    padding: 0.55rem 0.65rem;
-    border-radius: 0.9rem;
-    background: color-mix(in srgb, var(--surface-soft) 76%, white 24%);
+    padding: 0.42rem 0.52rem;
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--surface) 82%, white 18%);
 }
 
 .channel-list span,
 .term-list code,
 .term-list span {
     font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+    font-size: 0.82rem;
 }
 
 .term-list strong {
     justify-self: start;
+    font-size: 0.86rem;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1100px) {
     .main-grid {
         grid-template-columns: 1fr;
     }
 
+    .control-panel {
+        position: static;
+    }
+}
+
+@media (max-width: 760px) {
+    .topbar,
     .scene-panel__header {
-        align-items: start;
         flex-direction: column;
+        align-items: start;
     }
 
+    .topbar__stats,
     .scene-panel__summary {
         justify-items: start;
+        white-space: normal;
     }
 }

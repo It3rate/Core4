@@ -1,7 +1,7 @@
 @using Core4.Examples
 @using Core4.Numerics
 
-<svg class="numeric-scene" viewBox="0 0 820 360" role="img" aria-label="Core4 numeric explorer scene">
+<svg class="numeric-scene" viewBox="0 0 820 320" role="img" aria-label="Core4 numeric explorer scene">
     <defs>
         <linearGradient id="dominantGlow" x1="0%" x2="100%" y1="0%" y2="0%">
             <stop offset="0%" stop-color="var(--tone-dominant-soft)" />
@@ -11,81 +11,99 @@
             <stop offset="0%" stop-color="var(--tone-recessive)" />
             <stop offset="100%" stop-color="var(--tone-recessive-soft)" />
         </linearGradient>
+        <marker id="arrowDominant" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto">
+            <path d="M0 0 L12 6 L0 12 L3.2 6 Z" fill="var(--tone-dominant)" />
+        </marker>
+        <marker id="arrowOrthogonal" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto">
+            <path d="M0 0 L12 6 L0 12 L3.2 6 Z" fill="var(--tone-orthogonal)" />
+        </marker>
+        <marker id="arrowShared" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto">
+            <path d="M0 0 L12 6 L0 12 L3.2 6 Z" fill="var(--tone-gold)" />
+        </marker>
     </defs>
 
-    <rect x="0" y="0" width="820" height="360" rx="28" class="scene-surface" />
+    <rect x="0" y="0" width="820" height="320" rx="24" class="scene-surface" />
 
     @if (Snapshot.IsHiddenOnHalfLine)
     {
-        <rect x="40" y="86" width="@(X(Snapshot.Origin) - 40)" height="188" class="scene-hidden" rx="18">
+        <rect x="40" y="58" width="@(X(Snapshot.Origin) - 40)" height="204" class="scene-hidden" rx="18">
             <title>inverse side unrevealed</title>
         </rect>
     }
 
     @foreach (var tick in Ticks())
     {
-        <line x1="@X(tick)" x2="@X(tick)" y1="118" y2="260" class="scene-grid">
+        <line x1="@X(tick)" x2="@X(tick)" y1="86" y2="246" class="scene-grid">
             <title>tick @tick.Raw</title>
         </line>
     }
 
     <line x1="40" x2="780" y1="@AxisY" y2="@AxisY" class="scene-axis" />
 
-    <line x1="@X(Snapshot.Origin)" x2="@X(Snapshot.Origin)" y1="82" y2="282" class="scene-origin">
-        <title>origin @Snapshot.Origin.Raw</title>
-    </line>
-
     @foreach (var branch in Branches())
     {
-        <line x1="@branch.X" y1="@branch.Y1" x2="@branch.X" y2="@branch.Y2" class="@branch.Css" style="@($"stroke-width:{branch.Width};")">
+        <line x1="@branch.StartX"
+              y1="@branch.StartY"
+              x2="@branch.TipX"
+              y2="@branch.TipY"
+              class="@branch.Css"
+              style="@($"stroke-width:{branch.Width};")"
+              marker-end="@branch.Marker">
             <title>@branch.Label</title>
         </line>
-        <circle cx="@branch.X" cy="@branch.Y1" r="5" class="@branch.NodeCss">
-            <title>@branch.Label</title>
-        </circle>
+
+        @if (branch.HasCircle)
+        {
+            <circle cx="@branch.TipX" cy="@branch.TipY" r="8" class="@branch.NodeCss">
+                <title>@branch.Label</title>
+            </circle>
+        }
     }
 
-    <line x1="@X(Snapshot.Origin)" x2="@X(Snapshot.DominantAnchor)" y1="@AxisY" y2="@AxisY" class="scene-dominant" style="@($"stroke-width:{Stroke(Snapshot.Preset.DominantSpan)};")">
+    <line x1="@OriginX()" x2="@X(Snapshot.DominantAnchor)" y1="@AxisY" y2="@AxisY" class="scene-dominant" style="@($"stroke-width:{Stroke(Snapshot.Preset.DominantSpan)};")" marker-end="url(#arrowDominant)">
         <title>dominant span +@Snapshot.Preset.DominantSpan.Raw</title>
     </line>
-    <circle cx="@X(Snapshot.DominantAnchor)" cy="@AxisY" r="7" class="scene-dominant-node">
-        <title>dominant anchor @Snapshot.DominantAnchor.Raw</title>
-    </circle>
 
     @if (Snapshot.HasInverse)
     {
-        <line x1="@X(Snapshot.RecessiveAnchor)" x2="@X(Snapshot.Origin)" y1="@AxisY" y2="@AxisY" class="scene-recessive" style="@($"stroke-width:{Stroke(Snapshot.Preset.RecessiveSpan)};")">
+        <line x1="@OriginX()" x2="@X(Snapshot.RecessiveAnchor)" y1="@AxisY" y2="@AxisY" class="scene-recessive" style="@($"stroke-width:{Stroke(Snapshot.Preset.RecessiveSpan)};")">
             <title>recessive span -@Snapshot.Preset.RecessiveSpan.Raw</title>
         </line>
-        <circle cx="@X(Snapshot.RecessiveAnchor)" cy="@AxisY" r="7" class="scene-recessive-node">
+        <circle cx="@X(Snapshot.RecessiveAnchor)" cy="@AxisY" r="9" class="scene-recessive-node">
             <title>recessive anchor @Snapshot.RecessiveAnchor.Raw</title>
         </circle>
     }
 
     @if (Snapshot.IsHiddenOnHalfLine)
     {
-        <line x1="@X(Snapshot.Origin)" x2="@HiddenValueX()" y1="@AxisY" y2="@(AxisY + 56)" class="scene-tension">
+        <line x1="@OriginX()" x2="@HiddenValueX()" y1="@AxisY" y2="@(AxisY + 52)" class="scene-tension">
             <title>hidden side tension @Snapshot.HiddenTension.Normalize()</title>
         </line>
-        <circle cx="@HiddenValueX()" cy="@(AxisY + 56)" r="9" class="scene-tension-node">
+        <circle cx="@HiddenValueX()" cy="@(AxisY + 52)" r="8" class="scene-tension-node">
             <title>hidden side tension @Snapshot.HiddenTension.Normalize()</title>
         </circle>
     }
     else
     {
-        <line x1="@X(Snapshot.Origin)" x2="@X(Snapshot.Value)" y1="@(AxisY - 26)" y2="@(AxisY - 26)" class="scene-value-line">
+        <line x1="@OriginX()" x2="@X(Snapshot.Value)" y1="@(AxisY - 30)" y2="@(AxisY - 30)" class="scene-value-line">
             <title>value @Snapshot.Value.Raw</title>
         </line>
-        <circle cx="@X(Snapshot.Value)" cy="@(AxisY - 26)" r="9" class="scene-value-node">
+        <circle cx="@X(Snapshot.Value)" cy="@(AxisY - 30)" r="9" class="scene-value-node">
             <title>value @Snapshot.Value.Raw</title>
         </circle>
     }
+
+    <rect x="@(OriginX() - 9)" y="@(AxisY - 9)" width="18" height="18" rx="2" class="scene-origin-node">
+        <title>origin @Snapshot.Origin.Raw</title>
+    </rect>
 </svg>
 
 @code {
     [Parameter, EditorRequired] public NumericExplorerSnapshot Snapshot { get; set; } = default!;
 
-    private const double AxisY = 206d;
+    private const double AxisY = 180d;
+
+    private double OriginX() => X(Snapshot.Origin);
 
     private double X(Measure value)
     {
@@ -97,12 +115,12 @@
 
     private double HiddenValueX()
     {
-        var origin = X(Snapshot.Origin);
+        var origin = OriginX();
         var left = X(Snapshot.VisualMin);
         return left + ((origin - left) * 0.42d);
     }
 
-    private double Stroke(Measure span) => 5d + Math.Min(14d, span.Raw * 0.42d);
+    private double Stroke(Measure span) => 4d + Math.Min(12d, span.Raw * 0.38d);
 
     private IEnumerable<Measure> Ticks()
     {
@@ -117,41 +135,87 @@
         }
     }
 
-    private IEnumerable<(double X, double Y1, double Y2, string Label, string Css, string NodeCss, double Width)> Branches()
+    private IEnumerable<BranchGlyph> Branches()
     {
-        var index = 0;
+        var top = new List<NumericExplorerChannel>();
+        var bottom = new List<NumericExplorerChannel>();
+
         foreach (var channel in Snapshot.Channels)
         {
             if (channel.Value.Potential == Measure.Zero && channel.Value.Dominant == Measure.Zero)
             {
-                index++;
                 continue;
             }
 
-            var offset = (index - ((Snapshot.Channels.Length - 1) / 2d)) * 28d;
-            var x = X(Snapshot.Origin) + offset;
-            var height = 70d + Math.Min(50d, channel.Value.Potential.Raw * 5d);
-            yield return (
-                x,
-                AxisY - height,
-                AxisY - 12d,
-                $"{channel.Name} {channel.Value.Normalize()}",
-                channel.Provenance.IsShared ? "scene-branch-shared" : "scene-branch-other",
-                channel.Provenance.IsShared ? "scene-branch-node-shared" : "scene-branch-node-other",
-                2.5d + Math.Min(6d, channel.Value.Potential.Raw * 0.5d));
-            index++;
+            if (channel.Provenance.IsOther)
+            {
+                bottom.Add(channel);
+            }
+            else
+            {
+                top.Add(channel);
+            }
+        }
+
+        foreach (var branch in CreateBranches(top, false))
+        {
+            yield return branch;
+        }
+
+        foreach (var branch in CreateBranches(bottom, true))
+        {
+            yield return branch;
         }
 
         if (Snapshot.Preset.Residual != Measure.Zero)
         {
-            yield return (
-                X(Snapshot.Origin),
-                AxisY - (48d + Math.Min(56d, Snapshot.Preset.Residual.Raw * 4d)),
-                AxisY + 18d,
+            yield return new BranchGlyph(
+                OriginX(),
+                AxisY,
+                OriginX(),
+                AxisY - (44d + Math.Min(52d, Snapshot.Preset.Residual.Raw * 4d)),
                 $"residual {Snapshot.SourceSite.Orthogonal.Residual.Normalize()}",
                 "scene-branch-residual",
-                "scene-branch-node-residual",
-                2.5d + Math.Min(6d, Snapshot.Preset.Residual.Raw * 0.4d));
+                string.Empty,
+                2.5d + Math.Min(5d, Snapshot.Preset.Residual.Raw * 0.35d),
+                null,
+                false);
         }
     }
+
+    private IEnumerable<BranchGlyph> CreateBranches(IReadOnlyList<NumericExplorerChannel> channels, bool recessive)
+    {
+        for (var index = 0; index < channels.Count; index++)
+        {
+            var channel = channels[index];
+            var spread = (index - ((channels.Count - 1) / 2d)) * 46d;
+            var height = 70d + Math.Min(42d, channel.Value.Potential.Raw * 4d);
+            var label = $"{channel.Name} {channel.Value.Normalize()}";
+            var isShared = channel.Provenance.IsShared;
+
+            yield return new BranchGlyph(
+                OriginX(),
+                AxisY,
+                OriginX() + spread,
+                recessive ? AxisY + height : AxisY - height,
+                label,
+                isShared ? "scene-branch-shared" : "scene-branch-other",
+                isShared ? "scene-branch-node-shared" : "scene-branch-node-other",
+                2.5d + Math.Min(6d, channel.Value.Potential.Raw * 0.45d),
+                recessive ? null : isShared ? "url(#arrowShared)" : "url(#arrowOrthogonal)",
+                recessive);
+        }
+    }
+
+    private readonly record struct BranchGlyph(
+        double StartX,
+        double StartY,
+        double TipX,
+        double TipY,
+        string Label,
+        string Css,
+        string NodeCss,
+        double Width,
+        string? Marker,
+        bool HasCircle);
 }
