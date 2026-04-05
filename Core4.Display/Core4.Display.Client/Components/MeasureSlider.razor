@@ -1,0 +1,43 @@
+<div class="measure-slider" style="@($"--tone:{Tone};")">
+    <div class="measure-slider__header">
+        <label>@Label</label>
+        <span>@Value</span>
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Caption))
+    {
+        <p class="measure-slider__caption">@Caption</p>
+    }
+    <div class="measure-slider__inputs">
+        <input type="range"
+               min="@Min"
+               max="@Max"
+               step="@Step"
+               value="@Value"
+               @oninput="OnChanged" />
+        <input type="number"
+               min="@Min"
+               max="@Max"
+               step="@Step"
+               value="@Value"
+               @oninput="OnChanged" />
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter] public string Caption { get; set; } = string.Empty;
+    [Parameter] public string Tone { get; set; } = "var(--tone-ink)";
+    [Parameter] public long Value { get; set; }
+    [Parameter] public long Min { get; set; } = -20;
+    [Parameter] public long Max { get; set; } = 20;
+    [Parameter] public long Step { get; set; } = 1;
+    [Parameter] public EventCallback<long> ValueChanged { get; set; }
+
+    private async Task OnChanged(ChangeEventArgs args)
+    {
+        if (long.TryParse(args.Value?.ToString(), out var next))
+        {
+            await ValueChanged.InvokeAsync(next);
+        }
+    }
+}

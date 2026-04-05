@@ -1,4 +1,7 @@
 <Solution>
-  <Project Path="../ResoEngine/Core3/Core3.csproj" />
   <Project Path="Core4/Core4.csproj" />
+  <Project Path="Core4.Examples/Core4.Examples.csproj" />
+  <Project Path="Core4.Runner/Core4.Runner.csproj" />
+  <Project Path="Core4.Display/Core4.Display/Core4.Display.csproj" />
+  <Project Path="Core4.Display/Core4.Display.Client/Core4.Display.Client.csproj" />
 </Solution>

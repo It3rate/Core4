@@ -1,0 +1,52 @@
+.measure-slider {
+    background: color-mix(in srgb, var(--surface-soft) 90%, white 10%);
+    border: 1px solid color-mix(in srgb, var(--tone) 26%, transparent);
+    border-radius: 1rem;
+    padding: 0.85rem 0.95rem 0.95rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.measure-slider__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    font-weight: 700;
+}
+
+.measure-slider__header label {
+    color: var(--tone-ink);
+}
+
+.measure-slider__header span {
+    color: var(--tone);
+    font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+}
+
+.measure-slider__caption {
+    margin: 0.25rem 0 0.7rem;
+    color: var(--tone-muted);
+    font-size: 0.84rem;
+    line-height: 1.35;
+}
+
+.measure-slider__inputs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 6rem;
+    gap: 0.8rem;
+    align-items: center;
+}
+
+.measure-slider input[type="range"] {
+    accent-color: var(--tone);
+}
+
+.measure-slider input[type="number"] {
+    border: 1px solid color-mix(in srgb, var(--tone) 28%, transparent);
+    border-radius: 0.75rem;
+    padding: 0.55rem 0.65rem;
+    background: rgba(255, 255, 255, 0.75);
+    color: var(--tone-ink);
+    font: inherit;
+    width: 100%;
+}

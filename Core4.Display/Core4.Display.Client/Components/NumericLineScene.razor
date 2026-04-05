@@ -1,0 +1,157 @@
+@using Core4.Examples
+@using Core4.Numerics
+
+<svg class="numeric-scene" viewBox="0 0 820 360" role="img" aria-label="Core4 numeric explorer scene">
+    <defs>
+        <linearGradient id="dominantGlow" x1="0%" x2="100%" y1="0%" y2="0%">
+            <stop offset="0%" stop-color="var(--tone-dominant-soft)" />
+            <stop offset="100%" stop-color="var(--tone-dominant)" />
+        </linearGradient>
+        <linearGradient id="recessiveGlow" x1="0%" x2="100%" y1="0%" y2="0%">
+            <stop offset="0%" stop-color="var(--tone-recessive)" />
+            <stop offset="100%" stop-color="var(--tone-recessive-soft)" />
+        </linearGradient>
+    </defs>
+
+    <rect x="0" y="0" width="820" height="360" rx="28" class="scene-surface" />
+
+    @if (Snapshot.IsHiddenOnHalfLine)
+    {
+        <rect x="40" y="86" width="@(X(Snapshot.Origin) - 40)" height="188" class="scene-hidden" rx="18">
+            <title>inverse side unrevealed</title>
+        </rect>
+    }
+
+    @foreach (var tick in Ticks())
+    {
+        <line x1="@X(tick)" x2="@X(tick)" y1="118" y2="260" class="scene-grid">
+            <title>tick @tick.Raw</title>
+        </line>
+    }
+
+    <line x1="40" x2="780" y1="@AxisY" y2="@AxisY" class="scene-axis" />
+
+    <line x1="@X(Snapshot.Origin)" x2="@X(Snapshot.Origin)" y1="82" y2="282" class="scene-origin">
+        <title>origin @Snapshot.Origin.Raw</title>
+    </line>
+
+    @foreach (var branch in Branches())
+    {
+        <line x1="@branch.X" y1="@branch.Y1" x2="@branch.X" y2="@branch.Y2" class="@branch.Css" style="@($"stroke-width:{branch.Width};")">
+            <title>@branch.Label</title>
+        </line>
+        <circle cx="@branch.X" cy="@branch.Y1" r="5" class="@branch.NodeCss">
+            <title>@branch.Label</title>
+        </circle>
+    }
+
+    <line x1="@X(Snapshot.Origin)" x2="@X(Snapshot.DominantAnchor)" y1="@AxisY" y2="@AxisY" class="scene-dominant" style="@($"stroke-width:{Stroke(Snapshot.Preset.DominantSpan)};")">
+        <title>dominant span +@Snapshot.Preset.DominantSpan.Raw</title>
+    </line>
+    <circle cx="@X(Snapshot.DominantAnchor)" cy="@AxisY" r="7" class="scene-dominant-node">
+        <title>dominant anchor @Snapshot.DominantAnchor.Raw</title>
+    </circle>
+
+    @if (Snapshot.HasInverse)
+    {
+        <line x1="@X(Snapshot.RecessiveAnchor)" x2="@X(Snapshot.Origin)" y1="@AxisY" y2="@AxisY" class="scene-recessive" style="@($"stroke-width:{Stroke(Snapshot.Preset.RecessiveSpan)};")">
+            <title>recessive span -@Snapshot.Preset.RecessiveSpan.Raw</title>
+        </line>
+        <circle cx="@X(Snapshot.RecessiveAnchor)" cy="@AxisY" r="7" class="scene-recessive-node">
+            <title>recessive anchor @Snapshot.RecessiveAnchor.Raw</title>
+        </circle>
+    }
+
+    @if (Snapshot.IsHiddenOnHalfLine)
+    {
+        <line x1="@X(Snapshot.Origin)" x2="@HiddenValueX()" y1="@AxisY" y2="@(AxisY + 56)" class="scene-tension">
+            <title>hidden side tension @Snapshot.HiddenTension.Normalize()</title>
+        </line>
+        <circle cx="@HiddenValueX()" cy="@(AxisY + 56)" r="9" class="scene-tension-node">
+            <title>hidden side tension @Snapshot.HiddenTension.Normalize()</title>
+        </circle>
+    }
+    else
+    {
+        <line x1="@X(Snapshot.Origin)" x2="@X(Snapshot.Value)" y1="@(AxisY - 26)" y2="@(AxisY - 26)" class="scene-value-line">
+            <title>value @Snapshot.Value.Raw</title>
+        </line>
+        <circle cx="@X(Snapshot.Value)" cy="@(AxisY - 26)" r="9" class="scene-value-node">
+            <title>value @Snapshot.Value.Raw</title>
+        </circle>
+    }
+</svg>
+
+@code {
+    [Parameter, EditorRequired] public NumericExplorerSnapshot Snapshot { get; set; } = default!;
+
+    private const double AxisY = 206d;
+
+    private double X(Measure value)
+    {
+        var min = Snapshot.VisualMin.Raw;
+        var max = Snapshot.VisualMax.Raw;
+        var width = Math.Max(1d, max - min);
+        return 40d + ((value.Raw - min) / width) * 740d;
+    }
+
+    private double HiddenValueX()
+    {
+        var origin = X(Snapshot.Origin);
+        var left = X(Snapshot.VisualMin);
+        return left + ((origin - left) * 0.42d);
+    }
+
+    private double Stroke(Measure span) => 5d + Math.Min(14d, span.Raw * 0.42d);
+
+    private IEnumerable<Measure> Ticks()
+    {
+        var min = Snapshot.VisualMin.Raw;
+        var max = Snapshot.VisualMax.Raw;
+        var steps = 8L;
+        var width = Math.Max(1L, max - min);
+
+        for (var index = 0L; index <= steps; index++)
+        {
+            yield return new Measure(min + ((width * index) / steps));
+        }
+    }
+
+    private IEnumerable<(double X, double Y1, double Y2, string Label, string Css, string NodeCss, double Width)> Branches()
+    {
+        var index = 0;
+        foreach (var channel in Snapshot.Channels)
+        {
+            if (channel.Value.Potential == Measure.Zero && channel.Value.Dominant == Measure.Zero)
+            {
+                index++;
+                continue;
+            }
+
+            var offset = (index - ((Snapshot.Channels.Length - 1) / 2d)) * 28d;
+            var x = X(Snapshot.Origin) + offset;
+            var height = 70d + Math.Min(50d, channel.Value.Potential.Raw * 5d);
+            yield return (
+                x,
+                AxisY - height,
+                AxisY - 12d,
+                $"{channel.Name} {channel.Value.Normalize()}",
+                channel.Provenance.IsShared ? "scene-branch-shared" : "scene-branch-other",
+                channel.Provenance.IsShared ? "scene-branch-node-shared" : "scene-branch-node-other",
+                2.5d + Math.Min(6d, channel.Value.Potential.Raw * 0.5d));
+            index++;
+        }
+
+        if (Snapshot.Preset.Residual != Measure.Zero)
+        {
+            yield return (
+                X(Snapshot.Origin),
+                AxisY - (48d + Math.Min(56d, Snapshot.Preset.Residual.Raw * 4d)),
+                AxisY + 18d,
+                $"residual {Snapshot.SourceSite.Orthogonal.Residual.Normalize()}",
+                "scene-branch-residual",
+                "scene-branch-node-residual",
+                2.5d + Math.Min(6d, Snapshot.Preset.Residual.Raw * 0.4d));
+        }
+    }
+}

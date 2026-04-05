@@ -1,0 +1,218 @@
+@page "/"
+
+<PageTitle>Core4 Numeric Explorer</PageTitle>
+
+<div class="home-page">
+    <section class="hero">
+        <p class="hero__eyebrow">Core4 Display</p>
+        <h1>Numeric Explorer</h1>
+        <p class="hero__text">
+            Follow a measure from origin to frozen basis, see how one-sided and inverted carriers differ,
+            and inspect how unresolved orthogonal remainder branches into child supports instead of crashing as error.
+        </p>
+    </section>
+
+    <section class="preset-strip">
+        @foreach (var preset in _presets)
+        {
+            <button class="preset-chip @(preset.Name == _presetName ? "is-active" : string.Empty)"
+                    @onclick="() => LoadPreset(preset)">
+                <span>@preset.Name</span>
+                <small>@preset.Description</small>
+            </button>
+        }
+    </section>
+
+    <section class="main-grid">
+        <aside class="control-panel">
+            <div class="panel-heading">
+                <h2>@_presetName</h2>
+                <p>@_presetDescription</p>
+            </div>
+
+            <div class="control-stack">
+                <MeasureSlider Label="Origin"
+                               Caption="The frozen measure used as the reference site."
+                               Tone="var(--tone-gold)"
+                               Min="-120"
+                               Max="120"
+                               Value="@_origin"
+                               ValueChanged="value => _origin = value" />
+                <MeasureSlider Label="Dominant Span"
+                               Caption="How far the visible dominant unit reaches from the origin."
+                               Tone="var(--tone-dominant)"
+                               Min="1"
+                               Max="24"
+                               Value="@_dominantSpan"
+                               ValueChanged="value => _dominantSpan = Math.Max(1, value)" />
+                <MeasureSlider Label="Recessive Span"
+                               Caption="Set to 0 to keep the number line one-sided."
+                               Tone="var(--tone-recessive)"
+                               Min="0"
+                               Max="24"
+                               Value="@_recessiveSpan"
+                               ValueChanged="value => _recessiveSpan = Math.Max(0, value)" />
+                <MeasureSlider Label="Value Offset"
+                               Caption="The live reading relative to the origin."
+                               Tone="var(--tone-gold)"
+                               Min="-24"
+                               Max="24"
+                               Value="@_valueOffset"
+                               ValueChanged="value => _valueOffset = value" />
+                <MeasureSlider Label="Residual Tension"
+                               Caption="Unknown carrier content still attached at the origin site."
+                               Tone="var(--tone-tension)"
+                               Min="0"
+                               Max="16"
+                               Value="@_residual"
+                               ValueChanged="value => _residual = Math.Max(0, value)" />
+                <MeasureSlider Label="Sensor Input"
+                               Caption="Other-driven orthogonal evidence from a transducer-like source."
+                               Tone="var(--tone-orthogonal)"
+                               Min="0"
+                               Max="16"
+                               Value="@_sensorInput"
+                               ValueChanged="value => _sensorInput = Math.Max(0, value)" />
+                <MeasureSlider Label="Switch Input"
+                               Caption="Another external signal that may agree or disagree with the sensor."
+                               Tone="var(--tone-orthogonal)"
+                               Min="0"
+                               Max="16"
+                               Value="@_switchInput"
+                               ValueChanged="value => _switchInput = Math.Max(0, value)" />
+                <MeasureSlider Label="Feedback"
+                               Caption="Shared provenance feedback that can confirm or destabilize the published state."
+                               Tone="var(--tone-gold)"
+                               Min="0"
+                               Max="16"
+                               Value="@_feedback"
+                               ValueChanged="value => _feedback = Math.Max(0, value)" />
+            </div>
+        </aside>
+
+        <section class="scene-panel">
+            <div class="scene-panel__header">
+                <div>
+                    <p class="scene-panel__eyebrow">Interactive Scene</p>
+                    <h2>@Snapshot.ResolutionMode</h2>
+                </div>
+                <div class="scene-panel__summary">
+                    <span>reading @DisplayReading</span>
+                    <span>settled @Snapshot.Settlement.Settled.Normalize()</span>
+                </div>
+            </div>
+
+            <NumericLineScene Snapshot="Snapshot" />
+        </section>
+    </section>
+
+    <section class="info-grid">
+        <article class="info-card">
+            <p class="info-card__eyebrow">Freeze Ladder</p>
+            <h3>Measure to basis</h3>
+            <dl>
+                <div><dt>Measure</dt><dd>@Snapshot.Value.Raw</dd></div>
+                <div><dt>Origin</dt><dd>@Snapshot.Origin.Raw</dd></div>
+                <div><dt>Dominant relation</dt><dd>@Snapshot.Origin.Raw -> @Snapshot.DominantAnchor.Raw</dd></div>
+                <div><dt>Inverse relation</dt><dd>@(Snapshot.HasInverse ? $"{Snapshot.Origin.Raw} -> {Snapshot.RecessiveAnchor.Raw}" : "not frozen")</dd></div>
+                <div><dt>Display basis</dt><dd>@(Snapshot.HasInverse ? "fused segment" : "single dominant basis")</dd></div>
+            </dl>
+        </article>
+
+        <article class="info-card">
+            <p class="info-card__eyebrow">Reading</p>
+            <h3>Visibility and tension</h3>
+            <dl>
+                <div><dt>Projection</dt><dd>@DisplayReading</dd></div>
+                <div><dt>Dominant read</dt><dd>@Snapshot.DominantReading.Normalize()</dd></div>
+                <div><dt>Recessive read</dt><dd>@(Snapshot.HasInverse ? Snapshot.RecessiveReading.Normalize() : "unavailable")</dd></div>
+                <div><dt>Mode</dt><dd>@(Snapshot.IsHiddenOnHalfLine ? "hidden side becomes tension" : "value is readable")</dd></div>
+            </dl>
+        </article>
+
+        <article class="info-card">
+            <p class="info-card__eyebrow">Orthogonal Frontier</p>
+            <h3>Unknown carrier content</h3>
+            <dl>
+                <div><dt>Residual</dt><dd>@Snapshot.SourceSite.Orthogonal.Residual.Normalize()</dd></div>
+                <div><dt>Incoming</dt><dd>@Snapshot.SourceSite.Orthogonal.Incoming().Normalize()</dd></div>
+                <div><dt>Oscillating</dt><dd>@Snapshot.SourceSite.Orthogonal.Oscillating().Normalize()</dd></div>
+                <div><dt>Connections</dt><dd>@Snapshot.SourceSite.Orthogonal.ConnectionCount.Raw</dd></div>
+            </dl>
+            <ul class="channel-list">
+                @foreach (var channel in Snapshot.Channels)
+                {
+                    <li>
+                        <strong>@channel.Name</strong>
+                        <span>@channel.Value.Normalize()</span>
+                        <span>prov @channel.Provenance.Axis.Normalize()</span>
+                    </li>
+                }
+            </ul>
+        </article>
+
+        <article class="info-card">
+            <p class="info-card__eyebrow">Settlement Trace</p>
+            <h3>Ordered local phases</h3>
+            <ol class="term-list">
+                @foreach (var term in Snapshot.Settlement.Terms)
+                {
+                    <li>
+                        <span>@term.Order.Raw</span>
+                        <strong>@term.Phase</strong>
+                        <code>@term.Value.Normalize()</code>
+                    </li>
+                }
+            </ol>
+        </article>
+    </section>
+</div>
+
+@code {
+    private readonly ImmutableArray<NumericExplorerPreset> _presets = NumericExplorerExamples.Presets();
+
+    private string _presetName = string.Empty;
+    private string _presetDescription = string.Empty;
+    private long _origin;
+    private long _dominantSpan;
+    private long _recessiveSpan;
+    private long _valueOffset;
+    private long _residual;
+    private long _sensorInput;
+    private long _switchInput;
+    private long _feedback;
+
+    private NumericExplorerSnapshot Snapshot => NumericExplorerExamples.Build(CurrentPreset);
+
+    private string DisplayReading => Snapshot.IsHiddenOnHalfLine
+        ? Snapshot.HiddenTension.Normalize().ToString()
+        : Snapshot.ActiveProjection.Normalize().ToString();
+
+    private NumericExplorerPreset CurrentPreset => new(
+        _presetName,
+        _presetDescription,
+        _origin,
+        _dominantSpan,
+        _recessiveSpan,
+        _valueOffset,
+        _residual,
+        _sensorInput,
+        _switchInput,
+        _feedback);
+
+    protected override void OnInitialized() => LoadPreset(_presets[0]);
+
+    private void LoadPreset(NumericExplorerPreset preset)
+    {
+        _presetName = preset.Name;
+        _presetDescription = preset.Description;
+        _origin = preset.Origin.Raw;
+        _dominantSpan = preset.DominantSpan.Raw;
+        _recessiveSpan = preset.RecessiveSpan.Raw;
+        _valueOffset = preset.ValueOffset.Raw;
+        _residual = preset.Residual.Raw;
+        _sensorInput = preset.SensorInput.Raw;
+        _switchInput = preset.SwitchInput.Raw;
+        _feedback = preset.Feedback.Raw;
+    }
+}
