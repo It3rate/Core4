@@ -333,8 +333,9 @@ but the long-term Core4 target is:
 
 ## 16. Sensor, Estimator, And Generator
 
-It is useful to reserve the word **sensor** for a physical transducer, not for
-the carrier-level construct itself.
+It is useful to reserve the word **sensor** for a physical transducer role, but
+that does not place it outside Core4. A sensor is still a full carrier-local
+Core4 object. It is simply a simpler one whose flow is mostly feed-forward.
 
 A physical light sensor, for example, has its own internal mechanism. Light rays
 arrive as external influence, affect that mechanism, and through some local
@@ -350,7 +351,8 @@ So in Core4 terms:
   world
 
 These are not three unrelated ontologies. They are different flow balances of
-the same relation law.
+the same relation law, ranging from low-negotiation transduction to richer
+multi-input calibration and outward drive.
 
 One useful reading is:
 
@@ -362,11 +364,17 @@ One useful reading is:
 
 Under this reading:
 
-- a light **sensor** is mostly an external mechanism supplying evidence
+- a light **sensor** is a mostly one-way transducer supplying evidence
 - a light **estimator** gathers many orthogonal inputs, such as sensor data,
   switch state, time of day, prior expectation, and feedback from other systems
 - a light **generator** mainly sets or drives the aligned value and exports its
   influence outward, while still potentially accepting feedback
+
+For a simple sensor, listeners may disagree with the exported value, but that
+usually changes their commitment rather than the sensor's own value. In the
+simplest case they disconnect. A more adaptive or self-healing sensor is still
+the same kind of Core4 object, but with stronger feedback participation and more
+estimator-like behavior.
 
 So a night light with an ambient detector, a manual switch, and a burn-out
 condition can still be modeled as one carrier-local construct. It is
