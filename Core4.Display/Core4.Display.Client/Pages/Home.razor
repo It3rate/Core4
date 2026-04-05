@@ -47,6 +47,7 @@
                                    Min="1"
                                    Max="24"
                                    Value="@_dominantSpan"
+                                   HollowThumb="true"
                                    ValueChanged="OnFusedSpanChanged" />
                 }
 
@@ -58,6 +59,7 @@
                                    Min="1"
                                    Max="24"
                                    Value="@_dominantSpan"
+                                   HollowThumb="true"
                                    ValueChanged="value => _dominantSpan = Math.Max(1, value)" />
                 }
 
@@ -69,6 +71,7 @@
                                    Min="0"
                                    Max="24"
                                    Value="@_recessiveSpan"
+                                   HollowThumb="true"
                                    ValueChanged="value => _recessiveSpan = Math.Max(0, value)" />
                 }
 
@@ -76,11 +79,11 @@
                 {
                     <MeasureSlider Label="Value Offset"
                                    Caption="Live reading from the origin."
-                                   Tone="var(--tone-gold)"
+                                   Tone="var(--tone-dominant)"
                                    Min="@_selected.Controls.SingleValueMin.Raw"
                                    Max="@_selected.Controls.SingleValueMax.Raw"
                                    Value="@_singleValueOffset"
-                                   ValueChanged="value => _singleValueOffset = value" />
+                                    ValueChanged="value => _singleValueOffset = value" />
                 }
 
                 @if (_selected.Controls.ShowDominantValue)
@@ -124,6 +127,7 @@
                                    Min="0"
                                    Max="16"
                                    Value="@_topSignal"
+                                   HollowThumb="true"
                                    ValueChanged="value => _topSignal = Math.Max(0, value)" />
                 }
 
@@ -135,6 +139,7 @@
                                    Min="0"
                                    Max="16"
                                    Value="@_bottomSignal"
+                                   HollowThumb="true"
                                    ValueChanged="value => _bottomSignal = Math.Max(0, value)" />
                 }
 
@@ -146,6 +151,7 @@
                                    Min="0"
                                    Max="16"
                                    Value="@_bottomSignal2"
+                                   HollowThumb="true"
                                    ValueChanged="value => _bottomSignal2 = Math.Max(0, value)" />
                 }
             </div>

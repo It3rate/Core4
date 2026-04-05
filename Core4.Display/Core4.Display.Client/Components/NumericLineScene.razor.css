@@ -24,8 +24,26 @@
 
 .scene-reading-label {
     color: var(--tone-ink);
-    font-size: 0.74rem;
+    font-size: 0.66rem;
     font-weight: 700;
+}
+
+.scene-reading-label--approx {
+    color: var(--tone-muted);
+    font-size: 0.53rem;
+    font-weight: 600;
+}
+
+.scene-reading-term--recessive {
+    color: var(--tone-recessive);
+}
+
+.scene-reading-term--dominant {
+    color: var(--tone-dominant);
+}
+
+.scene-reading-plus {
+    color: color-mix(in srgb, var(--tone-ink) 56%, white 44%);
 }
 
 .scene-axis-label {
@@ -81,7 +99,7 @@
 .scene-origin-node {
     fill: white;
     stroke: var(--tone-origin);
-    stroke-width: 3.2;
+    stroke-width: 2.8;
 }
 
 .scene-aligned-dominant,
@@ -91,7 +109,7 @@
 .scene-branch-dominant,
 .scene-branch-recessive,
 .scene-branch-shared {
-    stroke-width: 2.8;
+    stroke-width: 2.4;
 }
 
 .scene-aligned-dominant,
@@ -118,7 +136,7 @@
 .scene-aligned-recessive-node {
     fill: white;
     stroke: var(--tone-recessive);
-    stroke-width: 3.6;
+    stroke-width: 3.2;
 }
 
 .scene-dominant-tip {
@@ -143,7 +161,7 @@
 .scene-branch-node-recessive {
     fill: white;
     stroke: var(--tone-orthogonal-soft);
-    stroke-width: 3.6;
+    stroke-width: 3.2;
 }
 
 .scene-branch-shared {
@@ -164,19 +182,19 @@
 }
 
 .scene-value-line--dominant {
-    stroke: color-mix(in srgb, var(--tone-dominant) 86%, white 14%);
+    stroke: var(--tone-dominant);
 }
 
 .scene-value-line--recessive {
-    stroke: color-mix(in srgb, var(--tone-recessive) 86%, white 14%);
+    stroke: var(--tone-recessive);
 }
 
 .scene-value-node--dominant {
-    fill: color-mix(in srgb, var(--tone-dominant) 86%, white 14%);
+    fill: var(--tone-dominant);
 }
 
 .scene-value-node--recessive {
-    fill: color-mix(in srgb, var(--tone-recessive) 86%, white 14%);
+    fill: var(--tone-recessive);
 }
 
 .scene-hidden-tension {

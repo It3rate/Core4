@@ -4,11 +4,13 @@
 <div class="scene-wrap">
     <svg class="numeric-scene" viewBox="0 0 820 248" role="img" aria-label="Core4 numeric explorer scene">
         <defs>
-            <marker id="arrowOrthogonal" markerUnits="userSpaceOnUse" viewBox="0 0 14 14" refX="11.5" refY="7" markerWidth="14" markerHeight="14" orient="auto">
-                <path d="M0 0 L14 7 L0 14 L4 7 Z" fill="var(--tone-orthogonal)" />
+            <marker id="arrowOrthogonal" markerUnits="userSpaceOnUse" viewBox="0 0 16 16" refX="13.2" refY="8" markerWidth="16" markerHeight="16" orient="auto">
+                <path d="M0 0 L16 8 L0 16 L4.9 8 Z" fill="var(--tone-orthogonal)" />
+                <path d="M2.7 3.2 L11.6 8 L2.7 12.8 L5.7 8 Z" fill="white" />
             </marker>
-            <marker id="arrowShared" markerUnits="userSpaceOnUse" viewBox="0 0 14 14" refX="11.5" refY="7" markerWidth="14" markerHeight="14" orient="auto">
-                <path d="M0 0 L14 7 L0 14 L4 7 Z" fill="var(--tone-shared)" />
+            <marker id="arrowShared" markerUnits="userSpaceOnUse" viewBox="0 0 16 16" refX="13.2" refY="8" markerWidth="16" markerHeight="16" orient="auto">
+                <path d="M0 0 L16 8 L0 16 L4.9 8 Z" fill="var(--tone-shared)" />
+                <path d="M2.7 3.2 L11.6 8 L2.7 12.8 L5.7 8 Z" fill="white" />
             </marker>
         </defs>
 
@@ -70,7 +72,7 @@
             <line x1="@OriginX" x2="@OriginX" y1="@AxisY" y2="@SingleBottomY()" class="scene-orthogonal-recessive">
                 <title>@BottomChannels[0].Name @BottomChannels[0].Value.Normalize()</title>
             </line>
-            <circle cx="@OriginX" cy="@SingleBottomY()" r="5.5" class="scene-orthogonal-recessive-node">
+            <circle cx="@OriginX" cy="@SingleBottomY()" r="4.2" class="scene-orthogonal-recessive-node">
                 <title>@BottomChannels[0].Name @BottomChannels[0].Value.Normalize()</title>
             </circle>
         }
@@ -85,7 +87,7 @@
                       class="@branch.Css">
                     <title>@branch.Label</title>
                 </line>
-                <circle cx="@branch.TipX" cy="@branch.TipY" r="4.8" class="scene-branch-node-recessive">
+                <circle cx="@branch.TipX" cy="@branch.TipY" r="4.2" class="scene-branch-node-recessive">
                     <title>@branch.Label</title>
                 </circle>
             }
@@ -96,7 +98,7 @@
             <line x1="@OriginX" x2="@RecessiveEndX()" y1="@AxisY" y2="@AxisY" class="scene-aligned-recessive">
                 <title>recessive span -@Snapshot.Preset.RecessiveSpan.Raw</title>
             </line>
-            <circle cx="@RecessiveEndX()" cy="@AxisY" r="5.5" class="scene-aligned-recessive-node">
+            <circle cx="@RecessiveEndX()" cy="@AxisY" r="4.2" class="scene-aligned-recessive-node">
                 <title>recessive anchor @Snapshot.RecessiveAnchor.Raw</title>
             </circle>
         }
@@ -120,7 +122,7 @@
 
             @if (value.Shape == "circle")
             {
-                <circle cx="@value.X" cy="@value.Y" r="4.6" class="@value.NodeCss">
+                <circle cx="@value.X" cy="@value.Y" r="4.2" class="@value.NodeCss">
                     <title>@value.Label</title>
                 </circle>
             }
@@ -132,14 +134,20 @@
             }
         }
 
-        <rect x="@(OriginX - 5)" y="@(AxisY - 5)" width="10" height="10" rx="1" class="scene-origin-node">
+        <rect x="@(OriginX - 4)" y="@(AxisY - 4)" width="8" height="8" rx="1" class="scene-origin-node">
             <title>origin @Snapshot.Origin.Raw</title>
         </rect>
     </svg>
 
     <div class="scene-overlay">
-        <div class="scene-reading-label" style="@Position(OriginX, 28)">
-            @Snapshot.ComplexReading
+        <div class="scene-reading-label scene-reading-label--complex" style="@Position(OriginX, 23)">
+            <span class="scene-reading-term scene-reading-term--recessive">@($"{Snapshot.RecessiveReading.Normalize()}r")</span>
+            <span class="scene-reading-plus"> + </span>
+            <span class="scene-reading-term scene-reading-term--dominant">@($"{Snapshot.DominantReading.Normalize()}d")</span>
+        </div>
+
+        <div class="scene-reading-label scene-reading-label--approx" style="@Position(OriginX, 36)">
+            @Snapshot.ApproximateReading
         </div>
 
         @foreach (var label in AxisLabels())
@@ -189,7 +197,7 @@
         {
             yield return new TickGlyph(
                 OriginX + (index * UnitPixels),
-                IsStrong(index, Snapshot.Preset.DominantSpan.Raw) ? 5.5d : 2.8d,
+                IsStrong(index, Snapshot.Preset.DominantSpan.Raw) ? 5.3d : 2.6d,
                 IsStrong(index, Snapshot.Preset.DominantSpan.Raw) ? "scene-tick-dominant-strong" : "scene-tick-dominant-soft",
                 $"+ tick {index}");
         }
@@ -199,7 +207,7 @@
         {
             yield return new TickGlyph(
                 OriginX - (index * UnitPixels),
-                IsStrong(index, Snapshot.Preset.RecessiveSpan.Raw) ? 5.5d : 2.8d,
+                IsStrong(index, Snapshot.Preset.RecessiveSpan.Raw) ? 5.3d : 2.6d,
                 IsStrong(index, Snapshot.Preset.RecessiveSpan.Raw) ? "scene-tick-recessive-strong" : "scene-tick-recessive-soft",
                 $"- tick {index}");
         }
@@ -207,24 +215,30 @@
 
     private IEnumerable<AxisLabelGlyph> AxisLabels()
     {
-        var positive = (long)Math.Floor((AxisEndX - OriginX) / UnitPixels);
-        for (var index = 1L; index <= positive; index++)
+        if (Snapshot.Preset.DominantSpan.Raw > 0)
         {
-            yield return new AxisLabelGlyph(
-                OriginX + (index * UnitPixels),
-                AxisY + 13d,
-                index.ToString(),
-                "scene-axis-label scene-axis-label--dominant");
+            var positive = (long)Math.Floor((AxisEndX - OriginX) / UnitPixels);
+            for (var index = Snapshot.Preset.DominantSpan.Raw; index <= positive; index += Snapshot.Preset.DominantSpan.Raw)
+            {
+                yield return new AxisLabelGlyph(
+                    OriginX + (index * UnitPixels),
+                    AxisY + 13d,
+                    (index / Snapshot.Preset.DominantSpan.Raw).ToString(),
+                    "scene-axis-label scene-axis-label--dominant");
+            }
         }
 
-        var negative = (long)Math.Floor((OriginX - AxisStartX) / UnitPixels);
-        for (var index = 1L; index <= negative; index++)
+        if (Snapshot.Preset.RecessiveSpan.Raw > 0)
         {
-            yield return new AxisLabelGlyph(
-                OriginX - (index * UnitPixels),
-                AxisY - 14d,
-                $"-{index}",
-                "scene-axis-label scene-axis-label--recessive");
+            var negative = (long)Math.Floor((OriginX - AxisStartX) / UnitPixels);
+            for (var index = Snapshot.Preset.RecessiveSpan.Raw; index <= negative; index += Snapshot.Preset.RecessiveSpan.Raw)
+            {
+                yield return new AxisLabelGlyph(
+                    OriginX - (index * UnitPixels),
+                    AxisY - 14d,
+                    $"-{index / Snapshot.Preset.RecessiveSpan.Raw}",
+                    "scene-axis-label scene-axis-label--recessive");
+            }
         }
     }
 
@@ -281,7 +295,7 @@
         {
             yield return new ValueGlyph(
                 ClampX(OriginX - (Snapshot.Preset.SingleValueOffset.Absolute.Raw * UnitPixels)),
-                AxisY + 26d,
+                AxisY + 24d,
                 "scene-hidden-tension",
                 "scene-hidden-tension-node",
                 "circle",
@@ -303,8 +317,8 @@
         }
 
         return TopChannels.Length == 1
-            ? SingleTopY() + 6d
-            : TopChannels.Min(channel => AxisY - ChannelHeight(channel)) + 6d;
+            ? SingleTopY() + 10d
+            : TopChannels.Min(channel => AxisY - ChannelHeight(channel)) + 10d;
     }
 
     private double BottomWaveEndY()
@@ -315,8 +329,8 @@
         }
 
         return BottomChannels.Length == 1
-            ? SingleBottomY() - 6d
-            : BottomChannels.Max(channel => AxisY + ChannelHeight(channel)) - 6d;
+            ? SingleBottomY() - 10d
+            : BottomChannels.Max(channel => AxisY + ChannelHeight(channel)) - 10d;
     }
 
     private string TopLineCss(NumericExplorerChannel channel) => channel.Provenance.IsShared
@@ -329,11 +343,18 @@
 
     private string ResidualWavePath(double endY)
     {
-        var amplitude = 10d + Math.Min(10d, Snapshot.Preset.Residual.Raw * 0.55d);
+        var distance = Math.Abs(endY - AxisY);
+        if (distance < 1d)
+        {
+            return $"M {OriginX},{AxisY}";
+        }
+
+        var width = 15d + Math.Min(10d, Snapshot.Preset.Residual.Raw * 0.7d);
+        var lane = 13d;
+        var roundness = 6.4d;
         var direction = Math.Sign(endY - AxisY);
-        var lane = 8d;
         var currentY = AxisY;
-        var left = true;
+        var moveRight = direction < 0;
         var parts = new List<string> { $"M {OriginX},{AxisY}" };
 
         while ((direction < 0 && currentY > endY) || (direction > 0 && currentY < endY))
@@ -341,14 +362,16 @@
             var nextY = direction < 0
                 ? Math.Max(endY, currentY - lane)
                 : Math.Min(endY, currentY + lane);
-            var midY = (currentY + nextY) / 2d;
-            var sideX = left ? OriginX - amplitude : OriginX + amplitude;
-            parts.Add($"C {OriginX},{currentY + direction * 2d} {sideX},{currentY + direction * 2d} {sideX},{midY}");
-            parts.Add($"S {OriginX},{nextY - direction * 2d} {OriginX},{nextY}");
+
+            var sideX = moveRight ? OriginX + width : OriginX - width;
+            var curveX = moveRight ? sideX + roundness : sideX - roundness;
+            parts.Add($"L {sideX},{currentY}");
+            parts.Add($"Q {curveX},{(currentY + nextY) / 2d} {sideX},{nextY}");
             currentY = nextY;
-            left = !left;
+            moveRight = !moveRight;
         }
 
+        parts.Add($"L {OriginX},{currentY}");
         return string.Join(' ', parts);
     }
 
@@ -391,11 +414,11 @@
 
     private static string Position(double x, double y) => $"left:{(x / 820d) * 100:F3}%;top:{(y / 248d) * 100:F3}%;";
 
-    private static string DominantTipPoints(double x, double y) => $"{x + 2},{y} {x - 10},{y - 6} {x - 10},{y + 6}";
+    private static string DominantTipPoints(double x, double y) => $"{x + 1.8},{y} {x - 9.4},{y - 6} {x - 9.4},{y + 6}";
 
-    private static string DominantTipInnerPoints(double x, double y) => $"{x - 1.2},{y} {x - 7},{y - 3} {x - 7},{y + 3}";
+    private static string DominantTipInnerPoints(double x, double y) => $"{x - 1.2},{y} {x - 6.8},{y - 3.2} {x - 6.8},{y + 3.2}";
 
-    private static string ValueTrianglePoints(double x, double y) => $"{x + 1.6},{y} {x - 6.2},{y - 4.1} {x - 6.2},{y + 4.1}";
+    private static string ValueTrianglePoints(double x, double y) => $"{x + 1.5},{y} {x - 5.9},{y - 4.0} {x - 5.9},{y + 4.0}";
 
     private readonly record struct TickGlyph(double X, double Height, string Css, string Label);
 

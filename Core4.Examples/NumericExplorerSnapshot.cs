@@ -61,7 +61,9 @@ public sealed record NumericExplorerSnapshot(
             ? RecessiveBasis.Project(RecessiveValue)
             : RecessiveBasis.Project(SingleValue);
 
-    public string ComplexReading => $"{RecessiveReading.Normalize()}r+{DominantReading.Normalize()}d";
+    public string ComplexReading => $"{RecessiveReading.Normalize()}r + {DominantReading.Normalize()}d";
+
+    public string ApproximateReading => $"({RecessiveReading.Normalize().Approximate:0.0}i + {DominantReading.Normalize().Approximate:0.0})";
 
     public string ResolutionMode => !HasInverse
         ? "One-sided half-line"

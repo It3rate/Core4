@@ -1,4 +1,4 @@
-<div class="measure-slider" style="@($"--tone:{Tone};")">
+<div class="measure-slider @(HollowThumb ? "measure-slider--hollow" : "measure-slider--solid")" style="@($"--tone:{Tone};")">
     <div class="measure-slider__header">
         <label>@Label</label>
         <span>@Value</span>
@@ -31,6 +31,7 @@
     [Parameter] public long Min { get; set; } = -20;
     [Parameter] public long Max { get; set; } = 20;
     [Parameter] public long Step { get; set; } = 1;
+    [Parameter] public bool HollowThumb { get; set; }
     [Parameter] public EventCallback<long> ValueChanged { get; set; }
 
     private async Task OnChanged(ChangeEventArgs args)
