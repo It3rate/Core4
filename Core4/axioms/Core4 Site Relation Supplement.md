@@ -247,6 +247,52 @@ So:
 This suggests dominant and recessive are not merely geometric labels. They are
 also local directional readings of explanatory flow.
 
+## 12A. Polarity And Provenance Are Distinct
+
+It is useful to distinguish:
+
+- **polarity**: recessive vs dominant
+- **provenance**: self vs other
+
+Polarity describes the structural role a quantity plays inside a carrier-local
+reading.
+
+Provenance describes where the pressure or information is coming from.
+
+These often align, but they should not be collapsed into one axis.
+
+For example:
+
+- aligned dominant often carries the current local claim of value
+- orthogonal recessive often carries evidence from other structures
+
+But there are important crossings:
+
+- a remembered landmark may be self-sourced while still functioning on a
+  recessive side
+- an externally requested setpoint may act directly on the dominant value
+
+So a better reading is:
+
+- polarity says what role the slot plays
+- provenance says who is sourcing influence on that role
+
+This gives a useful binary overlay:
+
+- recessive/self
+- recessive/other
+- dominant/self
+- dominant/other
+
+This should remain extensible later into richer provenance gradients such as:
+
+- trusted vs weakly trusted
+- near vs far
+- fresh vs stale
+- strong source vs weak source
+
+But self/other is a good first structural split.
+
 ## 13. Decay And Relaxation
 
 Disconnection should not usually mean the immediate disappearance of a relation.
@@ -268,6 +314,44 @@ This also clarifies why frozen relations resist decay:
   it loses denominator and disconnects
 
 This keeps commitment physically meaningful.
+
+## 13A. Recalculation, Relaxation, And Oscillation
+
+Live values should generally be re-derived rather than treated as permanently
+stored truth.
+
+What can remain stored is:
+
+- frozen basis structure
+- committed denominators
+- retained prior state used as local memory or anchor
+
+But current value should be read as a repeated settlement process.
+
+One useful local cycle is:
+
+1. gather recessive anchors and retained commitments
+2. gather orthogonal incoming evidence
+3. form a provisional aligned value
+4. publish that value outward
+5. receive confirmation, disagreement, or feedback
+6. redistribute unresolved remainder through connected relations
+7. repeat until the local structure settles, oscillates, or relaxes
+
+In simple acyclic structures, this may approximate a directional sweep.
+
+In richer structures with loops or mutual dependency, it is better understood as
+an iterative relaxation or oscillator process rather than as a single
+two-direction pipeline.
+
+This is one reason denominator strength matters so much:
+
+- strong denominator = stiffness, inertia, resistance to perturbation
+- weak denominator = easy adjustment
+- zero denominator = no settled local commitment, so tension transfers onward
+
+So `0` denominator does not simply fail to explain. It keeps information in play
+as transferable tension.
 
 ## 14. Higher Grades: Stable Rule, Open Questions
 
