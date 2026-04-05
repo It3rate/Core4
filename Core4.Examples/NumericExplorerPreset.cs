@@ -13,6 +13,8 @@ public readonly record struct NumericExplorerPreset(
     Measure RecessiveSpan,
     Measure ValueOffset,
     Measure Residual,
-    Measure SensorInput,
-    Measure SwitchInput,
-    Measure Feedback);
+    Measure TopSignal,
+    Measure BottomSignal,
+    Measure BottomSignal2,
+    bool FuseAligned,
+    NumericExplorerControls Controls);

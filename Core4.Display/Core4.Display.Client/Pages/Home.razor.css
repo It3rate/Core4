@@ -1,6 +1,6 @@
 .home-page {
     display: grid;
-    gap: 0.9rem;
+    gap: 0.72rem;
 }
 
 .topbar,
@@ -17,8 +17,8 @@
     display: flex;
     justify-content: space-between;
     align-items: end;
-    gap: 1rem;
-    padding: 1rem 1.15rem;
+    gap: 0.85rem;
+    padding: 0.8rem 0.95rem;
     background:
         radial-gradient(circle at top right, rgba(235, 118, 52, 0.16), transparent 22rem),
         radial-gradient(circle at left center, rgba(34, 91, 140, 0.14), transparent 18rem),
@@ -31,7 +31,7 @@
 .info-card__eyebrow {
     margin: 0;
     color: var(--tone-muted);
-    font-size: 0.72rem;
+    font-size: 0.64rem;
     font-weight: 800;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -40,7 +40,7 @@
 .topbar h1,
 .panel-heading h2,
 .scene-panel h2 {
-    margin: 0.16rem 0 0.3rem;
+    margin: 0.12rem 0 0.22rem;
     font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
     font-weight: 700;
     line-height: 1.05;
@@ -48,7 +48,7 @@
 }
 
 .topbar h1 {
-    font-size: clamp(1.75rem, 4vw, 2.6rem);
+    font-size: clamp(1.35rem, 3vw, 1.9rem);
 }
 
 .topbar__text,
@@ -56,34 +56,36 @@
 .scene-panel__text {
     margin: 0;
     color: var(--tone-muted);
-    line-height: 1.45;
+    line-height: 1.35;
+    font-size: 0.88rem;
 }
 
 .topbar__stats,
 .scene-panel__summary {
     display: grid;
-    gap: 0.25rem;
+    gap: 0.18rem;
     justify-items: end;
     color: var(--tone-muted);
     font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
-    font-size: 0.82rem;
+    font-size: 0.74rem;
     white-space: nowrap;
 }
 
 .preset-strip {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.55rem;
+    gap: 0.42rem;
 }
 
 .preset-chip {
     border: 1px solid color-mix(in srgb, var(--tone-ink) 12%, transparent);
     background: color-mix(in srgb, var(--surface-soft) 88%, white 12%);
     border-radius: 999px;
-    padding: 0.52rem 0.9rem;
+    padding: 0.42rem 0.72rem;
     color: var(--tone-ink);
     cursor: pointer;
     font-weight: 700;
+    font-size: 0.86rem;
     transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
 }
 
@@ -100,97 +102,97 @@
 
 .main-grid {
     display: grid;
-    grid-template-columns: minmax(16rem, 18rem) minmax(0, 1fr);
-    gap: 0.9rem;
+    grid-template-columns: minmax(14.5rem, 16rem) minmax(0, 1fr);
+    gap: 0.72rem;
     align-items: start;
 }
 
 .control-panel,
 .scene-panel {
-    padding: 0.95rem;
+    padding: 0.76rem;
 }
 
 .control-panel {
     position: sticky;
-    top: 0.9rem;
+    top: 0.72rem;
 }
 
 .panel-heading {
-    padding: 0.15rem 0.1rem 0.75rem;
+    padding: 0.1rem 0.08rem 0.55rem;
 }
 
 .control-stack {
     display: grid;
-    gap: 0.55rem;
+    gap: 0.45rem;
 }
 
 .scene-panel {
     display: grid;
-    gap: 0.85rem;
+    gap: 0.68rem;
 }
 
 .scene-panel__header {
     display: flex;
     justify-content: space-between;
     align-items: start;
-    gap: 1rem;
+    gap: 0.8rem;
 }
 
 .info-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
+    gap: 0.6rem;
 }
 
 .info-card {
-    padding: 0.85rem 0.9rem;
+    padding: 0.68rem 0.72rem;
     background: color-mix(in srgb, var(--surface-soft) 82%, white 18%);
 }
 
 .info-card dl {
     display: grid;
-    gap: 0.32rem;
+    gap: 0.24rem;
     margin: 0;
 }
 
 .info-card dl div {
     display: flex;
     justify-content: space-between;
-    gap: 0.75rem;
+    gap: 0.55rem;
     border-bottom: 1px dashed color-mix(in srgb, var(--tone-ink) 8%, transparent);
-    padding-bottom: 0.24rem;
+    padding-bottom: 0.18rem;
 }
 
 .info-card dt {
     color: var(--tone-muted);
-    font-size: 0.86rem;
+    font-size: 0.76rem;
 }
 
 .info-card dd {
     margin: 0;
     font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
     color: var(--tone-ink);
-    font-size: 0.86rem;
+    font-size: 0.76rem;
     text-align: right;
 }
 
 .channel-list,
 .term-list {
-    margin: 0.65rem 0 0;
+    margin: 0.5rem 0 0;
     padding: 0;
     list-style: none;
     display: grid;
-    gap: 0.42rem;
+    gap: 0.32rem;
 }
 
 .channel-list li,
 .term-list li {
     display: grid;
     grid-template-columns: auto 1fr auto;
-    gap: 0.55rem;
+    gap: 0.42rem;
     align-items: center;
-    padding: 0.42rem 0.52rem;
-    border-radius: 0.75rem;
+    padding: 0.34rem 0.42rem;
+    border-radius: 0.62rem;
     background: color-mix(in srgb, var(--surface) 82%, white 18%);
 }
 
@@ -198,12 +200,12 @@
 .term-list code,
 .term-list span {
     font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
-    font-size: 0.82rem;
+    font-size: 0.74rem;
 }
 
 .term-list strong {
     justify-self: start;
-    font-size: 0.86rem;
+    font-size: 0.76rem;
 }
 
 @media (max-width: 1100px) {

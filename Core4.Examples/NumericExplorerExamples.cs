@@ -14,59 +14,136 @@ public static class NumericExplorerExamples
     [
         new(
             "Dominant Only",
-            "A one-sided basis that can read outward from its origin but cannot yet reveal the inverse side.",
+            "A one-sided interval that reads only to the dominant side.",
             0,
             10,
             0,
             7,
-            3,
-            4,
             0,
-            0),
+            0,
+            0,
+            0,
+            false,
+            new NumericExplorerControls(
+                ShowDominantSpan: true,
+                ShowRecessiveSpan: false,
+                ShowValueOffset: true,
+                ShowResidual: false,
+                ShowTopSignal: false,
+                ShowBottomSignal: false,
+                ShowBottomSignal2: false,
+                ValueMin: 0,
+                ValueMax: 24)),
         new(
-            "Hidden Negative",
-            "A dominant-only basis with a value on the unseen side, which becomes tension instead of a signed reading.",
+            "Inverted Pair",
+            "Dominant and recessive intervals can coexist before they are frozen into one fused basis.",
             0,
             10,
-            0,
+            10,
             -4,
-            5,
-            2,
-            1,
-            0),
+            0,
+            0,
+            0,
+            0,
+            false,
+            new NumericExplorerControls(
+                ShowDominantSpan: true,
+                ShowRecessiveSpan: true,
+                ShowValueOffset: true,
+                ShowResidual: false,
+                ShowTopSignal: false,
+                ShowBottomSignal: false,
+                ShowBottomSignal2: false,
+                ValueMin: -24,
+                ValueMax: 24)),
         new(
-            "Centered Pair",
-            "Adding the inverse unit opens the opposite side and lets the same value become a readable recessive projection.",
+            "Frozen Segment",
+            "The opposed pair is now frozen and fused, so the same horizontal structure becomes a basis.",
             0,
             10,
             10,
             -4,
-            3,
-            4,
-            6,
-            2),
-        new(
-            "Shifted Origin",
-            "Origins are just frozen measures, so a basis at 100 behaves the same way structurally as one at 0.",
-            100,
-            12,
-            8,
-            5,
-            2,
-            3,
-            2,
-            1),
-        new(
-            "Orthogonal Branch",
-            "Residual orthogonal tension plus several child channels shows how unknown carrier content can branch outward.",
             0,
-            14,
+            0,
+            0,
+            0,
+            true,
+            new NumericExplorerControls(
+                ShowDominantSpan: false,
+                ShowRecessiveSpan: false,
+                ShowValueOffset: true,
+                ShowResidual: false,
+                ShowTopSignal: false,
+                ShowBottomSignal: false,
+                ShowBottomSignal2: false,
+                ValueMin: -24,
+                ValueMax: 24)),
+        new(
+            "Orthogonal Output",
+            "Orthogonal tension can publish upward while the aligned segment remains fixed in place.",
+            0,
+            10,
+            10,
+            5,
             6,
-            9,
-            8,
+            6,
+            0,
+            0,
+            true,
+            new NumericExplorerControls(
+                ShowDominantSpan: false,
+                ShowRecessiveSpan: false,
+                ShowValueOffset: true,
+                ShowResidual: true,
+                ShowTopSignal: true,
+                ShowBottomSignal: false,
+                ShowBottomSignal2: false,
+                ValueMin: -24,
+                ValueMax: 24)),
+        new(
+            "Orthogonal Input",
+            "Orthogonal input arrives from below while the same site is already publishing upward.",
+            0,
+            10,
+            10,
             5,
             7,
-            3)
+            6,
+            5,
+            0,
+            true,
+            new NumericExplorerControls(
+                ShowDominantSpan: false,
+                ShowRecessiveSpan: false,
+                ShowValueOffset: true,
+                ShowResidual: true,
+                ShowTopSignal: true,
+                ShowBottomSignal: true,
+                ShowBottomSignal2: false,
+                ValueMin: -24,
+                ValueMax: 24)),
+        new(
+            "Multiple Inputs",
+            "Several bottom-side inputs can branch into the same site while the aligned basis stays simple.",
+            0,
+            10,
+            10,
+            5,
+            8,
+            6,
+            4,
+            7,
+            true,
+            new NumericExplorerControls(
+                ShowDominantSpan: false,
+                ShowRecessiveSpan: false,
+                ShowValueOffset: true,
+                ShowResidual: true,
+                ShowTopSignal: true,
+                ShowBottomSignal: true,
+                ShowBottomSignal2: true,
+                ValueMin: -24,
+                ValueMax: 24))
     ];
 
     public static NumericExplorerSnapshot Build(NumericExplorerPreset preset)
@@ -74,7 +151,7 @@ public static class NumericExplorerExamples
         var main = new Carrier(1);
         var dominantBasis = Basis.Freeze(main, preset.Origin, preset.Origin + preset.DominantSpan);
         var recessiveBasis = Basis.Freeze(main, preset.Origin, preset.Origin - preset.RecessiveSpan);
-        var displayBasis = preset.RecessiveSpan != Measure.Zero
+        var displayBasis = preset.FuseAligned && preset.RecessiveSpan != Measure.Zero
             ? Basis.Fuse(recessiveBasis, dominantBasis)
             : dominantBasis;
 
@@ -119,9 +196,9 @@ public static class NumericExplorerExamples
 
     private static ImmutableArray<NumericExplorerChannel> Channels(NumericExplorerPreset preset) =>
     [
-        new("Sensor", new Carrier(2), Ratio.Tension(preset.SensorInput), Provenance.OtherDriven(preset.SensorInput)),
-        new("Switch", new Carrier(3), Ratio.Tension(preset.SwitchInput), Provenance.OtherDriven(preset.SwitchInput)),
-        new("Feedback", new Carrier(4), Ratio.Tension(preset.Feedback), Provenance.Shared(preset.Feedback))
+        new("Out", new Carrier(2), Ratio.Tension(preset.TopSignal), Provenance.SelfDriven(preset.TopSignal)),
+        new("In A", new Carrier(3), Ratio.Tension(preset.BottomSignal), Provenance.OtherDriven(preset.BottomSignal)),
+        new("In B", new Carrier(4), Ratio.Tension(preset.BottomSignal2), Provenance.OtherDriven(preset.BottomSignal2))
     ];
 
     private static Ratio Project(

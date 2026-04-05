@@ -68,7 +68,11 @@ public sealed record NumericExplorerSnapshot(
 
     public Ratio RecessiveReading => HasInverse ? RecessiveBasis.Project(Value) : Ratio.Zero(Measure.Zero);
 
-    public string ResolutionMode => HasInverse ? "Centered by inverse partner" : "One-sided half-line";
+    public string ResolutionMode => !HasInverse
+        ? "One-sided half-line"
+        : Preset.FuseAligned
+            ? "Fused directed segment"
+            : "Unfused inverted pair";
 
     private Measure Margin()
     {
