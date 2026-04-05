@@ -412,6 +412,30 @@ departure from an origin.
 But sometimes the desired interpretation is nearest-value rather than
 origin-biased thresholding.
 
+This also clarifies the apparent "double zero" problem.
+
+If one imagines ordinary signed rounding while still using only one directed
+unit, zero seems to become twice as wide as every other bucket:
+
+- positive sub-tick values collapse to `0`
+- negative sub-tick values also collapse to `0`
+
+Then the interval around zero would be artificially doubled, which is not a
+physically satisfying calibration.
+
+The better Core4 reading is that this doubling only appears if one assumes the
+inverse side is visible when it is not.
+
+With a dominant-only unit, the basis does not merely prefer the dominant
+perspective. It only exposes that side of the origin at all. In that case:
+
+- the dominant side is visible
+- the recessive side is not yet accessible
+- negative readings do not meaningfully exist for that basis
+
+So a one-sided unit should not be treated as a full signed number line with a
+bad rounding rule. It is a half-line.
+
 Core4 can explain this structurally by adding the inverse unit.
 
 Even if the inverse side currently carries zero value, the inverse unit still
@@ -426,6 +450,14 @@ So:
 In that centered case, tick intervals naturally lock around the whole values,
 which gives nearest-integer style behavior without needing a separate ad hoc
 rule.
+
+This suggests the inverse unit does two things at once:
+
+- it introduces the opposite perspective
+- it opens the opposite side of the origin for readable placement
+
+So the inverse unit is not merely a second opinion about already-visible values.
+It also reveals values that were structurally inaccessible before.
 
 So the difference between truncation and nearest rounding is not merely a later
 numeric choice. It can be read as a difference in available basis structure:
