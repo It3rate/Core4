@@ -1,4 +1,7 @@
-namespace Core4.Engine;
+using Core4.Dynamics;
+using Core4.Numerics;
+
+namespace Core4.Structure;
 
 /// <summary>
 /// A local place where connection can happen. A site has a placement, a fixed aligned kernel, and an orthogonal

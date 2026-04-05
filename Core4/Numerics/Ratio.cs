@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Core4.Engine;
+namespace Core4.Numerics;
 
 /// <summary>
 /// An ordered recessive/dominant relation. <c>m/0</c> carries unresolved tension, while <c>m/u</c> is a resolved

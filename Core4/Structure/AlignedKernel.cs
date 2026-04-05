@@ -1,4 +1,6 @@
-namespace Core4.Engine;
+using Core4.Numerics;
+
+namespace Core4.Structure;
 
 /// <summary>
 /// The fixed aligned pair for one carrier-local reading. Recessive retains anchor or memory, and dominant carries

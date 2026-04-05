@@ -1,6 +1,7 @@
 using System.Globalization;
+using Core4.Numerics;
 
-namespace Core4.Engine;
+namespace Core4.Structure;
 
 /// <summary>
 /// A primitive support: a directly traversable axis that can host exact placements and frozen relations.

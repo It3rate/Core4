@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
+using Core4.Numerics;
 
-namespace Core4.Engine;
+namespace Core4.Structure;
 
 /// <summary>
 /// A frozen relation, or a frozen fusion of relations. Because a basis is also a support, placements can travel

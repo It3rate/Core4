@@ -1,4 +1,6 @@
-namespace Core4.Engine;
+using Core4.Numerics;
+
+namespace Core4.Structure;
 
 /// <summary>
 /// A location expressed as support plus ratio. Exact positions are just ratios whose denominator is the support's

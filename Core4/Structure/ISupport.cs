@@ -1,4 +1,6 @@
-namespace Core4.Engine;
+using Core4.Numerics;
+
+namespace Core4.Structure;
 
 /// <summary>
 /// Anything traversable by ratio. A carrier is the simplest support, a basis is a frozen support, and larger linked

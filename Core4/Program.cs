@@ -1,4 +1,4 @@
-using Core4.Sessions;
+using Core4.Examples;
 
 Console.WriteLine("Site settlement examples");
 foreach (var line in SiteExamples.Describe())

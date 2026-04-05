@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
-using Core4.Engine;
+using Core4.Dynamics;
+using Core4.Numerics;
+using Core4.Structure;
 
-namespace Core4.Sessions;
+namespace Core4.Examples;
 
 public static class AttachmentExamples
 {
@@ -109,7 +111,7 @@ public static class AttachmentExamples
     private static string DescribeFlows(Site site) => string.Join(
         ", ",
         site.Orthogonal.Flows.Select(flow =>
-            $"{flow.Carrier.Id}:{flow.Value.Normalize()} self={flow.Provenance.Self.Raw} other={flow.Provenance.Other.Raw}"));
+            $"{flow.Carrier.Id}:{flow.Value.Normalize()} prov={flow.Provenance.Axis.Normalize()} dir={flow.Provenance.Direction.Raw}"));
 
     private static string DescribeComposite(Attachment attachment)
     {

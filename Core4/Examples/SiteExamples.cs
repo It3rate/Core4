@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
-using Core4.Engine;
+using Core4.Dynamics;
+using Core4.Numerics;
+using Core4.Structure;
 
-namespace Core4.Sessions;
+namespace Core4.Examples;
 
 public static class SiteExamples
 {
@@ -42,7 +44,8 @@ public static class SiteExamples
                 $"orthogonal=[residual={site.Orthogonal.Residual.Normalize()}, connections={site.Orthogonal.ConnectionCount.Raw}, " +
                 $"incoming={site.Orthogonal.Incoming().Normalize()}, outgoing={site.Orthogonal.Outgoing().Normalize()}, oscillating={site.Orthogonal.Oscillating().Normalize()}], " +
                 $"settle=[anchor={step.Anchor.Normalize()}, in={step.Incoming.Normalize()}, provisional={step.Provisional.Normalize()}, " +
-                $"published={step.Published.Normalize()}, feedback={step.Feedback.Normalize()}, settled={step.Settled.Normalize()}, remainder={step.Remainder.Normalize()}]");
+                $"published={step.Published.Normalize()}, feedback={step.Feedback.Normalize()}, settled={step.Settled.Normalize()}, remainder={step.Remainder.Normalize()}], " +
+                $"terms=[{string.Join(", ", step.Terms.Select(term => $"{term.Order.Raw}:{term.Phase}={term.Value.Normalize()}"))}]");
         }
 
         return descriptions.MoveToImmutable();

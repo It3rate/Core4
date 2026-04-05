@@ -1,4 +1,6 @@
-namespace Core4.Engine;
+using Core4.Numerics;
+
+namespace Core4.Structure;
 
 /// <summary>
 /// A live ordered coupling between two sites on a chosen carrier. Freezing a relation produces the first reusable

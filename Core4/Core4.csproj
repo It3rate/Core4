@@ -8,8 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Engine\" />
-    <Folder Include="sessions\" />
+    <Folder Include="Examples\" />
   </ItemGroup>
 
 </Project>

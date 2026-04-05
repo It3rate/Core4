@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
-using Core4.Engine;
+using Core4.Structure;
 
-namespace Core4.Sessions;
+namespace Core4.Examples;
 
 public static class GradeOneExamples
 {

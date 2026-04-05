@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
+using Core4.Numerics;
 
-namespace Core4.Engine;
+namespace Core4.Dynamics;
 
 /// <summary>
 /// The unresolved orthogonal remainder around a site plus any articulated child flows that have attached to it.
