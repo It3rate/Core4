@@ -172,7 +172,16 @@
                 </div>
             </div>
 
-            <NumericLineScene Snapshot="Snapshot" />
+            <NumericLineScene Snapshot="Snapshot"
+                              OriginChanged="value => _origin = value"
+                              DominantSpanChanged="value => _dominantSpan = Math.Max(1, value)"
+                              RecessiveSpanChanged="value => _recessiveSpan = Math.Max(0, value)"
+                              SingleValueOffsetChanged="value => _singleValueOffset = value"
+                              DominantValueOffsetChanged="value => _dominantValueOffset = Math.Max(0, value)"
+                              RecessiveValueOffsetChanged="value => _recessiveValueOffset = Math.Max(0, value)"
+                              TopSignalChanged="value => _topSignal = Math.Max(0, value)"
+                              BottomSignalChanged="value => _bottomSignal = Math.Max(0, value)"
+                              BottomSignal2Changed="value => _bottomSignal2 = Math.Max(0, value)" />
 
             <section class="info-grid">
                 <article class="info-card">

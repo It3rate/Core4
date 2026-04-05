@@ -2,7 +2,13 @@
 @using Core4.Numerics
 
 <div class="scene-wrap">
-    <svg class="numeric-scene" viewBox="0 0 820 248" role="img" aria-label="Core4 numeric explorer scene">
+    <svg class="numeric-scene"
+         viewBox="0 0 820 248"
+         role="img"
+         aria-label="Core4 numeric explorer scene"
+         @onpointermove="OnPointerMove"
+         @onpointerup="EndDrag"
+         @onpointerleave="EndDrag">
         <defs>
             <marker id="arrowOrthogonal" markerUnits="userSpaceOnUse" viewBox="0 0 16 16" refX="13.2" refY="8" markerWidth="16" markerHeight="16" orient="auto">
                 <path d="M0 0 L16 8 L0 16 L4.9 8 Z" fill="var(--tone-orthogonal)" />
@@ -48,7 +54,15 @@
 
         @if (TopChannels.Length == 1)
         {
-            <line x1="@OriginX" x2="@OriginX" y1="@AxisY" y2="@SingleTopY()" class="@TopLineCss(TopChannels[0])" marker-end="@TopMarker(TopChannels[0])">
+            <line x1="@OriginX"
+                  x2="@OriginX"
+                  y1="@AxisY"
+                  y2="@SingleTopY()"
+                  class="@TopLineCss(TopChannels[0]) scene-drag-target"
+                  marker-end="@TopMarker(TopChannels[0])"
+                  @onpointerdown="BeginTopSignalDrag"
+                  @onpointerdown:preventDefault
+                  @onpointerdown:stopPropagation>
                 <title>@TopChannels[0].Name @TopChannels[0].Value.Normalize()</title>
             </line>
         }
@@ -60,8 +74,11 @@
                       y1="@branch.StartY"
                       x2="@branch.TipX"
                       y2="@branch.TipY"
-                      class="@branch.Css"
-                      marker-end="@branch.Marker">
+                      class="@($"{branch.Css} scene-drag-target")"
+                      marker-end="@branch.Marker"
+                      @onpointerdown="@(e => BeginTopBranchDrag(branch.Index))"
+                      @onpointerdown:preventDefault
+                      @onpointerdown:stopPropagation>
                     <title>@branch.Label</title>
                 </line>
             }
@@ -69,10 +86,23 @@
 
         @if (BottomChannels.Length == 1)
         {
-            <line x1="@OriginX" x2="@OriginX" y1="@AxisY" y2="@SingleBottomY()" class="scene-orthogonal-recessive">
+            <line x1="@OriginX"
+                  x2="@OriginX"
+                  y1="@AxisY"
+                  y2="@SingleBottomY()"
+                  class="scene-orthogonal-recessive scene-drag-target"
+                  @onpointerdown="BeginBottomSignalDrag"
+                  @onpointerdown:preventDefault
+                  @onpointerdown:stopPropagation>
                 <title>@BottomChannels[0].Name @BottomChannels[0].Value.Normalize()</title>
             </line>
-            <circle cx="@OriginX" cy="@SingleBottomY()" r="4.2" class="scene-orthogonal-recessive-node">
+            <circle cx="@OriginX"
+                    cy="@SingleBottomY()"
+                    r="4.2"
+                    class="scene-orthogonal-recessive-node scene-drag-target"
+                    @onpointerdown="BeginBottomSignalDrag"
+                    @onpointerdown:preventDefault
+                    @onpointerdown:stopPropagation>
                 <title>@BottomChannels[0].Name @BottomChannels[0].Value.Normalize()</title>
             </circle>
         }
@@ -84,10 +114,19 @@
                       y1="@branch.StartY"
                       x2="@branch.TipX"
                       y2="@branch.TipY"
-                      class="@branch.Css">
+                      class="@($"{branch.Css} scene-drag-target")"
+                      @onpointerdown="@(e => BeginBottomBranchDrag(branch.Index))"
+                      @onpointerdown:preventDefault
+                      @onpointerdown:stopPropagation>
                     <title>@branch.Label</title>
                 </line>
-                <circle cx="@branch.TipX" cy="@branch.TipY" r="4.2" class="scene-branch-node-recessive">
+                <circle cx="@branch.TipX"
+                        cy="@branch.TipY"
+                        r="4.2"
+                        class="scene-branch-node-recessive scene-drag-target"
+                        @onpointerdown="@(e => BeginBottomBranchDrag(branch.Index))"
+                        @onpointerdown:preventDefault
+                        @onpointerdown:stopPropagation>
                     <title>@branch.Label</title>
                 </circle>
             }
@@ -95,46 +134,99 @@
 
         @if (Snapshot.HasInverse)
         {
-            <line x1="@OriginX" x2="@RecessiveEndX()" y1="@AxisY" y2="@AxisY" class="scene-aligned-recessive">
+            <line x1="@OriginX"
+                  x2="@RecessiveEndX()"
+                  y1="@AxisY"
+                  y2="@AxisY"
+                  class="scene-aligned-recessive scene-drag-target"
+                  @onpointerdown="BeginRecessiveSpanDrag"
+                  @onpointerdown:preventDefault
+                  @onpointerdown:stopPropagation>
                 <title>recessive span -@Snapshot.Preset.RecessiveSpan.Raw</title>
             </line>
-            <circle cx="@RecessiveEndX()" cy="@AxisY" r="4.2" class="scene-aligned-recessive-node">
+            <circle cx="@RecessiveEndX()"
+                    cy="@AxisY"
+                    r="4.2"
+                    class="scene-aligned-recessive-node scene-drag-target"
+                    @onpointerdown="BeginRecessiveSpanDrag"
+                    @onpointerdown:preventDefault
+                    @onpointerdown:stopPropagation>
                 <title>recessive anchor @Snapshot.RecessiveAnchor.Raw</title>
             </circle>
         }
 
-        <line x1="@OriginX" x2="@DominantEndX()" y1="@AxisY" y2="@AxisY" class="scene-aligned-dominant">
+        <line x1="@OriginX"
+              x2="@DominantEndX()"
+              y1="@AxisY"
+              y2="@AxisY"
+              class="scene-aligned-dominant scene-drag-target"
+              @onpointerdown="BeginDominantSpanDrag"
+              @onpointerdown:preventDefault
+              @onpointerdown:stopPropagation>
             <title>dominant span +@Snapshot.Preset.DominantSpan.Raw</title>
         </line>
 
-        <polygon points="@DominantTipPoints(DominantEndX(), AxisY)" class="scene-dominant-tip">
+        <polygon points="@DominantTipPoints(DominantEndX(), AxisY)"
+                 class="scene-dominant-tip scene-drag-target"
+                 @onpointerdown="BeginDominantSpanDrag"
+                 @onpointerdown:preventDefault
+                 @onpointerdown:stopPropagation>
             <title>dominant anchor @Snapshot.DominantAnchor.Raw</title>
         </polygon>
-        <polygon points="@DominantTipInnerPoints(DominantEndX(), AxisY)" class="scene-dominant-tip-inner">
+        <polygon points="@DominantTipInnerPoints(DominantEndX(), AxisY)"
+                 class="scene-dominant-tip-inner scene-drag-target"
+                 @onpointerdown="BeginDominantSpanDrag"
+                 @onpointerdown:preventDefault
+                 @onpointerdown:stopPropagation>
             <title>dominant anchor @Snapshot.DominantAnchor.Raw</title>
         </polygon>
 
         @foreach (var value in ValueGlyphs())
         {
-            <line x1="@OriginX" x2="@value.X" y1="@value.Y" y2="@value.Y" class="@value.LineCss">
+            <line x1="@OriginX"
+                  x2="@value.X"
+                  y1="@value.Y"
+                  y2="@value.Y"
+                  class="@($"{value.LineCss} scene-drag-target")"
+                  @onpointerdown="@(e => BeginValueDrag(value.Kind, e))"
+                  @onpointerdown:preventDefault
+                  @onpointerdown:stopPropagation>
                 <title>@value.Label</title>
             </line>
 
             @if (value.Shape == "circle")
             {
-                <circle cx="@value.X" cy="@value.Y" r="4.2" class="@value.NodeCss">
+                <circle cx="@value.X"
+                        cy="@value.Y"
+                        r="4.2"
+                        class="@($"{value.NodeCss} scene-drag-target")"
+                        @onpointerdown="@(e => BeginValueDrag(value.Kind, e))"
+                        @onpointerdown:preventDefault
+                        @onpointerdown:stopPropagation>
                     <title>@value.Label</title>
                 </circle>
             }
             else
             {
-                <polygon points="@ValueTrianglePoints(value.X, value.Y)" class="@value.NodeCss">
+                <polygon points="@ValueTrianglePoints(value.X, value.Y)"
+                         class="@($"{value.NodeCss} scene-drag-target")"
+                         @onpointerdown="@(e => BeginValueDrag(value.Kind, e))"
+                         @onpointerdown:preventDefault
+                         @onpointerdown:stopPropagation>
                     <title>@value.Label</title>
                 </polygon>
             }
         }
 
-        <rect x="@(OriginX - 4)" y="@(AxisY - 4)" width="8" height="8" rx="1" class="scene-origin-node">
+        <rect x="@(OriginX - 4)"
+              y="@(AxisY - 4)"
+              width="8"
+              height="8"
+              rx="1"
+              class="scene-origin-node scene-drag-target"
+              @onpointerdown="BeginOriginDrag"
+              @onpointerdown:preventDefault
+              @onpointerdown:stopPropagation>
             <title>origin @Snapshot.Origin.Raw</title>
         </rect>
     </svg>
@@ -161,12 +253,22 @@
 
 @code {
     [Parameter, EditorRequired] public NumericExplorerSnapshot Snapshot { get; set; } = default!;
+    [Parameter] public EventCallback<long> OriginChanged { get; set; }
+    [Parameter] public EventCallback<long> DominantSpanChanged { get; set; }
+    [Parameter] public EventCallback<long> RecessiveSpanChanged { get; set; }
+    [Parameter] public EventCallback<long> SingleValueOffsetChanged { get; set; }
+    [Parameter] public EventCallback<long> DominantValueOffsetChanged { get; set; }
+    [Parameter] public EventCallback<long> RecessiveValueOffsetChanged { get; set; }
+    [Parameter] public EventCallback<long> TopSignalChanged { get; set; }
+    [Parameter] public EventCallback<long> BottomSignalChanged { get; set; }
+    [Parameter] public EventCallback<long> BottomSignal2Changed { get; set; }
 
     private const double AxisY = 126d;
     private const double OriginX = 392d;
     private const double UnitPixels = 17d;
     private const double AxisStartX = 72d;
     private const double AxisEndX = 748d;
+    private static readonly DragHandle None = new(string.Empty, -1);
 
     private NumericExplorerChannel[] TopChannels => Snapshot.Channels
         .Where(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero)
@@ -185,6 +287,10 @@
     private bool ShowBottomResidualWave => Snapshot.Preset.Controls.ShowResidual
         && Snapshot.Preset.Residual != Measure.Zero
         && BottomChannels.Length > 0;
+
+    private DragHandle _activeDrag = None;
+    private double _dragStartX;
+    private long _dragStartValue;
 
     private double DominantEndX() => ClampX(OriginX + (Snapshot.Preset.DominantSpan.Raw * UnitPixels));
 
@@ -223,7 +329,7 @@
                 yield return new AxisLabelGlyph(
                     OriginX + (index * UnitPixels),
                     AxisY + 13d,
-                    (index / Snapshot.Preset.DominantSpan.Raw).ToString(),
+                    (Snapshot.Origin.Raw + index).ToString(),
                     "scene-axis-label scene-axis-label--dominant");
             }
         }
@@ -236,7 +342,7 @@
                 yield return new AxisLabelGlyph(
                     OriginX - (index * UnitPixels),
                     AxisY - 14d,
-                    $"-{index / Snapshot.Preset.RecessiveSpan.Raw}",
+                    (Snapshot.Origin.Raw - index).ToString(),
                     "scene-axis-label scene-axis-label--recessive");
             }
         }
@@ -252,6 +358,7 @@
                 "scene-value-line scene-value-line--dominant",
                 "scene-value-node--dominant",
                 "triangle",
+                "dominant-value",
                 $"dominant value {Snapshot.DominantReading.Normalize()}");
         }
 
@@ -263,6 +370,7 @@
                 "scene-value-line scene-value-line--recessive",
                 "scene-value-node--recessive",
                 "circle",
+                "recessive-value",
                 $"recessive value {Snapshot.RecessiveReading.Normalize()}");
         }
 
@@ -277,6 +385,7 @@
                     "scene-value-line scene-value-line--dominant",
                     "scene-value-node--dominant",
                     "triangle",
+                    "single-value",
                     $"dominant value {Snapshot.DominantReading.Normalize()}");
             }
             else
@@ -287,6 +396,7 @@
                     "scene-value-line scene-value-line--recessive",
                     "scene-value-node--recessive",
                     "circle",
+                    "single-value",
                     $"recessive value {Snapshot.RecessiveReading.Normalize()}");
             }
         }
@@ -299,6 +409,7 @@
                 "scene-hidden-tension",
                 "scene-hidden-tension-node",
                 "circle",
+                "single-value",
                 $"hidden side tension {Snapshot.HiddenTension.Normalize()}");
         }
     }
@@ -349,29 +460,43 @@
             return $"M {OriginX},{AxisY}";
         }
 
-        var width = 15d + Math.Min(10d, Snapshot.Preset.Residual.Raw * 0.7d);
-        var lane = 13d;
-        var roundness = 6.4d;
         var direction = Math.Sign(endY - AxisY);
+        var amplitude = 15d + Math.Min(8d, Snapshot.Preset.Residual.Raw * 0.65d);
+        var lanes = Math.Max(3, (int)Math.Ceiling(distance / 11d));
+        var step = distance / lanes;
+        var radius = step / 2d;
         var currentY = AxisY;
-        var moveRight = direction < 0;
-        var parts = new List<string> { $"M {OriginX},{AxisY}" };
-
-        while ((direction < 0 && currentY > endY) || (direction > 0 && currentY < endY))
+        var currentSideRight = direction < 0;
+        var startX = currentSideRight ? OriginX + amplitude : OriginX - amplitude;
+        var parts = new List<string>
         {
-            var nextY = direction < 0
-                ? Math.Max(endY, currentY - lane)
-                : Math.Min(endY, currentY + lane);
+            $"M {OriginX},{AxisY}",
+            $"L {startX},{AxisY}"
+        };
 
-            var sideX = moveRight ? OriginX + width : OriginX - width;
-            var curveX = moveRight ? sideX + roundness : sideX - roundness;
-            parts.Add($"L {sideX},{currentY}");
-            parts.Add($"Q {curveX},{(currentY + nextY) / 2d} {sideX},{nextY}");
+        for (var lane = 0; lane < lanes; lane++)
+        {
+            var nextY = AxisY + (direction * step * (lane + 1));
+            var sideX = currentSideRight ? OriginX + amplitude : OriginX - amplitude;
+            var sweep = currentSideRight ? (direction < 0 ? 1 : 0) : (direction < 0 ? 0 : 1);
+            parts.Add($"A {radius:F3},{radius:F3} 0 0 {sweep} {sideX},{nextY:F3}");
+
+            var targetX = lane == lanes - 1
+                ? OriginX
+                : currentSideRight
+                    ? OriginX - amplitude
+                    : OriginX + amplitude;
+
+            parts.Add($"L {targetX},{nextY:F3}");
+            currentSideRight = !currentSideRight;
             currentY = nextY;
-            moveRight = !moveRight;
         }
 
-        parts.Add($"L {OriginX},{currentY}");
+        if (Math.Abs(currentY - endY) > 0.01d)
+        {
+            parts.Add($"L {OriginX},{endY:F3}");
+        }
+
         return string.Join(' ', parts);
     }
 
@@ -394,6 +519,7 @@
             var tipY = recessive ? AxisY + ChannelHeight(channel) : AxisY - ChannelHeight(channel);
 
             yield return new BranchGlyph(
+                index,
                 OriginX,
                 AxisY,
                 tipX,
@@ -406,6 +532,129 @@
                         : "scene-branch-dominant",
                 recessive ? null : channel.Provenance.IsShared ? "url(#arrowShared)" : "url(#arrowOrthogonal)");
         }
+    }
+
+    private void BeginOriginDrag(PointerEventArgs args) => BeginDrag("origin", Snapshot.Preset.Origin.Raw, args);
+
+    private void BeginDominantSpanDrag(PointerEventArgs args) => BeginDrag("dominant-span", Snapshot.Preset.DominantSpan.Raw, args);
+
+    private void BeginRecessiveSpanDrag(PointerEventArgs args) => BeginDrag("recessive-span", Snapshot.Preset.RecessiveSpan.Raw, args);
+
+    private void BeginValueDrag(string kind, PointerEventArgs args)
+    {
+        var start = kind switch
+        {
+            "dominant-value" => Snapshot.Preset.DominantValueOffset.Raw,
+            "recessive-value" => Snapshot.Preset.RecessiveValueOffset.Raw,
+            _ => Snapshot.Preset.SingleValueOffset.Raw
+        };
+
+        BeginDrag(kind, start, args);
+    }
+
+    private void BeginTopSignalDrag(PointerEventArgs args) => BeginDrag("top-signal", Snapshot.Preset.TopSignal.Raw, args);
+
+    private void BeginBottomSignalDrag(PointerEventArgs args) => BeginDrag("bottom-signal", Snapshot.Preset.BottomSignal.Raw, args);
+
+    private void BeginTopBranchDrag(int index) => _activeDrag = new DragHandle(index == 0 ? "top-signal" : "top-shared", index);
+
+    private void BeginBottomBranchDrag(int index) => _activeDrag = new DragHandle(index == 0 ? "bottom-signal" : "bottom-signal-2", index);
+
+    private void BeginDrag(string kind, long currentValue, PointerEventArgs args)
+    {
+        _activeDrag = new DragHandle(kind, 0);
+        _dragStartX = args.OffsetX;
+        _dragStartValue = currentValue;
+    }
+
+    private async Task OnPointerMove(PointerEventArgs args)
+    {
+        if (_activeDrag == None)
+        {
+            return;
+        }
+
+        switch (_activeDrag.Kind)
+        {
+            case "origin":
+            {
+                var next = _dragStartValue + DeltaUnits(args.OffsetX);
+                await OriginChanged.InvokeAsync(next);
+                break;
+            }
+            case "dominant-span":
+            {
+                var span = Math.Max(1L, ValueFromAxisX(args.OffsetX, false));
+                if (Snapshot.Preset.Controls.ShowFusedSpan)
+                {
+                    await DominantSpanChanged.InvokeAsync(span);
+                    await RecessiveSpanChanged.InvokeAsync(span);
+                }
+                else
+                {
+                    await DominantSpanChanged.InvokeAsync(span);
+                }
+
+                break;
+            }
+            case "recessive-span":
+            {
+                var span = Math.Max(0L, ValueFromAxisX(args.OffsetX, true));
+                if (Snapshot.Preset.Controls.ShowFusedSpan)
+                {
+                    span = Math.Max(1L, span);
+                    await DominantSpanChanged.InvokeAsync(span);
+                    await RecessiveSpanChanged.InvokeAsync(span);
+                }
+                else
+                {
+                    await RecessiveSpanChanged.InvokeAsync(span);
+                }
+
+                break;
+            }
+            case "single-value":
+                await SingleValueOffsetChanged.InvokeAsync(SignedOffsetFromAxisX(args.OffsetX));
+                break;
+            case "dominant-value":
+                await DominantValueOffsetChanged.InvokeAsync(Math.Max(0L, ValueFromAxisX(args.OffsetX, false)));
+                break;
+            case "recessive-value":
+                await RecessiveValueOffsetChanged.InvokeAsync(Math.Max(0L, ValueFromAxisX(args.OffsetX, true)));
+                break;
+            case "top-signal":
+            case "top-shared":
+                await TopSignalChanged.InvokeAsync(Math.Max(0L, ValueFromAxisY(args.OffsetY, false)));
+                break;
+            case "bottom-signal":
+                await BottomSignalChanged.InvokeAsync(Math.Max(0L, ValueFromAxisY(args.OffsetY, true)));
+                break;
+            case "bottom-signal-2":
+                await BottomSignal2Changed.InvokeAsync(Math.Max(0L, ValueFromAxisY(args.OffsetY, true)));
+                break;
+        }
+    }
+
+    private void EndDrag(PointerEventArgs args) => _activeDrag = None;
+
+    private int DeltaUnits(double currentX) => (int)Math.Round((currentX - _dragStartX) / UnitPixels, MidpointRounding.AwayFromZero);
+
+    private long SignedOffsetFromAxisX(double currentX) => (long)Math.Round((currentX - OriginX) / UnitPixels, MidpointRounding.AwayFromZero);
+
+    private long ValueFromAxisX(double currentX, bool recessive)
+    {
+        var delta = recessive
+            ? (OriginX - currentX) / UnitPixels
+            : (currentX - OriginX) / UnitPixels;
+        return (long)Math.Round(Math.Max(0d, delta), MidpointRounding.AwayFromZero);
+    }
+
+    private long ValueFromAxisY(double currentY, bool belowAxis)
+    {
+        var delta = belowAxis
+            ? (currentY - AxisY)
+            : (AxisY - currentY);
+        return (long)Math.Round(Math.Max(0d, delta - 34d) / 2.8d, MidpointRounding.AwayFromZero);
     }
 
     private static bool IsStrong(long index, long span) => span > 0 && index % span == 0;
@@ -425,6 +674,7 @@
     private readonly record struct AxisLabelGlyph(double X, double Y, string Text, string Css);
 
     private readonly record struct BranchGlyph(
+        int Index,
         double StartX,
         double StartY,
         double TipX,
@@ -439,5 +689,8 @@
         string LineCss,
         string NodeCss,
         string Shape,
+        string Kind,
         string Label);
+
+    private readonly record struct DragHandle(string Kind, int Index);
 }
