@@ -357,7 +357,7 @@
         {
             yield return new ValueGlyph(
                 ClampX(OriginX + (Snapshot.Preset.DominantValueOffset.Raw * UnitPixels)),
-                AxisY - 14d,
+                AxisY - 8d,
                 "scene-value-line scene-value-line--dominant",
                 "scene-value-node--dominant",
                 "triangle",
@@ -369,7 +369,7 @@
         {
             yield return new ValueGlyph(
                 ClampX(OriginX - (Snapshot.Preset.RecessiveValueOffset.Raw * UnitPixels)),
-                AxisY + 14d,
+                AxisY + 8d,
                 "scene-value-line scene-value-line--recessive",
                 "scene-value-node--recessive",
                 "circle",
@@ -384,7 +384,7 @@
             {
                 yield return new ValueGlyph(
                     x,
-                    AxisY - 14d,
+                    AxisY - 8d,
                     "scene-value-line scene-value-line--dominant",
                     "scene-value-node--dominant",
                     "triangle",
@@ -395,7 +395,7 @@
             {
                 yield return new ValueGlyph(
                     x,
-                    AxisY + 14d,
+                    AxisY + 8d,
                     "scene-value-line scene-value-line--recessive",
                     "scene-value-node--recessive",
                     "circle",
