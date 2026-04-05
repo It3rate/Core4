@@ -23,39 +23,53 @@ public static class NumericExplorerExamples
             0,
             0,
             0,
+            0,
+            0,
             false,
             new NumericExplorerControls(
+                ShowFusedSpan: false,
                 ShowDominantSpan: true,
                 ShowRecessiveSpan: false,
-                ShowValueOffset: true,
+                ShowSingleValue: true,
+                ShowDominantValue: false,
+                ShowRecessiveValue: false,
                 ShowResidual: false,
                 ShowTopSignal: false,
                 ShowBottomSignal: false,
                 ShowBottomSignal2: false,
-                ValueMin: 0,
-                ValueMax: 24)),
+                SingleValueMin: 0,
+                SingleValueMax: 24,
+                PairValueMin: 0,
+                PairValueMax: 24)),
         new(
             "Inverted Pair",
             "Dominant and recessive intervals can coexist before they are frozen into one fused basis.",
             0,
             10,
             10,
-            -4,
+            0,
+            6,
+            3,
             0,
             0,
             0,
             0,
             false,
             new NumericExplorerControls(
+                ShowFusedSpan: false,
                 ShowDominantSpan: true,
                 ShowRecessiveSpan: true,
-                ShowValueOffset: true,
+                ShowSingleValue: false,
+                ShowDominantValue: true,
+                ShowRecessiveValue: true,
                 ShowResidual: false,
                 ShowTopSignal: false,
                 ShowBottomSignal: false,
                 ShowBottomSignal2: false,
-                ValueMin: -24,
-                ValueMax: 24)),
+                SingleValueMin: -24,
+                SingleValueMax: 24,
+                PairValueMin: 0,
+                PairValueMax: 24)),
         new(
             "Frozen Segment",
             "The opposed pair is now frozen and fused, so the same horizontal structure becomes a basis.",
@@ -67,17 +81,24 @@ public static class NumericExplorerExamples
             0,
             0,
             0,
+            0,
+            0,
             true,
             new NumericExplorerControls(
+                ShowFusedSpan: true,
                 ShowDominantSpan: false,
                 ShowRecessiveSpan: false,
-                ShowValueOffset: true,
+                ShowSingleValue: true,
+                ShowDominantValue: false,
+                ShowRecessiveValue: false,
                 ShowResidual: false,
                 ShowTopSignal: false,
                 ShowBottomSignal: false,
                 ShowBottomSignal2: false,
-                ValueMin: -24,
-                ValueMax: 24)),
+                SingleValueMin: -24,
+                SingleValueMax: 24,
+                PairValueMin: 0,
+                PairValueMax: 24)),
         new(
             "Orthogonal Output",
             "Orthogonal tension can publish upward while the aligned segment remains fixed in place.",
@@ -85,21 +106,28 @@ public static class NumericExplorerExamples
             10,
             10,
             5,
+            0,
+            0,
             6,
             6,
             0,
             0,
             true,
             new NumericExplorerControls(
+                ShowFusedSpan: true,
                 ShowDominantSpan: false,
                 ShowRecessiveSpan: false,
-                ShowValueOffset: true,
+                ShowSingleValue: true,
+                ShowDominantValue: false,
+                ShowRecessiveValue: false,
                 ShowResidual: true,
                 ShowTopSignal: true,
                 ShowBottomSignal: false,
                 ShowBottomSignal2: false,
-                ValueMin: -24,
-                ValueMax: 24)),
+                SingleValueMin: -24,
+                SingleValueMax: 24,
+                PairValueMin: 0,
+                PairValueMax: 24)),
         new(
             "Orthogonal Input",
             "Orthogonal input arrives from below while the same site is already publishing upward.",
@@ -107,21 +135,28 @@ public static class NumericExplorerExamples
             10,
             10,
             5,
+            0,
+            0,
             7,
             6,
             5,
             0,
             true,
             new NumericExplorerControls(
+                ShowFusedSpan: true,
                 ShowDominantSpan: false,
                 ShowRecessiveSpan: false,
-                ShowValueOffset: true,
+                ShowSingleValue: true,
+                ShowDominantValue: false,
+                ShowRecessiveValue: false,
                 ShowResidual: true,
                 ShowTopSignal: true,
                 ShowBottomSignal: true,
                 ShowBottomSignal2: false,
-                ValueMin: -24,
-                ValueMax: 24)),
+                SingleValueMin: -24,
+                SingleValueMax: 24,
+                PairValueMin: 0,
+                PairValueMax: 24)),
         new(
             "Multiple Inputs",
             "Several bottom-side inputs can branch into the same site while the aligned basis stays simple.",
@@ -129,21 +164,28 @@ public static class NumericExplorerExamples
             10,
             10,
             5,
+            0,
+            0,
             8,
             6,
             4,
             7,
             true,
             new NumericExplorerControls(
+                ShowFusedSpan: true,
                 ShowDominantSpan: false,
                 ShowRecessiveSpan: false,
-                ShowValueOffset: true,
+                ShowSingleValue: true,
+                ShowDominantValue: false,
+                ShowRecessiveValue: false,
                 ShowResidual: true,
                 ShowTopSignal: true,
                 ShowBottomSignal: true,
                 ShowBottomSignal2: true,
-                ValueMin: -24,
-                ValueMax: 24))
+                SingleValueMin: -24,
+                SingleValueMax: 24,
+                PairValueMin: 0,
+                PairValueMax: 24))
     ];
 
     public static NumericExplorerSnapshot Build(NumericExplorerPreset preset)
@@ -206,12 +248,24 @@ public static class NumericExplorerExamples
         Basis dominantBasis,
         Basis recessiveBasis)
     {
-        var value = preset.Origin + preset.ValueOffset;
+        if (preset.Controls.ShowDominantValue || preset.Controls.ShowRecessiveValue)
+        {
+            var dominant = preset.DominantValueOffset == Measure.Zero
+                ? Ratio.Zero(Measure.Zero)
+                : dominantBasis.Project(preset.Origin + preset.DominantValueOffset);
+            var recessive = preset.RecessiveValueOffset == Measure.Zero
+                ? Ratio.Zero(Measure.Zero)
+                : recessiveBasis.Project(preset.Origin - preset.RecessiveValueOffset);
 
-        if (preset.ValueOffset.Raw < 0)
+            return recessive.Add(dominant);
+        }
+
+        var value = preset.Origin + preset.SingleValueOffset;
+
+        if (preset.SingleValueOffset.Raw < 0)
         {
             return preset.RecessiveSpan == Measure.Zero
-                ? Ratio.Tension(preset.ValueOffset.Absolute)
+                ? Ratio.Tension(preset.SingleValueOffset.Absolute)
                 : recessiveBasis.Project(value);
         }
 

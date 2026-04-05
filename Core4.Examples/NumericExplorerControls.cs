@@ -6,12 +6,17 @@ namespace Core4.Examples;
 /// UI-level visibility and ranges for one numeric explorer preset.
 /// </summary>
 public readonly record struct NumericExplorerControls(
+    bool ShowFusedSpan,
     bool ShowDominantSpan,
     bool ShowRecessiveSpan,
-    bool ShowValueOffset,
+    bool ShowSingleValue,
+    bool ShowDominantValue,
+    bool ShowRecessiveValue,
     bool ShowResidual,
     bool ShowTopSignal,
     bool ShowBottomSignal,
     bool ShowBottomSignal2,
-    Measure ValueMin,
-    Measure ValueMax);
+    Measure SingleValueMin,
+    Measure SingleValueMax,
+    Measure PairValueMin,
+    Measure PairValueMax);

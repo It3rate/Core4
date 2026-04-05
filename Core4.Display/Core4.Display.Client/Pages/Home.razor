@@ -14,7 +14,7 @@
 
         <div class="topbar__stats">
             <span>mode @Snapshot.ResolutionMode</span>
-            <span>projection @DisplayReading</span>
+            <span>reading @Snapshot.ComplexReading</span>
             <span>settled @Snapshot.Settlement.Settled.Normalize()</span>
         </div>
     </section>
@@ -39,6 +39,17 @@
             </div>
 
             <div class="control-stack">
+                @if (_selected.Controls.ShowFusedSpan)
+                {
+                    <MeasureSlider Label="Fused Span"
+                                   Caption="The aligned pair stays equal while fused."
+                                   Tone="var(--tone-dominant)"
+                                   Min="1"
+                                   Max="24"
+                                   Value="@_dominantSpan"
+                                   ValueChanged="OnFusedSpanChanged" />
+                }
+
                 @if (_selected.Controls.ShowDominantSpan)
                 {
                     <MeasureSlider Label="Dominant Span"
@@ -61,15 +72,37 @@
                                    ValueChanged="value => _recessiveSpan = Math.Max(0, value)" />
                 }
 
-                @if (_selected.Controls.ShowValueOffset)
+                @if (_selected.Controls.ShowSingleValue)
                 {
                     <MeasureSlider Label="Value Offset"
                                    Caption="Live reading from the origin."
                                    Tone="var(--tone-gold)"
-                                   Min="@_selected.Controls.ValueMin.Raw"
-                                   Max="@_selected.Controls.ValueMax.Raw"
-                                   Value="@_valueOffset"
-                                   ValueChanged="value => _valueOffset = value" />
+                                   Min="@_selected.Controls.SingleValueMin.Raw"
+                                   Max="@_selected.Controls.SingleValueMax.Raw"
+                                   Value="@_singleValueOffset"
+                                   ValueChanged="value => _singleValueOffset = value" />
+                }
+
+                @if (_selected.Controls.ShowDominantValue)
+                {
+                    <MeasureSlider Label="Dominant Value"
+                                   Caption="Independent value on the dominant unit."
+                                   Tone="var(--tone-dominant)"
+                                   Min="@_selected.Controls.PairValueMin.Raw"
+                                   Max="@_selected.Controls.PairValueMax.Raw"
+                                   Value="@_dominantValueOffset"
+                                   ValueChanged="value => _dominantValueOffset = Math.Max(0, value)" />
+                }
+
+                @if (_selected.Controls.ShowRecessiveValue)
+                {
+                    <MeasureSlider Label="Recessive Value"
+                                   Caption="Independent value on the recessive unit."
+                                   Tone="var(--tone-recessive)"
+                                   Min="@_selected.Controls.PairValueMin.Raw"
+                                   Max="@_selected.Controls.PairValueMax.Raw"
+                                   Value="@_recessiveValueOffset"
+                                   ValueChanged="value => _recessiveValueOffset = Math.Max(0, value)" />
                 }
 
                 @if (_selected.Controls.ShowResidual)
@@ -127,9 +160,9 @@
                 </div>
 
                 <div class="scene-panel__summary">
-                    <span>dominant @Snapshot.DominantReading.Normalize()</span>
-                    <span>recessive @(Snapshot.HasInverse ? Snapshot.RecessiveReading.Normalize() : "0/0")</span>
+                    <span>@Snapshot.ComplexReading</span>
                     <span>origin @Snapshot.Origin.Raw</span>
+                    <span>settled @Snapshot.Settlement.Settled.Normalize()</span>
                 </div>
             </div>
 
@@ -139,7 +172,6 @@
                 <article class="info-card">
                     <p class="info-card__eyebrow">Freeze Ladder</p>
                     <dl>
-                        <div><dt>Measure</dt><dd>@Snapshot.Value.Raw</dd></div>
                         <div><dt>Origin</dt><dd>@Snapshot.Origin.Raw</dd></div>
                         <div><dt>Dominant</dt><dd>@Snapshot.Origin.Raw -> @Snapshot.DominantAnchor.Raw</dd></div>
                         <div><dt>Recessive</dt><dd>@(Snapshot.HasInverse ? $"{Snapshot.Origin.Raw} -> {Snapshot.RecessiveAnchor.Raw}" : "not present")</dd></div>
@@ -150,7 +182,7 @@
                 <article class="info-card">
                     <p class="info-card__eyebrow">Reading</p>
                     <dl>
-                        <div><dt>Projection</dt><dd>@DisplayReading</dd></div>
+                        <div><dt>Complex</dt><dd>@Snapshot.ComplexReading</dd></div>
                         <div><dt>Dominant</dt><dd>@Snapshot.DominantReading.Normalize()</dd></div>
                         <div><dt>Recessive</dt><dd>@(Snapshot.HasInverse ? Snapshot.RecessiveReading.Normalize() : "unavailable")</dd></div>
                         <div><dt>Mode</dt><dd>@Snapshot.ResolutionMode</dd></div>
@@ -205,17 +237,15 @@
     private long _origin;
     private long _dominantSpan;
     private long _recessiveSpan;
-    private long _valueOffset;
+    private long _singleValueOffset;
+    private long _dominantValueOffset;
+    private long _recessiveValueOffset;
     private long _residual;
     private long _topSignal;
     private long _bottomSignal;
     private long _bottomSignal2;
 
     private NumericExplorerSnapshot Snapshot => NumericExplorerExamples.Build(CurrentPreset);
-
-    private string DisplayReading => Snapshot.IsHiddenOnHalfLine
-        ? Snapshot.HiddenTension.Normalize().ToString()
-        : Snapshot.ActiveProjection.Normalize().ToString();
 
     private string SceneTitle => Snapshot.ResolutionMode;
 
@@ -232,7 +262,9 @@
         Origin = new Measure(_origin),
         DominantSpan = new Measure(_dominantSpan),
         RecessiveSpan = new Measure(_recessiveSpan),
-        ValueOffset = new Measure(_valueOffset),
+        SingleValueOffset = new Measure(_singleValueOffset),
+        DominantValueOffset = new Measure(_dominantValueOffset),
+        RecessiveValueOffset = new Measure(_recessiveValueOffset),
         Residual = new Measure(_residual),
         TopSignal = new Measure(_topSignal),
         BottomSignal = new Measure(_bottomSignal),
@@ -247,10 +279,19 @@
         _origin = preset.Origin.Raw;
         _dominantSpan = preset.DominantSpan.Raw;
         _recessiveSpan = preset.RecessiveSpan.Raw;
-        _valueOffset = preset.ValueOffset.Raw;
+        _singleValueOffset = preset.SingleValueOffset.Raw;
+        _dominantValueOffset = preset.DominantValueOffset.Raw;
+        _recessiveValueOffset = preset.RecessiveValueOffset.Raw;
         _residual = preset.Residual.Raw;
         _topSignal = preset.TopSignal.Raw;
         _bottomSignal = preset.BottomSignal.Raw;
         _bottomSignal2 = preset.BottomSignal2.Raw;
+    }
+
+    private void OnFusedSpanChanged(long value)
+    {
+        var clamped = Math.Max(1, value);
+        _dominantSpan = clamped;
+        _recessiveSpan = clamped;
     }
 }

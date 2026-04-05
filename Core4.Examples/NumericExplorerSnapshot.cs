@@ -27,46 +27,41 @@ public sealed record NumericExplorerSnapshot(
 
     public Measure RecessiveAnchor => Origin - Preset.RecessiveSpan;
 
-    public Measure Value => Origin + Preset.ValueOffset;
+    public Measure SingleValue => Origin + Preset.SingleValueOffset;
+
+    public Measure DominantValue => Origin + Preset.DominantValueOffset;
+
+    public Measure RecessiveValue => Origin - Preset.RecessiveValueOffset;
 
     public bool HasInverse => Preset.RecessiveSpan != Measure.Zero;
 
-    public bool IsHiddenOnHalfLine => !HasInverse && Preset.ValueOffset.Raw < 0;
+    public bool HasPairedValues => Preset.Controls.ShowDominantValue || Preset.Controls.ShowRecessiveValue;
+
+    public bool IsHiddenOnHalfLine => !HasInverse && Preset.SingleValueOffset.Raw < 0;
 
     public Ratio HiddenTension => IsHiddenOnHalfLine
-        ? Ratio.Tension(Preset.ValueOffset.Absolute)
+        ? Ratio.Tension(Preset.SingleValueOffset.Absolute)
         : Ratio.Zero(Measure.Zero);
 
     public Measure DomainMin => HasInverse ? RecessiveAnchor : Origin;
 
     public Measure DomainMax => DominantAnchor;
 
-    public Measure VisualMin
-    {
-        get
-        {
-            var margin = Margin();
+    public Measure VisualMin => DomainMin - Margin();
 
-            if (HasInverse)
-            {
-                return DomainMin - margin;
-            }
+    public Measure VisualMax => DomainMax + Margin();
 
-            return Origin - margin;
-        }
-    }
+    public Ratio DominantReading => HasPairedValues
+        ? DominantBasis.Project(DominantValue)
+        : DominantBasis.Project(SingleValue);
 
-    public Measure VisualMax
-    {
-        get
-        {
-            return DomainMax + Margin();
-        }
-    }
+    public Ratio RecessiveReading => !HasInverse
+        ? Ratio.Zero(Measure.Zero)
+        : HasPairedValues
+            ? RecessiveBasis.Project(RecessiveValue)
+            : RecessiveBasis.Project(SingleValue);
 
-    public Ratio DominantReading => DominantBasis.Project(Value);
-
-    public Ratio RecessiveReading => HasInverse ? RecessiveBasis.Project(Value) : Ratio.Zero(Measure.Zero);
+    public string ComplexReading => $"{RecessiveReading.Normalize()}r+{DominantReading.Normalize()}d";
 
     public string ResolutionMode => !HasInverse
         ? "One-sided half-line"
@@ -77,7 +72,7 @@ public sealed record NumericExplorerSnapshot(
     private Measure Margin()
     {
         var span = Math.Max(Preset.DominantSpan.Absolute.Raw, Preset.RecessiveSpan.Absolute.Raw);
-        var margin = Math.Max(3L, (long)Math.Ceiling(span * 0.2d));
+        var margin = Math.Max(4L, (long)Math.Ceiling(span * 0.2d));
         return new Measure(margin);
     }
 }

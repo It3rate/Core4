@@ -1,7 +1,43 @@
+.scene-wrap {
+    position: relative;
+}
+
 .numeric-scene {
     width: 100%;
     height: auto;
     display: block;
+}
+
+.scene-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.scene-reading-label,
+.scene-axis-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+    white-space: nowrap;
+}
+
+.scene-reading-label {
+    color: var(--tone-ink);
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+.scene-axis-label {
+    font-size: 0.46rem;
+}
+
+.scene-axis-label--dominant {
+    color: color-mix(in srgb, var(--tone-dominant) 72%, var(--tone-ink) 28%);
+}
+
+.scene-axis-label--recessive {
+    color: color-mix(in srgb, var(--tone-recessive) 72%, var(--tone-ink) 28%);
 }
 
 .scene-surface {
@@ -23,7 +59,7 @@
 .scene-tick-dominant-strong,
 .scene-tick-recessive-soft,
 .scene-tick-recessive-strong {
-    stroke-width: 1.2;
+    stroke-width: 1.1;
 }
 
 .scene-tick-dominant-soft {
@@ -31,7 +67,7 @@
 }
 
 .scene-tick-dominant-strong {
-    stroke: color-mix(in srgb, var(--tone-dominant) 70%, transparent);
+    stroke: color-mix(in srgb, var(--tone-dominant) 72%, transparent);
 }
 
 .scene-tick-recessive-soft {
@@ -39,13 +75,13 @@
 }
 
 .scene-tick-recessive-strong {
-    stroke: color-mix(in srgb, var(--tone-recessive) 70%, transparent);
+    stroke: color-mix(in srgb, var(--tone-recessive) 72%, transparent);
 }
 
 .scene-origin-node {
     fill: white;
     stroke: var(--tone-origin);
-    stroke-width: 4;
+    stroke-width: 3.2;
 }
 
 .scene-aligned-dominant,
@@ -55,7 +91,7 @@
 .scene-branch-dominant,
 .scene-branch-recessive,
 .scene-branch-shared {
-    stroke-width: 3.2;
+    stroke-width: 2.8;
 }
 
 .scene-aligned-dominant,
@@ -82,7 +118,15 @@
 .scene-aligned-recessive-node {
     fill: white;
     stroke: var(--tone-recessive);
-    stroke-width: 4.4;
+    stroke-width: 3.6;
+}
+
+.scene-dominant-tip {
+    fill: var(--tone-dominant);
+}
+
+.scene-dominant-tip-inner {
+    fill: white;
 }
 
 .scene-orthogonal-dominant,
@@ -99,7 +143,7 @@
 .scene-branch-node-recessive {
     fill: white;
     stroke: var(--tone-orthogonal-soft);
-    stroke-width: 4.2;
+    stroke-width: 3.6;
 }
 
 .scene-branch-shared {
@@ -109,27 +153,36 @@
 .scene-tension-wave {
     fill: none;
     stroke: var(--tone-tension);
-    stroke-width: 1.35;
+    stroke-width: 1.15;
     stroke-linecap: round;
     stroke-linejoin: round;
 }
 
 .scene-value-line {
-    stroke: color-mix(in srgb, var(--tone-gold) 76%, white 24%);
-    stroke-width: 1.9;
+    stroke-width: 1.4;
     stroke-linecap: round;
 }
 
-.scene-value-node {
-    fill: var(--tone-gold);
-    stroke: white;
-    stroke-width: 1.2;
+.scene-value-line--dominant {
+    stroke: color-mix(in srgb, var(--tone-dominant) 86%, white 14%);
+}
+
+.scene-value-line--recessive {
+    stroke: color-mix(in srgb, var(--tone-recessive) 86%, white 14%);
+}
+
+.scene-value-node--dominant {
+    fill: color-mix(in srgb, var(--tone-dominant) 86%, white 14%);
+}
+
+.scene-value-node--recessive {
+    fill: color-mix(in srgb, var(--tone-recessive) 86%, white 14%);
 }
 
 .scene-hidden-tension {
     stroke: var(--tone-tension);
-    stroke-width: 1.5;
-    stroke-dasharray: 3.2 3.2;
+    stroke-width: 1.4;
+    stroke-dasharray: 3 3;
     stroke-linecap: round;
 }
 
