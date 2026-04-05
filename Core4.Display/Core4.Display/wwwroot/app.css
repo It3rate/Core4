@@ -1,16 +1,19 @@
 :root {
     color-scheme: light;
-    --surface: #f4efe5;
-    --surface-soft: #ebe2d1;
-    --tone-ink: #223030;
-    --tone-muted: #62706d;
-    --tone-dominant: #d04a1c;
-    --tone-dominant-soft: #f1ab77;
-    --tone-recessive: #225b8c;
-    --tone-recessive-soft: #7bb4da;
-    --tone-orthogonal: #1b8a6b;
-    --tone-gold: #a77b1f;
-    --tone-tension: #b53f33;
+    --surface: #f6f2ea;
+    --surface-soft: #efe7d9;
+    --tone-ink: #243336;
+    --tone-muted: #67757a;
+    --tone-dominant: #0f4fa4;
+    --tone-dominant-soft: #3f6fff;
+    --tone-recessive: #4a74f3;
+    --tone-recessive-soft: #a7bfff;
+    --tone-orthogonal: #ce1018;
+    --tone-orthogonal-soft: #ff7a00;
+    --tone-shared: #efaa95;
+    --tone-origin: #b00fb3;
+    --tone-gold: #c08a1b;
+    --tone-tension: #9a9a9d;
 }
 
 html,
@@ -18,9 +21,9 @@ body {
     margin: 0;
     min-height: 100%;
     background:
-        radial-gradient(circle at top left, rgba(34, 91, 140, 0.1), transparent 28rem),
-        radial-gradient(circle at bottom right, rgba(208, 74, 28, 0.11), transparent 32rem),
-        linear-gradient(180deg, #f6f1e8 0%, #efe6d7 100%);
+        radial-gradient(circle at top left, rgba(74, 116, 243, 0.09), transparent 28rem),
+        radial-gradient(circle at bottom right, rgba(206, 16, 24, 0.1), transparent 32rem),
+        linear-gradient(180deg, #fbf8f3 0%, #f1eadf 100%);
     color: var(--tone-ink);
     font-family: "Aptos", "Segoe UI Variable", "Trebuchet MS", sans-serif;
 }

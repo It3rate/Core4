@@ -5,62 +5,94 @@
 }
 
 .scene-surface {
-    fill: color-mix(in srgb, var(--surface) 92%, white 8%);
-    stroke: color-mix(in srgb, var(--tone-ink) 10%, transparent);
-    stroke-width: 1;
-}
-
-.scene-hidden {
-    fill: color-mix(in srgb, var(--tone-recessive-soft) 22%, transparent);
-}
-
-.scene-grid {
+    fill: color-mix(in srgb, var(--surface) 93%, white 7%);
     stroke: color-mix(in srgb, var(--tone-ink) 8%, transparent);
     stroke-width: 1;
 }
 
+.scene-hidden {
+    fill: color-mix(in srgb, var(--tone-recessive-soft) 12%, transparent);
+}
+
+.scene-grid {
+    stroke: color-mix(in srgb, var(--tone-ink) 7%, transparent);
+    stroke-width: 1;
+}
+
 .scene-axis {
-    stroke: color-mix(in srgb, var(--tone-ink) 42%, transparent);
+    stroke: color-mix(in srgb, var(--tone-ink) 38%, transparent);
     stroke-width: 2;
 }
 
+.scene-axis-tick {
+    stroke: color-mix(in srgb, var(--tone-ink) 24%, transparent);
+    stroke-width: 1.5;
+}
+
 .scene-origin-node {
-    fill: color-mix(in srgb, var(--surface-soft) 88%, white 12%);
-    stroke: color-mix(in srgb, var(--tone-ink) 78%, transparent);
-    stroke-width: 4;
+    fill: white;
+    stroke: var(--tone-origin);
+    stroke-width: 6;
 }
 
-.scene-dominant,
-.scene-recessive,
-.scene-value-line,
-.scene-branch-other,
+.scene-aligned-dominant,
+.scene-aligned-recessive,
+.scene-orthogonal-dominant,
+.scene-orthogonal-recessive,
+.scene-branch-dominant,
+.scene-branch-recessive,
 .scene-branch-shared,
-.scene-branch-residual,
-.scene-tension {
+.scene-value-line,
+.scene-hidden-tension {
     stroke-linecap: round;
+    stroke-width: 8;
 }
 
-.scene-dominant {
-    stroke: url(#dominantGlow);
+.scene-aligned-dominant {
+    stroke: var(--tone-dominant);
 }
 
-.scene-recessive {
-    stroke: url(#recessiveGlow);
-}
-
-.scene-recessive-node,
-.scene-branch-node-other,
-.scene-branch-node-shared {
-    fill: color-mix(in srgb, var(--surface) 92%, white 8%);
-    stroke-width: 5;
-}
-
-.scene-recessive-node {
+.scene-aligned-recessive {
     stroke: var(--tone-recessive);
 }
 
+.scene-aligned-recessive-node {
+    fill: white;
+    stroke: var(--tone-recessive);
+    stroke-width: 8;
+}
+
+.scene-orthogonal-dominant,
+.scene-branch-dominant {
+    stroke: var(--tone-orthogonal);
+}
+
+.scene-orthogonal-recessive,
+.scene-branch-recessive {
+    stroke: var(--tone-orthogonal-soft);
+}
+
+.scene-orthogonal-recessive-node,
+.scene-branch-node-recessive {
+    fill: white;
+    stroke: var(--tone-orthogonal-soft);
+    stroke-width: 7;
+}
+
+.scene-branch-shared {
+    stroke: var(--tone-shared);
+}
+
+.scene-tension-wave {
+    fill: none;
+    stroke: var(--tone-tension);
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 .scene-value-line {
-    stroke: color-mix(in srgb, var(--tone-gold) 72%, white 28%);
+    stroke: color-mix(in srgb, var(--tone-gold) 80%, white 20%);
     stroke-width: 4;
 }
 
@@ -70,33 +102,12 @@
     stroke-width: 2;
 }
 
-.scene-tension {
+.scene-hidden-tension {
     stroke: var(--tone-tension);
     stroke-width: 3;
-    stroke-dasharray: 7 6;
+    stroke-dasharray: 6 5;
 }
 
-.scene-tension-node {
+.scene-hidden-tension-node {
     fill: var(--tone-tension);
-}
-
-.scene-branch-other {
-    stroke: var(--tone-orthogonal);
-}
-
-.scene-branch-shared {
-    stroke: var(--tone-gold);
-}
-
-.scene-branch-residual {
-    stroke: var(--tone-tension);
-    stroke-dasharray: 4 4;
-}
-
-.scene-branch-node-other {
-    stroke: var(--tone-orthogonal);
-}
-
-.scene-branch-node-shared {
-    stroke: var(--tone-gold);
 }

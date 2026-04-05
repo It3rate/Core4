@@ -45,13 +45,14 @@ public sealed record NumericExplorerSnapshot(
     {
         get
         {
+            var margin = Margin();
+
             if (HasInverse)
             {
-                return DomainMin;
+                return DomainMin - margin;
             }
 
-            var reveal = Preset.DominantSpan.Raw <= 1 ? new Measure(4) : new Measure(Math.Max(2, Preset.DominantSpan.Raw / 2));
-            return Origin - reveal;
+            return Origin - margin;
         }
     }
 
@@ -59,8 +60,7 @@ public sealed record NumericExplorerSnapshot(
     {
         get
         {
-            var reveal = Preset.DominantSpan.Raw <= 1 ? new Measure(4) : new Measure(Math.Max(2, Preset.DominantSpan.Raw / 3));
-            return DomainMax + reveal;
+            return DomainMax + Margin();
         }
     }
 
@@ -69,4 +69,11 @@ public sealed record NumericExplorerSnapshot(
     public Ratio RecessiveReading => HasInverse ? RecessiveBasis.Project(Value) : Ratio.Zero(Measure.Zero);
 
     public string ResolutionMode => HasInverse ? "Centered by inverse partner" : "One-sided half-line";
+
+    private Measure Margin()
+    {
+        var span = Math.Max(Preset.DominantSpan.Absolute.Raw, Preset.RecessiveSpan.Absolute.Raw);
+        var margin = Math.Max(3L, (long)Math.Ceiling(span * 0.2d));
+        return new Measure(margin);
+    }
 }

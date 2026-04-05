@@ -3,22 +3,14 @@
 
 <svg class="numeric-scene" viewBox="0 0 820 320" role="img" aria-label="Core4 numeric explorer scene">
     <defs>
-        <linearGradient id="dominantGlow" x1="0%" x2="100%" y1="0%" y2="0%">
-            <stop offset="0%" stop-color="var(--tone-dominant-soft)" />
-            <stop offset="100%" stop-color="var(--tone-dominant)" />
-        </linearGradient>
-        <linearGradient id="recessiveGlow" x1="0%" x2="100%" y1="0%" y2="0%">
-            <stop offset="0%" stop-color="var(--tone-recessive)" />
-            <stop offset="100%" stop-color="var(--tone-recessive-soft)" />
-        </linearGradient>
-        <marker id="arrowDominant" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto">
-            <path d="M0 0 L12 6 L0 12 L3.2 6 Z" fill="var(--tone-dominant)" />
+        <marker id="arrowAligned" markerUnits="userSpaceOnUse" viewBox="0 0 18 18" refX="15" refY="9" markerWidth="18" markerHeight="18" orient="auto">
+            <path d="M0 0 L18 9 L0 18 L4.5 9 Z" fill="var(--tone-dominant)" />
         </marker>
-        <marker id="arrowOrthogonal" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto">
-            <path d="M0 0 L12 6 L0 12 L3.2 6 Z" fill="var(--tone-orthogonal)" />
+        <marker id="arrowOrthogonal" markerUnits="userSpaceOnUse" viewBox="0 0 18 18" refX="15" refY="9" markerWidth="18" markerHeight="18" orient="auto">
+            <path d="M0 0 L18 9 L0 18 L4.5 9 Z" fill="var(--tone-orthogonal)" />
         </marker>
-        <marker id="arrowShared" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto">
-            <path d="M0 0 L12 6 L0 12 L3.2 6 Z" fill="var(--tone-gold)" />
+        <marker id="arrowShared" markerUnits="userSpaceOnUse" viewBox="0 0 18 18" refX="15" refY="9" markerWidth="18" markerHeight="18" orient="auto">
+            <path d="M0 0 L18 9 L0 18 L4.5 9 Z" fill="var(--tone-shared)" />
         </marker>
     </defs>
 
@@ -26,19 +18,46 @@
 
     @if (Snapshot.IsHiddenOnHalfLine)
     {
-        <rect x="40" y="58" width="@(X(Snapshot.Origin) - 40)" height="204" class="scene-hidden" rx="18">
+        <rect x="40" y="56" width="@(OriginX() - 40)" height="208" class="scene-hidden" rx="18">
             <title>inverse side unrevealed</title>
         </rect>
     }
 
     @foreach (var tick in Ticks())
     {
-        <line x1="@X(tick)" x2="@X(tick)" y1="86" y2="246" class="scene-grid">
-            <title>tick @tick.Raw</title>
+        <line x1="@tick" x2="@tick" y1="96" y2="244" class="scene-grid">
+            <title>tick</title>
+        </line>
+        <line x1="@tick" x2="@tick" y1="@(AxisY - 9)" y2="@(AxisY + 9)" class="scene-axis-tick">
+            <title>calibration tick</title>
         </line>
     }
 
     <line x1="40" x2="780" y1="@AxisY" y2="@AxisY" class="scene-axis" />
+
+    @if (Snapshot.Preset.Residual != Measure.Zero)
+    {
+        <path d="@ResidualWavePath()" class="scene-tension-wave">
+            <title>residual tension @Snapshot.SourceSite.Orthogonal.Residual.Normalize()</title>
+        </path>
+    }
+
+    @if (OrthogonalTopHeight() > 0)
+    {
+        <line x1="@OriginX()" x2="@OriginX()" y1="@AxisY" y2="@(AxisY - OrthogonalTopHeight())" class="scene-orthogonal-dominant" marker-end="url(#arrowOrthogonal)">
+            <title>dominant orthogonal aggregate @Snapshot.SourceSite.Orthogonal.Outgoing().Add(Snapshot.SourceSite.Orthogonal.Oscillating()).Normalize()</title>
+        </line>
+    }
+
+    @if (OrthogonalBottomHeight() > 0)
+    {
+        <line x1="@OriginX()" x2="@OriginX()" y1="@AxisY" y2="@(AxisY + OrthogonalBottomHeight())" class="scene-orthogonal-recessive">
+            <title>recessive orthogonal aggregate @Snapshot.SourceSite.Orthogonal.Incoming().Normalize()</title>
+        </line>
+        <circle cx="@OriginX()" cy="@(AxisY + OrthogonalBottomHeight())" r="11" class="scene-orthogonal-recessive-node">
+            <title>recessive orthogonal aggregate @Snapshot.SourceSite.Orthogonal.Incoming().Normalize()</title>
+        </circle>
+    }
 
     @foreach (var branch in Branches())
     {
@@ -47,53 +66,52 @@
               x2="@branch.TipX"
               y2="@branch.TipY"
               class="@branch.Css"
-              style="@($"stroke-width:{branch.Width};")"
               marker-end="@branch.Marker">
             <title>@branch.Label</title>
         </line>
 
         @if (branch.HasCircle)
         {
-            <circle cx="@branch.TipX" cy="@branch.TipY" r="8" class="@branch.NodeCss">
+            <circle cx="@branch.TipX" cy="@branch.TipY" r="8.5" class="@branch.NodeCss">
                 <title>@branch.Label</title>
             </circle>
         }
     }
 
-    <line x1="@OriginX()" x2="@X(Snapshot.DominantAnchor)" y1="@AxisY" y2="@AxisY" class="scene-dominant" style="@($"stroke-width:{Stroke(Snapshot.Preset.DominantSpan)};")" marker-end="url(#arrowDominant)">
-        <title>dominant span +@Snapshot.Preset.DominantSpan.Raw</title>
-    </line>
-
     @if (Snapshot.HasInverse)
     {
-        <line x1="@OriginX()" x2="@X(Snapshot.RecessiveAnchor)" y1="@AxisY" y2="@AxisY" class="scene-recessive" style="@($"stroke-width:{Stroke(Snapshot.Preset.RecessiveSpan)};")">
+        <line x1="@OriginX()" x2="@X(Snapshot.RecessiveAnchor)" y1="@AxisY" y2="@AxisY" class="scene-aligned-recessive">
             <title>recessive span -@Snapshot.Preset.RecessiveSpan.Raw</title>
         </line>
-        <circle cx="@X(Snapshot.RecessiveAnchor)" cy="@AxisY" r="9" class="scene-recessive-node">
+        <circle cx="@X(Snapshot.RecessiveAnchor)" cy="@AxisY" r="12" class="scene-aligned-recessive-node">
             <title>recessive anchor @Snapshot.RecessiveAnchor.Raw</title>
         </circle>
     }
 
+    <line x1="@OriginX()" x2="@X(Snapshot.DominantAnchor)" y1="@AxisY" y2="@AxisY" class="scene-aligned-dominant" marker-end="url(#arrowAligned)">
+        <title>dominant span +@Snapshot.Preset.DominantSpan.Raw</title>
+    </line>
+
     @if (Snapshot.IsHiddenOnHalfLine)
     {
-        <line x1="@OriginX()" x2="@HiddenValueX()" y1="@AxisY" y2="@(AxisY + 52)" class="scene-tension">
+        <line x1="@OriginX()" x2="@HiddenValueX()" y1="@AxisY" y2="@(AxisY + 48)" class="scene-hidden-tension">
             <title>hidden side tension @Snapshot.HiddenTension.Normalize()</title>
         </line>
-        <circle cx="@HiddenValueX()" cy="@(AxisY + 52)" r="8" class="scene-tension-node">
+        <circle cx="@HiddenValueX()" cy="@(AxisY + 48)" r="8" class="scene-hidden-tension-node">
             <title>hidden side tension @Snapshot.HiddenTension.Normalize()</title>
         </circle>
     }
     else
     {
-        <line x1="@OriginX()" x2="@X(Snapshot.Value)" y1="@(AxisY - 30)" y2="@(AxisY - 30)" class="scene-value-line">
+        <line x1="@OriginX()" x2="@X(Snapshot.Value)" y1="@(AxisY - 28)" y2="@(AxisY - 28)" class="scene-value-line">
             <title>value @Snapshot.Value.Raw</title>
         </line>
-        <circle cx="@X(Snapshot.Value)" cy="@(AxisY - 30)" r="9" class="scene-value-node">
+        <circle cx="@X(Snapshot.Value)" cy="@(AxisY - 28)" r="8.5" class="scene-value-node">
             <title>value @Snapshot.Value.Raw</title>
         </circle>
     }
 
-    <rect x="@(OriginX() - 9)" y="@(AxisY - 9)" width="18" height="18" rx="2" class="scene-origin-node">
+    <rect x="@(OriginX() - 12)" y="@(AxisY - 12)" width="24" height="24" rx="2" class="scene-origin-node">
         <title>origin @Snapshot.Origin.Raw</title>
     </rect>
 </svg>
@@ -102,7 +120,6 @@
     [Parameter, EditorRequired] public NumericExplorerSnapshot Snapshot { get; set; } = default!;
 
     private const double AxisY = 180d;
-
     private double OriginX() => X(Snapshot.Origin);
 
     private double X(Measure value)
@@ -117,69 +134,64 @@
     {
         var origin = OriginX();
         var left = X(Snapshot.VisualMin);
-        return left + ((origin - left) * 0.42d);
+        return left + ((origin - left) * 0.45d);
     }
 
-    private double Stroke(Measure span) => 4d + Math.Min(12d, span.Raw * 0.38d);
-
-    private IEnumerable<Measure> Ticks()
+    private IEnumerable<double> Ticks()
     {
-        var min = Snapshot.VisualMin.Raw;
-        var max = Snapshot.VisualMax.Raw;
-        var steps = 8L;
-        var width = Math.Max(1L, max - min);
-
-        for (var index = 0L; index <= steps; index++)
+        for (var step = 0; step <= 10; step++)
         {
-            yield return new Measure(min + ((width * index) / steps));
+            yield return 40d + (step / 10d) * 740d;
         }
+    }
+
+    private double OrthogonalTopHeight()
+    {
+        var outgoing = Snapshot.SourceSite.Orthogonal.Outgoing().Potential.Raw;
+        var oscillating = Snapshot.SourceSite.Orthogonal.Oscillating().Potential.Raw;
+        return Height(outgoing + oscillating);
+    }
+
+    private double OrthogonalBottomHeight() => Height(Snapshot.SourceSite.Orthogonal.Incoming().Potential.Raw);
+
+    private double Height(long value) => value <= 0 ? 0d : 48d + Math.Min(62d, value * 4d);
+
+    private string ResidualWavePath()
+    {
+        var top = AxisY - Math.Max(42d, OrthogonalTopHeight());
+        var bottom = AxisY + Math.Max(42d, OrthogonalBottomHeight());
+        var amplitude = 8d + Math.Min(14d, Snapshot.Preset.Residual.Raw * 0.9d);
+        var step = 18d;
+        var points = new List<string>();
+        var y = top;
+        var left = true;
+
+        points.Add($"M {OriginX() - 10d},{top}");
+
+        while (y < bottom)
+        {
+            y = Math.Min(bottom, y + step);
+            var x = OriginX() - 10d + (left ? -amplitude : amplitude);
+            points.Add($"L {x},{y}");
+            left = !left;
+        }
+
+        return string.Join(' ', points);
     }
 
     private IEnumerable<BranchGlyph> Branches()
     {
-        var top = new List<NumericExplorerChannel>();
-        var bottom = new List<NumericExplorerChannel>();
+        var incoming = Snapshot.Channels.Where(channel => channel.Provenance.IsOther).ToArray();
+        var outgoing = Snapshot.Channels.Where(channel => !channel.Provenance.IsOther).ToArray();
 
-        foreach (var channel in Snapshot.Channels)
-        {
-            if (channel.Value.Potential == Measure.Zero && channel.Value.Dominant == Measure.Zero)
-            {
-                continue;
-            }
-
-            if (channel.Provenance.IsOther)
-            {
-                bottom.Add(channel);
-            }
-            else
-            {
-                top.Add(channel);
-            }
-        }
-
-        foreach (var branch in CreateBranches(top, false))
+        foreach (var branch in CreateBranches(outgoing, false))
         {
             yield return branch;
         }
 
-        foreach (var branch in CreateBranches(bottom, true))
+        foreach (var branch in CreateBranches(incoming, true))
         {
             yield return branch;
-        }
-
-        if (Snapshot.Preset.Residual != Measure.Zero)
-        {
-            yield return new BranchGlyph(
-                OriginX(),
-                AxisY,
-                OriginX(),
-                AxisY - (44d + Math.Min(52d, Snapshot.Preset.Residual.Raw * 4d)),
-                $"residual {Snapshot.SourceSite.Orthogonal.Residual.Normalize()}",
-                "scene-branch-residual",
-                string.Empty,
-                2.5d + Math.Min(5d, Snapshot.Preset.Residual.Raw * 0.35d),
-                null,
-                false);
         }
     }
 
@@ -188,21 +200,31 @@
         for (var index = 0; index < channels.Count; index++)
         {
             var channel = channels[index];
-            var spread = (index - ((channels.Count - 1) / 2d)) * 46d;
-            var height = 70d + Math.Min(42d, channel.Value.Potential.Raw * 4d);
-            var label = $"{channel.Name} {channel.Value.Normalize()}";
-            var isShared = channel.Provenance.IsShared;
+            if (channel.Value.Potential == Measure.Zero && channel.Value.Dominant == Measure.Zero)
+            {
+                continue;
+            }
+
+            var spread = channels.Count == 1
+                ? 0d
+                : (index - ((channels.Count - 1) / 2d)) * 52d;
+            var rise = 58d + Math.Min(44d, channel.Value.Potential.Raw * 3.5d);
+            var tipX = OriginX() + spread;
+            var tipY = recessive ? AxisY + rise : AxisY - rise;
 
             yield return new BranchGlyph(
                 OriginX(),
                 AxisY,
-                OriginX() + spread,
-                recessive ? AxisY + height : AxisY - height,
-                label,
-                isShared ? "scene-branch-shared" : "scene-branch-other",
-                isShared ? "scene-branch-node-shared" : "scene-branch-node-other",
-                2.5d + Math.Min(6d, channel.Value.Potential.Raw * 0.45d),
-                recessive ? null : isShared ? "url(#arrowShared)" : "url(#arrowOrthogonal)",
+                tipX,
+                tipY,
+                $"{channel.Name} {channel.Value.Normalize()}",
+                recessive
+                    ? "scene-branch-recessive"
+                    : channel.Provenance.IsShared
+                        ? "scene-branch-shared"
+                        : "scene-branch-dominant",
+                recessive ? "scene-branch-node-recessive" : string.Empty,
+                recessive ? null : channel.Provenance.IsShared ? "url(#arrowShared)" : "url(#arrowOrthogonal)",
                 recessive);
         }
     }
@@ -215,7 +237,6 @@
         string Label,
         string Css,
         string NodeCss,
-        double Width,
         string? Marker,
         bool HasCircle);
 }
