@@ -34,6 +34,12 @@
     font-weight: 600;
 }
 
+.scene-reading-label--complex,
+.scene-reading-label--approx {
+    transform: translate(-100%, -50%);
+    text-align: right;
+}
+
 .scene-reading-term--recessive {
     color: var(--tone-recessive);
 }
