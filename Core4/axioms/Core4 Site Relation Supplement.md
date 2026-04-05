@@ -330,3 +330,100 @@ but the long-term Core4 target is:
 - extensible orthogonal articulation
 - numeric hardening and relaxation of denominators
 - no separate ontology for data, carrier, branch, or flow
+
+## 16. Sensor, Estimator, And Generator
+
+It is useful to reserve the word **sensor** for a physical transducer, not for
+the carrier-level construct itself.
+
+A physical light sensor, for example, has its own internal mechanism. Light rays
+arrive as external influence, affect that mechanism, and through some local
+transformation produce a stabilized carrier value. That device may then export a
+signal that other structures use.
+
+So in Core4 terms:
+
+- a **sensor** is a physical transduction arrangement
+- an **estimator** is a carrier-local structure negotiating evidence into a
+  value
+- a **generator** is a carrier-local structure pushing value outward into the
+  world
+
+These are not three unrelated ontologies. They are different flow balances of
+the same relation law.
+
+One useful reading is:
+
+- orthogonal recessive = incoming evidence, disturbance, or explanatory input
+- aligned recessive/dominant = the carrier's own negotiated value on its known
+  polarity
+- orthogonal dominant = exported signal, published expectation, or outward
+  influence available to other structures
+
+Under this reading:
+
+- a light **sensor** is mostly an external mechanism supplying evidence
+- a light **estimator** gathers many orthogonal inputs, such as sensor data,
+  switch state, time of day, prior expectation, and feedback from other systems
+- a light **generator** mainly sets or drives the aligned value and exports its
+  influence outward, while still potentially accepting feedback
+
+So a night light with an ambient detector, a manual switch, and a burn-out
+condition can still be modeled as one carrier-local construct. It is
+simultaneously:
+
+- estimator, because it negotiates multiple inputs
+- generator, because it drives a light value outward
+- sensor-coupled, because it uses transduced evidence from other mechanisms
+
+This supports a very physical reading of flow:
+
+- orthogonal input is what the carrier must account for
+- orthogonal output is what other structures can read, react to, and return
+  feedback against
+
+Disagreement is then natural rather than exceptional. If the switch says
+"light," the ambient detector says "dark," and collision feedback says
+"navigation failed," the estimator does not crash. It negotiates among those
+tensions.
+
+## 17. Resolution, Centering, And Rounding
+
+Resolution should ideally fall out of basis structure rather than from a
+separate rounding rule.
+
+If a carrier has only one directed unit, the lowest tick of resolution behaves
+like a one-sided detection threshold. Then:
+
+- values smaller than one tick may collapse toward `0`
+- `0.6` of a tick and `0.999` of a tick can both still read as `0`
+
+This is physically meaningful when the system is only detecting outward
+departure from an origin.
+
+But sometimes the desired interpretation is nearest-value rather than
+origin-biased thresholding.
+
+Core4 can explain this structurally by adding the inverse unit.
+
+Even if the inverse side currently carries zero value, the inverse unit still
+changes calibration. It pulls resolution back toward centered intervals rather
+than leaving all uncertainty on one outward side.
+
+So:
+
+- one-sided unit -> threshold-like quantization
+- paired direct/inverse unit -> centered quantization
+
+In that centered case, tick intervals naturally lock around the whole values,
+which gives nearest-integer style behavior without needing a separate ad hoc
+rule.
+
+So the difference between truncation and nearest rounding is not merely a later
+numeric choice. It can be read as a difference in available basis structure:
+
+- no inverse partner means purely outward resolution
+- inverse partner present, even at zero value, means centered resolution
+
+This should be treated as a promising structural explanation, though the exact
+quantization law still needs to be worked through when the axioms are rewritten.
