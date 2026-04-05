@@ -232,13 +232,13 @@
     </svg>
 
     <div class="scene-overlay">
-        <div class="scene-reading-label scene-reading-label--complex" style="@Position(OriginX - 14d, 23)">
+        <div class="scene-reading-label scene-reading-label--complex" style="@Position(OriginX - 42d, 23)">
             <span class="scene-reading-term scene-reading-term--recessive">@($"{Snapshot.RecessiveReading.Normalize()}r")</span>
             <span class="scene-reading-plus"> + </span>
             <span class="scene-reading-term scene-reading-term--dominant">@($"{Snapshot.DominantReading.Normalize()}d")</span>
         </div>
 
-        <div class="scene-reading-label scene-reading-label--approx" style="@Position(OriginX - 14d, 36)">
+        <div class="scene-reading-label scene-reading-label--approx" style="@Position(OriginX - 42d, 36)">
             @Snapshot.ApproximateReading
         </div>
 

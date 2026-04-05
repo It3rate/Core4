@@ -62,6 +62,30 @@
     background: color-mix(in srgb, var(--tone) 28%, white 72%);
 }
 
+.measure-slider--signed input[type="range"]::-webkit-slider-runnable-track {
+    background:
+        linear-gradient(
+            to right,
+            color-mix(in srgb, var(--tone) 12%, white 88%) 0,
+            color-mix(in srgb, var(--tone) 12%, white 88%) calc(var(--zero-pos) - 0.65px),
+            color-mix(in srgb, var(--tone) 62%, white 38%) calc(var(--zero-pos) - 0.65px),
+            color-mix(in srgb, var(--tone) 62%, white 38%) calc(var(--zero-pos) + 0.65px),
+            color-mix(in srgb, var(--tone) 12%, white 88%) calc(var(--zero-pos) + 0.65px),
+            color-mix(in srgb, var(--tone) 12%, white 88%) 100%);
+}
+
+.measure-slider--signed input[type="range"]::-moz-range-track {
+    background:
+        linear-gradient(
+            to right,
+            color-mix(in srgb, var(--tone) 12%, white 88%) 0,
+            color-mix(in srgb, var(--tone) 12%, white 88%) calc(var(--zero-pos) - 0.65px),
+            color-mix(in srgb, var(--tone) 62%, white 38%) calc(var(--zero-pos) - 0.65px),
+            color-mix(in srgb, var(--tone) 62%, white 38%) calc(var(--zero-pos) + 0.65px),
+            color-mix(in srgb, var(--tone) 12%, white 88%) calc(var(--zero-pos) + 0.65px),
+            color-mix(in srgb, var(--tone) 12%, white 88%) 100%);
+}
+
 .measure-slider input[type="range"]::-webkit-slider-thumb {
     appearance: none;
     -webkit-appearance: none;
