@@ -95,7 +95,8 @@ public static class AttachmentExamples
         var siteText = string.Join(
             ", ",
             attachment.Sites.Select(site =>
-                $"pos={site.Position.Normalize()} on={site.On(site.Carrier).Normalize()} slots=[{string.Join(", ", site.Field.Slots().Select(slot => slot.Normalize().ToString()))}]"));
+                $"pos={site.Position.Normalize()} on={site.On(site.Carrier).Normalize()} kernel=[r={site.Kernel.Recessive.Normalize()}, d={site.Kernel.Dominant.Normalize()}] " +
+                $"orth=[residual={site.Orthogonal.Residual.Normalize()}, flows={DescribeFlows(site)}]"));
 
         return
             $"measures=[{string.Join(", ", attachment.Measures.Select(measure => measure.Raw))}], " +
@@ -104,6 +105,11 @@ public static class AttachmentExamples
             $"components=[{componentText}], " +
             $"{DescribeComposite(attachment)}";
     }
+
+    private static string DescribeFlows(Site site) => string.Join(
+        ", ",
+        site.Orthogonal.Flows.Select(flow =>
+            $"{flow.Carrier.Id}:{flow.Value.Normalize()} self={flow.Provenance.Self.Raw} other={flow.Provenance.Other.Raw}"));
 
     private static string DescribeComposite(Attachment attachment)
     {

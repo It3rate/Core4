@@ -1,6 +1,6 @@
 using Core4.Sessions;
 
-Console.WriteLine("Site field examples");
+Console.WriteLine("Site settlement examples");
 foreach (var line in SiteExamples.Describe())
 {
     Console.WriteLine(line);

@@ -8,19 +8,22 @@ public static class SiteExamples
     public static ImmutableArray<(string Name, Site Site)> Create()
     {
         var x = new Carrier(1);
+        var lightSensor = new Carrier(2);
+        var switchState = new Carrier(3);
+        var navigation = new Carrier(4);
         var open = Site.Open(x, 0);
-        var data = open
-            .Load(1, Ratio.Tension(2))
-            .Load(1, Ratio.Tension(2))
-            .Load(1, Ratio.Tension(2))
-            .Load(1, Ratio.Tension(2))
-            .Load(1, Ratio.Tension(2));
-        var committed = data.Resolve(1, new Ratio(10, 5));
+        var negotiating = open
+            .Anchor(new Ratio(0, 1))
+            .WithResidual(Ratio.Tension(3))
+            .Request(lightSensor, Ratio.Tension(4))
+            .Request(switchState, Ratio.Tension(6))
+            .Exchange(navigation, Ratio.Tension(2), Provenance.Shared(2));
+        var committed = negotiating.Resolve(new Ratio(10, 5));
 
         return
         [
             ("open", open),
-            ("data", data),
+            ("negotiating", negotiating),
             ("committed", committed)
         ];
     }
@@ -32,10 +35,14 @@ public static class SiteExamples
 
         foreach (var (name, site) in examples)
         {
+            var step = site.Settle();
             descriptions.Add(
                 $"{name}: position={site.Position.Normalize()}, onCarrier={site.On(site.Carrier).Normalize()}, " +
-                $"potential={site.Potential.Raw}, open={site.Field.OpenCount.Raw}, occupied={site.Field.OccupiedCount.Raw}, bound={site.Field.BoundCount.Raw}, " +
-                $"slots=[{string.Join(", ", site.Field.Slots().Select(slot => slot.Normalize().ToString()))}]");
+                $"potential={site.Potential.Raw}, kernel=[r={site.Kernel.Recessive.Normalize()}, d={site.Kernel.Dominant.Normalize()}], " +
+                $"orthogonal=[residual={site.Orthogonal.Residual.Normalize()}, connections={site.Orthogonal.ConnectionCount.Raw}, " +
+                $"incoming={site.Orthogonal.Incoming().Normalize()}, outgoing={site.Orthogonal.Outgoing().Normalize()}, oscillating={site.Orthogonal.Oscillating().Normalize()}], " +
+                $"settle=[anchor={step.Anchor.Normalize()}, in={step.Incoming.Normalize()}, provisional={step.Provisional.Normalize()}, " +
+                $"published={step.Published.Normalize()}, feedback={step.Feedback.Normalize()}, settled={step.Settled.Normalize()}, remainder={step.Remainder.Normalize()}]");
         }
 
         return descriptions.MoveToImmutable();
