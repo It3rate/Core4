@@ -133,3 +133,200 @@ The current coding direction should therefore be:
 This is the conceptual target for the next axiom rewrite, where site, relation,
 and freeze should be interleaved directly into the main text rather than
 remaining an external supplement.
+
+## 9. Aligned And Orthogonal Are Not Symmetric
+
+For any one carrier, the aligned structure is intrinsically binary:
+
+- recessive
+- dominant
+
+These are the two known directed interpretations of that carrier.
+
+If more values gather on one aligned side, they should not create new aligned
+slots. Instead they deepen or repeat the same carrier. This is the beginning of:
+
+- self-interaction
+- accumulation
+- power progression
+- non-linearity
+
+Orthogonal structure is different.
+
+Orthogonal means "not yet explained by the current carrier's aligned pair."
+So orthogonal should not be thought of as one more fixed attribute with only two
+positions. It is better understood as unresolved remainder that may later split
+into several newly resolved carriers.
+
+So the asymmetry is:
+
+- aligned multiplicity deepens
+- orthogonal multiplicity differentiates
+
+This is important because it suggests a carrier has a fixed aligned polarity but
+an expandable orthogonal frontier.
+
+## 10. The Orthogonal Frontier
+
+At the local site level, any carrier may leave unresolved orthogonal remainder.
+
+That orthogonal remainder is still meaningful. It is not noise. It is tension
+that has value but not yet a settled denominator in the current carrier's
+language.
+
+Other carriers may later attach to this remainder and account for part of it.
+More than one carrier may do so.
+
+Therefore unresolved orthogonal tension must be able to fission into several
+child supports without changing ontology. It should remain the same kind of
+thing before and after articulation:
+
+- before articulation: unresolved orthogonal tension
+- during articulation: partially distributed orthogonal tension
+- after articulation: several child carrier supports plus any residual remainder
+
+So the current four-slot engine picture should be treated as a provisional
+grade-1 window:
+
+- aligned recessive
+- aligned dominant
+- orthogonal recessive
+- orthogonal dominant
+
+This is useful for the present engine pass, but it is not the final full
+topology of a site. Long-term the aligned pair remains fixed, while the
+orthogonal side must be numerically extensible.
+
+## 11. Data And Carrier Formation Use One Mechanism
+
+Data and carrier formation should not be treated as two unrelated mechanisms.
+
+If several values attach to one unresolved slot, each may appear as a local
+`m/0` relation. For example:
+
+- a slot holds `10/0`
+- five attached values each contribute `2/0`
+
+This is still one unresolved field, not yet a stable carrier.
+
+If the shared denominator hardens away from `0`, the same population becomes a
+committed repeated carrier relation instead of loose data. Then the structure is
+read as:
+
+- self-interaction
+- accumulation
+- power
+- repeated unit action
+
+depending on the surrounding basis and observer intention.
+
+So the difference between "data" and "carrier" is not ontology but commitment.
+
+## 12. Flow, Export, And Import
+
+What one site reads as dominant or recessive often also appears as outbound or
+inbound explanation.
+
+One useful local reading is:
+
+- outbound = this basis explains what it can, but still exports unresolved
+  tension or resolved contribution outward
+- inbound = this basis is changing in a way it cannot fully explain, so it
+  imports explanatory structure
+
+These should not become two separate kinds of relation. They are two local
+interpretations of one flow.
+
+So:
+
+- one connection may carry positive flow in one local reading
+- the other endpoint reads the same connection as incoming explanation
+- if both directions are active, the better model is oscillation or
+  bidirectional exchange rather than a new ontology
+
+This suggests dominant and recessive are not merely geometric labels. They are
+also local directional readings of explanatory flow.
+
+## 13. Decay And Relaxation
+
+Disconnection should not usually mean the immediate disappearance of a relation.
+
+The more Core4-native reading is:
+
+- strong denominator = strong explanatory commitment
+- weak denominator = weak explanatory commitment
+- denominator approaching `0` = relation relaxing toward unresolved tension
+- denominator at `0` = disconnected or fully unresolved relation
+
+So decay is best understood as denominator relaxation.
+
+This also clarifies why frozen relations resist decay:
+
+- a live relation may relax quickly if no meaningful flow remains
+- a frozen relation resists decay because commitment is part of what was frozen
+- a frozen relation should generally need an explicit relaxation process before
+  it loses denominator and disconnects
+
+This keeps commitment physically meaningful.
+
+## 14. Higher Grades: Stable Rule, Open Questions
+
+A promising rule is that even higher-grade structures still expose:
+
+- a recessive side
+- a dominant side
+- unresolved orthogonal remainder
+
+But the character of those numbers changes with grade.
+
+For example:
+
+- a 1D opposed pair yields a directed segment
+- a 2D aligned pair yields area
+- a 2D opposed pair yields a ray-like complex structure
+
+These are not all "the same quantity," even when they still expose recessive
+and dominant orientation.
+
+So a higher-grade basis may still obey the same relation law while changing what
+its value means physically.
+
+An open question remains:
+
+- when a basis changes sign or inversion pattern, is it still the same basis in
+  a new state, or has it become a different basis-kind?
+
+Another likely rule is that orthogonality is relative to the frozen
+interpretation currently chosen. For example:
+
+- a `++` 2D basis may be frozen as area
+- a `+-` 2D basis may be frozen as a ray-like complex
+
+Both are legal, but they should likely be treated as different frozen readings
+of similar ingredients rather than one basis casually changing what it means.
+
+Current guidance:
+
+- a frozen basis should not silently mutate its defining interpretation
+- if inversion changes what the structure fundamentally measures, that should
+  likely be expressed as a different frozen basis, not a casual runtime flip
+
+This is not fully settled and should be revisited when the axioms are rewritten.
+
+## 15. Current Design Consequence
+
+The present engine should therefore move toward:
+
+- a site with fixed aligned polarity for each known carrier
+- an orthogonal residual reservoir that can later fission into child supports
+- live relations carrying flow between sites
+- frozen bases preserving committed explanatory structure
+- attachment and data as low-commitment forms of the same relation law
+
+The current finite site-field implementation is a useful first approximation,
+but the long-term Core4 target is:
+
+- fixed aligned depth
+- extensible orthogonal articulation
+- numeric hardening and relaxation of denominators
+- no separate ontology for data, carrier, branch, or flow
