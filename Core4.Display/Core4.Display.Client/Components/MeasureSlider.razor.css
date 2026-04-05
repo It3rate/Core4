@@ -38,6 +38,10 @@
     align-items: center;
 }
 
+.measure-slider__inputs > * {
+    min-width: 0;
+}
+
 .measure-slider input[type="range"] {
     appearance: none;
     -webkit-appearance: none;
@@ -96,6 +100,7 @@
 }
 
 .measure-slider input[type="number"] {
+    box-sizing: border-box;
     border: 1px solid color-mix(in srgb, var(--tone) 28%, transparent);
     border-radius: 0.58rem;
     padding: 0.32rem 0.4rem;

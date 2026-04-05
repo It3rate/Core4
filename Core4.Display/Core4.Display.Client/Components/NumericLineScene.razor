@@ -264,7 +264,7 @@
     [Parameter] public EventCallback<long> BottomSignal2Changed { get; set; }
 
     private const double AxisY = 126d;
-    private const double OriginX = 392d;
+    private const double BaseOriginX = 392d;
     private const double UnitPixels = 17d;
     private const double AxisStartX = 72d;
     private const double AxisEndX = 748d;
@@ -289,8 +289,10 @@
         && BottomChannels.Length > 0;
 
     private DragHandle _activeDrag = None;
-    private double _dragStartX;
+    private double _dragStartClientX;
     private long _dragStartValue;
+
+    private double OriginX => ClampX(BaseOriginX + (Snapshot.Origin.Raw * UnitPixels));
 
     private double DominantEndX() => ClampX(OriginX + (Snapshot.Preset.DominantSpan.Raw * UnitPixels));
 
@@ -414,7 +416,7 @@
         }
     }
 
-    private double ChannelHeight(NumericExplorerChannel channel) => 34d + Math.Min(34d, channel.Value.Potential.Raw * 2.8d);
+    private double ChannelHeight(NumericExplorerChannel channel) => Math.Max(0d, channel.Value.Potential.Raw * UnitPixels);
 
     private double SingleTopY() => AxisY - ChannelHeight(TopChannels[0]);
 
@@ -462,7 +464,7 @@
 
         var direction = Math.Sign(endY - AxisY);
         var amplitude = 15d + Math.Min(8d, Snapshot.Preset.Residual.Raw * 0.65d);
-        var lanes = Math.Max(3, (int)Math.Ceiling(distance / 11d));
+        var lanes = Math.Max(4, (int)Math.Ceiling(distance / 9d));
         var step = distance / lanes;
         var radius = step / 2d;
         var currentY = AxisY;
@@ -478,7 +480,7 @@
         {
             var nextY = AxisY + (direction * step * (lane + 1));
             var sideX = currentSideRight ? OriginX + amplitude : OriginX - amplitude;
-            var sweep = currentSideRight ? (direction < 0 ? 1 : 0) : (direction < 0 ? 0 : 1);
+            var sweep = currentSideRight ? (direction < 0 ? 0 : 1) : (direction < 0 ? 1 : 0);
             parts.Add($"A {radius:F3},{radius:F3} 0 0 {sweep} {sideX},{nextY:F3}");
 
             var targetX = lane == lanes - 1
@@ -563,7 +565,7 @@
     private void BeginDrag(string kind, long currentValue, PointerEventArgs args)
     {
         _activeDrag = new DragHandle(kind, 0);
-        _dragStartX = args.OffsetX;
+        _dragStartClientX = args.ClientX;
         _dragStartValue = currentValue;
     }
 
@@ -578,7 +580,7 @@
         {
             case "origin":
             {
-                var next = _dragStartValue + DeltaUnits(args.OffsetX);
+                var next = _dragStartValue + DeltaUnits(args.ClientX);
                 await OriginChanged.InvokeAsync(next);
                 break;
             }
@@ -617,10 +619,10 @@
                 await SingleValueOffsetChanged.InvokeAsync(SignedOffsetFromAxisX(args.OffsetX));
                 break;
             case "dominant-value":
-                await DominantValueOffsetChanged.InvokeAsync(Math.Max(0L, ValueFromAxisX(args.OffsetX, false)));
+                await DominantValueOffsetChanged.InvokeAsync(PairValueFromAxisX(args.OffsetX, false));
                 break;
             case "recessive-value":
-                await RecessiveValueOffsetChanged.InvokeAsync(Math.Max(0L, ValueFromAxisX(args.OffsetX, true)));
+                await RecessiveValueOffsetChanged.InvokeAsync(PairValueFromAxisX(args.OffsetX, true));
                 break;
             case "top-signal":
             case "top-shared":
@@ -637,7 +639,7 @@
 
     private void EndDrag(PointerEventArgs args) => _activeDrag = None;
 
-    private int DeltaUnits(double currentX) => (int)Math.Round((currentX - _dragStartX) / UnitPixels, MidpointRounding.AwayFromZero);
+    private int DeltaUnits(double currentClientX) => (int)Math.Round((currentClientX - _dragStartClientX) / UnitPixels, MidpointRounding.AwayFromZero);
 
     private long SignedOffsetFromAxisX(double currentX) => (long)Math.Round((currentX - OriginX) / UnitPixels, MidpointRounding.AwayFromZero);
 
@@ -649,12 +651,21 @@
         return (long)Math.Round(Math.Max(0d, delta), MidpointRounding.AwayFromZero);
     }
 
+    private long PairValueFromAxisX(double currentX, bool recessive)
+    {
+        var delta = recessive
+            ? (OriginX - currentX) / UnitPixels
+            : (currentX - OriginX) / UnitPixels;
+        var rounded = (long)Math.Round(delta, MidpointRounding.AwayFromZero);
+        return Snapshot.Preset.FuseAligned ? rounded : Math.Max(0L, rounded);
+    }
+
     private long ValueFromAxisY(double currentY, bool belowAxis)
     {
         var delta = belowAxis
             ? (currentY - AxisY)
             : (AxisY - currentY);
-        return (long)Math.Round(Math.Max(0d, delta - 34d) / 2.8d, MidpointRounding.AwayFromZero);
+        return (long)Math.Round(Math.Max(0d, delta) / UnitPixels, MidpointRounding.AwayFromZero);
     }
 
     private static bool IsStrong(long index, long span) => span > 0 && index % span == 0;

@@ -24,13 +24,13 @@
 
 .scene-reading-label {
     color: var(--tone-ink);
-    font-size: 0.66rem;
+    font-size: 0.74rem;
     font-weight: 700;
 }
 
 .scene-reading-label--approx {
     color: var(--tone-muted);
-    font-size: 0.53rem;
+    font-size: 0.61rem;
     font-weight: 600;
 }
 

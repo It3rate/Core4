@@ -68,7 +68,7 @@ public static class NumericExplorerExamples
                 ShowBottomSignal2: false,
                 SingleValueMin: -24,
                 SingleValueMax: 24,
-                PairValueMin: 0,
+                PairValueMin: -24,
                 PairValueMax: 24)),
         new(
             "Frozen Segment",
@@ -126,7 +126,7 @@ public static class NumericExplorerExamples
                 ShowBottomSignal2: false,
                 SingleValueMin: -24,
                 SingleValueMax: 24,
-                PairValueMin: 0,
+                PairValueMin: -24,
                 PairValueMax: 24)),
         new(
             "Orthogonal Input",
@@ -155,7 +155,7 @@ public static class NumericExplorerExamples
                 ShowBottomSignal2: false,
                 SingleValueMin: -24,
                 SingleValueMax: 24,
-                PairValueMin: 0,
+                PairValueMin: -24,
                 PairValueMax: 24)),
         new(
             "Multiple Inputs",
@@ -184,7 +184,7 @@ public static class NumericExplorerExamples
                 ShowBottomSignal2: true,
                 SingleValueMin: -24,
                 SingleValueMax: 24,
-                PairValueMin: 0,
+                PairValueMin: -24,
                 PairValueMax: 24))
     ];
 
