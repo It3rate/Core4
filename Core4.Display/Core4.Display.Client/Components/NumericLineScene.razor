@@ -344,12 +344,10 @@
     private static readonly DragHandle None = new(string.Empty, -1);
 
     private NumericExplorerChannel[] TopChannels => Snapshot.Channels
-        .Where(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero || channel.Tension != Measure.Zero)
         .Where(channel => !channel.Provenance.IsOther)
         .ToArray();
 
     private NumericExplorerChannel[] BottomChannels => Snapshot.Channels
-        .Where(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero || channel.Tension != Measure.Zero)
         .Where(channel => channel.Provenance.IsOther)
         .ToArray();
 
@@ -548,7 +546,19 @@
             yield break;
         }
 
-        if (BottomChannels.Length == 1 && BottomChannels[0].Tension != Measure.Zero)
+        if (UseBottomBranchLayout)
+        {
+            foreach (var branch in BottomBranches().Where(branch => branch.Channel.Tension != Measure.Zero))
+            {
+                yield return new TensionGlyph(
+                    branch.HasSignal
+                        ? TensionWavePath(branch.StartX, branch.StartY, branch.TipX, branch.TipY, branch.Channel.Tension.Raw)
+                        : BottomTensionWavePath(branch.StartX, branch.StartY + 2.2d, branch.TensionTipX, branch.TensionTipY, branch.Channel.Tension.Raw),
+                    TensionCss(branch.Channel.Tension.Raw),
+                    $"{branch.Channel.Name} tension {Ratio.Tension(branch.Channel.Tension).Normalize()}");
+            }
+        }
+        else if (BottomChannels.Length == 1 && BottomChannels[0].Tension != Measure.Zero)
         {
             var channel = BottomChannels[0];
             yield return new TensionGlyph(

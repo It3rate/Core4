@@ -286,12 +286,55 @@ public static class NumericExplorerExamples
         return site;
     }
 
-    private static ImmutableArray<NumericExplorerChannel> Channels(NumericExplorerPreset preset) =>
-    [
-        new("Out", new Carrier(2), Ratio.Tension(preset.TopSignal), preset.Tension, Provenance.SelfDriven(preset.TopSignal), 0, 1),
-        new("In A", new Carrier(3), Ratio.Tension(preset.BottomSignal), preset.BottomTension, Provenance.OtherDriven(preset.BottomSignal), 0, 2),
-        new("In B", new Carrier(4), Ratio.Tension(preset.BottomSignal2), preset.BottomTension2, Provenance.OtherDriven(preset.BottomSignal2), 1, 2)
-    ];
+    private static ImmutableArray<NumericExplorerChannel> Channels(NumericExplorerPreset preset)
+    {
+        var channels = ImmutableArray.CreateBuilder<NumericExplorerChannel>(3);
+
+        if (preset.Controls.ShowTopSignal)
+        {
+            channels.Add(new(
+                "Out",
+                new Carrier(2),
+                Ratio.Tension(preset.TopSignal),
+                preset.Tension,
+                Provenance.SelfDriven(preset.TopSignal),
+                0,
+                1));
+        }
+
+        if (preset.Controls.ShowBottomSignal2)
+        {
+            channels.Add(new(
+                "In A",
+                new Carrier(3),
+                Ratio.Tension(preset.BottomSignal),
+                preset.BottomTension,
+                Provenance.OtherDriven(preset.BottomSignal),
+                0,
+                2));
+            channels.Add(new(
+                "In B",
+                new Carrier(4),
+                Ratio.Tension(preset.BottomSignal2),
+                preset.BottomTension2,
+                Provenance.OtherDriven(preset.BottomSignal2),
+                1,
+                2));
+        }
+        else if (preset.Controls.ShowBottomSignal)
+        {
+            channels.Add(new(
+                "In",
+                new Carrier(3),
+                Ratio.Tension(preset.BottomSignal),
+                preset.BottomTension,
+                Provenance.OtherDriven(preset.BottomSignal),
+                0,
+                1));
+        }
+
+        return channels.ToImmutable();
+    }
 
     private static Ratio Project(
         NumericExplorerPreset preset,
