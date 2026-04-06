@@ -12,6 +12,7 @@ public readonly record struct NumericExplorerControls(
     bool ShowSingleValue,
     bool ShowDominantValue,
     bool ShowRecessiveValue,
+    bool ShowAlignedControls,
     bool ShowResidual,
     bool ShowTopSignal,
     bool ShowBottomSignal,

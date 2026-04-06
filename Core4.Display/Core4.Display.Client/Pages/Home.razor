@@ -54,7 +54,7 @@
                         Drag the two directed-segment endpoints. The other primitive bases reuse those same Core4 values.
                     </div>
                 }
-                else if (_selected.Controls.ShowFusedSpan)
+                else if (_selected.Controls.ShowAlignedControls && _selected.Controls.ShowFusedSpan)
                 {
                     <MeasureSlider Label="Fused Span"
                                    Caption="The aligned pair stays equal while fused."
@@ -66,7 +66,7 @@
                                    ValueChanged="OnFusedSpanChanged" />
                 }
 
-                @if (_selected.Controls.ShowDominantSpan)
+                @if (_selected.Controls.ShowAlignedControls && _selected.Controls.ShowDominantSpan)
                 {
                     <MeasureSlider Label="Dominant Span"
                                    Caption="Visible dominant reach."
@@ -78,7 +78,7 @@
                                    ValueChanged="value => _dominantSpan = Math.Max(1, value)" />
                 }
 
-                @if (_selected.Controls.ShowRecessiveSpan)
+                @if (_selected.Controls.ShowAlignedControls && _selected.Controls.ShowRecessiveSpan)
                 {
                     <MeasureSlider Label="Recessive Span"
                                    Caption="Visible recessive reach."
@@ -90,7 +90,7 @@
                                    ValueChanged="value => _recessiveSpan = Math.Max(0, value)" />
                 }
 
-                @if (_selected.Controls.ShowSingleValue)
+                @if (_selected.Controls.ShowAlignedControls && _selected.Controls.ShowSingleValue)
                 {
                     <MeasureSlider Label="Value Offset"
                                    Caption="Live reading from the origin."
@@ -101,7 +101,7 @@
                                     ValueChanged="value => _singleValueOffset = value" />
                 }
 
-                @if (_selected.Controls.ShowDominantValue)
+                @if (_selected.Controls.ShowAlignedControls && _selected.Controls.ShowDominantValue)
                 {
                     <MeasureSlider Label="Dominant Value"
                                    Caption="Independent value on the dominant unit."
@@ -112,7 +112,7 @@
                                    ValueChanged="value => _dominantValueOffset = ClampPairOffset(value)" />
                 }
 
-                @if (_selected.Controls.ShowRecessiveValue)
+                @if (_selected.Controls.ShowAlignedControls && _selected.Controls.ShowRecessiveValue)
                 {
                     <MeasureSlider Label="Recessive Value"
                                    Caption="Independent value on the recessive unit."

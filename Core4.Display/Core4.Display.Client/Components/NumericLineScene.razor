@@ -535,7 +535,7 @@
         }
 
         var direction = Math.Sign(endY - AxisY);
-        var amplitude = 15d + Math.Min(8d, Snapshot.Preset.Residual.Raw * 0.65d);
+        var amplitude = Math.Min(18d, Math.Max(4d, Snapshot.Preset.Residual.Raw * 1.6d));
         var lanes = Math.Max(4, (int)Math.Ceiling(distance / 9d));
         var step = distance / lanes;
         var radius = step / 2d;
