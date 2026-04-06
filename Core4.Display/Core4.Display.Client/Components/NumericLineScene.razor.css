@@ -108,6 +108,13 @@
     stroke-width: 2.8;
 }
 
+.scene-hit-target {
+    fill: transparent;
+    stroke: transparent;
+    stroke-width: 14;
+    pointer-events: all;
+}
+
 .scene-aligned-dominant,
 .scene-aligned-recessive,
 .scene-orthogonal-dominant,

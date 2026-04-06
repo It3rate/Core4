@@ -76,6 +76,21 @@
                   x2="@OriginX"
                   y1="@AxisY"
                   y2="@SingleTopY()"
+                  class="scene-hit-target"
+                  @onpointerdown="BeginTopSignalDrag"
+                  @onpointerdown:preventDefault
+                  @onpointerdown:stopPropagation />
+            <circle cx="@OriginX"
+                    cy="@SingleTopY()"
+                    r="11"
+                    class="scene-hit-target"
+                    @onpointerdown="BeginTopSignalDrag"
+                    @onpointerdown:preventDefault
+                    @onpointerdown:stopPropagation />
+            <line x1="@OriginX"
+                  x2="@OriginX"
+                  y1="@AxisY"
+                  y2="@SingleTopY()"
                   class="@TopLineCss(TopChannels[0]) scene-drag-target"
                   marker-end="@TopMarker(TopChannels[0])"
                   @onpointerdown="BeginTopSignalDrag"
@@ -88,6 +103,21 @@
         {
             @foreach (var branch in TopBranches())
             {
+                <line x1="@branch.StartX"
+                      y1="@branch.StartY"
+                      x2="@branch.TipX"
+                      y2="@branch.TipY"
+                      class="scene-hit-target"
+                      @onpointerdown="@(e => BeginTopBranchDrag(branch.Index, e))"
+                      @onpointerdown:preventDefault
+                      @onpointerdown:stopPropagation />
+                <circle cx="@branch.TipX"
+                        cy="@branch.TipY"
+                        r="11"
+                        class="scene-hit-target"
+                        @onpointerdown="@(e => BeginTopBranchDrag(branch.Index, e))"
+                        @onpointerdown:preventDefault
+                        @onpointerdown:stopPropagation />
                 <line x1="@branch.StartX"
                       y1="@branch.StartY"
                       x2="@branch.TipX"
