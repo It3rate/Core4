@@ -338,6 +338,7 @@
     private const double AxisY = 126d;
     private const double BaseOriginX = 392d;
     private const double UnitPixels = 17d;
+    private const double BranchNominalDepth = UnitPixels * 6d;
     private const double AxisStartX = 72d;
     private const double AxisEndX = 748d;
     private static readonly DragHandle None = new(string.Empty, -1);
@@ -564,7 +565,7 @@
                 yield return new TensionGlyph(
                     branch.HasSignal
                         ? TensionWavePath(branch.StartX, branch.StartY, branch.TipX, branch.TipY, branch.Channel.Tension.Raw)
-                        : BottomTensionWavePath(branch.StartX, branch.StartY + 2.2d, branch.TipX, branch.TensionTipY, branch.Channel.Tension.Raw),
+                        : BottomTensionWavePath(branch.StartX, branch.StartY + 2.2d, branch.TensionTipX, branch.TensionTipY, branch.Channel.Tension.Raw),
                     TensionCss(branch.Channel.Tension.Raw),
                     $"{branch.Channel.Name} tension {Ratio.Tension(branch.Channel.Tension).Normalize()}");
             }
@@ -609,46 +610,15 @@
 
     private string BottomTensionWavePath(double startX, double startY, double endX, double endY, long tension)
     {
-        var dx = endX - startX;
-        var dy = endY - startY;
-        var distance = Math.Sqrt((dx * dx) + (dy * dy));
-        if (distance < 1d || tension == 0)
+        if (tension == 0)
         {
             return $"M {startX:F3},{startY:F3}";
         }
 
-        var ux = dx / distance;
-        var uy = dy / distance;
-        var nxA = -uy;
-        var nyA = ux;
-        var nxB = uy;
-        var nyB = -ux;
-        var useA = nyA >= nyB;
-        var px = useA ? nxA : nxB;
-        var py = useA ? nyA : nyB;
         var magnitude = Math.Abs(tension);
         var amplitude = Math.Min(12d, magnitude * 1.2d);
-        var baseOffset = amplitude * 0.82d;
-        var waveAmplitude = amplitude * 0.42d;
-        var cycles = Math.Max(3, (int)Math.Ceiling(distance / 24d));
-        var samples = Math.Max(32, cycles * 18);
-        var points = new List<string>(samples + 1);
-
-        for (var index = 0; index <= samples; index++)
-        {
-            var t = index / (double)samples;
-            var alongX = startX + (ux * distance * t);
-            var alongY = startY + (uy * distance * t);
-            var envelope = Math.Sin(t * Math.PI);
-            var offset = envelope * (baseOffset + (Math.Sin(t * Math.PI * 2d * cycles) * waveAmplitude));
-            var x = alongX + (px * offset);
-            var y = alongY + (py * offset);
-            points.Add(index == 0
-                ? $"M {x:F3},{y:F3}"
-                : $"L {x:F3},{y:F3}");
-        }
-
-        return string.Join(' ', points);
+        var downwardBias = amplitude + 2.4d;
+        return TensionWavePath(startX, startY + downwardBias, endX, endY + downwardBias, tension);
     }
 
     private static string TensionCss(long tension) => tension < 0
@@ -670,11 +640,14 @@
         {
             var channel = channels[index];
             var spread = (channel.SlotIndex - ((channel.SlotCount - 1) / 2d)) * 54d;
-            var tipX = OriginX + spread;
-            var tipY = recessive ? AxisY + ChannelHeight(channel) : AxisY - ChannelHeight(channel);
+            var signalDepth = ChannelHeight(channel);
+            var tensionDepth = Math.Max(signalDepth, ChannelTensionDepth(channel));
+            var tipX = OriginX + BranchOffsetX(spread, signalDepth);
+            var tipY = recessive ? AxisY + signalDepth : AxisY - signalDepth;
+            var tensionTipX = OriginX + BranchOffsetX(spread, tensionDepth);
             var tensionTipY = recessive
-                ? AxisY + Math.Max(ChannelHeight(channel), ChannelTensionDepth(channel))
-                : AxisY - Math.Max(ChannelHeight(channel), ChannelTensionDepth(channel));
+                ? AxisY + tensionDepth
+                : AxisY - tensionDepth;
 
             yield return new BranchGlyph(
                 index,
@@ -682,8 +655,9 @@
                 AxisY,
                 tipX,
                 tipY,
+                tensionTipX,
                 tensionTipY,
-                ChannelHeight(channel) > 0d,
+                signalDepth > 0d,
                 channel,
                 $"{channel.Name} {channel.Value.Normalize()}",
                 recessive
@@ -809,6 +783,10 @@
 
     private static bool IsStrong(long index, long span) => span > 0 && index % span == 0;
 
+    private static double BranchOffsetX(double spread, double depth) => depth <= 0d
+        ? 0d
+        : spread * (depth / BranchNominalDepth);
+
     private static double ClampX(double x) => Math.Max(AxisStartX + 6d, Math.Min(AxisEndX - 6d, x));
 
     private static string Position(double x, double y) => $"left:{(x / 820d) * 100:F3}%;top:{(y / 248d) * 100:F3}%;";
@@ -829,6 +807,7 @@
         double StartY,
         double TipX,
         double TipY,
+        double TensionTipX,
         double TensionTipY,
         bool HasSignal,
         NumericExplorerChannel Channel,
