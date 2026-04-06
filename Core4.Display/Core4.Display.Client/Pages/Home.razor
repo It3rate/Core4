@@ -13,9 +13,18 @@
         </div>
 
         <div class="topbar__stats">
-            <span>mode @Snapshot.ResolutionMode</span>
-            <span>reading @Snapshot.ComplexReading</span>
-            <span>settled @Snapshot.Settlement.Settled.Normalize()</span>
+            @if (IsPrimitiveBasisScene)
+            {
+                <span>mode primitive basis gallery</span>
+                <span>segment @PrimitiveSnapshot.SegmentLabel</span>
+                <span>self @PrimitiveSnapshot.SelfLabel · area @PrimitiveSnapshot.AreaLabel</span>
+            }
+            else
+            {
+                <span>mode @Snapshot.ResolutionMode</span>
+                <span>reading @Snapshot.ComplexReading</span>
+                <span>settled @Snapshot.Settlement.Settled.Normalize()</span>
+            }
         </div>
     </section>
 
@@ -39,7 +48,41 @@
             </div>
 
             <div class="control-stack">
-                @if (_selected.Controls.ShowFusedSpan)
+                @if (IsPrimitiveBasisScene)
+                {
+                    <MeasureSlider Label="Dominant Value"
+                                   Caption="Positive aligned magnitude."
+                                   Tone="var(--tone-dominant)"
+                                   Min="-24"
+                                   Max="24"
+                                   Value="@_dominantValueOffset"
+                                   ValueChanged="value => _dominantValueOffset = ClampPrimitiveAlignedValue(value)" />
+
+                    <MeasureSlider Label="Recessive Value"
+                                   Caption="Inverse aligned magnitude."
+                                   Tone="var(--tone-recessive)"
+                                   Min="-24"
+                                   Max="24"
+                                   Value="@_recessiveValueOffset"
+                                   ValueChanged="value => _recessiveValueOffset = ClampPrimitiveAlignedValue(value)" />
+
+                    <MeasureSlider Label="Top Value"
+                                   Caption="Dominant orthogonal magnitude."
+                                   Tone="var(--tone-orthogonal)"
+                                   Min="0"
+                                   Max="24"
+                                   Value="@_topSignal"
+                                   ValueChanged="value => _topSignal = ClampPrimitiveOrthogonalValue(value)" />
+
+                    <MeasureSlider Label="Bottom Value"
+                                   Caption="Recessive orthogonal magnitude."
+                                   Tone="var(--tone-orthogonal-soft)"
+                                   Min="0"
+                                   Max="24"
+                                   Value="@_bottomSignal"
+                                   ValueChanged="value => _bottomSignal = ClampPrimitiveOrthogonalValue(value)" />
+                }
+                else if (_selected.Controls.ShowFusedSpan)
                 {
                     <MeasureSlider Label="Fused Span"
                                    Caption="The aligned pair stays equal while fused."
@@ -166,81 +209,101 @@
                 </div>
 
                 <div class="scene-panel__summary">
-                    <span>@Snapshot.ComplexReading</span>
-                    <span>origin @Snapshot.Origin.Raw</span>
-                    <span>settled @Snapshot.Settlement.Settled.Normalize()</span>
+                    @if (IsPrimitiveBasisScene)
+                    {
+                        <span>segment @PrimitiveSnapshot.SegmentLabel</span>
+                        <span>self @PrimitiveSnapshot.SelfLabel</span>
+                        <span>complex @PrimitiveSnapshot.ComplexLabel</span>
+                    }
+                    else
+                    {
+                        <span>@Snapshot.ComplexReading</span>
+                        <span>origin @Snapshot.Origin.Raw</span>
+                        <span>settled @Snapshot.Settlement.Settled.Normalize()</span>
+                    }
                 </div>
             </div>
 
-            <NumericLineScene Snapshot="Snapshot"
-                              OriginChanged="value => _origin = value"
-                              DominantSpanChanged="value => _dominantSpan = Math.Max(1, value)"
-                              RecessiveSpanChanged="value => _recessiveSpan = Math.Max(0, value)"
-                              SingleValueOffsetChanged="value => _singleValueOffset = value"
-                              DominantValueOffsetChanged="value => _dominantValueOffset = ClampPairOffset(value)"
-                              RecessiveValueOffsetChanged="value => _recessiveValueOffset = ClampPairOffset(value)"
-                              TopSignalChanged="value => _topSignal = Math.Max(0, value)"
-                              BottomSignalChanged="value => _bottomSignal = Math.Max(0, value)"
-                              BottomSignal2Changed="value => _bottomSignal2 = Math.Max(0, value)" />
+            @if (IsPrimitiveBasisScene)
+            {
+                <PrimitiveBasisScene Snapshot="PrimitiveSnapshot"
+                                     DominantChanged="value => _dominantValueOffset = ClampPrimitiveAlignedValue(value)"
+                                     RecessiveChanged="value => _recessiveValueOffset = ClampPrimitiveAlignedValue(value)"
+                                     TopChanged="value => _topSignal = ClampPrimitiveOrthogonalValue(value)"
+                                     BottomChanged="value => _bottomSignal = ClampPrimitiveOrthogonalValue(value)" />
+            }
+            else
+            {
+                <NumericLineScene Snapshot="Snapshot"
+                                  OriginChanged="value => _origin = value"
+                                  DominantSpanChanged="value => _dominantSpan = Math.Max(1, value)"
+                                  RecessiveSpanChanged="value => _recessiveSpan = Math.Max(0, value)"
+                                  SingleValueOffsetChanged="value => _singleValueOffset = value"
+                                  DominantValueOffsetChanged="value => _dominantValueOffset = ClampPairOffset(value)"
+                                  RecessiveValueOffsetChanged="value => _recessiveValueOffset = ClampPairOffset(value)"
+                                  TopSignalChanged="value => _topSignal = Math.Max(0, value)"
+                                  BottomSignalChanged="value => _bottomSignal = Math.Max(0, value)"
+                                  BottomSignal2Changed="value => _bottomSignal2 = Math.Max(0, value)" />
 
-            <section class="info-grid">
-                <article class="info-card">
-                    <p class="info-card__eyebrow">Freeze Ladder</p>
-                    <dl>
-                        <div><dt>Origin</dt><dd>@Snapshot.Origin.Raw</dd></div>
-                        <div><dt>Dominant</dt><dd>@Snapshot.Origin.Raw -> @Snapshot.DominantAnchor.Raw</dd></div>
-                        <div><dt>Recessive</dt><dd>@(Snapshot.HasInverse ? $"{Snapshot.Origin.Raw} -> {Snapshot.RecessiveAnchor.Raw}" : "not present")</dd></div>
-                        <div><dt>Structure</dt><dd>@BasisLabel</dd></div>
-                    </dl>
-                </article>
+                <section class="info-grid">
+                    <article class="info-card">
+                        <p class="info-card__eyebrow">Freeze Ladder</p>
+                        <dl>
+                            <div><dt>Origin</dt><dd>@Snapshot.Origin.Raw</dd></div>
+                            <div><dt>Dominant</dt><dd>@Snapshot.Origin.Raw -> @Snapshot.DominantAnchor.Raw</dd></div>
+                            <div><dt>Recessive</dt><dd>@(Snapshot.HasInverse ? $"{Snapshot.Origin.Raw} -> {Snapshot.RecessiveAnchor.Raw}" : "not present")</dd></div>
+                            <div><dt>Structure</dt><dd>@BasisLabel</dd></div>
+                        </dl>
+                    </article>
 
-                <article class="info-card">
-                    <p class="info-card__eyebrow">Reading</p>
-                    <dl>
-                        <div><dt>Complex</dt><dd>@Snapshot.ComplexReading</dd></div>
-                        <div><dt>Dominant</dt><dd>@Snapshot.DominantReading.Normalize()</dd></div>
-                        <div><dt>Recessive</dt><dd>@(Snapshot.HasInverse ? Snapshot.RecessiveReading.Normalize() : "unavailable")</dd></div>
-                        <div><dt>Mode</dt><dd>@Snapshot.ResolutionMode</dd></div>
-                    </dl>
-                </article>
+                    <article class="info-card">
+                        <p class="info-card__eyebrow">Reading</p>
+                        <dl>
+                            <div><dt>Complex</dt><dd>@Snapshot.ComplexReading</dd></div>
+                            <div><dt>Dominant</dt><dd>@Snapshot.DominantReading.Normalize()</dd></div>
+                            <div><dt>Recessive</dt><dd>@(Snapshot.HasInverse ? Snapshot.RecessiveReading.Normalize() : "unavailable")</dd></div>
+                            <div><dt>Mode</dt><dd>@Snapshot.ResolutionMode</dd></div>
+                        </dl>
+                    </article>
 
-                <article class="info-card">
-                    <p class="info-card__eyebrow">Orthogonal Frontier</p>
-                    <dl>
-                        <div><dt>Residual</dt><dd>@Snapshot.SourceSite.Orthogonal.Residual.Normalize()</dd></div>
-                        <div><dt>Incoming</dt><dd>@Snapshot.SourceSite.Orthogonal.Incoming().Normalize()</dd></div>
-                        <div><dt>Outgoing</dt><dd>@Snapshot.SourceSite.Orthogonal.Outgoing().Normalize()</dd></div>
-                        <div><dt>Connections</dt><dd>@Snapshot.SourceSite.Orthogonal.ConnectionCount.Raw</dd></div>
-                    </dl>
-                    @if (Snapshot.Channels.Any(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero))
-                    {
-                        <ul class="channel-list">
-                            @foreach (var channel in Snapshot.Channels.Where(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero))
+                    <article class="info-card">
+                        <p class="info-card__eyebrow">Orthogonal Frontier</p>
+                        <dl>
+                            <div><dt>Residual</dt><dd>@Snapshot.SourceSite.Orthogonal.Residual.Normalize()</dd></div>
+                            <div><dt>Incoming</dt><dd>@Snapshot.SourceSite.Orthogonal.Incoming().Normalize()</dd></div>
+                            <div><dt>Outgoing</dt><dd>@Snapshot.SourceSite.Orthogonal.Outgoing().Normalize()</dd></div>
+                            <div><dt>Connections</dt><dd>@Snapshot.SourceSite.Orthogonal.ConnectionCount.Raw</dd></div>
+                        </dl>
+                        @if (Snapshot.Channels.Any(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero))
+                        {
+                            <ul class="channel-list">
+                                @foreach (var channel in Snapshot.Channels.Where(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero))
+                                {
+                                    <li>
+                                        <strong>@channel.Name</strong>
+                                        <span>@channel.Value.Normalize()</span>
+                                        <span>prov @channel.Provenance.Axis.Normalize()</span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </article>
+
+                    <article class="info-card">
+                        <p class="info-card__eyebrow">Settlement Trace</p>
+                        <ol class="term-list">
+                            @foreach (var term in Snapshot.Settlement.Terms)
                             {
                                 <li>
-                                    <strong>@channel.Name</strong>
-                                    <span>@channel.Value.Normalize()</span>
-                                    <span>prov @channel.Provenance.Axis.Normalize()</span>
+                                    <span>@term.Order.Raw</span>
+                                    <strong>@term.Phase</strong>
+                                    <code>@term.Value.Normalize()</code>
                                 </li>
                             }
-                        </ul>
-                    }
-                </article>
-
-                <article class="info-card">
-                    <p class="info-card__eyebrow">Settlement Trace</p>
-                    <ol class="term-list">
-                        @foreach (var term in Snapshot.Settlement.Terms)
-                        {
-                            <li>
-                                <span>@term.Order.Raw</span>
-                                <strong>@term.Phase</strong>
-                                <code>@term.Value.Normalize()</code>
-                            </li>
-                        }
-                    </ol>
-                </article>
-            </section>
+                        </ol>
+                    </article>
+                </section>
+            }
         </section>
     </section>
 </div>
@@ -262,7 +325,13 @@
 
     private NumericExplorerSnapshot Snapshot => NumericExplorerExamples.Build(CurrentPreset);
 
-    private string SceneTitle => Snapshot.ResolutionMode;
+    private PrimitiveBasisSnapshot PrimitiveSnapshot => PrimitiveBasisExamples.Build(CurrentPreset);
+
+    private bool IsPrimitiveBasisScene => _selected.Name == PrimitiveBasisExamples.PresetName;
+
+    private string SceneTitle => IsPrimitiveBasisScene
+        ? "Six Primitive Fusions"
+        : Snapshot.ResolutionMode;
 
     private string SceneDescription => _selected.Description;
 
@@ -311,4 +380,8 @@
     }
 
     private long ClampPairOffset(long value) => _selected.FuseAligned ? value : Math.Max(0, value);
+
+    private static long ClampPrimitiveAlignedValue(long value) => Math.Clamp(value, -24L, 24L);
+
+    private static long ClampPrimitiveOrthogonalValue(long value) => Math.Clamp(value, 0L, 24L);
 }

@@ -1,0 +1,435 @@
+@using Core4.Examples
+
+<div class="primitive-wrap">
+    <svg class="primitive-scene"
+         viewBox="0 0 820 340"
+         role="img"
+         aria-label="Core4 primitive fused forms"
+         @onpointermove="OnPointerMove"
+         @onpointerup="EndDrag"
+         @onpointerleave="EndDrag">
+        <defs>
+            <marker id="primitiveSelfArrow" markerUnits="userSpaceOnUse" viewBox="0 0 16 16" refX="13.2" refY="8" markerWidth="16" markerHeight="16" orient="auto">
+                <path d="M0 0 L16 8 L0 16 L4.9 8 Z" fill="var(--tone-dominant)" />
+            </marker>
+            <marker id="primitiveSegmentArrow" markerUnits="userSpaceOnUse" viewBox="0 0 18 18" refX="14.4" refY="9" markerWidth="18" markerHeight="18" orient="auto">
+                <path d="M0 0 L18 9 L0 18 L5.4 9 Z" fill="var(--tone-segment-overlay)" />
+            </marker>
+        </defs>
+
+        <rect x="0" y="0" width="820" height="340" rx="20" class="primitive-surface" />
+        <line x1="@DividerX" x2="@DividerX" y1="30" y2="310" class="primitive-divider" />
+
+        <g>
+            @foreach (var tick in HorizontalTicks(SelfOriginX, SelfOriginY, 1))
+            {
+                <line x1="@tick.X1" y1="@tick.Y1" x2="@tick.X2" y2="@tick.Y2" class="@tick.Css" />
+            }
+            <line x1="@(SelfOriginX - 18)" x2="@(SelfOriginX + 126)" y1="@SelfOriginY" y2="@SelfOriginY" class="primitive-axis" />
+            <line x1="@SelfOriginX" x2="@SelfOriginX" y1="@(SelfOriginY - 44)" y2="@(SelfOriginY + 22)" class="primitive-axis" />
+
+            <line x1="@SelfOriginX" x2="@SelfInputX()" y1="@(SelfOriginY - 6)" y2="@(SelfOriginY - 6)" class="@SelfLineCss("primitive-self-line primitive-self-line--upper")" />
+            <line x1="@SelfOriginX" x2="@SelfInputX()" y1="@(SelfOriginY + 6)" y2="@(SelfOriginY + 6)" class="@SelfLineCss("primitive-self-line primitive-self-line--lower")" />
+            <line x1="@(SelfOriginX + 18)" x2="@SelfResultX()" y1="@(SelfOriginY - 18)" y2="@(SelfOriginY - 18)" class="@SelfLineCss("primitive-self-result")" marker-end="url(#primitiveSegmentArrow)" />
+
+            <circle cx="@SelfInputX()" cy="@(SelfOriginY - 6)" r="10" class="primitive-hit-target"
+                    @onpointerdown="BeginDominantDrag"
+                    @onpointerdown:preventDefault
+                    @onpointerdown:stopPropagation />
+            <polygon points="@TrianglePoints(SelfInputX(), SelfOriginY - 6)" class="@SelfLineCss("primitive-value-tip primitive-value-tip--dominant")"
+                     @onpointerdown="BeginDominantDrag"
+                     @onpointerdown:preventDefault
+                     @onpointerdown:stopPropagation />
+        </g>
+
+        <g>
+            @foreach (var tick in HorizontalTicks(SegmentOriginX, SegmentOriginY, -1))
+            {
+                <line x1="@tick.X1" y1="@tick.Y1" x2="@tick.X2" y2="@tick.Y2" class="@tick.Css" />
+            }
+            @foreach (var tick in HorizontalTicks(SegmentOriginX, SegmentOriginY, 1))
+            {
+                <line x1="@tick.X1" y1="@tick.Y1" x2="@tick.X2" y2="@tick.Y2" class="@tick.Css" />
+            }
+            <line x1="@(SegmentOriginX - 104)" x2="@(SegmentOriginX + 104)" y1="@SegmentOriginY" y2="@SegmentOriginY" class="primitive-axis" />
+            <line x1="@SegmentOriginX" x2="@SegmentOriginX" y1="@(SegmentOriginY - 54)" y2="@(SegmentOriginY + 24)" class="primitive-axis" />
+
+            <line x1="@SegmentOriginX" x2="@SegmentRecessiveX()" y1="@SegmentOriginY" y2="@SegmentOriginY" class="@SegmentLineCss("primitive-horizontal primitive-horizontal--recessive", Snapshot.RecessiveIsTension)" />
+            <line x1="@SegmentOriginX" x2="@SegmentDominantX()" y1="@SegmentOriginY" y2="@SegmentOriginY" class="@SegmentLineCss("primitive-horizontal primitive-horizontal--dominant", Snapshot.DominantIsTension)" />
+            <line x1="@SegmentRecessiveX()" x2="@SegmentDominantX()" y1="@(SegmentOriginY - 22)" y2="@(SegmentOriginY - 22)" class="primitive-segment-overlay" marker-end="url(#primitiveSegmentArrow)" />
+
+            <circle cx="@SegmentRecessiveX()" cy="@SegmentOriginY" r="11" class="primitive-hit-target"
+                    @onpointerdown="BeginRecessiveDrag"
+                    @onpointerdown:preventDefault
+                    @onpointerdown:stopPropagation />
+            <circle cx="@SegmentRecessiveX()" cy="@SegmentOriginY" r="5" class="@SegmentLineCss("primitive-value-tip primitive-value-tip--recessive", Snapshot.RecessiveIsTension)"
+                    @onpointerdown="BeginRecessiveDrag"
+                    @onpointerdown:preventDefault
+                    @onpointerdown:stopPropagation />
+
+            <circle cx="@SegmentDominantX()" cy="@SegmentOriginY" r="11" class="primitive-hit-target"
+                    @onpointerdown="BeginDominantDrag"
+                    @onpointerdown:preventDefault
+                    @onpointerdown:stopPropagation />
+            <polygon points="@TrianglePoints(SegmentDominantX(), SegmentOriginY)" class="@SegmentLineCss("primitive-value-tip primitive-value-tip--dominant", Snapshot.DominantIsTension)"
+                     @onpointerdown="BeginDominantDrag"
+                     @onpointerdown:preventDefault
+                     @onpointerdown:stopPropagation />
+        </g>
+
+        <g>
+            @foreach (var tick in HorizontalTicks(AntiComplexOriginX, AntiComplexOriginY, -1))
+            {
+                <line x1="@tick.X1" y1="@tick.Y1" x2="@tick.X2" y2="@tick.Y2" class="@tick.Css" />
+            }
+            @foreach (var tick in VerticalTicks(AntiComplexOriginX, AntiComplexOriginY, -1))
+            {
+                <line x1="@tick.X1" y1="@tick.Y1" x2="@tick.X2" y2="@tick.Y2" class="@tick.Css" />
+            }
+            <line x1="@(AntiComplexOriginX - 96)" x2="@(AntiComplexOriginX + 20)" y1="@AntiComplexOriginY" y2="@AntiComplexOriginY" class="primitive-axis" />
+            <line x1="@AntiComplexOriginX" x2="@AntiComplexOriginX" y1="@(AntiComplexOriginY - 96)" y2="@(AntiComplexOriginY + 18)" class="primitive-axis" />
+            <line x1="@AntiComplexOriginX" x2="@AntiComplexHorizontalX()" y1="@AntiComplexOriginY" y2="@AntiComplexOriginY" class="@FusionCss("primitive-horizontal primitive-horizontal--recessive")" />
+            <line x1="@AntiComplexOriginX" x2="@AntiComplexOriginX" y1="@AntiComplexOriginY" y2="@TopTipY(AntiComplexOriginY)" class="@FusionCss("primitive-vertical primitive-vertical--dominant")" />
+            <line x1="@AntiComplexOriginX" x2="@AntiComplexHorizontalX()" y1="@AntiComplexOriginY" y2="@TopTipY(AntiComplexOriginY)" class="@FusionCss("primitive-ray")" />
+        </g>
+
+        <g>
+            @foreach (var tick in HorizontalTicks(AreaOriginX, AreaOriginY, 1))
+            {
+                <line x1="@tick.X1" y1="@tick.Y1" x2="@tick.X2" y2="@tick.Y2" class="@tick.Css" />
+            }
+            @foreach (var tick in VerticalTicks(AreaOriginX, AreaOriginY, -1))
+            {
+                <line x1="@tick.X1" y1="@tick.Y1" x2="@tick.X2" y2="@tick.Y2" class="@tick.Css" />
+            }
+            <line x1="@(AreaOriginX - 20)" x2="@(AreaOriginX + 96)" y1="@AreaOriginY" y2="@AreaOriginY" class="primitive-axis" />
+            <line x1="@AreaOriginX" x2="@AreaOriginX" y1="@(AreaOriginY - 96)" y2="@(AreaOriginY + 18)" class="primitive-axis" />
+            <rect x="@AreaOriginX" y="@TopTipY(AreaOriginY)" width="@HorizontalMagnitudePx()" height="@TopHeightPx()" class="@FusionCss("primitive-area-fill")" />
+            <line x1="@AreaOriginX" x2="@AreaRightX()" y1="@AreaOriginY" y2="@AreaOriginY" class="@FusionCss("primitive-horizontal primitive-horizontal--dominant")" />
+            <line x1="@AreaOriginX" x2="@AreaOriginX" y1="@AreaOriginY" y2="@TopTipY(AreaOriginY)" class="@FusionCss("primitive-vertical primitive-vertical--dominant")" />
+
+            <circle cx="@AreaOriginX" cy="@TopTipY(AreaOriginY)" r="11" class="primitive-hit-target"
+                    @onpointerdown="BeginTopDrag"
+                    @onpointerdown:preventDefault
+                    @onpointerdown:stopPropagation />
+            <polygon points="@UpTrianglePoints(AreaOriginX, TopTipY(AreaOriginY))" class="primitive-value-tip primitive-value-tip--top"
+                     @onpointerdown="BeginTopDrag"
+                     @onpointerdown:preventDefault
+                     @onpointerdown:stopPropagation />
+        </g>
+
+        <g>
+            @foreach (var tick in HorizontalTicks(AntiAreaOriginX, AntiAreaOriginY, -1))
+            {
+                <line x1="@tick.X1" y1="@tick.Y1" x2="@tick.X2" y2="@tick.Y2" class="@tick.Css" />
+            }
+            @foreach (var tick in VerticalTicks(AntiAreaOriginX, AntiAreaOriginY, 1))
+            {
+                <line x1="@tick.X1" y1="@tick.Y1" x2="@tick.X2" y2="@tick.Y2" class="@tick.Css" />
+            }
+            <line x1="@(AntiAreaOriginX - 96)" x2="@(AntiAreaOriginX + 20)" y1="@AntiAreaOriginY" y2="@AntiAreaOriginY" class="primitive-axis" />
+            <line x1="@AntiAreaOriginX" x2="@AntiAreaOriginX" y1="@(AntiAreaOriginY - 18)" y2="@(AntiAreaOriginY + 96)" class="primitive-axis" />
+            <rect x="@AntiAreaLeftX()" y="@AntiAreaOriginY" width="@HorizontalMagnitudePx()" height="@BottomHeightPx()" class="@FusionCss("primitive-area-fill primitive-area-fill--anti")" />
+            <line x1="@AntiAreaOriginX" x2="@AntiAreaLeftX()" y1="@AntiAreaOriginY" y2="@AntiAreaOriginY" class="@FusionCss("primitive-horizontal primitive-horizontal--recessive")" />
+            <line x1="@AntiAreaOriginX" x2="@AntiAreaOriginX" y1="@AntiAreaOriginY" y2="@BottomTipY(AntiAreaOriginY)" class="@FusionCss("primitive-vertical primitive-vertical--recessive")" />
+
+            <circle cx="@AntiAreaOriginX" cy="@BottomTipY(AntiAreaOriginY)" r="11" class="primitive-hit-target"
+                    @onpointerdown="BeginBottomDrag"
+                    @onpointerdown:preventDefault
+                    @onpointerdown:stopPropagation />
+            <circle cx="@AntiAreaOriginX" cy="@BottomTipY(AntiAreaOriginY)" r="5.2" class="primitive-value-tip primitive-value-tip--bottom"
+                    @onpointerdown="BeginBottomDrag"
+                    @onpointerdown:preventDefault
+                    @onpointerdown:stopPropagation />
+        </g>
+
+        <g>
+            @foreach (var tick in HorizontalTicks(ComplexOriginX, ComplexOriginY, 1))
+            {
+                <line x1="@tick.X1" y1="@tick.Y1" x2="@tick.X2" y2="@tick.Y2" class="@tick.Css" />
+            }
+            @foreach (var tick in VerticalTicks(ComplexOriginX, ComplexOriginY, 1))
+            {
+                <line x1="@tick.X1" y1="@tick.Y1" x2="@tick.X2" y2="@tick.Y2" class="@tick.Css" />
+            }
+            <line x1="@(ComplexOriginX - 20)" x2="@(ComplexOriginX + 96)" y1="@ComplexOriginY" y2="@ComplexOriginY" class="primitive-axis" />
+            <line x1="@ComplexOriginX" x2="@ComplexOriginX" y1="@(ComplexOriginY - 18)" y2="@(ComplexOriginY + 96)" class="primitive-axis" />
+            <line x1="@ComplexOriginX" x2="@ComplexRightX()" y1="@ComplexOriginY" y2="@ComplexOriginY" class="@FusionCss("primitive-horizontal primitive-horizontal--dominant")" />
+            <line x1="@ComplexOriginX" x2="@ComplexOriginX" y1="@ComplexOriginY" y2="@BottomTipY(ComplexOriginY)" class="@FusionCss("primitive-vertical primitive-vertical--recessive")" />
+            <line x1="@ComplexOriginX" x2="@ComplexRightX()" y1="@ComplexOriginY" y2="@BottomTipY(ComplexOriginY)" class="@FusionCss("primitive-ray")" />
+        </g>
+    </svg>
+
+    <div class="primitive-overlay">
+        <div class="primitive-reading primitive-reading--complex" style="@Position(DividerX + 28d, 24d)">
+            <span class="primitive-reading-term primitive-reading-term--recessive">@($"{Snapshot.RecessiveValue.Normalize()}r")</span>
+            <span class="primitive-reading-plus"> + </span>
+            <span class="primitive-reading-term primitive-reading-term--dominant">@($"{Snapshot.DominantValue.Normalize()}d")</span>
+        </div>
+        <div class="primitive-reading primitive-reading--approx" style="@Position(DividerX + 28d, 44d)">
+            @Snapshot.ApproximateReading
+        </div>
+
+        @foreach (var label in OverlayLabels())
+        {
+            <div class="@label.Css" style="@Position(label.X, label.Y)">@label.Text</div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PrimitiveBasisSnapshot Snapshot { get; set; } = default!;
+    [Parameter] public EventCallback<long> DominantChanged { get; set; }
+    [Parameter] public EventCallback<long> RecessiveChanged { get; set; }
+    [Parameter] public EventCallback<long> TopChanged { get; set; }
+    [Parameter] public EventCallback<long> BottomChanged { get; set; }
+
+    private const double LeftColumnTitleX = 84d;
+    private const double DividerX = 262d;
+    private const double SelfOriginX = 84d;
+    private const double SelfOriginY = 84d;
+    private const double SegmentOriginX = 84d;
+    private const double SegmentOriginY = 232d;
+    private const double AntiComplexOriginX = 406d;
+    private const double AreaOriginX = 612d;
+    private const double AntiComplexOriginY = 96d;
+    private const double AreaOriginY = 96d;
+    private const double AntiAreaOriginX = 406d;
+    private const double ComplexOriginX = 612d;
+    private const double AntiAreaOriginY = 244d;
+    private const double ComplexOriginY = 244d;
+    private const double TickPixels = 4.5d;
+    private const double UnitPixels = TickPixels * 8d;
+    private const double SelfPixels = 11d;
+    private static readonly DragHandle None = new(string.Empty);
+
+    private DragHandle _activeDrag = None;
+    private double _dragStartClientX;
+    private double _dragStartClientY;
+    private long _dragStartValue;
+
+    private double SelfInputX() => SelfOriginX + (Snapshot.DominantUnits * UnitPixels);
+
+    private double SelfResultX() => SelfOriginX + 18d + (Snapshot.SelfUnits * SelfPixels);
+
+    private double SegmentRecessiveX() => SegmentOriginX - (Snapshot.RecessiveUnits * UnitPixels);
+
+    private double SegmentDominantX() => SegmentOriginX + (Snapshot.DominantUnits * UnitPixels);
+
+    private double HorizontalMagnitudePx() => Snapshot.SegmentMagnitude * UnitPixels;
+
+    private double TopHeightPx() => Snapshot.TopUnits * UnitPixels;
+
+    private double BottomHeightPx() => Snapshot.BottomUnits * UnitPixels;
+
+    private double AreaRightX() => AreaOriginX + HorizontalMagnitudePx();
+
+    private double AntiAreaLeftX() => AntiAreaOriginX - HorizontalMagnitudePx();
+
+    private double AntiComplexHorizontalX() => AntiComplexOriginX - HorizontalMagnitudePx();
+
+    private double ComplexRightX() => ComplexOriginX + HorizontalMagnitudePx();
+
+    private double TopTipY(double originY) => originY - TopHeightPx();
+
+    private double BottomTipY(double originY) => originY + BottomHeightPx();
+
+    private string FusionCss(string root) => Snapshot.SegmentIsNegative
+        ? $"{root} primitive-tensioned"
+        : root;
+
+    private IEnumerable<TickMark> HorizontalTicks(double originX, double originY, int direction)
+    {
+        for (var index = 1; index <= 24; index++)
+        {
+            var x = originX + (index * TickPixels * direction);
+            yield return new TickMark(
+                x,
+                originY - (index % 8 == 0 ? 4d : 2.4d),
+                x,
+                originY + (index % 8 == 0 ? 4d : 2.4d),
+                x,
+                originY + (direction > 0 ? 14d : -10d),
+                index % 8 == 0 ? (index / 8).ToString() : string.Empty,
+                index % 8 == 0 ? "primitive-tick primitive-tick--major" : "primitive-tick");
+        }
+    }
+
+    private IEnumerable<TickMark> VerticalTicks(double originX, double originY, int direction)
+    {
+        for (var index = 1; index <= 24; index++)
+        {
+            var y = originY + (index * TickPixels * direction);
+            yield return new TickMark(
+                originX - (index % 8 == 0 ? 4d : 2.4d),
+                y,
+                originX + (index % 8 == 0 ? 4d : 2.4d),
+                y,
+                originX + 12d,
+                y + 3d,
+                index % 8 == 0 ? (index / 8).ToString() : string.Empty,
+                index % 8 == 0 ? "primitive-tick primitive-tick--major" : "primitive-tick");
+        }
+    }
+
+    private IEnumerable<OverlayLabel> OverlayLabels()
+    {
+        yield return new OverlayLabel(LeftColumnTitleX, 32d, "SELF-INTERACTION", "primitive-label primitive-label--title");
+        yield return new OverlayLabel(LeftColumnTitleX, 180d, "DIRECTED SEGMENT", "primitive-label primitive-label--title");
+        yield return new OverlayLabel(AntiComplexOriginX, 32d, "ANTI-COMPLEX", "primitive-label primitive-label--title primitive-label--center");
+        yield return new OverlayLabel(AreaOriginX, 32d, "AREA", "primitive-label primitive-label--title primitive-label--center");
+        yield return new OverlayLabel(AntiAreaOriginX, 180d, "ANTI-AREA", "primitive-label primitive-label--title primitive-label--center");
+        yield return new OverlayLabel(ComplexOriginX, 180d, "COMPLEX", "primitive-label primitive-label--title primitive-label--center");
+
+        foreach (var label in TickLabels(SelfOriginX, SelfOriginY, 1))
+        {
+            yield return label;
+        }
+
+        foreach (var label in TickLabels(SegmentOriginX, SegmentOriginY, -1))
+        {
+            yield return label;
+        }
+
+        foreach (var label in TickLabels(SegmentOriginX, SegmentOriginY, 1))
+        {
+            yield return label;
+        }
+
+        foreach (var label in TickLabels(AntiComplexOriginX, AntiComplexOriginY, -1))
+        {
+            yield return label;
+        }
+
+        foreach (var label in VerticalTickLabels(AntiComplexOriginX, AntiComplexOriginY, -1))
+        {
+            yield return label;
+        }
+
+        foreach (var label in TickLabels(AreaOriginX, AreaOriginY, 1))
+        {
+            yield return label;
+        }
+
+        foreach (var label in VerticalTickLabels(AreaOriginX, AreaOriginY, -1))
+        {
+            yield return label;
+        }
+
+        foreach (var label in TickLabels(AntiAreaOriginX, AntiAreaOriginY, -1))
+        {
+            yield return label;
+        }
+
+        foreach (var label in VerticalTickLabels(AntiAreaOriginX, AntiAreaOriginY, 1))
+        {
+            yield return label;
+        }
+
+        foreach (var label in TickLabels(ComplexOriginX, ComplexOriginY, 1))
+        {
+            yield return label;
+        }
+
+        foreach (var label in VerticalTickLabels(ComplexOriginX, ComplexOriginY, 1))
+        {
+            yield return label;
+        }
+    }
+
+    private IEnumerable<OverlayLabel> TickLabels(double originX, double originY, int direction)
+    {
+        foreach (var tick in HorizontalTicks(originX, originY, direction))
+        {
+            if (!string.IsNullOrEmpty(tick.Text))
+            {
+                yield return new OverlayLabel(tick.LabelX, tick.LabelY, tick.Text, "primitive-label primitive-label--tick");
+            }
+        }
+    }
+
+    private IEnumerable<OverlayLabel> VerticalTickLabels(double originX, double originY, int direction)
+    {
+        foreach (var tick in VerticalTicks(originX, originY, direction))
+        {
+            if (!string.IsNullOrEmpty(tick.Text))
+            {
+                yield return new OverlayLabel(tick.LabelX, tick.LabelY, tick.Text, "primitive-label primitive-label--tick");
+            }
+        }
+    }
+
+    private void BeginDominantDrag(PointerEventArgs args) => BeginDrag("dominant", Snapshot.DominantTicks, args);
+
+    private void BeginRecessiveDrag(PointerEventArgs args) => BeginDrag("recessive", Snapshot.RecessiveTicks, args);
+
+    private void BeginTopDrag(PointerEventArgs args) => BeginDrag("top", Snapshot.TopTicks, args);
+
+    private void BeginBottomDrag(PointerEventArgs args) => BeginDrag("bottom", Snapshot.BottomTicks, args);
+
+    private void BeginDrag(string kind, long currentValue, PointerEventArgs args)
+    {
+        _activeDrag = new DragHandle(kind);
+        _dragStartClientX = args.ClientX;
+        _dragStartClientY = args.ClientY;
+        _dragStartValue = currentValue;
+    }
+
+    private async Task OnPointerMove(PointerEventArgs args)
+    {
+        if (_activeDrag == None)
+        {
+            return;
+        }
+
+        switch (_activeDrag.Kind)
+        {
+            case "dominant":
+                await DominantChanged.InvokeAsync(ClampAlignedValue(_dragStartValue + DeltaTicksX(args.ClientX)));
+                break;
+            case "recessive":
+                await RecessiveChanged.InvokeAsync(ClampAlignedValue(_dragStartValue - DeltaTicksX(args.ClientX)));
+                break;
+            case "top":
+                await TopChanged.InvokeAsync(ClampOrthogonalValue(_dragStartValue - DeltaTicksY(args.ClientY)));
+                break;
+            case "bottom":
+                await BottomChanged.InvokeAsync(ClampOrthogonalValue(_dragStartValue + DeltaTicksY(args.ClientY)));
+                break;
+        }
+    }
+
+    private void EndDrag(PointerEventArgs args) => _activeDrag = None;
+
+    private int DeltaTicksX(double currentClientX) => (int)Math.Round((currentClientX - _dragStartClientX) / TickPixels, MidpointRounding.AwayFromZero);
+
+    private int DeltaTicksY(double currentClientY) => (int)Math.Round((currentClientY - _dragStartClientY) / TickPixels, MidpointRounding.AwayFromZero);
+
+    private static long ClampAlignedValue(long value) => Math.Clamp(value, -24L, 24L);
+
+    private static long ClampOrthogonalValue(long value) => Math.Clamp(value, 0L, 24L);
+
+    private static string SegmentLineCss(string root, bool isTension) => isTension ? $"{root} primitive-tensioned" : root;
+
+    private string SelfLineCss(string root) => Snapshot.DominantIsTension ? $"{root} primitive-tensioned" : root;
+
+    private static string TrianglePoints(double x, double y) => $"{x + 1.6},{y} {x - 7.2},{y - 4.8} {x - 7.2},{y + 4.8}";
+
+    private static string UpTrianglePoints(double x, double y) => $"{x},{y - 1.6} {x - 4.8},{y + 7.2} {x + 4.8},{y + 7.2}";
+
+    private static string Position(double x, double y) => $"left:{(x / 820d) * 100:F3}%;top:{(y / 340d) * 100:F3}%;";
+
+    private readonly record struct TickMark(
+        double X1,
+        double Y1,
+        double X2,
+        double Y2,
+        double LabelX,
+        double LabelY,
+        string Text,
+        string Css);
+
+    private readonly record struct OverlayLabel(double X, double Y, string Text, string Css);
+
+    private readonly record struct DragHandle(string Kind);
+}
