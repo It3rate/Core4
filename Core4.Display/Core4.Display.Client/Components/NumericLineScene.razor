@@ -563,9 +563,7 @@
         var px = -uy;
         var py = ux;
         var magnitude = Math.Abs(tension);
-        var amplitude = magnitude <= 1L
-            ? 0.8d
-            : Math.Min(24d, (magnitude - 1d) * (UnitPixels * 0.55d));
+        var amplitude = Math.Min(12d, magnitude * 1.2d);
         var cycles = Math.Max(3, (int)Math.Ceiling(distance / 24d));
         var samples = Math.Max(32, cycles * 18);
         var points = new List<string>(samples + 1);
