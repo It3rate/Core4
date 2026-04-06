@@ -288,9 +288,9 @@ public static class NumericExplorerExamples
 
     private static ImmutableArray<NumericExplorerChannel> Channels(NumericExplorerPreset preset) =>
     [
-        new("Out", new Carrier(2), Ratio.Tension(preset.TopSignal), preset.Tension, Provenance.SelfDriven(preset.TopSignal)),
-        new("In A", new Carrier(3), Ratio.Tension(preset.BottomSignal), preset.BottomTension, Provenance.OtherDriven(preset.BottomSignal)),
-        new("In B", new Carrier(4), Ratio.Tension(preset.BottomSignal2), preset.BottomTension2, Provenance.OtherDriven(preset.BottomSignal2))
+        new("Out", new Carrier(2), Ratio.Tension(preset.TopSignal), preset.Tension, Provenance.SelfDriven(preset.TopSignal), 0, 1),
+        new("In A", new Carrier(3), Ratio.Tension(preset.BottomSignal), preset.BottomTension, Provenance.OtherDriven(preset.BottomSignal), 0, 2),
+        new("In B", new Carrier(4), Ratio.Tension(preset.BottomSignal2), preset.BottomTension2, Provenance.OtherDriven(preset.BottomSignal2), 1, 2)
     ];
 
     private static Ratio Project(

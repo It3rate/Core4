@@ -72,32 +72,35 @@
 
         @if (TopChannels.Length == 1)
         {
-            <line x1="@OriginX"
-                  x2="@OriginX"
-                  y1="@AxisY"
-                  y2="@SingleTopY()"
-                  class="scene-hit-target"
-                  @onpointerdown="BeginTopSignalDrag"
-                  @onpointerdown:preventDefault
-                  @onpointerdown:stopPropagation />
-            <circle cx="@OriginX"
-                    cy="@SingleTopY()"
-                    r="11"
-                    class="scene-hit-target"
-                    @onpointerdown="BeginTopSignalDrag"
-                    @onpointerdown:preventDefault
-                    @onpointerdown:stopPropagation />
-            <line x1="@OriginX"
-                  x2="@OriginX"
-                  y1="@AxisY"
-                  y2="@SingleTopY()"
-                  class="@TopLineCss(TopChannels[0]) scene-drag-target"
-                  marker-end="@TopMarker(TopChannels[0])"
-                  @onpointerdown="BeginTopSignalDrag"
-                  @onpointerdown:preventDefault
-                  @onpointerdown:stopPropagation>
-                <title>@TopChannels[0].Name @TopChannels[0].Value.Normalize()</title>
-            </line>
+            @if (ChannelHeight(TopChannels[0]) > 0d)
+            {
+                <line x1="@OriginX"
+                      x2="@OriginX"
+                      y1="@AxisY"
+                      y2="@SingleTopY()"
+                      class="scene-hit-target"
+                      @onpointerdown="BeginTopSignalDrag"
+                      @onpointerdown:preventDefault
+                      @onpointerdown:stopPropagation />
+                <circle cx="@OriginX"
+                        cy="@SingleTopY()"
+                        r="11"
+                        class="scene-hit-target"
+                        @onpointerdown="BeginTopSignalDrag"
+                        @onpointerdown:preventDefault
+                        @onpointerdown:stopPropagation />
+                <line x1="@OriginX"
+                      x2="@OriginX"
+                      y1="@AxisY"
+                      y2="@SingleTopY()"
+                      class="@TopLineCss(TopChannels[0]) scene-drag-target"
+                      marker-end="@TopMarker(TopChannels[0])"
+                      @onpointerdown="BeginTopSignalDrag"
+                      @onpointerdown:preventDefault
+                      @onpointerdown:stopPropagation>
+                    <title>@TopChannels[0].Name @TopChannels[0].Value.Normalize()</title>
+                </line>
+            }
         }
         else
         {
@@ -132,50 +135,56 @@
             }
         }
 
-        @if (BottomChannels.Length == 1)
-        {
-            <line x1="@OriginX"
-                  x2="@OriginX"
-                  y1="@AxisY"
-                  y2="@SingleBottomY()"
-                  class="scene-orthogonal-recessive scene-drag-target"
-                  @onpointerdown="BeginBottomSignalDrag"
-                  @onpointerdown:preventDefault
-                  @onpointerdown:stopPropagation>
-                <title>@BottomChannels[0].Name @BottomChannels[0].Value.Normalize()</title>
-            </line>
-            <circle cx="@OriginX"
-                    cy="@SingleBottomY()"
-                    r="4.2"
-                    class="scene-orthogonal-recessive-node scene-drag-target"
-                    @onpointerdown="BeginBottomSignalDrag"
-                    @onpointerdown:preventDefault
-                    @onpointerdown:stopPropagation>
-                <title>@BottomChannels[0].Name @BottomChannels[0].Value.Normalize()</title>
-            </circle>
-        }
-        else
+        @if (UseBottomBranchLayout)
         {
             @foreach (var branch in BottomBranches())
             {
-                <line x1="@branch.StartX"
-                      y1="@branch.StartY"
-                      x2="@branch.TipX"
-                      y2="@branch.TipY"
-                      class="@($"{branch.Css} scene-drag-target")"
-                      @onpointerdown="@(e => BeginBottomBranchDrag(branch.Index, e))"
+                @if (branch.HasSignal)
+                {
+                    <line x1="@branch.StartX"
+                          y1="@branch.StartY"
+                          x2="@branch.TipX"
+                          y2="@branch.TipY"
+                          class="@($"{branch.Css} scene-drag-target")"
+                          @onpointerdown="@(e => BeginBottomBranchDrag(branch.Index, e))"
+                          @onpointerdown:preventDefault
+                          @onpointerdown:stopPropagation>
+                        <title>@branch.Label</title>
+                    </line>
+                    <circle cx="@branch.TipX"
+                            cy="@branch.TipY"
+                            r="4.2"
+                            class="scene-branch-node-recessive scene-drag-target"
+                            @onpointerdown="@(e => BeginBottomBranchDrag(branch.Index, e))"
+                            @onpointerdown:preventDefault
+                            @onpointerdown:stopPropagation>
+                        <title>@branch.Label</title>
+                    </circle>
+                }
+            }
+        }
+        else if (BottomChannels.Length == 1)
+        {
+            @if (ChannelHeight(BottomChannels[0]) > 0d)
+            {
+                <line x1="@OriginX"
+                      x2="@OriginX"
+                      y1="@AxisY"
+                      y2="@SingleBottomY()"
+                      class="scene-orthogonal-recessive scene-drag-target"
+                      @onpointerdown="BeginBottomSignalDrag"
                       @onpointerdown:preventDefault
                       @onpointerdown:stopPropagation>
-                    <title>@branch.Label</title>
+                    <title>@BottomChannels[0].Name @BottomChannels[0].Value.Normalize()</title>
                 </line>
-                <circle cx="@branch.TipX"
-                        cy="@branch.TipY"
+                <circle cx="@OriginX"
+                        cy="@SingleBottomY()"
                         r="4.2"
-                        class="scene-branch-node-recessive scene-drag-target"
-                        @onpointerdown="@(e => BeginBottomBranchDrag(branch.Index, e))"
+                        class="scene-orthogonal-recessive-node scene-drag-target"
+                        @onpointerdown="BeginBottomSignalDrag"
                         @onpointerdown:preventDefault
                         @onpointerdown:stopPropagation>
-                    <title>@branch.Label</title>
+                    <title>@BottomChannels[0].Name @BottomChannels[0].Value.Normalize()</title>
                 </circle>
             }
         }
@@ -350,6 +359,8 @@
 
     private bool ShowDirectedSegmentOverlay => Snapshot.Preset.Name == "Frozen Segment";
 
+    private bool UseBottomBranchLayout => Snapshot.Preset.Controls.ShowBottomSignal2;
+
     private double OriginX => ClampX(BaseOriginX + (Snapshot.Origin.Raw * UnitPixels));
 
     private double DominantEndX() => ClampX(OriginX + (Snapshot.Preset.DominantSpan.Raw * UnitPixels));
@@ -482,9 +493,17 @@
 
     private double ChannelHeight(NumericExplorerChannel channel) => Math.Max(0d, channel.Value.Potential.Raw * UnitPixels);
 
+    private double ChannelTensionDepth(NumericExplorerChannel channel) => channel.Tension == Measure.Zero
+        ? 0d
+        : Math.Max(UnitPixels * 0.9d, Math.Min(UnitPixels * 1.35d, Math.Abs(channel.Tension.Raw) * 1.6d));
+
     private double SingleTopY() => AxisY - ChannelHeight(TopChannels[0]);
 
     private double SingleBottomY() => AxisY + ChannelHeight(BottomChannels[0]);
+
+    private double TopTensionY(NumericExplorerChannel channel) => AxisY - Math.Max(ChannelHeight(channel), ChannelTensionDepth(channel));
+
+    private double BottomTensionY(NumericExplorerChannel channel) => AxisY + Math.Max(ChannelHeight(channel), ChannelTensionDepth(channel));
 
     private string TopLineCss(NumericExplorerChannel channel) => channel.Provenance.IsShared
         ? "scene-branch-shared"
@@ -505,7 +524,7 @@
         {
             var channel = TopChannels[0];
             yield return new TensionGlyph(
-                TensionWavePath(OriginX, AxisY, OriginX, SingleTopY(), channel.Tension.Raw),
+                TensionWavePath(OriginX, AxisY, OriginX, TopTensionY(channel), channel.Tension.Raw),
                 TensionCss(channel.Tension.Raw),
                 $"top tension {Ratio.Tension(channel.Tension).Normalize()}");
         }
@@ -514,7 +533,7 @@
             foreach (var branch in TopBranches().Where(branch => branch.Channel.Tension != Measure.Zero))
             {
                 yield return new TensionGlyph(
-                    TensionWavePath(branch.StartX, branch.StartY, branch.TipX, branch.TipY, branch.Channel.Tension.Raw),
+                    TensionWavePath(branch.StartX, branch.StartY, branch.TipX, branch.TensionTipY, branch.Channel.Tension.Raw),
                     TensionCss(branch.Channel.Tension.Raw),
                     $"{branch.Channel.Name} tension {Ratio.Tension(branch.Channel.Tension).Normalize()}");
             }
@@ -532,7 +551,7 @@
         {
             var channel = BottomChannels[0];
             yield return new TensionGlyph(
-                TensionWavePath(OriginX, AxisY, OriginX, SingleBottomY(), channel.Tension.Raw),
+                TensionWavePath(OriginX, AxisY, OriginX, BottomTensionY(channel), channel.Tension.Raw),
                 TensionCss(channel.Tension.Raw),
                 $"bottom tension {Ratio.Tension(channel.Tension).Normalize()}");
         }
@@ -541,7 +560,7 @@
             foreach (var branch in BottomBranches().Where(branch => branch.Channel.Tension != Measure.Zero))
             {
                 yield return new TensionGlyph(
-                    TensionWavePath(branch.StartX, branch.StartY, branch.TipX, branch.TipY, branch.Channel.Tension.Raw),
+                    TensionWavePath(branch.StartX, branch.StartY, branch.TipX, branch.TensionTipY, branch.Channel.Tension.Raw),
                     TensionCss(branch.Channel.Tension.Raw),
                     $"{branch.Channel.Name} tension {Ratio.Tension(branch.Channel.Tension).Normalize()}");
             }
@@ -594,7 +613,7 @@
 
     private IEnumerable<BranchGlyph> CreateBranches(IReadOnlyList<NumericExplorerChannel> channels, bool recessive)
     {
-        if (channels.Count <= 1)
+        if (channels.Count == 0)
         {
             yield break;
         }
@@ -602,9 +621,12 @@
         for (var index = 0; index < channels.Count; index++)
         {
             var channel = channels[index];
-            var spread = (index - ((channels.Count - 1) / 2d)) * 54d;
+            var spread = (channel.SlotIndex - ((channel.SlotCount - 1) / 2d)) * 54d;
             var tipX = OriginX + spread;
             var tipY = recessive ? AxisY + ChannelHeight(channel) : AxisY - ChannelHeight(channel);
+            var tensionTipY = recessive
+                ? AxisY + Math.Max(ChannelHeight(channel), ChannelTensionDepth(channel))
+                : AxisY - Math.Max(ChannelHeight(channel), ChannelTensionDepth(channel));
 
             yield return new BranchGlyph(
                 index,
@@ -612,6 +634,8 @@
                 AxisY,
                 tipX,
                 tipY,
+                tensionTipY,
+                ChannelHeight(channel) > 0d,
                 channel,
                 $"{channel.Name} {channel.Value.Normalize()}",
                 recessive
@@ -757,6 +781,8 @@
         double StartY,
         double TipX,
         double TipY,
+        double TensionTipY,
+        bool HasSignal,
         NumericExplorerChannel Channel,
         string Label,
         string Css,
