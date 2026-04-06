@@ -235,6 +235,21 @@
                   x2="@value.X"
                   y1="@value.Y"
                   y2="@value.Y"
+                  class="scene-hit-target"
+                  @onpointerdown="@(e => BeginValueDrag(value.Kind, e))"
+                  @onpointerdown:preventDefault
+                  @onpointerdown:stopPropagation />
+            <circle cx="@value.X"
+                    cy="@value.Y"
+                    r="11"
+                    class="scene-hit-target"
+                    @onpointerdown="@(e => BeginValueDrag(value.Kind, e))"
+                    @onpointerdown:preventDefault
+                    @onpointerdown:stopPropagation />
+            <line x1="@OriginX"
+                  x2="@value.X"
+                  y1="@value.Y"
+                  y2="@value.Y"
                   class="@($"{value.LineCss} scene-drag-target")"
                   @onpointerdown="@(e => BeginValueDrag(value.Kind, e))"
                   @onpointerdown:preventDefault
@@ -464,10 +479,10 @@
         {
             yield return new ValueGlyph(
                 ClampX(OriginX - (Snapshot.Preset.SingleValueOffset.Absolute.Raw * UnitPixels)),
-                AxisY + 24d,
+                AxisY - 8d,
                 "scene-hidden-tension",
                 "scene-hidden-tension-node",
-                "circle",
+                "triangle",
                 "single-value",
                 $"hidden side tension {Snapshot.HiddenTension.Normalize()}");
         }
