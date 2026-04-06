@@ -34,19 +34,23 @@ public sealed record PrimitiveBasisSnapshot(
 
     public long RecessiveTicks => Preset.RecessiveValueOffset.Raw;
 
-    public long TopTicks => Preset.TopSignal.Raw;
+    public long TopTicks => Math.Abs(DominantTicks);
 
-    public long BottomTicks => Preset.BottomSignal.Raw;
+    public long BottomTicks => Math.Abs(RecessiveTicks);
 
     public double DominantUnits => DominantValue.Normalize().Approximate;
 
     public double RecessiveUnits => RecessiveValue.Normalize().Approximate;
 
-    public double TopUnits => TopValue.Normalize().Approximate;
+    public double DominantMagnitudeUnits => Math.Abs(DominantUnits);
 
-    public double BottomUnits => BottomValue.Normalize().Approximate;
+    public double RecessiveMagnitudeUnits => Math.Abs(RecessiveUnits);
 
-    public double SelfUnits => SelfInteraction.Normalize().Approximate;
+    public double TopUnits => Math.Abs(TopValue.Normalize().Approximate);
+
+    public double BottomUnits => Math.Abs(BottomValue.Normalize().Approximate);
+
+    public double SelfUnits => Math.Abs(SelfInteraction.Normalize().Approximate);
 
     public double SegmentUnits => DirectedSegment.Normalize().Approximate;
 
@@ -57,6 +61,16 @@ public sealed record PrimitiveBasisSnapshot(
     public bool DominantIsTension => DominantUnits < 0d;
 
     public bool RecessiveIsTension => RecessiveUnits < 0d;
+
+    public bool SelfIsTension => DominantIsTension || RecessiveIsTension;
+
+    public bool AreaIsTension => DominantIsTension;
+
+    public bool AntiAreaIsTension => RecessiveIsTension;
+
+    public bool ComplexIsTension => DominantIsTension || RecessiveIsTension;
+
+    public bool AntiComplexIsTension => DominantIsTension || RecessiveIsTension;
 
     public string SegmentLabel => SegmentUnits.ToString("0.###");
 

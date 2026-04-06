@@ -126,6 +126,16 @@
     gap: 0.45rem;
 }
 
+.primitive-panel-note {
+    padding: 0.72rem 0.78rem;
+    border-radius: 0.9rem;
+    background: color-mix(in srgb, var(--surface-soft) 84%, white 16%);
+    border: 1px dashed color-mix(in srgb, var(--tone-ink) 12%, transparent);
+    color: var(--tone-muted);
+    line-height: 1.4;
+    font-size: 0.84rem;
+}
+
 .scene-panel {
     display: grid;
     gap: 0.68rem;

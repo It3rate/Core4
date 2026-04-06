@@ -92,6 +92,15 @@
     color: color-mix(in srgb, var(--tone-ink) 56%, white 44%);
 }
 
+.primitive-note {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    color: var(--tone-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
 .primitive-horizontal,
 .primitive-vertical,
 .primitive-ray,

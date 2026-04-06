@@ -25,16 +25,15 @@ public static class PrimitiveBasisExamples
 
         var dominantValue = dominantBasis.Project(preset.DominantValueOffset);
         var recessiveValue = recessiveBasis.Project(-preset.RecessiveValueOffset);
-        var topValue = topBasis.Project(preset.TopSignal);
-        var bottomValue = bottomBasis.Project(-preset.BottomSignal);
+        var topValue = dominantValue;
+        var bottomValue = recessiveValue;
 
-        var self = dominantValue.Multiply(dominantValue).Normalize();
+        var self = dominantValue.Multiply(recessiveValue).Normalize();
         var directed = dominantValue.Subtract(recessiveValue).Normalize();
-        var horizontalMagnitude = new Ratio(directed.Recessive.Absolute, directed.Dominant.Absolute == Measure.Zero ? Measure.One : directed.Dominant.Absolute).Normalize();
-        var area = horizontalMagnitude.Multiply(topValue).Normalize();
-        var antiArea = horizontalMagnitude.Multiply(bottomValue).Normalize();
-        var antiComplex = horizontalMagnitude.Multiply(topValue).Normalize();
-        var complex = horizontalMagnitude.Multiply(bottomValue).Normalize();
+        var area = dominantValue.Multiply(topValue).Normalize();
+        var antiArea = recessiveValue.Multiply(bottomValue).Normalize();
+        var antiComplex = recessiveValue.Multiply(topValue).Normalize();
+        var complex = dominantValue.Multiply(bottomValue).Normalize();
 
         return new PrimitiveBasisSnapshot(
             preset,

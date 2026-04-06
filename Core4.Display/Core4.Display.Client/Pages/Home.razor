@@ -50,37 +50,9 @@
             <div class="control-stack">
                 @if (IsPrimitiveBasisScene)
                 {
-                    <MeasureSlider Label="Dominant Value"
-                                   Caption="Positive aligned magnitude."
-                                   Tone="var(--tone-dominant)"
-                                   Min="-24"
-                                   Max="24"
-                                   Value="@_dominantValueOffset"
-                                   ValueChanged="value => _dominantValueOffset = ClampPrimitiveAlignedValue(value)" />
-
-                    <MeasureSlider Label="Recessive Value"
-                                   Caption="Inverse aligned magnitude."
-                                   Tone="var(--tone-recessive)"
-                                   Min="-24"
-                                   Max="24"
-                                   Value="@_recessiveValueOffset"
-                                   ValueChanged="value => _recessiveValueOffset = ClampPrimitiveAlignedValue(value)" />
-
-                    <MeasureSlider Label="Top Value"
-                                   Caption="Dominant orthogonal magnitude."
-                                   Tone="var(--tone-orthogonal)"
-                                   Min="0"
-                                   Max="24"
-                                   Value="@_topSignal"
-                                   ValueChanged="value => _topSignal = ClampPrimitiveOrthogonalValue(value)" />
-
-                    <MeasureSlider Label="Bottom Value"
-                                   Caption="Recessive orthogonal magnitude."
-                                   Tone="var(--tone-orthogonal-soft)"
-                                   Min="0"
-                                   Max="24"
-                                   Value="@_bottomSignal"
-                                   ValueChanged="value => _bottomSignal = ClampPrimitiveOrthogonalValue(value)" />
+                    <div class="primitive-panel-note">
+                        Drag the two directed-segment endpoints. The other primitive bases reuse those same Core4 values.
+                    </div>
                 }
                 else if (_selected.Controls.ShowFusedSpan)
                 {
@@ -228,9 +200,7 @@
             {
                 <PrimitiveBasisScene Snapshot="PrimitiveSnapshot"
                                      DominantChanged="value => _dominantValueOffset = ClampPrimitiveAlignedValue(value)"
-                                     RecessiveChanged="value => _recessiveValueOffset = ClampPrimitiveAlignedValue(value)"
-                                     TopChanged="value => _topSignal = ClampPrimitiveOrthogonalValue(value)"
-                                     BottomChanged="value => _bottomSignal = ClampPrimitiveOrthogonalValue(value)" />
+                                     RecessiveChanged="value => _recessiveValueOffset = ClampPrimitiveAlignedValue(value)" />
             }
             else
             {
@@ -383,5 +353,4 @@
 
     private static long ClampPrimitiveAlignedValue(long value) => Math.Clamp(value, -24L, 24L);
 
-    private static long ClampPrimitiveOrthogonalValue(long value) => Math.Clamp(value, 0L, 24L);
 }
