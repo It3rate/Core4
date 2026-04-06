@@ -18,6 +18,9 @@
                 <path d="M0 0 L16 8 L0 16 L4.9 8 Z" fill="var(--tone-shared)" />
                 <path d="M2.7 3.2 L11.6 8 L2.7 12.8 L5.7 8 Z" fill="white" />
             </marker>
+            <marker id="arrowSegmentEnd" markerUnits="userSpaceOnUse" viewBox="0 0 18 18" refX="14.8" refY="9" markerWidth="18" markerHeight="18" orient="auto">
+                <path d="M0 0 L18 9 L0 18 L5.4 9 Z" fill="var(--tone-segment-overlay)" />
+            </marker>
         </defs>
 
         <rect x="0" y="0" width="820" height="248" rx="20" class="scene-surface" />
@@ -36,6 +39,21 @@
             <line x1="@tick.X" x2="@tick.X" y1="@(AxisY - tick.Height)" y2="@(AxisY + tick.Height)" class="@tick.Css">
                 <title>@tick.Label</title>
             </line>
+        }
+
+        @if (ShowDirectedSegmentOverlay)
+        {
+            <line x1="@DirectedSegmentRecessiveX()"
+                  x2="@DirectedSegmentDominantX()"
+                  y1="@DirectedSegmentY()"
+                  y2="@DirectedSegmentY()"
+                  class="scene-directed-segment"
+                  marker-end="url(#arrowSegmentEnd)">
+                <title>directed segment overlay</title>
+            </line>
+            <circle cx="@DirectedSegmentRecessiveX()" cy="@DirectedSegmentY()" r="7.6" class="scene-directed-segment-node">
+                <title>directed segment overlay</title>
+            </circle>
         }
 
         @if (ShowTopResidualWave)
@@ -232,13 +250,13 @@
     </svg>
 
     <div class="scene-overlay">
-        <div class="scene-reading-label scene-reading-label--complex" style="@Position(OriginX - 42d, 23)">
+        <div class="scene-reading-label scene-reading-label--complex" style="@Position(OriginX - 132d, 28)">
             <span class="scene-reading-term scene-reading-term--recessive">@($"{Snapshot.RecessiveReading.Normalize()}r")</span>
             <span class="scene-reading-plus"> + </span>
             <span class="scene-reading-term scene-reading-term--dominant">@($"{Snapshot.DominantReading.Normalize()}d")</span>
         </div>
 
-        <div class="scene-reading-label scene-reading-label--approx" style="@Position(OriginX - 42d, 36)">
+        <div class="scene-reading-label scene-reading-label--approx" style="@Position(OriginX - 132d, 48)">
             @Snapshot.ApproximateReading
         </div>
 
@@ -293,11 +311,19 @@
     private double _dragStartClientY;
     private long _dragStartValue;
 
+    private bool ShowDirectedSegmentOverlay => Snapshot.Preset.Name == "Frozen Segment";
+
     private double OriginX => ClampX(BaseOriginX + (Snapshot.Origin.Raw * UnitPixels));
 
     private double DominantEndX() => ClampX(OriginX + (Snapshot.Preset.DominantSpan.Raw * UnitPixels));
 
     private double RecessiveEndX() => ClampX(OriginX - (Snapshot.Preset.RecessiveSpan.Raw * UnitPixels));
+
+    private double DirectedSegmentRecessiveX() => ClampX(OriginX - (Snapshot.Preset.RecessiveValueOffset.Raw * UnitPixels));
+
+    private double DirectedSegmentDominantX() => ClampX(OriginX + (Snapshot.Preset.DominantValueOffset.Raw * UnitPixels));
+
+    private double DirectedSegmentY() => AxisY - 30d;
 
     private IEnumerable<TickGlyph> AxisTicks()
     {
