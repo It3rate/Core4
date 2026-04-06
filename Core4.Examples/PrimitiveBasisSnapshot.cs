@@ -50,7 +50,7 @@ public sealed record PrimitiveBasisSnapshot(
 
     public double BottomUnits => Math.Abs(BottomValue.Normalize().Approximate);
 
-    public double SelfUnits => Math.Abs(SelfInteraction.Normalize().Approximate);
+    public double SelfUnits => SelfInteraction.Normalize().Approximate;
 
     public double SegmentUnits => DirectedSegment.Normalize().Approximate;
 
