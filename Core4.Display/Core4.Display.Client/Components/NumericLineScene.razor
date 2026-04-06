@@ -551,7 +551,9 @@
         {
             var channel = BottomChannels[0];
             yield return new TensionGlyph(
-                TensionWavePath(OriginX, AxisY, OriginX, BottomTensionY(channel), channel.Tension.Raw),
+                ChannelHeight(channel) > 0d
+                    ? TensionWavePath(OriginX, AxisY, OriginX, SingleBottomY(), channel.Tension.Raw)
+                    : BottomTensionWavePath(OriginX, AxisY + 2.2d, OriginX, BottomTensionY(channel), channel.Tension.Raw),
                 TensionCss(channel.Tension.Raw),
                 $"bottom tension {Ratio.Tension(channel.Tension).Normalize()}");
         }
@@ -560,7 +562,9 @@
             foreach (var branch in BottomBranches().Where(branch => branch.Channel.Tension != Measure.Zero))
             {
                 yield return new TensionGlyph(
-                    TensionWavePath(branch.StartX, branch.StartY, branch.TipX, branch.TensionTipY, branch.Channel.Tension.Raw),
+                    branch.HasSignal
+                        ? TensionWavePath(branch.StartX, branch.StartY, branch.TipX, branch.TipY, branch.Channel.Tension.Raw)
+                        : BottomTensionWavePath(branch.StartX, branch.StartY + 2.2d, branch.TipX, branch.TensionTipY, branch.Channel.Tension.Raw),
                     TensionCss(branch.Channel.Tension.Raw),
                     $"{branch.Channel.Name} tension {Ratio.Tension(branch.Channel.Tension).Normalize()}");
             }
@@ -593,6 +597,50 @@
             var alongX = startX + (ux * distance * t);
             var alongY = startY + (uy * distance * t);
             var offset = Math.Sin(t * Math.PI * 2d * cycles) * Math.Sin(t * Math.PI) * amplitude;
+            var x = alongX + (px * offset);
+            var y = alongY + (py * offset);
+            points.Add(index == 0
+                ? $"M {x:F3},{y:F3}"
+                : $"L {x:F3},{y:F3}");
+        }
+
+        return string.Join(' ', points);
+    }
+
+    private string BottomTensionWavePath(double startX, double startY, double endX, double endY, long tension)
+    {
+        var dx = endX - startX;
+        var dy = endY - startY;
+        var distance = Math.Sqrt((dx * dx) + (dy * dy));
+        if (distance < 1d || tension == 0)
+        {
+            return $"M {startX:F3},{startY:F3}";
+        }
+
+        var ux = dx / distance;
+        var uy = dy / distance;
+        var nxA = -uy;
+        var nyA = ux;
+        var nxB = uy;
+        var nyB = -ux;
+        var useA = nyA >= nyB;
+        var px = useA ? nxA : nxB;
+        var py = useA ? nyA : nyB;
+        var magnitude = Math.Abs(tension);
+        var amplitude = Math.Min(12d, magnitude * 1.2d);
+        var baseOffset = amplitude * 0.82d;
+        var waveAmplitude = amplitude * 0.42d;
+        var cycles = Math.Max(3, (int)Math.Ceiling(distance / 24d));
+        var samples = Math.Max(32, cycles * 18);
+        var points = new List<string>(samples + 1);
+
+        for (var index = 0; index <= samples; index++)
+        {
+            var t = index / (double)samples;
+            var alongX = startX + (ux * distance * t);
+            var alongY = startY + (uy * distance * t);
+            var envelope = Math.Sin(t * Math.PI);
+            var offset = envelope * (baseOffset + (Math.Sin(t * Math.PI * 2d * cycles) * waveAmplitude));
             var x = alongX + (px * offset);
             var y = alongY + (py * offset);
             points.Add(index == 0
