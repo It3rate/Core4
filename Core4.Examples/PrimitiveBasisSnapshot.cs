@@ -64,9 +64,9 @@ public sealed record PrimitiveBasisSnapshot(
 
     public bool SelfIsTension => DominantIsTension || RecessiveIsTension;
 
-    public bool AreaIsTension => DominantIsTension;
+    public bool AreaIsTension => DominantIsTension || RecessiveIsTension;
 
-    public bool AntiAreaIsTension => RecessiveIsTension;
+    public bool AntiAreaIsTension => DominantIsTension || RecessiveIsTension;
 
     public bool ComplexIsTension => DominantIsTension || RecessiveIsTension;
 

@@ -18,7 +18,7 @@
         </defs>
 
         <rect x="0" y="0" width="820" height="340" rx="20" class="primitive-surface" />
-        <line x1="@DividerX" x2="@DividerX" y1="30" y2="310" class="primitive-divider" />
+        <line x1="@DividerX" x2="@DividerX" y1="54" y2="310" class="primitive-divider" />
 
         <g>
             @foreach (var tick in HorizontalTicks(SelfOriginX, SelfOriginY, 1))
@@ -82,8 +82,8 @@
             }
             <line x1="@(AntiComplexOriginX - 96)" x2="@(AntiComplexOriginX + 20)" y1="@AntiComplexOriginY" y2="@AntiComplexOriginY" class="primitive-axis" />
             <line x1="@AntiComplexOriginX" x2="@AntiComplexOriginX" y1="@(AntiComplexOriginY - 96)" y2="@(AntiComplexOriginY + 18)" class="primitive-axis" />
-            <line x1="@AntiComplexOriginX" x2="@AntiComplexHorizontalX()" y1="@AntiComplexOriginY" y2="@AntiComplexOriginY" class="@AntiComplexCss("primitive-horizontal primitive-horizontal--recessive")" />
-            <line x1="@AntiComplexOriginX" x2="@AntiComplexOriginX" y1="@AntiComplexOriginY" y2="@AntiComplexTopY()" class="@AntiComplexCss("primitive-vertical primitive-vertical--dominant")" />
+            <line x1="@AntiComplexOriginX" x2="@AntiComplexHorizontalX()" y1="@AntiComplexOriginY" y2="@AntiComplexOriginY" class="@SegmentLineCss("primitive-horizontal primitive-horizontal--dominant", Snapshot.DominantIsTension)" />
+            <line x1="@AntiComplexOriginX" x2="@AntiComplexOriginX" y1="@AntiComplexOriginY" y2="@AntiComplexTopY()" class="@SegmentLineCss("primitive-vertical primitive-vertical--dominant", Snapshot.RecessiveIsTension)" />
             <line x1="@AntiComplexOriginX" x2="@AntiComplexHorizontalX()" y1="@AntiComplexOriginY" y2="@AntiComplexTopY()" class="@AntiComplexCss("primitive-ray")" />
         </g>
 
@@ -99,9 +99,8 @@
             <line x1="@(AreaOriginX - 20)" x2="@(AreaOriginX + 96)" y1="@AreaOriginY" y2="@AreaOriginY" class="primitive-axis" />
             <line x1="@AreaOriginX" x2="@AreaOriginX" y1="@(AreaOriginY - 96)" y2="@(AreaOriginY + 18)" class="primitive-axis" />
             <rect x="@Math.Min(AreaOriginX, AreaRightX())" y="@Math.Min(AreaOriginY, AreaTopY())" width="@AreaWidthPx()" height="@AreaHeightPx()" class="@AreaCss("primitive-area-fill")" />
-            <line x1="@AreaOriginX" x2="@AreaRightX()" y1="@AreaOriginY" y2="@AreaOriginY" class="@AreaCss("primitive-horizontal primitive-horizontal--dominant")" />
-            <line x1="@AreaOriginX" x2="@AreaOriginX" y1="@AreaOriginY" y2="@AreaTopY()" class="@AreaCss("primitive-vertical primitive-vertical--dominant")" />
-            <polygon points="@UpTrianglePoints(AreaOriginX, AreaTopY())" class="@AreaCss("primitive-value-tip primitive-value-tip--top")" />
+            <line x1="@AreaOriginX" x2="@AreaRightX()" y1="@AreaOriginY" y2="@AreaOriginY" class="@SegmentLineCss("primitive-horizontal primitive-horizontal--dominant", Snapshot.DominantIsTension)" />
+            <line x1="@AreaOriginX" x2="@AreaOriginX" y1="@AreaOriginY" y2="@AreaTopY()" class="@SegmentLineCss("primitive-vertical primitive-vertical--dominant", Snapshot.RecessiveIsTension)" />
         </g>
 
         <g>
@@ -116,9 +115,8 @@
             <line x1="@(AntiAreaOriginX - 96)" x2="@(AntiAreaOriginX + 20)" y1="@AntiAreaOriginY" y2="@AntiAreaOriginY" class="primitive-axis" />
             <line x1="@AntiAreaOriginX" x2="@AntiAreaOriginX" y1="@(AntiAreaOriginY - 18)" y2="@(AntiAreaOriginY + 96)" class="primitive-axis" />
             <rect x="@Math.Min(AntiAreaOriginX, AntiAreaLeftX())" y="@Math.Min(AntiAreaOriginY, AntiAreaBottomY())" width="@AntiAreaWidthPx()" height="@AntiAreaHeightPx()" class="@AntiAreaCss("primitive-area-fill primitive-area-fill--anti")" />
-            <line x1="@AntiAreaOriginX" x2="@AntiAreaLeftX()" y1="@AntiAreaOriginY" y2="@AntiAreaOriginY" class="@AntiAreaCss("primitive-horizontal primitive-horizontal--recessive")" />
-            <line x1="@AntiAreaOriginX" x2="@AntiAreaOriginX" y1="@AntiAreaOriginY" y2="@AntiAreaBottomY()" class="@AntiAreaCss("primitive-vertical primitive-vertical--recessive")" />
-            <circle cx="@AntiAreaOriginX" cy="@AntiAreaBottomY()" r="5.2" class="@AntiAreaCss("primitive-value-tip primitive-value-tip--bottom")" />
+            <line x1="@AntiAreaOriginX" x2="@AntiAreaLeftX()" y1="@AntiAreaOriginY" y2="@AntiAreaOriginY" class="@SegmentLineCss("primitive-horizontal primitive-horizontal--dominant", Snapshot.DominantIsTension)" />
+            <line x1="@AntiAreaOriginX" x2="@AntiAreaOriginX" y1="@AntiAreaOriginY" y2="@AntiAreaBottomY()" class="@SegmentLineCss("primitive-vertical primitive-vertical--recessive", Snapshot.RecessiveIsTension)" />
         </g>
 
         <g>
@@ -132,8 +130,8 @@
             }
             <line x1="@(ComplexOriginX - 20)" x2="@(ComplexOriginX + 96)" y1="@ComplexOriginY" y2="@ComplexOriginY" class="primitive-axis" />
             <line x1="@ComplexOriginX" x2="@ComplexOriginX" y1="@(ComplexOriginY - 18)" y2="@(ComplexOriginY + 96)" class="primitive-axis" />
-            <line x1="@ComplexOriginX" x2="@ComplexRightX()" y1="@ComplexOriginY" y2="@ComplexOriginY" class="@ComplexCss("primitive-horizontal primitive-horizontal--dominant")" />
-            <line x1="@ComplexOriginX" x2="@ComplexOriginX" y1="@ComplexOriginY" y2="@ComplexBottomY()" class="@ComplexCss("primitive-vertical primitive-vertical--recessive")" />
+            <line x1="@ComplexOriginX" x2="@ComplexRightX()" y1="@ComplexOriginY" y2="@ComplexOriginY" class="@SegmentLineCss("primitive-horizontal primitive-horizontal--dominant", Snapshot.DominantIsTension)" />
+            <line x1="@ComplexOriginX" x2="@ComplexOriginX" y1="@ComplexOriginY" y2="@ComplexBottomY()" class="@SegmentLineCss("primitive-vertical primitive-vertical--recessive", Snapshot.RecessiveIsTension)" />
             <line x1="@ComplexOriginX" x2="@ComplexRightX()" y1="@ComplexOriginY" y2="@ComplexBottomY()" class="@ComplexCss("primitive-ray")" />
         </g>
     </svg>
@@ -162,18 +160,18 @@
     [Parameter, EditorRequired] public PrimitiveBasisSnapshot Snapshot { get; set; } = default!;
     [Parameter] public EventCallback<long> DominantChanged { get; set; }
     [Parameter] public EventCallback<long> RecessiveChanged { get; set; }
-    private const double LeftColumnTitleX = 84d;
-    private const double DividerX = 262d;
-    private const double SelfOriginX = 84d;
+    private const double LeftColumnTitleX = 124d;
+    private const double DividerX = 302d;
+    private const double SelfOriginX = 124d;
     private const double SelfOriginY = 84d;
-    private const double SegmentOriginX = 84d;
+    private const double SegmentOriginX = 124d;
     private const double SegmentOriginY = 232d;
-    private const double AntiComplexOriginX = 406d;
-    private const double AreaOriginX = 612d;
+    private const double AntiComplexOriginX = 446d;
+    private const double AreaOriginX = 652d;
     private const double AntiComplexOriginY = 96d;
     private const double AreaOriginY = 96d;
-    private const double AntiAreaOriginX = 406d;
-    private const double ComplexOriginX = 612d;
+    private const double AntiAreaOriginX = 446d;
+    private const double ComplexOriginX = 652d;
     private const double AntiAreaOriginY = 244d;
     private const double ComplexOriginY = 244d;
     private const double TickPixels = 4.5d;
@@ -204,9 +202,9 @@
 
     private double AntiAreaBottomY() => AntiAreaOriginY + SlotOffsetY(Snapshot.RecessiveUnits, 1);
 
-    private double AntiComplexHorizontalX() => AntiComplexOriginX + SlotOffsetX(Snapshot.RecessiveUnits, -1);
+    private double AntiComplexHorizontalX() => AntiComplexOriginX + SlotOffsetX(Snapshot.DominantUnits, -1);
 
-    private double AntiComplexTopY() => AntiComplexOriginY + SlotOffsetY(Snapshot.DominantUnits, -1);
+    private double AntiComplexTopY() => AntiComplexOriginY + SlotOffsetY(Snapshot.RecessiveUnits, -1);
 
     private double ComplexRightX() => ComplexOriginX + SlotOffsetX(Snapshot.DominantUnits, 1);
 
