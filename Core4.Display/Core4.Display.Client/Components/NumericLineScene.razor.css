@@ -199,6 +199,10 @@
     stroke-linejoin: round;
 }
 
+.scene-tension-wave--negative {
+    stroke: var(--tone-tension-negative);
+}
+
 .scene-value-line {
     stroke-width: 1.4;
     stroke-linecap: round;

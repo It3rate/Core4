@@ -14,9 +14,11 @@ public readonly record struct NumericExplorerPreset(
     Measure SingleValueOffset,
     Measure DominantValueOffset,
     Measure RecessiveValueOffset,
-    Measure Residual,
+    Measure Tension,
     Measure TopSignal,
     Measure BottomSignal,
     Measure BottomSignal2,
+    Measure BottomTension,
+    Measure BottomTension2,
     bool FuseAligned,
     NumericExplorerControls Controls);

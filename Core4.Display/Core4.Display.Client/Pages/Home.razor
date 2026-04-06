@@ -123,15 +123,37 @@
                                    ValueChanged="value => _recessiveValueOffset = ClampPairOffset(value)" />
                 }
 
-                @if (_selected.Controls.ShowResidual)
+                @if (_selected.Controls.ShowTension)
                 {
-                    <MeasureSlider Label="Residual"
-                                   Caption="Orthogonal remainder around the site."
+                    <MeasureSlider Label="Top Tension"
+                                   Caption="Independent tension on the dominant orthogonal."
                                    Tone="var(--tone-tension)"
-                                   Min="0"
+                                   Min="-16"
                                    Max="16"
-                                   Value="@_residual"
-                                   ValueChanged="value => _residual = Math.Max(0, value)" />
+                                   Value="@_tension"
+                                   ValueChanged="value => _tension = Math.Clamp(value, -16, 16)" />
+                }
+
+                @if (_selected.Controls.ShowBottomSignal)
+                {
+                    <MeasureSlider Label="Bottom Tension"
+                                   Caption="Independent tension on the recessive orthogonal input."
+                                   Tone="var(--tone-tension)"
+                                   Min="-16"
+                                   Max="16"
+                                   Value="@_bottomTension"
+                                   ValueChanged="value => _bottomTension = Math.Clamp(value, -16, 16)" />
+                }
+
+                @if (_selected.Controls.ShowBottomSignal2)
+                {
+                    <MeasureSlider Label="Bottom Tension B"
+                                   Caption="Independent tension on the second recessive orthogonal input."
+                                   Tone="var(--tone-tension)"
+                                   Min="-16"
+                                   Max="16"
+                                   Value="@_bottomTension2"
+                                   ValueChanged="value => _bottomTension2 = Math.Clamp(value, -16, 16)" />
                 }
 
                 @if (_selected.Controls.ShowTopSignal)
@@ -239,19 +261,20 @@
                     <article class="info-card">
                         <p class="info-card__eyebrow">Orthogonal Frontier</p>
                         <dl>
-                            <div><dt>Residual</dt><dd>@Snapshot.SourceSite.Orthogonal.Residual.Normalize()</dd></div>
+                            <div><dt>Tension</dt><dd>@Snapshot.TotalTension.Normalize()</dd></div>
                             <div><dt>Incoming</dt><dd>@Snapshot.SourceSite.Orthogonal.Incoming().Normalize()</dd></div>
                             <div><dt>Outgoing</dt><dd>@Snapshot.SourceSite.Orthogonal.Outgoing().Normalize()</dd></div>
                             <div><dt>Connections</dt><dd>@Snapshot.SourceSite.Orthogonal.ConnectionCount.Raw</dd></div>
                         </dl>
-                        @if (Snapshot.Channels.Any(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero))
+                        @if (Snapshot.Channels.Any(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero || channel.Tension != Measure.Zero))
                         {
                             <ul class="channel-list">
-                                @foreach (var channel in Snapshot.Channels.Where(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero))
+                                @foreach (var channel in Snapshot.Channels.Where(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero || channel.Tension != Measure.Zero))
                                 {
                                     <li>
                                         <strong>@channel.Name</strong>
                                         <span>@channel.Value.Normalize()</span>
+                                        <span>tension @Ratio.Tension(channel.Tension).Normalize()</span>
                                         <span>prov @channel.Provenance.Axis.Normalize()</span>
                                     </li>
                                 }
@@ -288,10 +311,12 @@
     private long _singleValueOffset;
     private long _dominantValueOffset;
     private long _recessiveValueOffset;
-    private long _residual;
+    private long _tension;
     private long _topSignal;
     private long _bottomSignal;
     private long _bottomSignal2;
+    private long _bottomTension;
+    private long _bottomTension2;
 
     private NumericExplorerSnapshot Snapshot => NumericExplorerExamples.Build(CurrentPreset);
 
@@ -319,10 +344,12 @@
         SingleValueOffset = new Measure(_singleValueOffset),
         DominantValueOffset = new Measure(_dominantValueOffset),
         RecessiveValueOffset = new Measure(_recessiveValueOffset),
-        Residual = new Measure(_residual),
+        Tension = new Measure(_tension),
         TopSignal = new Measure(_topSignal),
         BottomSignal = new Measure(_bottomSignal),
-        BottomSignal2 = new Measure(_bottomSignal2)
+        BottomSignal2 = new Measure(_bottomSignal2),
+        BottomTension = new Measure(_bottomTension),
+        BottomTension2 = new Measure(_bottomTension2)
     };
 
     protected override void OnInitialized() => LoadPreset(_presets[0]);
@@ -336,10 +363,12 @@
         _singleValueOffset = preset.SingleValueOffset.Raw;
         _dominantValueOffset = preset.DominantValueOffset.Raw;
         _recessiveValueOffset = preset.RecessiveValueOffset.Raw;
-        _residual = preset.Residual.Raw;
+        _tension = preset.Tension.Raw;
         _topSignal = preset.TopSignal.Raw;
         _bottomSignal = preset.BottomSignal.Raw;
         _bottomSignal2 = preset.BottomSignal2.Raw;
+        _bottomTension = preset.BottomTension.Raw;
+        _bottomTension2 = preset.BottomTension2.Raw;
     }
 
     private void OnFusedSpanChanged(long value)

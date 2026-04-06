@@ -65,6 +65,11 @@ public sealed record NumericExplorerSnapshot(
 
     public string ApproximateReading => $"({RecessiveReading.Normalize().Approximate:0.0}i + {DominantReading.Normalize().Approximate:0.0})";
 
+    public Ratio TotalTension => Ratio.Tension(new Measure(
+        Preset.Tension.Raw +
+        Preset.BottomTension.Raw +
+        Preset.BottomTension2.Raw));
+
     public string ResolutionMode => !HasInverse
         ? "One-sided half-line"
         : Preset.FuseAligned

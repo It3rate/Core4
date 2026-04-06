@@ -56,17 +56,17 @@
             </circle>
         }
 
-        @if (ShowTopResidualWave)
+        @foreach (var wave in TopTensionWaves())
         {
-            <path d="@ResidualWavePath(TopWaveEndY())" class="scene-tension-wave">
-                <title>top-side tension @Snapshot.SourceSite.Orthogonal.Residual.Normalize()</title>
+            <path d="@wave.Path" class="@wave.Css">
+                <title>@wave.Title</title>
             </path>
         }
 
-        @if (ShowBottomResidualWave)
+        @foreach (var wave in BottomTensionWaves())
         {
-            <path d="@ResidualWavePath(BottomWaveEndY())" class="scene-tension-wave">
-                <title>bottom-side tension @Snapshot.SourceSite.Orthogonal.Residual.Normalize()</title>
+            <path d="@wave.Path" class="@wave.Css">
+                <title>@wave.Title</title>
             </path>
         }
 
@@ -334,22 +334,14 @@
     private static readonly DragHandle None = new(string.Empty, -1);
 
     private NumericExplorerChannel[] TopChannels => Snapshot.Channels
-        .Where(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero)
+        .Where(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero || channel.Tension != Measure.Zero)
         .Where(channel => !channel.Provenance.IsOther)
         .ToArray();
 
     private NumericExplorerChannel[] BottomChannels => Snapshot.Channels
-        .Where(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero)
+        .Where(channel => channel.Value.Potential != Measure.Zero || channel.Value.Dominant != Measure.Zero || channel.Tension != Measure.Zero)
         .Where(channel => channel.Provenance.IsOther)
         .ToArray();
-
-    private bool ShowTopResidualWave => Snapshot.Preset.Controls.ShowResidual
-        && Snapshot.Preset.Residual != Measure.Zero
-        && TopChannels.Length > 0;
-
-    private bool ShowBottomResidualWave => Snapshot.Preset.Controls.ShowResidual
-        && Snapshot.Preset.Residual != Measure.Zero
-        && BottomChannels.Length > 0;
 
     private DragHandle _activeDrag = None;
     private double _dragStartClientX;
@@ -494,30 +486,6 @@
 
     private double SingleBottomY() => AxisY + ChannelHeight(BottomChannels[0]);
 
-    private double TopWaveEndY()
-    {
-        if (TopChannels.Length == 0)
-        {
-            return AxisY;
-        }
-
-        return TopChannels.Length == 1
-            ? SingleTopY() + 10d
-            : TopChannels.Min(channel => AxisY - ChannelHeight(channel)) + 10d;
-    }
-
-    private double BottomWaveEndY()
-    {
-        if (BottomChannels.Length == 0)
-        {
-            return AxisY;
-        }
-
-        return BottomChannels.Length == 1
-            ? SingleBottomY() - 10d
-            : BottomChannels.Max(channel => AxisY + ChannelHeight(channel)) - 10d;
-    }
-
     private string TopLineCss(NumericExplorerChannel channel) => channel.Provenance.IsShared
         ? "scene-branch-shared"
         : "scene-orthogonal-dominant";
@@ -526,53 +494,101 @@
         ? "url(#arrowShared)"
         : "url(#arrowOrthogonal)";
 
-    private string ResidualWavePath(double endY)
+    private IEnumerable<TensionGlyph> TopTensionWaves()
     {
-        var distance = Math.Abs(endY - AxisY);
-        if (distance < 1d)
+        if (!Snapshot.Preset.Controls.ShowTension)
         {
-            return $"M {OriginX},{AxisY}";
+            yield break;
         }
 
-        var direction = Math.Sign(endY - AxisY);
-        var amplitude = Math.Min(18d, Math.Max(4d, Snapshot.Preset.Residual.Raw * 1.6d));
-        var lanes = Math.Max(4, (int)Math.Ceiling(distance / 9d));
-        var step = distance / lanes;
-        var radius = step / 2d;
-        var currentY = AxisY;
-        var currentSideRight = direction < 0;
-        var startX = currentSideRight ? OriginX + amplitude : OriginX - amplitude;
-        var parts = new List<string>
+        if (TopChannels.Length == 1 && TopChannels[0].Tension != Measure.Zero)
         {
-            $"M {OriginX},{AxisY}",
-            $"L {startX},{AxisY}"
-        };
-
-        for (var lane = 0; lane < lanes; lane++)
-        {
-            var nextY = AxisY + (direction * step * (lane + 1));
-            var sideX = currentSideRight ? OriginX + amplitude : OriginX - amplitude;
-            var sweep = currentSideRight ? (direction < 0 ? 0 : 1) : (direction < 0 ? 1 : 0);
-            parts.Add($"A {radius:F3},{radius:F3} 0 0 {sweep} {sideX},{nextY:F3}");
-
-            var targetX = lane == lanes - 1
-                ? OriginX
-                : currentSideRight
-                    ? OriginX - amplitude
-                    : OriginX + amplitude;
-
-            parts.Add($"L {targetX},{nextY:F3}");
-            currentSideRight = !currentSideRight;
-            currentY = nextY;
+            var channel = TopChannels[0];
+            yield return new TensionGlyph(
+                TensionWavePath(OriginX, AxisY, OriginX, SingleTopY(), channel.Tension.Raw),
+                TensionCss(channel.Tension.Raw),
+                $"top tension {Ratio.Tension(channel.Tension).Normalize()}");
         }
-
-        if (Math.Abs(currentY - endY) > 0.01d)
+        else
         {
-            parts.Add($"L {OriginX},{endY:F3}");
+            foreach (var branch in TopBranches().Where(branch => branch.Channel.Tension != Measure.Zero))
+            {
+                yield return new TensionGlyph(
+                    TensionWavePath(branch.StartX, branch.StartY, branch.TipX, branch.TipY, branch.Channel.Tension.Raw),
+                    TensionCss(branch.Channel.Tension.Raw),
+                    $"{branch.Channel.Name} tension {Ratio.Tension(branch.Channel.Tension).Normalize()}");
+            }
         }
-
-        return string.Join(' ', parts);
     }
+
+    private IEnumerable<TensionGlyph> BottomTensionWaves()
+    {
+        if (!Snapshot.Preset.Controls.ShowTension)
+        {
+            yield break;
+        }
+
+        if (BottomChannels.Length == 1 && BottomChannels[0].Tension != Measure.Zero)
+        {
+            var channel = BottomChannels[0];
+            yield return new TensionGlyph(
+                TensionWavePath(OriginX, AxisY, OriginX, SingleBottomY(), channel.Tension.Raw),
+                TensionCss(channel.Tension.Raw),
+                $"bottom tension {Ratio.Tension(channel.Tension).Normalize()}");
+        }
+        else
+        {
+            foreach (var branch in BottomBranches().Where(branch => branch.Channel.Tension != Measure.Zero))
+            {
+                yield return new TensionGlyph(
+                    TensionWavePath(branch.StartX, branch.StartY, branch.TipX, branch.TipY, branch.Channel.Tension.Raw),
+                    TensionCss(branch.Channel.Tension.Raw),
+                    $"{branch.Channel.Name} tension {Ratio.Tension(branch.Channel.Tension).Normalize()}");
+            }
+        }
+    }
+
+    private string TensionWavePath(double startX, double startY, double endX, double endY, long tension)
+    {
+        var dx = endX - startX;
+        var dy = endY - startY;
+        var distance = Math.Sqrt((dx * dx) + (dy * dy));
+        if (distance < 1d || tension == 0)
+        {
+            return $"M {startX:F3},{startY:F3}";
+        }
+
+        var ux = dx / distance;
+        var uy = dy / distance;
+        var px = -uy;
+        var py = ux;
+        var magnitude = Math.Abs(tension);
+        var amplitude = magnitude <= 1L
+            ? 0.8d
+            : Math.Min(24d, (magnitude - 1d) * (UnitPixels * 0.55d));
+        var cycles = Math.Max(3, (int)Math.Ceiling(distance / 24d));
+        var samples = Math.Max(32, cycles * 18);
+        var points = new List<string>(samples + 1);
+
+        for (var index = 0; index <= samples; index++)
+        {
+            var t = index / (double)samples;
+            var alongX = startX + (ux * distance * t);
+            var alongY = startY + (uy * distance * t);
+            var offset = Math.Sin(t * Math.PI * 2d * cycles) * Math.Sin(t * Math.PI) * amplitude;
+            var x = alongX + (px * offset);
+            var y = alongY + (py * offset);
+            points.Add(index == 0
+                ? $"M {x:F3},{y:F3}"
+                : $"L {x:F3},{y:F3}");
+        }
+
+        return string.Join(' ', points);
+    }
+
+    private static string TensionCss(long tension) => tension < 0
+        ? "scene-tension-wave scene-tension-wave--negative"
+        : "scene-tension-wave";
 
     private IEnumerable<BranchGlyph> TopBranches() => CreateBranches(TopChannels, false);
 
@@ -598,6 +614,7 @@
                 AxisY,
                 tipX,
                 tipY,
+                channel,
                 $"{channel.Name} {channel.Value.Normalize()}",
                 recessive
                     ? "scene-branch-recessive"
@@ -742,9 +759,12 @@
         double StartY,
         double TipX,
         double TipY,
+        NumericExplorerChannel Channel,
         string Label,
         string Css,
         string? Marker);
+
+    private readonly record struct TensionGlyph(string Path, string Css, string Title);
 
     private readonly record struct ValueGlyph(
         double X,

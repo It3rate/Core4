@@ -25,6 +25,8 @@ public static class NumericExplorerExamples
             0,
             0,
             0,
+            0,
+            0,
             false,
             new NumericExplorerControls(
                 ShowFusedSpan: false,
@@ -34,7 +36,7 @@ public static class NumericExplorerExamples
                 ShowDominantValue: false,
                 ShowRecessiveValue: false,
                 ShowAlignedControls: true,
-                ShowResidual: false,
+                ShowTension: false,
                 ShowTopSignal: false,
                 ShowBottomSignal: false,
                 ShowBottomSignal2: false,
@@ -55,6 +57,8 @@ public static class NumericExplorerExamples
             0,
             0,
             0,
+            0,
+            0,
             false,
             new NumericExplorerControls(
                 ShowFusedSpan: false,
@@ -64,7 +68,7 @@ public static class NumericExplorerExamples
                 ShowDominantValue: true,
                 ShowRecessiveValue: true,
                 ShowAlignedControls: true,
-                ShowResidual: false,
+                ShowTension: false,
                 ShowTopSignal: false,
                 ShowBottomSignal: false,
                 ShowBottomSignal2: false,
@@ -85,6 +89,8 @@ public static class NumericExplorerExamples
             0,
             0,
             0,
+            0,
+            0,
             true,
             new NumericExplorerControls(
                 ShowFusedSpan: true,
@@ -94,7 +100,7 @@ public static class NumericExplorerExamples
                 ShowDominantValue: true,
                 ShowRecessiveValue: true,
                 ShowAlignedControls: true,
-                ShowResidual: false,
+                ShowTension: false,
                 ShowTopSignal: false,
                 ShowBottomSignal: false,
                 ShowBottomSignal2: false,
@@ -115,6 +121,8 @@ public static class NumericExplorerExamples
             6,
             0,
             0,
+            0,
+            0,
             true,
             new NumericExplorerControls(
                 ShowFusedSpan: true,
@@ -124,7 +132,7 @@ public static class NumericExplorerExamples
                 ShowDominantValue: true,
                 ShowRecessiveValue: true,
                 ShowAlignedControls: false,
-                ShowResidual: true,
+                ShowTension: true,
                 ShowTopSignal: true,
                 ShowBottomSignal: false,
                 ShowBottomSignal2: false,
@@ -145,6 +153,8 @@ public static class NumericExplorerExamples
             6,
             5,
             0,
+            5,
+            0,
             true,
             new NumericExplorerControls(
                 ShowFusedSpan: true,
@@ -154,7 +164,7 @@ public static class NumericExplorerExamples
                 ShowDominantValue: true,
                 ShowRecessiveValue: true,
                 ShowAlignedControls: false,
-                ShowResidual: true,
+                ShowTension: true,
                 ShowTopSignal: true,
                 ShowBottomSignal: true,
                 ShowBottomSignal2: false,
@@ -175,6 +185,8 @@ public static class NumericExplorerExamples
             16,
             8,
             0,
+            0,
+            0,
             true,
             new NumericExplorerControls(
                 ShowFusedSpan: false,
@@ -184,7 +196,7 @@ public static class NumericExplorerExamples
                 ShowDominantValue: true,
                 ShowRecessiveValue: true,
                 ShowAlignedControls: false,
-                ShowResidual: false,
+                ShowTension: false,
                 ShowTopSignal: true,
                 ShowBottomSignal: true,
                 ShowBottomSignal2: false,
@@ -204,7 +216,9 @@ public static class NumericExplorerExamples
             8,
             6,
             4,
-            7,
+            6,
+            4,
+            6,
             true,
             new NumericExplorerControls(
                 ShowFusedSpan: true,
@@ -214,7 +228,7 @@ public static class NumericExplorerExamples
                 ShowDominantValue: true,
                 ShowRecessiveValue: true,
                 ShowAlignedControls: false,
-                ShowResidual: true,
+                ShowTension: true,
                 ShowTopSignal: true,
                 ShowBottomSignal: true,
                 ShowBottomSignal2: true,
@@ -257,11 +271,11 @@ public static class NumericExplorerExamples
     {
         var site = Site.Open(new Carrier(1), preset.Origin)
             .Anchor(new Ratio(Measure.Zero, Measure.One))
-            .WithResidual(Ratio.Tension(preset.Residual));
+            .WithResidual(Ratio.Tension(new Measure(preset.Tension.Raw + preset.BottomTension.Raw + preset.BottomTension2.Raw)));
 
         foreach (var channel in channels)
         {
-            if (channel.Value.Potential == Measure.Zero && channel.Value.Dominant == Measure.Zero)
+            if (channel.Value.Potential == Measure.Zero && channel.Value.Dominant == Measure.Zero && channel.Tension == Measure.Zero)
             {
                 continue;
             }
@@ -274,9 +288,9 @@ public static class NumericExplorerExamples
 
     private static ImmutableArray<NumericExplorerChannel> Channels(NumericExplorerPreset preset) =>
     [
-        new("Out", new Carrier(2), Ratio.Tension(preset.TopSignal), Provenance.SelfDriven(preset.TopSignal)),
-        new("In A", new Carrier(3), Ratio.Tension(preset.BottomSignal), Provenance.OtherDriven(preset.BottomSignal)),
-        new("In B", new Carrier(4), Ratio.Tension(preset.BottomSignal2), Provenance.OtherDriven(preset.BottomSignal2))
+        new("Out", new Carrier(2), Ratio.Tension(preset.TopSignal), preset.Tension, Provenance.SelfDriven(preset.TopSignal)),
+        new("In A", new Carrier(3), Ratio.Tension(preset.BottomSignal), preset.BottomTension, Provenance.OtherDriven(preset.BottomSignal)),
+        new("In B", new Carrier(4), Ratio.Tension(preset.BottomSignal2), preset.BottomTension2, Provenance.OtherDriven(preset.BottomSignal2))
     ];
 
     private static Ratio Project(
