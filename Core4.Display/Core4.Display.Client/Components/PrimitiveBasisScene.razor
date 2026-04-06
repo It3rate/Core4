@@ -18,7 +18,9 @@
         </defs>
 
         <rect x="0" y="0" width="820" height="340" rx="20" class="primitive-surface" />
-        <line x1="@DividerX" x2="@DividerX" y1="54" y2="310" class="primitive-divider" />
+        <line x1="@DividerX" x2="@DividerX" y1="94" y2="310" class="primitive-divider" />
+        <line x1="484" x2="684" y1="170" y2="170" class="primitive-cross" />
+        <line x1="584" x2="584" y1="70" y2="270" class="primitive-cross" />
 
         <g>
             @foreach (var tick in HorizontalTicks(SelfOriginX, SelfOriginY, 1))
@@ -145,7 +147,7 @@
         <div class="primitive-reading primitive-reading--approx" style="@Position(DividerX + 28d, 44d)">
             @Snapshot.ApproximateReading
         </div>
-        <div class="primitive-note" style="@Position(SegmentOriginX + 46d, 304d)">
+        <div class="primitive-note" style="@Position(SegmentOriginX, 316d)">
             drag endpoints
         </div>
 
@@ -163,15 +165,15 @@
     private const double LeftColumnTitleX = 124d;
     private const double DividerX = 302d;
     private const double SelfOriginX = 124d;
-    private const double SelfOriginY = 84d;
+    private const double SelfOriginY = 96d;
     private const double SegmentOriginX = 124d;
-    private const double SegmentOriginY = 232d;
-    private const double AntiComplexOriginX = 446d;
-    private const double AreaOriginX = 652d;
+    private const double SegmentOriginY = 244d;
+    private const double AntiComplexOriginX = 518d;
+    private const double AreaOriginX = 650d;
     private const double AntiComplexOriginY = 96d;
     private const double AreaOriginY = 96d;
-    private const double AntiAreaOriginX = 446d;
-    private const double ComplexOriginX = 652d;
+    private const double AntiAreaOriginX = 518d;
+    private const double ComplexOriginX = 650d;
     private const double AntiAreaOriginY = 244d;
     private const double ComplexOriginY = 244d;
     private const double TickPixels = 4.5d;
@@ -270,12 +272,12 @@
 
     private IEnumerable<OverlayLabel> OverlayLabels()
     {
-        yield return new OverlayLabel(LeftColumnTitleX, 32d, "SELF-INTERACTION", "primitive-label primitive-label--title");
-        yield return new OverlayLabel(LeftColumnTitleX, 180d, "DIRECTED SEGMENT", "primitive-label primitive-label--title");
-        yield return new OverlayLabel(AntiComplexOriginX, 32d, "ANTI-COMPLEX", "primitive-label primitive-label--title primitive-label--center");
-        yield return new OverlayLabel(AreaOriginX, 32d, "AREA", "primitive-label primitive-label--title primitive-label--center");
-        yield return new OverlayLabel(AntiAreaOriginX, 180d, "ANTI-AREA", "primitive-label primitive-label--title primitive-label--center");
-        yield return new OverlayLabel(ComplexOriginX, 180d, "COMPLEX", "primitive-label primitive-label--title primitive-label--center");
+        yield return new OverlayLabel(LeftColumnTitleX, 160d, "SELF-INTERACTION", "primitive-label primitive-label--title");
+        yield return new OverlayLabel(LeftColumnTitleX, 286d, "DIRECTED SEGMENT", "primitive-label primitive-label--title");
+        yield return new OverlayLabel(568d, 146d, "ANTI-COMPLEX", "primitive-label primitive-label--title primitive-label--right");
+        yield return new OverlayLabel(600d, 146d, "AREA", "primitive-label primitive-label--title primitive-label--left");
+        yield return new OverlayLabel(568d, 194d, "ANTI-AREA", "primitive-label primitive-label--title primitive-label--right");
+        yield return new OverlayLabel(600d, 194d, "COMPLEX", "primitive-label primitive-label--title primitive-label--left");
 
         foreach (var label in TickLabels(SelfOriginX, SelfOriginY, 1))
         {

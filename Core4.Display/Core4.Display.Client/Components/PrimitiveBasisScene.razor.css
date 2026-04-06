@@ -26,6 +26,11 @@
     stroke-width: 1.2;
 }
 
+.primitive-cross {
+    stroke: color-mix(in srgb, var(--tone-ink) 9%, transparent);
+    stroke-width: 1.1;
+}
+
 .primitive-tick {
     stroke: color-mix(in srgb, var(--tone-ink) 10%, transparent);
     stroke-width: 1;
@@ -50,6 +55,16 @@
 
 .primitive-label--center {
     text-align: center;
+}
+
+.primitive-label--left {
+    transform: translate(0, -50%);
+    text-align: left;
+}
+
+.primitive-label--right {
+    transform: translate(-100%, -50%);
+    text-align: right;
 }
 
 .primitive-label--tick {
