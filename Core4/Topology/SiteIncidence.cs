@@ -8,8 +8,33 @@ namespace Core4.Topology;
 /// The first topology layer for one site: which support legs meet here, what directions they carry, and which
 /// carriers continue through versus terminate. Branch and join remain derived facts rather than symbolic labels.
 /// </summary>
-public readonly record struct SiteIncidence(Site Site, ImmutableArray<SiteLeg> Legs)
+public readonly record struct SiteIncidence(Site Site, ImmutableArray<Relation> AlignedRelations)
 {
+    // TODO: Stage 3 should move aligned relation ownership into a broader connected topology context. This type is
+    // intentionally only a local computed view around one site.
+    public ImmutableArray<SiteLeg> Legs
+    {
+        get
+        {
+            var legs = ImmutableArray.CreateBuilder<SiteLeg>(AlignedRelations.Length + Site.Orthogonal.Flows.Length);
+
+            foreach (var relation in AlignedRelations)
+            {
+                if (SiteLeg.TryFromRelation(relation, Site, out var leg))
+                {
+                    legs.Add(leg);
+                }
+            }
+
+            foreach (var flow in Site.Orthogonal.Flows)
+            {
+                legs.Add(SiteLeg.FromFlow(flow));
+            }
+
+            return legs.ToImmutable();
+        }
+    }
+
     public Measure LegCount => new(Legs.Length);
 
     public Measure CarrierCount => new(Carriers().Length);
@@ -24,27 +49,11 @@ public readonly record struct SiteIncidence(Site Site, ImmutableArray<SiteLeg> L
 
     public Measure TerminalCarrierCount => CountCarriers(Terminates);
 
+    // TODO: Stage 2 should add aligned placement inspection so continuation can distinguish endpoint, midpoint,
+    // centered, and asymmetric attachment cases rather than stopping at carrier continuity.
     public bool SiteCarrierContinues => Continues(Site.Carrier);
 
-    public static SiteIncidence Create(Site site, params Relation[] alignedRelations)
-    {
-        var legs = ImmutableArray.CreateBuilder<SiteLeg>(alignedRelations.Length + site.Orthogonal.Flows.Length);
-
-        foreach (var relation in alignedRelations)
-        {
-            if (SiteLeg.TryFromRelation(relation, site, out var leg))
-            {
-                legs.Add(leg);
-            }
-        }
-
-        foreach (var flow in site.Orthogonal.Flows)
-        {
-            legs.Add(SiteLeg.FromFlow(flow));
-        }
-
-        return new SiteIncidence(site, legs.ToImmutable());
-    }
+    public static SiteIncidence Create(Site site, params Relation[] alignedRelations) => new(site, [.. alignedRelations]);
 
     public ImmutableArray<Carrier> Carriers()
     {
