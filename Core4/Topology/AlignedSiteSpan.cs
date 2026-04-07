@@ -10,8 +10,8 @@ namespace Core4.Topology;
 /// </summary>
 public readonly record struct AlignedSiteSpan(Site Site, Carrier Carrier, ImmutableArray<Relation> Relations)
 {
-    // TODO: Stage 3 should derive these aligned relations from a broader connected topology context instead of
-    // receiving them directly as local inputs.
+    // TODO: Prefer querying this through ConnectedSiteTopology. This local helper remains the stage-2 geometry view
+    // while the connected stage-3 context grows around it.
     public ImmutableArray<Relation> IncomingRelations => SelectRelations(-Measure.One);
 
     public ImmutableArray<Relation> OutgoingRelations => SelectRelations(Measure.One);

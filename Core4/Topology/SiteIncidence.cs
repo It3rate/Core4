@@ -10,8 +10,8 @@ namespace Core4.Topology;
 /// </summary>
 public readonly record struct SiteIncidence(Site Site, ImmutableArray<Relation> AlignedRelations)
 {
-    // TODO: Stage 3 should move aligned relation ownership into a broader connected topology context. This type is
-    // intentionally only a local computed view around one site.
+    // TODO: Prefer querying this through ConnectedSiteTopology. This local form remains useful as a thin computed
+    // view while stage-3 connected structures continue to grow.
     public ImmutableArray<SiteLeg> Legs
     {
         get
