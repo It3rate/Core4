@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="Core4/Core4.csproj" />
+  <Project Path="Core4.Tests/Core4.Tests.csproj" />
   <Project Path="Core4.Examples/Core4.Examples.csproj" />
   <Project Path="Core4.Runner/Core4.Runner.csproj" />
   <Folder Name="/Core4.AvaloniaProbe/">
