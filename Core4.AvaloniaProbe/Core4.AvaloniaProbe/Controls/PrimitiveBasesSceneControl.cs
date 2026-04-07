@@ -14,7 +14,7 @@ namespace Core4.AvaloniaProbe.Controls;
 /// </summary>
 public sealed class PrimitiveBasesSceneControl : Control
 {
-    private const double HandleRadius = 18d;
+    private const double HandleRadius = 24d;
     private const long MinimumTicks = -24L;
     private const long MaximumTicks = 24L;
     private const double SegmentOriginX = 124d;
