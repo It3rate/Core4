@@ -7,11 +7,15 @@ namespace Core4.Structure;
 /// basis, while leaving it live keeps it available for negotiation or future dynamic motion.
 /// Example: <c>var relation = origin.Relate(anchor);</c>
 /// </summary>
-public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor)
+public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor) : ISupport
 {
     public Relation(Site origin, Site anchor) : this(origin.Carrier, origin, anchor)
     {
     }
+
+    public Carrier PrimaryCarrier => Carrier;
+
+    public Measure SupportGrade => Measure.Zero;
 
     public Ratio OriginPosition => Origin.On(Carrier);
 
@@ -35,6 +39,8 @@ public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor
     }
 
     public Ratio Project(Measure measure) => Project(Site.Open(Carrier, measure));
+
+    public Placement Place(Ratio ratio) => new(this, ratio.Normalize());
 
     public Ratio Locate(Ratio position, Carrier carrier) => carrier == Carrier
         ? OriginPosition.Add(Span.Multiply(position)).Normalize()
