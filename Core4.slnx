@@ -3,5 +3,10 @@
   <Project Path="Core4.Examples/Core4.Examples.csproj" />
   <Project Path="Core4.Runner/Core4.Runner.csproj" />
   <Project Path="Core4.Display/Core4.Display/Core4.Display.csproj" />
+  <Folder Name="/Core4.AvaloniaProbe/">
+    <Project Path="Core4.AvaloniaProbe/Core4.AvaloniaProbe.Browser/Core4.AvaloniaProbe.Browser.csproj" />
+    <Project Path="Core4.AvaloniaProbe/Core4.AvaloniaProbe.Desktop/Core4.AvaloniaProbe.Desktop.csproj" />
+    <Project Path="Core4.AvaloniaProbe/Core4.AvaloniaProbe/Core4.AvaloniaProbe.csproj" />
+  </Folder>
   <Project Path="Core4.Display/Core4.Display.Client/Core4.Display.Client.csproj" />
 </Solution>
