@@ -18,11 +18,15 @@ public sealed class ProbeView : UserControl
     private readonly InvertedPairPageView _invertedPairPage = new();
     private readonly FrozenSegmentPageView _frozenSegmentPage = new();
     private readonly OrthogonalOutputPageView _orthogonalOutputPage = new();
+    private readonly OrthogonalInputPageView _orthogonalInputPage = new();
+    private readonly MultipleInputsPageView _multipleInputsPage = new();
     private readonly ContentControl _pageHost;
     private readonly Button _dominantButton;
     private readonly Button _invertedButton;
     private readonly Button _frozenButton;
     private readonly Button _orthogonalOutputButton;
+    private readonly Button _orthogonalInputButton;
+    private readonly Button _multipleInputsButton;
     private ProbePage _activePage = ProbePage.DominantOnly;
 
     public ProbeView()
@@ -50,6 +54,12 @@ public sealed class ProbeView : UserControl
         _orthogonalOutputButton = ProbeUi.PillButton("Orthogonal Output");
         _orthogonalOutputButton.Click += (_, _) => SetPage(ProbePage.OrthogonalOutput);
 
+        _orthogonalInputButton = ProbeUi.PillButton("Orthogonal Input");
+        _orthogonalInputButton.Click += (_, _) => SetPage(ProbePage.OrthogonalInput);
+
+        _multipleInputsButton = ProbeUi.PillButton("Multiple Inputs");
+        _multipleInputsButton.Click += (_, _) => SetPage(ProbePage.MultipleInputs);
+
         var presetButtons = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -59,7 +69,9 @@ public sealed class ProbeView : UserControl
                 _dominantButton,
                 _invertedButton,
                 _frozenButton,
-                _orthogonalOutputButton
+                _orthogonalOutputButton,
+                _orthogonalInputButton,
+                _multipleInputsButton
             }
         };
 
@@ -163,12 +175,16 @@ public sealed class ProbeView : UserControl
             ProbePage.InvertedPair => _invertedPairPage,
             ProbePage.FrozenSegment => _frozenSegmentPage,
             ProbePage.OrthogonalOutput => _orthogonalOutputPage,
+            ProbePage.OrthogonalInput => _orthogonalInputPage,
+            ProbePage.MultipleInputs => _multipleInputsPage,
             _ => _dominantOnlyPage
         };
         ProbeUi.ApplyPillStyle(_dominantButton, page == ProbePage.DominantOnly);
         ProbeUi.ApplyPillStyle(_invertedButton, page == ProbePage.InvertedPair);
         ProbeUi.ApplyPillStyle(_frozenButton, page == ProbePage.FrozenSegment);
         ProbeUi.ApplyPillStyle(_orthogonalOutputButton, page == ProbePage.OrthogonalOutput);
+        ProbeUi.ApplyPillStyle(_orthogonalInputButton, page == ProbePage.OrthogonalInput);
+        ProbeUi.ApplyPillStyle(_multipleInputsButton, page == ProbePage.MultipleInputs);
     }
 
     private enum ProbePage
@@ -176,6 +192,8 @@ public sealed class ProbeView : UserControl
         DominantOnly,
         InvertedPair,
         FrozenSegment,
-        OrthogonalOutput
+        OrthogonalOutput,
+        OrthogonalInput,
+        MultipleInputs
     }
 }
