@@ -120,6 +120,23 @@ internal static class ProbeUi
         return button;
     }
 
+    public static Button SectionButton(string text, bool active = false)
+    {
+        var button = new Button
+        {
+            Content = text,
+            FontSize = 12,
+            FontFamily = ProbePalette.UiFont,
+            FontWeight = FontWeight.SemiBold,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(17),
+            Padding = new Thickness(14, 6)
+        };
+
+        ApplySectionStyle(button, active);
+        return button;
+    }
+
     public static void ApplyPillStyle(Button button, bool active)
     {
         button.Background = active
@@ -129,6 +146,19 @@ internal static class ProbeUi
             ? new SolidColorBrush(Color.Parse("#bcd4f8"))
             : new SolidColorBrush(Color.Parse("#d7d0c4"));
         button.Foreground = ProbePalette.Ink;
+    }
+
+    public static void ApplySectionStyle(Button button, bool active)
+    {
+        button.Background = active
+            ? ProbePalette.Ink
+            : new SolidColorBrush(Color.Parse("#efe6d9"));
+        button.BorderBrush = active
+            ? new SolidColorBrush(Color.Parse("#243336"))
+            : new SolidColorBrush(Color.Parse("#ccbda8"));
+        button.Foreground = active
+            ? ProbePalette.Surface
+            : ProbePalette.Ink;
     }
 
     public static void AddInfoCard(Grid grid, int column, string title, TextBlock body)
