@@ -73,6 +73,8 @@ public readonly record struct ConnectedSiteTopology(ImmutableArray<Site> Sites, 
 
         while (remaining.Count != 0)
         {
+            // Split one carrier into connected runs. Each run owns only same-carrier relations; wider topology stays
+            // discoverable through the attached sites pinned onto the run's local nodes.
             var componentNodes = ImmutableArray.CreateBuilder<CarrierChainNode>();
             var queue = ImmutableArray.CreateBuilder<CarrierChainNode>();
             queue.Add(remaining[0]);
