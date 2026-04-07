@@ -44,6 +44,8 @@ public readonly record struct AlignedSiteSpan(Site Site, Carrier Carrier, Immuta
 
     public bool IsCentered => HasGeometry && InboundSpan == OutboundSpan;
 
+    public Ratio Pin => ResolvePin();
+
     public Relation Support => HasGeometry
         ? BuildSupport()
         : new Relation(Carrier, Site, Site);
@@ -61,6 +63,33 @@ public readonly record struct AlignedSiteSpan(Site Site, Carrier Carrier, Immuta
         : Ratio.Tension(Span);
 
     public static AlignedSiteSpan Create(Site site, Carrier carrier, params SiteLeg[] legs) => new(site, carrier, [.. legs]);
+
+    private Ratio ResolvePin()
+    {
+        if (Site.Carrier == Carrier)
+        {
+            return Site.On(Carrier).Normalize();
+        }
+
+        if (IncomingCount == Measure.One && OutgoingCount == Measure.One)
+        {
+            var incoming = IncomingRelations[0].AnchorPosition.Normalize();
+            var outgoing = OutgoingRelations[0].OriginPosition.Normalize();
+            return incoming == outgoing ? incoming : Ratio.Tension(Span);
+        }
+
+        if (IncomingCount == Measure.One)
+        {
+            return IncomingRelations[0].AnchorPosition.Normalize();
+        }
+
+        if (OutgoingCount == Measure.One)
+        {
+            return OutgoingRelations[0].OriginPosition.Normalize();
+        }
+
+        return Ratio.Tension(Span);
+    }
 
     private Relation BuildSupport()
     {

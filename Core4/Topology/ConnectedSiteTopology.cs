@@ -44,6 +44,63 @@ public readonly record struct ConnectedSiteTopology(ImmutableArray<Site> Sites, 
         return connectors.ToImmutable();
     }
 
+    public ImmutableArray<CarrierChain> Chains()
+    {
+        var chains = ImmutableArray.CreateBuilder<CarrierChain>();
+
+        foreach (var carrier in Carriers())
+        {
+            foreach (var chain in ChainsOn(carrier))
+            {
+                chains.Add(chain);
+            }
+        }
+
+        return chains.ToImmutable();
+    }
+
+    public ImmutableArray<CarrierChain> ChainsOn(Carrier carrier)
+    {
+        var relations = SharedRelationsOn(carrier);
+        var nodes = CarrierNodesOn(carrier, relations);
+        var chains = ImmutableArray.CreateBuilder<CarrierChain>();
+        var remaining = ImmutableArray.CreateBuilder<CarrierChainNode>(nodes.Length);
+
+        foreach (var node in nodes)
+        {
+            remaining.Add(node);
+        }
+
+        while (remaining.Count != 0)
+        {
+            var componentNodes = ImmutableArray.CreateBuilder<CarrierChainNode>();
+            var queue = ImmutableArray.CreateBuilder<CarrierChainNode>();
+            queue.Add(remaining[0]);
+            RemoveNode(remaining, remaining[0].Site);
+
+            for (var index = 0; index < queue.Count; index++)
+            {
+                var node = queue[index];
+                componentNodes.Add(node);
+
+                foreach (var neighbor in AdjacentNodes(node.Site, nodes, relations))
+                {
+                    if (!Contains(componentNodes, neighbor.Site) && RemoveNode(remaining, neighbor.Site))
+                    {
+                        queue.Add(neighbor);
+                    }
+                }
+            }
+
+            chains.Add(new CarrierChain(
+                carrier,
+                OrderNodes(componentNodes.ToImmutable()),
+                OrderRelations(carrier, componentNodes.ToImmutable(), relations)));
+        }
+
+        return chains.ToImmutable();
+    }
+
     public AlignedSiteSpan GeometryAt(Site site, Carrier carrier) => IncidenceAt(site).GeometryOn(carrier);
 
     public ImmutableArray<Relation> AlignedOn(Site site)
@@ -198,6 +255,21 @@ public readonly record struct ConnectedSiteTopology(ImmutableArray<Site> Sites, 
         return relations.ToImmutable();
     }
 
+    private ImmutableArray<Relation> SharedRelationsOn(Carrier carrier)
+    {
+        var relations = ImmutableArray.CreateBuilder<Relation>();
+
+        foreach (var relation in SharedRelations())
+        {
+            if (relation.Carrier == carrier)
+            {
+                relations.Add(relation);
+            }
+        }
+
+        return relations.ToImmutable();
+    }
+
     private ImmutableArray<SiteLeg> RelationLegsAt(Site site)
     {
         var legs = ImmutableArray.CreateBuilder<SiteLeg>();
@@ -213,11 +285,104 @@ public readonly record struct ConnectedSiteTopology(ImmutableArray<Site> Sites, 
         return legs.ToImmutable();
     }
 
+    private ImmutableArray<CarrierChainNode> CarrierNodesOn(Carrier carrier, ImmutableArray<Relation> relations)
+    {
+        var nodes = ImmutableArray.CreateBuilder<CarrierChainNode>();
+
+        foreach (var relation in relations)
+        {
+            AddChainNode(nodes, relation.Origin);
+            AddChainNode(nodes, relation.Anchor);
+        }
+
+        foreach (var site in SitesOn(carrier))
+        {
+            AddAttachment(nodes, carrier, site);
+        }
+
+        return nodes.ToImmutable();
+    }
+
+    private ImmutableArray<CarrierChainNode> AdjacentNodes(
+        Site site,
+        ImmutableArray<CarrierChainNode> nodes,
+        ImmutableArray<Relation> relations)
+    {
+        var adjacent = ImmutableArray.CreateBuilder<CarrierChainNode>();
+
+        foreach (var relation in relations)
+        {
+            if (SameNode(relation.Origin, site))
+            {
+                AddNode(adjacent, FindNode(nodes, relation.Anchor));
+            }
+            else if (SameNode(relation.Anchor, site))
+            {
+                AddNode(adjacent, FindNode(nodes, relation.Origin));
+            }
+        }
+
+        return adjacent.ToImmutable();
+    }
+
+    private void AddAttachment(ImmutableArray<CarrierChainNode>.Builder nodes, Carrier carrier, Site attachedSite)
+    {
+        var geometry = GeometryAt(attachedSite, carrier);
+        var pin = geometry.Pin.Normalize();
+
+        if (!pin.IsResolved)
+        {
+            return;
+        }
+
+        var pinSite = attachedSite.Carrier == carrier
+            ? Resolve(attachedSite)
+            : Site.Open(carrier.At(pin));
+
+        for (var index = 0; index < nodes.Count; index++)
+        {
+            if (!SameNode(nodes[index].Site, pinSite))
+            {
+                continue;
+            }
+
+            if (!Contains(nodes[index].AttachedSites, attachedSite))
+            {
+                nodes[index] = nodes[index] with { AttachedSites = nodes[index].AttachedSites.Add(attachedSite) };
+            }
+
+            return;
+        }
+
+        nodes.Add(new CarrierChainNode(pinSite, [attachedSite]));
+    }
+
     private static void AddCarrier(ImmutableArray<Carrier>.Builder carriers, Carrier carrier)
     {
         if (!carriers.Contains(carrier))
         {
             carriers.Add(carrier);
+        }
+    }
+
+    private static void AddChainNode(ImmutableArray<CarrierChainNode>.Builder nodes, Site site)
+    {
+        for (var index = 0; index < nodes.Count; index++)
+        {
+            if (SameNode(nodes[index].Site, site))
+            {
+                return;
+            }
+        }
+
+        nodes.Add(new CarrierChainNode(site, ImmutableArray<Site>.Empty));
+    }
+
+    private static void AddNode(ImmutableArray<CarrierChainNode>.Builder nodes, CarrierChainNode node)
+    {
+        if (!Contains(nodes, node.Site))
+        {
+            nodes.Add(node);
         }
     }
 
@@ -248,6 +413,149 @@ public readonly record struct ConnectedSiteTopology(ImmutableArray<Site> Sites, 
         }
 
         return false;
+    }
+
+    private static bool Contains(ImmutableArray<Site> sites, Site site)
+    {
+        foreach (var known in sites)
+        {
+            if (SameNode(known, site))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool Contains(ImmutableArray<CarrierChainNode>.Builder nodes, Site site)
+    {
+        foreach (var node in nodes)
+        {
+            if (SameNode(node.Site, site))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool Contains(ImmutableArray<CarrierChainNode> nodes, Site site)
+    {
+        foreach (var node in nodes)
+        {
+            if (SameNode(node.Site, site))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool RemoveNode(ImmutableArray<CarrierChainNode>.Builder nodes, Site site)
+    {
+        for (var index = 0; index < nodes.Count; index++)
+        {
+            if (!SameNode(nodes[index].Site, site))
+            {
+                continue;
+            }
+
+            nodes.RemoveAt(index);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static CarrierChainNode FindNode(ImmutableArray<CarrierChainNode> nodes, Site site)
+    {
+        foreach (var node in nodes)
+        {
+            if (SameNode(node.Site, site))
+            {
+                return node;
+            }
+        }
+
+        return default;
+    }
+
+    private static ImmutableArray<CarrierChainNode> OrderNodes(ImmutableArray<CarrierChainNode> nodes)
+    {
+        var ordered = ImmutableArray.CreateBuilder<CarrierChainNode>(nodes.Length);
+
+        foreach (var node in nodes)
+        {
+            InsertNode(ordered, node);
+        }
+
+        return ordered.ToImmutable();
+    }
+
+    private static ImmutableArray<Relation> OrderRelations(
+        Carrier carrier,
+        ImmutableArray<CarrierChainNode> nodes,
+        ImmutableArray<Relation> relations)
+    {
+        var ordered = ImmutableArray.CreateBuilder<Relation>(relations.Length);
+
+        foreach (var relation in relations)
+        {
+            if (Contains(nodes, relation.Origin) && Contains(nodes, relation.Anchor))
+            {
+                InsertRelation(ordered, carrier, relation);
+            }
+        }
+
+        return ordered.ToImmutable();
+    }
+
+    private static void InsertNode(ImmutableArray<CarrierChainNode>.Builder nodes, CarrierChainNode node)
+    {
+        var location = node.Position.Normalize();
+
+        for (var index = 0; index < nodes.Count; index++)
+        {
+            if (Compare(location, nodes[index].Position.Normalize()) < 0)
+            {
+                nodes.Insert(index, node);
+                return;
+            }
+        }
+
+        nodes.Add(node);
+    }
+
+    private static void InsertRelation(ImmutableArray<Relation>.Builder relations, Carrier carrier, Relation relation)
+    {
+        var start = LowerPosition(carrier, relation).Normalize();
+
+        for (var index = 0; index < relations.Count; index++)
+        {
+            if (Compare(start, LowerPosition(carrier, relations[index]).Normalize()) < 0)
+            {
+                relations.Insert(index, relation);
+                return;
+            }
+        }
+
+        relations.Add(relation);
+    }
+
+    private static Ratio LowerPosition(Carrier carrier, Relation relation)
+    {
+        var origin = relation.Origin.On(carrier).Normalize();
+        var anchor = relation.Anchor.On(carrier).Normalize();
+        return Compare(origin, anchor) <= 0 ? origin : anchor;
+    }
+
+    private static int Compare(Ratio left, Ratio right)
+    {
+        var comparison = checked((left.Recessive.Raw * right.Dominant.Raw) - (right.Recessive.Raw * left.Dominant.Raw));
+        return comparison < 0 ? -1 : comparison > 0 ? 1 : 0;
     }
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
