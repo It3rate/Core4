@@ -18,16 +18,16 @@ public static class FrozenSegmentRenderer
             Math.Max(160d, bounds.Width - 48d),
             Math.Max(220d, bounds.Height - 36d));
 
-        var axisY = plot.Y + (plot.Height * 0.56d);
+        var axisY = plot.Y + (plot.Height * 0.58d);
         return new FrozenSegmentLayout(
             plot,
             state,
             16d,
             plot.Left + (plot.Width * 0.5d),
             axisY,
-            axisY - 14d,
-            axisY + 14d,
-            axisY - 32d);
+            axisY - 20d,
+            axisY + 20d,
+            axisY - 46d);
     }
 
     public static void Render(DrawingContext context, Rect bounds, FrozenSegmentDemoState state)
@@ -38,6 +38,11 @@ public static class FrozenSegmentRenderer
 
     public static void Render(DrawingContext context, FrozenSegmentLayout layout)
     {
+        DrawSegment(context, layout, includeReadout: true);
+    }
+
+    public static void DrawSegment(DrawingContext context, FrozenSegmentLayout layout, bool includeReadout)
+    {
         context.FillRectangle(ProbePalette.Surface, layout.Plot);
         context.DrawLine(ProbePalette.AxisPen, new Point(layout.Plot.Left, layout.AxisY), new Point(layout.Plot.Right, layout.AxisY));
         DrawTicks(context, layout);
@@ -47,7 +52,11 @@ public static class FrozenSegmentRenderer
         DrawDominantValue(context, layout);
         DrawRecessiveValue(context, layout);
         ScenePrimitives.DrawSquare(context, layout.OriginPoint, 5.2d, ProbePalette.Surface, new Pen(ProbePalette.Origin, 3.4d, lineCap: PenLineCap.Round), 3.1d);
-        DrawReadout(context, layout);
+
+        if (includeReadout)
+        {
+            DrawReadout(context, layout);
+        }
     }
 
     private static void DrawDirectedOverlay(DrawingContext context, FrozenSegmentLayout layout)
@@ -147,7 +156,7 @@ public static class FrozenSegmentRenderer
             fontFamily: ProbePalette.MonoFont);
     }
 
-    private static void DrawReadout(DrawingContext context, FrozenSegmentLayout layout)
+    public static void DrawReadout(DrawingContext context, FrozenSegmentLayout layout)
     {
         var centerX = layout.Plot.Left + (layout.Plot.Width * 0.22d);
         var baseline = new Point(centerX, layout.Plot.Top + 1d);

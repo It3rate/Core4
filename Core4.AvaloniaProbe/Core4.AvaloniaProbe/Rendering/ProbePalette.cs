@@ -20,6 +20,9 @@ public static class ProbePalette
     public static readonly IBrush Dominant = Brush("#0f4fa4");
     public static readonly IBrush DominantSoft = Brush("#4a74f3");
     public static readonly IBrush Origin = Brush("#b00fb3");
+    public static readonly IBrush Orthogonal = Brush("#d10d1f");
+    public static readonly IBrush TensionPositive = Brush("#699165");
+    public static readonly IBrush TensionNegative = Brush("#9a6b5e");
     public static readonly IBrush Hidden = Brush("#8a8d87");
     public static readonly IBrush HiddenZone = Brush("#ebe6df");
     public static readonly IBrush Overlay = Brush("#e1cc9d");
@@ -29,6 +32,9 @@ public static class ProbePalette
     public static readonly Pen MajorTickPen = new(Dominant, 1d, lineCap: PenLineCap.Round);
     public static readonly Pen DominantUnitPen = new(Dominant, 4.6d, lineCap: PenLineCap.Round);
     public static readonly Pen DominantValuePen = new(Dominant, 4.4d, lineCap: PenLineCap.Round);
+    public static readonly Pen OrthogonalPen = new(Orthogonal, 4.6d, lineCap: PenLineCap.Round);
+    public static readonly Pen TensionPositivePen = new(TensionPositive, 2.6d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+    public static readonly Pen TensionNegativePen = new(TensionNegative, 2.6d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
     public static readonly Pen HiddenValuePen = new(Hidden, 4.4d, dashStyle: new DashStyle(new[] { 1.6d, 1.6d }, 0d), lineCap: PenLineCap.Round);
     public static readonly Pen OriginPen = new(Origin, 4.8d, lineCap: PenLineCap.Round);
     public static readonly Pen HiddenZonePen = new(Tick, 1d, lineCap: PenLineCap.Round);

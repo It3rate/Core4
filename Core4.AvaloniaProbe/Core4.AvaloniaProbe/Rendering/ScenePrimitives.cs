@@ -65,6 +65,58 @@ public static class ScenePrimitives
         context.DrawGeometry(fill, stroke, TriangleGeometry(tip, size, pointsLeft));
     }
 
+    public static void DrawVerticalTriangle(
+        DrawingContext context,
+        Point tip,
+        double size,
+        IBrush fill,
+        Pen? stroke = null,
+        bool pointsUp = true)
+    {
+        context.DrawGeometry(fill, stroke, VerticalTriangleGeometry(tip, size, pointsUp));
+    }
+
+    public static void DrawWave(DrawingContext context, Point start, Point end, double amplitude, Pen stroke, int minimumCycles = 3)
+    {
+        var dx = end.X - start.X;
+        var dy = end.Y - start.Y;
+        var distance = Math.Sqrt((dx * dx) + (dy * dy));
+        if (distance < 1d || amplitude <= 0d)
+        {
+            return;
+        }
+
+        var ux = dx / distance;
+        var uy = dy / distance;
+        var px = -uy;
+        var py = ux;
+        var cycles = Math.Max(minimumCycles, (int)Math.Ceiling(distance / 24d));
+        var samples = Math.Max(32, cycles * 18);
+        var geometry = new StreamGeometry();
+        using var stream = geometry.Open();
+
+        for (var index = 0; index <= samples; index++)
+        {
+            var t = index / (double)samples;
+            var alongX = start.X + (ux * distance * t);
+            var alongY = start.Y + (uy * distance * t);
+            var offset = Math.Sin(t * Math.PI * 2d * cycles) * Math.Sin(t * Math.PI) * amplitude;
+            var point = new Point(alongX + (px * offset), alongY + (py * offset));
+
+            if (index == 0)
+            {
+                stream.BeginFigure(point, false);
+            }
+            else
+            {
+                stream.LineTo(point);
+            }
+        }
+
+        stream.EndFigure(false);
+        context.DrawGeometry(null, stroke, geometry);
+    }
+
     public static double Distance(Point left, Point right)
     {
         var dx = left.X - right.X;
@@ -83,6 +135,21 @@ public static class ScenePrimitives
         stream.BeginFigure(new Point(backX, tip.Y - height), true);
         stream.LineTo(tip);
         stream.LineTo(new Point(backX, tip.Y + height));
+        stream.EndFigure(true);
+        return geometry;
+    }
+
+    private static StreamGeometry VerticalTriangleGeometry(Point tip, double size, bool pointsUp)
+    {
+        var width = size * 0.68d;
+        var back = size * 0.92d;
+        var direction = pointsUp ? 1d : -1d;
+        var backY = tip.Y + (direction * back);
+        var geometry = new StreamGeometry();
+        using var stream = geometry.Open();
+        stream.BeginFigure(new Point(tip.X - width, backY), true);
+        stream.LineTo(tip);
+        stream.LineTo(new Point(tip.X + width, backY));
         stream.EndFigure(true);
         return geometry;
     }

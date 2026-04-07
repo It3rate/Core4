@@ -17,10 +17,12 @@ public sealed class ProbeView : UserControl
     private readonly DominantOnlyPageView _dominantOnlyPage = new();
     private readonly InvertedPairPageView _invertedPairPage = new();
     private readonly FrozenSegmentPageView _frozenSegmentPage = new();
+    private readonly OrthogonalOutputPageView _orthogonalOutputPage = new();
     private readonly ContentControl _pageHost;
     private readonly Button _dominantButton;
     private readonly Button _invertedButton;
     private readonly Button _frozenButton;
+    private readonly Button _orthogonalOutputButton;
     private ProbePage _activePage = ProbePage.DominantOnly;
 
     public ProbeView()
@@ -45,6 +47,9 @@ public sealed class ProbeView : UserControl
         _frozenButton = ProbeUi.PillButton("Frozen Segment");
         _frozenButton.Click += (_, _) => SetPage(ProbePage.FrozenSegment);
 
+        _orthogonalOutputButton = ProbeUi.PillButton("Orthogonal Output");
+        _orthogonalOutputButton.Click += (_, _) => SetPage(ProbePage.OrthogonalOutput);
+
         var presetButtons = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -53,7 +58,8 @@ public sealed class ProbeView : UserControl
             {
                 _dominantButton,
                 _invertedButton,
-                _frozenButton
+                _frozenButton,
+                _orthogonalOutputButton
             }
         };
 
@@ -156,17 +162,20 @@ public sealed class ProbeView : UserControl
             ProbePage.DominantOnly => _dominantOnlyPage,
             ProbePage.InvertedPair => _invertedPairPage,
             ProbePage.FrozenSegment => _frozenSegmentPage,
+            ProbePage.OrthogonalOutput => _orthogonalOutputPage,
             _ => _dominantOnlyPage
         };
         ProbeUi.ApplyPillStyle(_dominantButton, page == ProbePage.DominantOnly);
         ProbeUi.ApplyPillStyle(_invertedButton, page == ProbePage.InvertedPair);
         ProbeUi.ApplyPillStyle(_frozenButton, page == ProbePage.FrozenSegment);
+        ProbeUi.ApplyPillStyle(_orthogonalOutputButton, page == ProbePage.OrthogonalOutput);
     }
 
     private enum ProbePage
     {
         DominantOnly,
         InvertedPair,
-        FrozenSegment
+        FrozenSegment,
+        OrthogonalOutput
     }
 }
