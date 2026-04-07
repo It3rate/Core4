@@ -6,7 +6,8 @@ using Core4.Structure;
 namespace Core4.Dynamics;
 
 /// <summary>
-/// One local settlement pass. TODO: promote this into a runtime-iterable trace once the solver layer lands.
+/// One local settlement pass. TODO: read phase values dynamically and traverse them through a general external
+/// inspector so multiple perspectives can inspect the same structure at once without storing cursor state here.
 /// It exposes the anchor, incoming evidence, publication, feedback, and carried remainder before producing the next
 /// site state, and it also yields explicitly numbered phases for inspection.
 /// Example: <c>var step = site.Settle(); var next = step.Next;</c>
@@ -36,7 +37,6 @@ public readonly record struct SiteSettlement(
 
     /// <summary>
     /// Enum-backed positive unit used to inspect settlement ordering through ordinary Core4 positions and relations.
-    /// TODO: Replace the fixed conceptual carrier id with a broader Core4-native registry for named enumerable units.
     /// </summary>
     public EnumerableUnit<SettlementPhase> Phases { get; } = new(new Carrier(-4107), nameof(SettlementPhase));
 
