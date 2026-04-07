@@ -82,6 +82,67 @@ So:
 - freeze = stabilizing a relation
 - basis = frozen relation
 
+## 4A. Resolution, Finitude, And Ticks
+
+Core4 should only reason over what is both:
+
+- orderable
+- finite enough to inspect
+
+So:
+
+- infinity is not a legal calculable value
+- unordered content is not a legal calculable value
+- randomness or noise may still contribute measurable **amount**, but not an
+  ordered internal structure unless that structure is itself made orderable
+
+This implies every practical reading lives inside a finite window:
+
+- a minimum extent worth distinguishing
+- a maximum extent worth carrying
+
+Those limits may come from physical hardware, from the surrounding system, or
+from an explicit observer choice.
+
+This matters immediately once a relation is frozen into a unit.
+
+A frozen unit is not only a magnitude. It also implies a finite resolution for
+inspection and reuse.
+
+We can call those resolution steps **ticks**.
+
+The simplest case is:
+
+- one unit
+- one tick per unit
+
+But if finer inspection is available, the same unit may be divided into several
+ticks. Then the denominator carries not just "which unit" is being used, but
+also "at what committed resolution" it is being read.
+
+So Core4 should generally not treat fraction reduction as a harmless default.
+
+- `5/10` and `1/2` may agree in proportion
+- but they do not necessarily express the same committed resolution
+
+This gives a useful base case for normalized iteration:
+
+- freeze one unit
+- choose a resolution of `n` ticks
+- the unit becomes traversable from `0/n` through `n/n`
+
+For example, one unit at ten ticks yields:
+
+- `0/10`
+- `1/10`
+- `2/10`
+- ...
+- `10/10`
+
+This is the simplest finite normalized ladder. It provides a reusable way to
+iterate within one frozen extent without appealing to infinity or to an
+externally imposed continuous line.
+
 ## 5. Attachment
 
 An **attachment** is a live binding of current sites into a basis.

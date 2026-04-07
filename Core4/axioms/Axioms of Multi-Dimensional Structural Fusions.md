@@ -6,6 +6,8 @@
 
 **Axiom 3: The Unit Interval** An interval is created by recording a second measure relative to the frozen origin. Freezing this interval establishes a **unit**—a portable denominator with a fixed magnitude that persists independently of changing values around it.
 
+**Axiom 3B: Resolution and Finitude** Core4 only reasons over finite, orderable extents. Infinity and unordered content are not legal values in calculation, though their measurable amount may be. Therefore a frozen unit also carries resolution as ticks: denominators preserve the chosen finite scale of inspection and should not be reduced away when that resolution is part of the meaning.
+
 **Axiom 4: Polarity, Perspective, and the Zero Unit** Because units are derived from directed intervals from an origin, they inherently possess direction, establishing dominant and recessive perspectives (e.g., growing vs. shrinking) which are structurally inverted. However, a detected value that cannot be interpreted within these known unit directions manifests as a **Zero Unit (0)**. The Zero Unit acts as an unknown "tension potential"—geometrically orthogonal to the established dimensions, like a value moving on a z-axis slider straight out of a 2D page. This uncalibrated energy seeks resolution by attaching to a newly defined unit that can explain it.
 
 **Axiom 5: The Four Modalities of Number** Once units and intervals are established, numbers dynamically fulfill four observer-dependent intentions:
@@ -26,4 +28,3 @@ While driven by observer intention, these modalities inherently self-adjust when
 **Axiom 9: Unit Self-Fusion and Non-Linearity** When a unit pairs and fuses with *itself*, rather than an orthogonal unit, it becomes self-interacting. This internal repetition alters the calibration of the unit so that intervals are no longer linearly spaced. This yields power progressions (squared, cubed) that model dynamically changing attributes such as acceleration, volatility, or changing intensity.
 
 **Axiom 10: Multi-Dimensional Change and Subunit Scaling** To fully describe structural change across two dimensions, a system generally requires four values forming two directed segments (one structural dual-unit per orthogonal axis) to capture both the start and end states of the dimensional plane. However, this subunit fusion is dynamically scalable: expressing change requires fewer subunits if a dimension remains constant, but can scale to involve more than four final elements when self-interacting potentials (powers) multiply the relationships.
-
