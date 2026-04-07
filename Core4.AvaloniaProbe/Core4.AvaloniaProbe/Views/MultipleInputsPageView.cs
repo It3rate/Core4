@@ -267,7 +267,9 @@ public sealed class MultipleInputsPageView : UserControl
 
         _settlementText.Text = string.Join(
             "\n",
-            settlement.Terms.Select(term => $"{term.Order.Raw} {term.Phase,-25}{term.Value.Normalize()}"));
+            settlement.Phases.Samples
+                .Skip(1)
+                .Select(phase => $"{settlement.Phases.OrderOf(phase).Raw} {phase,-25}{settlement.At(phase).Normalize()}"));
     }
 
     private void HookBox(TextBox box, Action<long> apply)
