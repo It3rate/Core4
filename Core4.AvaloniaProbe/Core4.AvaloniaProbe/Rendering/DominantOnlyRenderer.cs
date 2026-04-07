@@ -30,7 +30,7 @@ public static class DominantOnlyRenderer
             16d,
             plot.Left + (plot.Width * 0.46d),
             plot.Y + (plot.Height * 0.52d),
-            plot.Y + (plot.Height * 0.475d));
+            plot.Y + (plot.Height * 0.442d));
     }
 
     public static void Render(DrawingContext context, Rect bounds, Basis basis, Site valueSite)
