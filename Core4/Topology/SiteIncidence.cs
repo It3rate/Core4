@@ -49,11 +49,11 @@ public readonly record struct SiteIncidence(Site Site, ImmutableArray<Relation> 
 
     public Measure TerminalCarrierCount => CountCarriers(Terminates);
 
-    // TODO: Stage 2 should add aligned placement inspection so continuation can distinguish endpoint, midpoint,
-    // centered, and asymmetric attachment cases rather than stopping at carrier continuity.
     public bool SiteCarrierContinues => Continues(Site.Carrier);
 
     public static SiteIncidence Create(Site site, params Relation[] alignedRelations) => new(site, [.. alignedRelations]);
+
+    public AlignedSiteSpan GeometryOn(Carrier carrier) => AlignedSiteSpan.Create(Site, carrier, [.. AlignedOn(carrier)]);
 
     public ImmutableArray<Carrier> Carriers()
     {
@@ -83,6 +83,21 @@ public readonly record struct SiteIncidence(Site Site, ImmutableArray<Relation> 
         }
 
         return legs.ToImmutable();
+    }
+
+    public ImmutableArray<Relation> AlignedOn(Carrier carrier)
+    {
+        var relations = ImmutableArray.CreateBuilder<Relation>();
+
+        foreach (var relation in AlignedRelations)
+        {
+            if (relation.Carrier == carrier && SiteLeg.TryFromRelation(relation, Site, out _))
+            {
+                relations.Add(relation);
+            }
+        }
+
+        return relations.ToImmutable();
     }
 
     public bool HasIncoming(Carrier carrier)
