@@ -19,6 +19,19 @@ In practice this means:
 - `Core4.AvaloniaProbe/` contains the current interactive demo application.
 - The interactive demo is now the main way to explore the engine visually.
 
+## How Core4 Differs From A Typical Numbering System
+
+Core4 treats number as frozen relation rather than assuming a pre-existing neutral line.
+
+- Resolution lives in the denominator.
+  A Core4 ratio is not just a value over a convenient unit; the denominator is the frozen relation that sets the inspectable resolution of the reading. Changing the denominator changes what the system can resolve structurally, not just how it is displayed.
+- A line can be expressed with two units, not one.
+  A typical number line assumes signed distance on one axis. Core4 can instead represent a directed segment by fusing a dominant unit and its inverted recessive unit, so the bounded range is carried by the basis itself.
+- New dimensions appear through orthogonal force.
+  When a value cannot be expressed cleanly in the current basis, it does not need to collapse into an error or tag. It can remain as tension and attach orthogonally, allowing dimensional growth through new frozen relations.
+- Associated dimensions are different from fused dimensions.
+  Multiple values recorded against one shared unit behave like associated data and still depend on external interpretation. Once units are fused, the structure carries its own internal rule, so a segment, area, complex ray, or higher-grade relation becomes physically encoded rather than merely grouped.
+
 ## Quick Start
 
 ### Prerequisites

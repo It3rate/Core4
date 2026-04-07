@@ -14,7 +14,7 @@ public readonly record struct PrimitiveBasesDemoState(Measure DominantTicks, Mea
     private static readonly Carrier Vertical = new(12);
     private static readonly Measure Origin = Measure.Zero;
 
-    public static PrimitiveBasesDemoState Default => new(new Measure(16), new Measure(8));
+    public static PrimitiveBasesDemoState Default => new(new Measure(24), new Measure(16));
 
     public Basis DominantBasis => Basis.Freeze(Horizontal, Origin, UnitSpan);
 

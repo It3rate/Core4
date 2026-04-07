@@ -18,6 +18,7 @@ public sealed class PrimitiveBasesSceneControl : Control
     private const long MinimumTicks = -24L;
     private const long MaximumTicks = 24L;
     private const double SegmentOriginX = 124d;
+    private const double SelfOriginX = 140d;
 
     private PrimitiveBasesDemoState _state = PrimitiveBasesDemoState.Default;
     private DragSession _activeDrag;
@@ -67,9 +68,21 @@ public sealed class PrimitiveBasesSceneControl : Control
             return;
         }
 
+        if (ScenePrimitives.Distance(point, PrimitiveBasesRenderer.SelfDominantHandle(layout)) <= HandleRadius)
+        {
+            BeginDrag(e, DragHandle.SelfDominant, SelfTicksAt(layout, point) - _state.DominantTicks);
+            return;
+        }
+
         if (ScenePrimitives.Distance(point, PrimitiveBasesRenderer.RecessiveHandle(layout)) <= HandleRadius)
         {
             BeginDrag(e, DragHandle.Recessive, RecessiveTicksAt(layout, point) - _state.RecessiveTicks);
+            return;
+        }
+
+        if (ScenePrimitives.Distance(point, PrimitiveBasesRenderer.SelfRecessiveHandle(layout)) <= HandleRadius)
+        {
+            BeginDrag(e, DragHandle.SelfRecessive, SelfTicksAt(layout, point) - _state.RecessiveTicks);
         }
     }
 
@@ -89,6 +102,8 @@ public sealed class PrimitiveBasesSceneControl : Control
         {
             DragHandle.Dominant => _state.WithDominantTicks(Clamp(DominantTicksAt(layout, point) - _activeDrag.PointerOffset)),
             DragHandle.Recessive => _state.WithRecessiveTicks(Clamp(RecessiveTicksAt(layout, point) - _activeDrag.PointerOffset)),
+            DragHandle.SelfDominant => _state.WithDominantTicks(Clamp(SelfTicksAt(layout, point) - _activeDrag.PointerOffset)),
+            DragHandle.SelfRecessive => _state.WithRecessiveTicks(Clamp(SelfTicksAt(layout, point) - _activeDrag.PointerOffset)),
             _ => _state
         };
 
@@ -124,6 +139,13 @@ public sealed class PrimitiveBasesSceneControl : Control
         return new Measure((long)Math.Round(ticks, MidpointRounding.AwayFromZero));
     }
 
+    private static Measure SelfTicksAt(PrimitiveBasesLayout layout, Point point)
+    {
+        var scene = layout.ToScene(point);
+        var ticks = (scene.X - SelfOriginX) / PrimitiveBasesLayout.TickPixels;
+        return new Measure((long)Math.Round(ticks, MidpointRounding.AwayFromZero));
+    }
+
     private static Measure Clamp(Measure value) => new(Math.Clamp(value.Raw, MinimumTicks, MaximumTicks));
 
     private static PrimitiveBasesDemoState NormalizeState(PrimitiveBasesDemoState state) => state with
@@ -138,6 +160,8 @@ public sealed class PrimitiveBasesSceneControl : Control
     {
         None,
         Dominant,
-        Recessive
+        Recessive,
+        SelfDominant,
+        SelfRecessive
     }
 }

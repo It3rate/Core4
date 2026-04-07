@@ -23,12 +23,12 @@ public static class PrimitiveBasesRenderer
     private const double SelfOriginY = 96d;
     private const double SegmentOriginX = 124d;
     private const double SegmentOriginY = 244d;
-    private const double AntiComplexOriginX = 480d;
-    private const double AreaOriginX = 770d;
+    private const double AntiComplexOriginX = 516d;
+    private const double AreaOriginX = 734d;
     private const double AntiComplexOriginY = 96d;
     private const double AreaOriginY = 96d;
-    private const double AntiAreaOriginX = 480d;
-    private const double ComplexOriginX = 770d;
+    private const double AntiAreaOriginX = 516d;
+    private const double ComplexOriginX = 734d;
     private const double AntiAreaOriginY = 244d;
     private const double ComplexOriginY = 244d;
     private const double CrossLeft = 520d;
@@ -75,6 +75,10 @@ public static class PrimitiveBasesRenderer
 
     public static Point RecessiveHandle(PrimitiveBasesLayout layout) => layout.Map(SegmentRecessiveX(layout.State), SegmentOriginY);
 
+    public static Point SelfDominantHandle(PrimitiveBasesLayout layout) => layout.Map(SelfDominantInputX(layout.State), SelfOriginY - 8d);
+
+    public static Point SelfRecessiveHandle(PrimitiveBasesLayout layout) => layout.Map(SelfReusedInputX(layout.State), SelfOriginY + 8d);
+
     private static void DrawBackground(DrawingContext context, PrimitiveBasesLayout layout)
     {
         DrawLine(context, layout, DividerX, 94d, DividerX, 310d, new Pen(new SolidColorBrush(Color.Parse("#ddd6ca")), 1.2d * layout.Scale, lineCap: PenLineCap.Round));
@@ -88,11 +92,11 @@ public static class PrimitiveBasesRenderer
         DrawLine(context, layout, SelfOriginX - 18d, SelfOriginY, SelfOriginX + 126d, SelfOriginY, AxisPen(layout));
         DrawLine(context, layout, SelfOriginX, SelfOriginY - 44d, SelfOriginX, SelfOriginY + 22d, AxisPen(layout));
 
-        DrawLine(context, layout, SelfOriginX, SelfOriginY - 8d, SelfDominantInputX(layout.State), SelfOriginY - 8d, DominantLinePen(layout, layout.State.DominantIsTension));
-        DrawLine(context, layout, SelfOriginX, SelfOriginY + 8d, SelfReusedInputX(layout.State), SelfOriginY + 8d, DominantLinePen(layout, layout.State.RecessiveIsTension));
+        DrawHorizontalArrowLine(context, layout, SelfOriginX, SelfDominantInputX(layout.State), SelfOriginY - 8d, DominantLinePen(layout, layout.State.DominantIsTension));
+        DrawHorizontalArrowLine(context, layout, SelfOriginX, SelfReusedInputX(layout.State), SelfOriginY + 8d, DominantLinePen(layout, layout.State.RecessiveIsTension));
         DrawOverlayArrow(context, layout, new Point(SelfOriginX, SelfOriginY - 18d), new Point(SelfResultX(layout.State), SelfOriginY - 18d), layout.State.SelfIsTension);
-        DrawTriangle(context, layout, SelfDominantInputX(layout.State), SelfOriginY - 8d, ProbePalette.Dominant, layout.State.DominantIsTension, false);
-        DrawTriangle(context, layout, SelfReusedInputX(layout.State), SelfOriginY + 8d, ProbePalette.Dominant, layout.State.RecessiveIsTension, false);
+        DrawTriangle(context, layout, SelfDominantInputX(layout.State), SelfOriginY - 8d, ProbePalette.Dominant, layout.State.DominantIsTension, layout.State.DominantUnits < 0d);
+        DrawTriangle(context, layout, SelfReusedInputX(layout.State), SelfOriginY + 8d, ProbePalette.Dominant, layout.State.RecessiveIsTension, layout.State.RecessiveUnits < 0d);
     }
 
     private static void DrawDirectedSegment(DrawingContext context, PrimitiveBasesLayout layout)
@@ -103,7 +107,7 @@ public static class PrimitiveBasesRenderer
         DrawLine(context, layout, SegmentOriginX, SegmentOriginY - 54d, SegmentOriginX, SegmentOriginY + 24d, AxisPen(layout));
 
         DrawLine(context, layout, SegmentOriginX, SegmentOriginY, SegmentRecessiveX(layout.State), SegmentOriginY, RecessiveLinePen(layout, layout.State.RecessiveIsTension));
-        DrawLine(context, layout, SegmentOriginX, SegmentOriginY, SegmentDominantX(layout.State), SegmentOriginY, DominantLinePen(layout, layout.State.DominantIsTension));
+        DrawHorizontalArrowLine(context, layout, SegmentOriginX, SegmentDominantX(layout.State), SegmentOriginY, DominantLinePen(layout, layout.State.DominantIsTension));
         DrawOverlayArrow(context, layout, new Point(SegmentRecessiveX(layout.State), SegmentOriginY - 22d), new Point(SegmentDominantX(layout.State), SegmentOriginY - 22d), false);
         DrawCircle(context, layout, SegmentRecessiveX(layout.State), SegmentOriginY, ProbePalette.DominantSoft, layout.State.RecessiveIsTension);
         DrawTriangle(context, layout, SegmentDominantX(layout.State), SegmentOriginY, ProbePalette.Dominant, layout.State.DominantIsTension, false);
@@ -178,7 +182,7 @@ public static class PrimitiveBasesRenderer
     private static void DrawLabels(DrawingContext context, PrimitiveBasesLayout layout)
     {
         DrawReading(context, layout, layout.State.ComplexReading, layout.State.ApproximateReading);
-        DrawLabel(context, layout, "SELF-INTERACTION", 124d, 160d, 11d, FontWeight.ExtraBold, ProbePalette.Ink, centered: true);
+        DrawLabel(context, layout, "SELF-INTERACTION", 124d, 154d, 11d, FontWeight.ExtraBold, ProbePalette.Ink, centered: true);
         DrawLabel(context, layout, "DIRECTED SEGMENT", 124d, 286d, 11d, FontWeight.ExtraBold, ProbePalette.Ink, centered: true);
         DrawLabel(context, layout, "ANTI-COMPLEX", CrossCenterX - 12d, 146d, 11d, FontWeight.ExtraBold, ProbePalette.Ink, rightAlign: true);
         DrawLabel(context, layout, "AREA", CrossCenterX + 12d, 146d, 11d, FontWeight.ExtraBold, ProbePalette.Ink);
@@ -189,21 +193,21 @@ public static class PrimitiveBasesRenderer
 
     private static void DrawReading(DrawingContext context, PrimitiveBasesLayout layout, string complex, string approximate)
     {
-        var readingX = DividerX + 28d;
-        var readingY = 24d;
-        var approxY = 44d;
+        var centerX = 202d;
+        var readingY = 4d;
+        var approxY = 22d;
         var parts = complex.Split(" + ");
         var left = MeasureText(parts[0], 16d * layout.Scale, ProbePalette.DominantSoft, FontWeight.Bold);
         var right = MeasureText($" + {parts[1]}", 16d * layout.Scale, ProbePalette.Dominant, FontWeight.Bold);
         var totalWidth = left.Width + right.Width;
-        var start = layout.Map(readingX, readingY);
-        start = new Point(start.X - totalWidth, start.Y);
+        var start = layout.Map(centerX, readingY);
+        start = new Point(start.X - (totalWidth * 0.5d), start.Y);
         context.DrawText(left, start);
         context.DrawText(right, new Point(start.X + left.Width, start.Y));
 
         var approx = MeasureText(approximate, 13d * layout.Scale, ProbePalette.Muted, FontWeight.SemiBold);
-        var approxPoint = layout.Map(readingX, approxY);
-        context.DrawText(approx, new Point(approxPoint.X - approx.Width, approxPoint.Y));
+        var approxPoint = layout.Map(centerX, approxY);
+        context.DrawText(approx, new Point(approxPoint.X - (approx.Width * 0.5d), approxPoint.Y));
     }
 
     private static void DrawHorizontalTicks(DrawingContext context, PrimitiveBasesLayout layout, double originX, double originY, int direction, int units)
@@ -267,6 +271,19 @@ public static class PrimitiveBasesRenderer
 
     private static void DrawLine(DrawingContext context, PrimitiveBasesLayout layout, double x1, double y1, double x2, double y2, Pen pen) =>
         context.DrawLine(pen, layout.Map(x1, y1), layout.Map(x2, y2));
+
+    private static void DrawHorizontalArrowLine(DrawingContext context, PrimitiveBasesLayout layout, double x1, double x2, double y, Pen pen)
+    {
+        var direction = x2 >= x1 ? 1d : -1d;
+        var trim = 12.4d;
+        var endX = x2 - (direction * trim);
+        if ((direction > 0d && endX < x1) || (direction < 0d && endX > x1))
+        {
+            endX = x1;
+        }
+
+        DrawLine(context, layout, x1, y, endX, y, pen);
+    }
 
     private static void DrawLabel(DrawingContext context, PrimitiveBasesLayout layout, string text, double x, double y, double size, FontWeight weight, IBrush brush, bool rightAlign = false, bool centered = false)
     {
