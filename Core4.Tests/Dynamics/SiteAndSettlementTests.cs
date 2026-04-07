@@ -1,6 +1,7 @@
 using Core4.Dynamics;
 using Core4.Numerics;
 using Core4.Structure;
+using SettlementPhase = Core4.Dynamics.SiteSettlement.SettlementPhase;
 
 namespace Core4.Tests.Dynamics;
 
@@ -75,6 +76,13 @@ public sealed class SiteAndSettlementTests
         Assert.Equal(new Ratio(2, 0), settlement.Feedback);
         Assert.Equal(new Ratio(11, 0), settlement.Settled);
         Assert.Equal(new Ratio(11, 0), settlement.Remainder);
+        Assert.Equal(new Ratio(13, 0), settlement.At(SettlementPhase.Provisional));
+        Assert.Equal(new Ratio(11, 0), settlement.At(SettlementPhase.Settled));
+        Assert.Equal(new Ratio(0, 0), settlement.At(SettlementPhase.None));
+        Assert.True(settlement.Phases.MoveTo(SettlementPhase.Settled));
+        Assert.Equal(new Measure(6), settlement.Phases.CurrentIndex);
+        Assert.Equal(new Ratio(11, 0), settlement.Current);
+        Assert.Equal(new Measure(3), settlement.Phases.Relate(SettlementPhase.Provisional, SettlementPhase.Settled).Potential);
         Assert.Equal(new Ratio(11, 0), settlement.Next.State);
         Assert.Equal(new Ratio(11, 0), settlement.Next.Orthogonal.Residual);
     }

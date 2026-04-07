@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core4.Aliases;
 using Core4.Numerics;
 using Core4.Structure;
 
@@ -21,33 +22,53 @@ public readonly record struct SiteSettlement(
     Ratio Remainder,
     Site Next)
 {
-    public ImmutableArray<SiteSettlementTerm> Terms =>
+    public enum SettlementPhase : int
+    {
+        None = 0,
+        Anchor = 1,
+        Incoming = 2,
+        Provisional = 3,
+        Published = 4,
+        Feedback = 5,
+        Settled = 6,
+        Remainder = 7
+    }
+
+    /// <summary>
+    /// Enum-backed positive unit used to inspect settlement ordering through ordinary Core4 positions and relations.
+    /// TODO: Replace the fixed conceptual carrier id with a broader Core4-native registry for named enumerable units.
+    /// </summary>
+    public EnumerableUnit<SettlementPhase> Phases { get; } = new(new Carrier(-4107), nameof(SettlementPhase));
+
+    public ImmutableArray<Ratio> Values =>
     [
-        new(SettlementPhase.Anchor, 1, Anchor),
-        new(SettlementPhase.Incoming, 2, Incoming),
-        new(SettlementPhase.Provisional, 3, Provisional),
-        new(SettlementPhase.Published, 4, Published),
-        new(SettlementPhase.Feedback, 5, Feedback),
-        new(SettlementPhase.Settled, 6, Settled),
-        new(SettlementPhase.Remainder, 7, Remainder)
+        Ratio.Zero(Measure.Zero),
+        Anchor,
+        Incoming,
+        Provisional,
+        Published,
+        Feedback,
+        Settled,
+        Remainder
     ];
 
-    public Ratio Select(SettlementPhase phase)
+    public Ratio Current => At(Phases.CurrentIndex);
+
+    public Ratio At(SettlementPhase phase) => At(Phases.OrderOf(phase));
+
+    public Ratio At(Measure index)
     {
-        var hasAny = false;
-        var total = Ratio.Zero(Measure.Zero);
+        var values = Values;
 
-        foreach (var term in Terms)
+        if (index.Raw >= 0L && index.Raw < values.Length)
         {
-            if ((term.Phase & phase) == 0)
-            {
-                continue;
-            }
-
-            total = hasAny ? total.Add(term.Value) : term.Value.Normalize();
-            hasAny = true;
+            return values[(int)index.Raw].Normalize();
         }
 
-        return hasAny ? total.Normalize() : Ratio.Zero(Measure.Zero);
+        return Overflow(index);
     }
+
+    private static Ratio Overflow(Measure index) => index.Raw < 0L
+        ? Ratio.Tension(index.Absolute)
+        : Ratio.Tension(new Measure(index.Raw - (long)SettlementPhase.Remainder));
 }

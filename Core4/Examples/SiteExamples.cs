@@ -38,6 +38,15 @@ public static class SiteExamples
         foreach (var (name, site) in examples)
         {
             var step = site.Settle();
+            var phases = step.Phases;
+            var terms = ImmutableArray.CreateBuilder<string>(phases.Samples.Length);
+            phases.Reset();
+
+            while (phases.MoveNext())
+            {
+                terms.Add($"{phases.CurrentIndex.Raw}:{phases.Current}={step.Current.Normalize()}");
+            }
+
             descriptions.Add(
                 $"{name}: position={site.Position.Normalize()}, onCarrier={site.On(site.Carrier).Normalize()}, " +
                 $"potential={site.Potential.Raw}, kernel=[r={site.Kernel.Recessive.Normalize()}, d={site.Kernel.Dominant.Normalize()}], " +
@@ -45,7 +54,7 @@ public static class SiteExamples
                 $"incoming={site.Orthogonal.Incoming().Normalize()}, outgoing={site.Orthogonal.Outgoing().Normalize()}, oscillating={site.Orthogonal.Oscillating().Normalize()}], " +
                 $"settle=[anchor={step.Anchor.Normalize()}, in={step.Incoming.Normalize()}, provisional={step.Provisional.Normalize()}, " +
                 $"published={step.Published.Normalize()}, feedback={step.Feedback.Normalize()}, settled={step.Settled.Normalize()}, remainder={step.Remainder.Normalize()}], " +
-                $"terms=[{string.Join(", ", step.Terms.Select(term => $"{term.Order.Raw}:{term.Phase}={term.Value.Normalize()}"))}]");
+                $"terms=[{string.Join(", ", terms)}]");
         }
 
         return descriptions.MoveToImmutable();
