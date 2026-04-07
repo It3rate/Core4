@@ -30,6 +30,20 @@ public readonly record struct ConnectedSiteTopology(ImmutableArray<Site> Sites, 
         return new SiteIncidence(resolved, AlignedOn(resolved));
     }
 
+    public SiteConnector ConnectorAt(Site site) => new(this, Resolve(site));
+
+    public ImmutableArray<SiteConnector> Connectors()
+    {
+        var connectors = ImmutableArray.CreateBuilder<SiteConnector>(Sites.Length);
+
+        foreach (var site in Sites)
+        {
+            connectors.Add(new SiteConnector(this, site));
+        }
+
+        return connectors.ToImmutable();
+    }
+
     public AlignedSiteSpan GeometryAt(Site site, Carrier carrier) => IncidenceAt(site).GeometryOn(carrier);
 
     public ImmutableArray<Relation> AlignedOn(Site site)
@@ -37,6 +51,8 @@ public readonly record struct ConnectedSiteTopology(ImmutableArray<Site> Sites, 
         var resolved = Resolve(site);
         var relations = ImmutableArray.CreateBuilder<Relation>();
 
+        // TODO: Promote relation-backed orthogonal flows into shared connected ownership so crossbar and strand
+        // geometry can be inspected directly through this context, not only through local site incidence.
         foreach (var relation in Relations)
         {
             if (SiteLeg.TryFromRelation(relation, resolved, out _))
