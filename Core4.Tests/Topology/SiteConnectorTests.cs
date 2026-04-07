@@ -39,11 +39,11 @@ public sealed class SiteConnectorTests
         Carrier y = 2;
 
         var left = Site.Open(x, new Measure(0));
+        var stemStart = Site.Open(y, new Measure(0));
+        var stemEnd = Site.Open(y, new Measure(4));
         var center = Site.Open(x, new Measure(5))
             .Publish(
-                new Relation(
-                    Site.Open(y, new Measure(0)),
-                    Site.Open(y, new Measure(4))),
+                new Relation(stemStart, stemEnd),
                 Ratio.Tension(new Measure(4)));
         var right = Site.Open(x, new Measure(10));
 
@@ -53,15 +53,17 @@ public sealed class SiteConnectorTests
             new Relation(center, right))
             .ConnectorAt(center);
 
-        Assert.Equal(new Measure(2), connector.NeighborCount);
+        Assert.Equal(new Measure(3), connector.NeighborCount);
         Assert.Equal(new Measure(2), connector.Incidence.CarrierCount);
         Assert.Equal(new Measure(1), connector.Incidence.ContinuingCarrierCount);
         Assert.Equal(new Measure(1), connector.Incidence.TerminalCarrierCount);
         Assert.Equal(new Measure(1), connector.OutgoingTerminalCarrierCount);
         Assert.Equal(Measure.Zero, connector.IncomingTerminalCarrierCount);
-        Assert.Equal(new Measure(1), connector.GeometryCarrierCount);
+        Assert.Equal(new Measure(2), connector.GeometryCarrierCount);
         Assert.Equal(new Measure(1), connector.InteriorCarrierCount);
+        Assert.Equal(new Measure(1), connector.EndpointCarrierCount);
         Assert.Equal(new Measure(1), connector.CenteredCarrierCount);
+        Assert.Equal(new Measure(1), connector.AsymmetricCarrierCount);
         Assert.Equal(new Ratio(5, 10), connector.SiteCarrierPosition);
     }
 
@@ -71,16 +73,15 @@ public sealed class SiteConnectorTests
         Carrier x = 1;
         Carrier y = 2;
 
+        var stemLow = Site.Open(y, new Measure(-4));
+        var stemCenter = Site.Open(y, new Measure(0));
+        var stemHigh = Site.Open(y, new Measure(4));
         var left = Site.Open(x, new Measure(0))
             .Request(
-                new Relation(
-                    Site.Open(y, new Measure(-4)),
-                    Site.Open(y, new Measure(0))),
+                new Relation(stemLow, stemCenter),
                 Ratio.Tension(new Measure(4)))
             .Publish(
-                new Relation(
-                    Site.Open(y, new Measure(0)),
-                    Site.Open(y, new Measure(4))),
+                new Relation(stemCenter, stemHigh),
                 Ratio.Tension(new Measure(4)));
 
         var right = Site.Open(x, new Measure(6));
@@ -90,15 +91,17 @@ public sealed class SiteConnectorTests
             new Relation(left, right))
             .ConnectorAt(left);
 
-        Assert.Equal(new Measure(1), connector.NeighborCount);
+        Assert.Equal(new Measure(3), connector.NeighborCount);
         Assert.Equal(new Measure(2), connector.Incidence.CarrierCount);
         Assert.Equal(new Measure(1), connector.Incidence.ContinuingCarrierCount);
         Assert.Equal(new Measure(1), connector.Incidence.TerminalCarrierCount);
         Assert.Equal(Measure.Zero, connector.IncomingTerminalCarrierCount);
         Assert.Equal(new Measure(1), connector.OutgoingTerminalCarrierCount);
-        Assert.Equal(new Measure(1), connector.GeometryCarrierCount);
-        Assert.Equal(Measure.Zero, connector.InteriorCarrierCount);
+        Assert.Equal(new Measure(2), connector.GeometryCarrierCount);
+        Assert.Equal(new Measure(1), connector.InteriorCarrierCount);
         Assert.Equal(new Measure(1), connector.EndpointCarrierCount);
+        Assert.Equal(new Measure(1), connector.CenteredCarrierCount);
+        Assert.Equal(new Measure(1), connector.AsymmetricCarrierCount);
         Assert.Equal(new Ratio(0, 6), connector.SiteCarrierPosition);
         Assert.Equal(new Ratio(6, 6), connector.SiteCarrierAsymmetry);
     }

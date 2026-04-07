@@ -12,7 +12,7 @@ public readonly record struct ConnectedSiteTopology(ImmutableArray<Site> Sites, 
 {
     public Measure SiteCount => new(Sites.Length);
 
-    public Measure RelationCount => new(Relations.Length);
+    public Measure RelationCount => new(SharedRelations().Length);
 
     public Measure CarrierCount => new(Carriers().Length);
 
@@ -51,9 +51,7 @@ public readonly record struct ConnectedSiteTopology(ImmutableArray<Site> Sites, 
         var resolved = Resolve(site);
         var relations = ImmutableArray.CreateBuilder<Relation>();
 
-        // TODO: Promote relation-backed orthogonal flows into shared connected ownership so crossbar and strand
-        // geometry can be inspected directly through this context, not only through local site incidence.
-        foreach (var relation in Relations)
+        foreach (var relation in SharedRelations())
         {
             if (SiteLeg.TryFromRelation(relation, resolved, out _))
             {
@@ -69,13 +67,9 @@ public readonly record struct ConnectedSiteTopology(ImmutableArray<Site> Sites, 
         var resolved = Resolve(site);
         var neighbors = ImmutableArray.CreateBuilder<Site>();
 
-        foreach (var relation in AlignedOn(resolved))
+        foreach (var leg in RelationLegsAt(resolved))
         {
-            if (!SiteLeg.TryFromRelation(relation, resolved, out var leg))
-            {
-                continue;
-            }
-
+            var relation = (Relation)leg.Support;
             var neighbor = leg.IsOutgoing ? relation.Anchor : leg.IsIncoming ? relation.Origin : resolved;
 
             if (!SameNode(neighbor, resolved) && !Contains(neighbors, neighbor))
@@ -106,7 +100,7 @@ public readonly record struct ConnectedSiteTopology(ImmutableArray<Site> Sites, 
     {
         var carriers = ImmutableArray.CreateBuilder<Carrier>();
 
-        foreach (var relation in Relations)
+        foreach (var relation in SharedRelations())
         {
             AddCarrier(carriers, relation.Carrier);
         }
@@ -181,11 +175,57 @@ public readonly record struct ConnectedSiteTopology(ImmutableArray<Site> Sites, 
         return merged.ToImmutable();
     }
 
+    private ImmutableArray<Relation> SharedRelations()
+    {
+        var relations = ImmutableArray.CreateBuilder<Relation>();
+
+        foreach (var relation in Relations)
+        {
+            AddRelation(relations, relation);
+        }
+
+        foreach (var site in Sites)
+        {
+            foreach (var flow in site.Orthogonal.Flows)
+            {
+                if (flow.Support is Relation relation)
+                {
+                    AddRelation(relations, relation);
+                }
+            }
+        }
+
+        return relations.ToImmutable();
+    }
+
+    private ImmutableArray<SiteLeg> RelationLegsAt(Site site)
+    {
+        var legs = ImmutableArray.CreateBuilder<SiteLeg>();
+
+        foreach (var leg in IncidenceAt(site).Legs)
+        {
+            if (leg.Support is Relation)
+            {
+                legs.Add(leg);
+            }
+        }
+
+        return legs.ToImmutable();
+    }
+
     private static void AddCarrier(ImmutableArray<Carrier>.Builder carriers, Carrier carrier)
     {
         if (!carriers.Contains(carrier))
         {
             carriers.Add(carrier);
+        }
+    }
+
+    private static void AddRelation(ImmutableArray<Relation>.Builder relations, Relation relation)
+    {
+        if (!relations.Contains(relation))
+        {
+            relations.Add(relation);
         }
     }
 

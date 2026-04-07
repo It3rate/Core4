@@ -53,7 +53,7 @@ public readonly record struct SiteIncidence(Site Site, ImmutableArray<Relation> 
 
     public static SiteIncidence Create(Site site, params Relation[] alignedRelations) => new(site, [.. alignedRelations]);
 
-    public AlignedSiteSpan GeometryOn(Carrier carrier) => AlignedSiteSpan.Create(Site, carrier, [.. AlignedOn(carrier)]);
+    public AlignedSiteSpan GeometryOn(Carrier carrier) => AlignedSiteSpan.Create(Site, carrier, [.. LegsOn(carrier)]);
 
     public ImmutableArray<Carrier> Carriers()
     {

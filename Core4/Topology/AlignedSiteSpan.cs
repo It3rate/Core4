@@ -5,16 +5,21 @@ using Core4.Structure;
 namespace Core4.Topology;
 
 /// <summary>
-/// The stage-2 aligned geometry view for one site on one carrier. It reads where the site is pinned along the local
-/// support span, whether that pin is interior or terminal, and how balanced the span is around the site.
+/// The stage-2 carrier geometry view for one site on one carrier. It reads where the site sits within the local
+/// readable span on that carrier, whether the span continues through the site or terminates there, and how balanced
+/// the span is around the site.
 /// </summary>
-public readonly record struct AlignedSiteSpan(Site Site, Carrier Carrier, ImmutableArray<Relation> Relations)
+public readonly record struct AlignedSiteSpan(Site Site, Carrier Carrier, ImmutableArray<SiteLeg> Legs)
 {
     // TODO: Prefer querying this through ConnectedSiteTopology. This local helper remains the stage-2 geometry view
     // while the connected stage-3 context grows around it.
-    public ImmutableArray<Relation> IncomingRelations => SelectRelations(-Measure.One);
+    // TODO: Generalize readable carrier geometry beyond relation-backed legs once inspection can interpolate through
+    // broader support kinds directly.
+    public ImmutableArray<Relation> IncomingRelations => SelectRelations(leg => leg.IsIncoming);
 
-    public ImmutableArray<Relation> OutgoingRelations => SelectRelations(Measure.One);
+    public ImmutableArray<Relation> OutgoingRelations => SelectRelations(leg => leg.IsOutgoing);
+
+    public Measure NonRelationLegCount => new(CountLegs(leg => leg.Support is not Relation));
 
     public Measure IncomingCount => new(IncomingRelations.Length);
 
@@ -26,7 +31,10 @@ public readonly record struct AlignedSiteSpan(Site Site, Carrier Carrier, Immuta
 
     public Measure Span => InboundSpan + OutboundSpan;
 
-    public bool HasGeometry => Span != Measure.Zero && IncomingCount.Raw <= 1L && OutgoingCount.Raw <= 1L;
+    public bool HasGeometry => NonRelationLegCount == Measure.Zero
+        && Span != Measure.Zero
+        && IncomingCount.Raw <= 1L
+        && OutgoingCount.Raw <= 1L;
 
     public bool IsInterior => IncomingCount != Measure.Zero && OutgoingCount != Measure.Zero;
 
@@ -37,11 +45,11 @@ public readonly record struct AlignedSiteSpan(Site Site, Carrier Carrier, Immuta
     public bool IsCentered => HasGeometry && InboundSpan == OutboundSpan;
 
     public Relation Support => HasGeometry
-        ? new Relation(Carrier, StartSite(), EndSite())
+        ? BuildSupport()
         : new Relation(Carrier, Site, Site);
 
     public Ratio Position => HasGeometry
-        ? Support.Project(Site).Normalize()
+        ? new Ratio(InboundSpan, Span).Normalize()
         : Ratio.Tension(Span);
 
     public Ratio Balance => HasGeometry
@@ -52,30 +60,58 @@ public readonly record struct AlignedSiteSpan(Site Site, Carrier Carrier, Immuta
         ? new Ratio((OutboundSpan - InboundSpan).Absolute, Span).Normalize()
         : Ratio.Tension(Span);
 
-    public static AlignedSiteSpan Create(Site site, Carrier carrier, params Relation[] relations) => new(site, carrier, [.. relations]);
+    public static AlignedSiteSpan Create(Site site, Carrier carrier, params SiteLeg[] legs) => new(site, carrier, [.. legs]);
 
-    private Site StartSite() => IncomingCount == Measure.One ? IncomingRelations[0].Origin : Site;
+    private Relation BuildSupport()
+    {
+        if (IncomingCount == Measure.One && OutgoingCount == Measure.One)
+        {
+            return new Relation(Carrier, IncomingRelations[0].Origin, OutgoingRelations[0].Anchor);
+        }
 
-    private Site EndSite() => OutgoingCount == Measure.One ? OutgoingRelations[0].Anchor : Site;
+        if (IncomingCount == Measure.One)
+        {
+            return IncomingRelations[0];
+        }
 
-    private ImmutableArray<Relation> SelectRelations(Measure direction)
+        if (OutgoingCount == Measure.One)
+        {
+            return OutgoingRelations[0];
+        }
+
+        return new Relation(Carrier, Site, Site);
+    }
+
+    private ImmutableArray<Relation> SelectRelations(Func<SiteLeg, bool> predicate)
     {
         var relations = ImmutableArray.CreateBuilder<Relation>();
 
-        foreach (var relation in Relations)
+        foreach (var leg in Legs)
         {
-            if (!SiteLeg.TryFromRelation(relation, Site, out var leg))
+            if (leg.Carrier != Carrier || !predicate(leg) || leg.Support is not Relation relation)
             {
                 continue;
             }
 
-            if (leg.Carrier == Carrier && leg.Direction == direction)
-            {
-                relations.Add(relation);
-            }
+            relations.Add(relation);
         }
 
         return relations.ToImmutable();
+    }
+
+    private long CountLegs(Func<SiteLeg, bool> predicate)
+    {
+        long total = 0L;
+
+        foreach (var leg in Legs)
+        {
+            if (leg.Carrier == Carrier && predicate(leg))
+            {
+                total++;
+            }
+        }
+
+        return total;
     }
 
     private static Measure SumPotential(ImmutableArray<Relation> relations)
