@@ -238,8 +238,8 @@ public sealed class InvertedPairPageView : UserControl
 
         _readingCardText.Text =
             $"Complex                   {_state.ComplexReading}\n" +
-            $"Dominant                  {_state.DominantReading}\n" +
-            $"Recessive                 {_state.RecessiveReading}\n" +
+            $"Dominant                  {_state.DisplayDominantReading}\n" +
+            $"Recessive                 {_state.DisplayRecessiveReading}\n" +
             "Mode                      Inverted pair\n" +
             $"Approx                    {_state.ApproximateReading}";
 

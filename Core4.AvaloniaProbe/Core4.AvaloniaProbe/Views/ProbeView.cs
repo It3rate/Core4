@@ -16,9 +16,11 @@ public sealed class ProbeView : UserControl
 {
     private readonly DominantOnlyPageView _dominantOnlyPage = new();
     private readonly InvertedPairPageView _invertedPairPage = new();
+    private readonly FrozenSegmentPageView _frozenSegmentPage = new();
     private readonly ContentControl _pageHost;
     private readonly Button _dominantButton;
     private readonly Button _invertedButton;
+    private readonly Button _frozenButton;
     private ProbePage _activePage = ProbePage.DominantOnly;
 
     public ProbeView()
@@ -40,6 +42,9 @@ public sealed class ProbeView : UserControl
         _invertedButton = ProbeUi.PillButton("Inverted Pair");
         _invertedButton.Click += (_, _) => SetPage(ProbePage.InvertedPair);
 
+        _frozenButton = ProbeUi.PillButton("Frozen Segment");
+        _frozenButton.Click += (_, _) => SetPage(ProbePage.FrozenSegment);
+
         var presetButtons = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -47,7 +52,8 @@ public sealed class ProbeView : UserControl
             Children =
             {
                 _dominantButton,
-                _invertedButton
+                _invertedButton,
+                _frozenButton
             }
         };
 
@@ -145,14 +151,22 @@ public sealed class ProbeView : UserControl
         }
 
         _activePage = page;
-        _pageHost.Content = page == ProbePage.DominantOnly ? _dominantOnlyPage : _invertedPairPage;
+        _pageHost.Content = page switch
+        {
+            ProbePage.DominantOnly => _dominantOnlyPage,
+            ProbePage.InvertedPair => _invertedPairPage,
+            ProbePage.FrozenSegment => _frozenSegmentPage,
+            _ => _dominantOnlyPage
+        };
         ProbeUi.ApplyPillStyle(_dominantButton, page == ProbePage.DominantOnly);
         ProbeUi.ApplyPillStyle(_invertedButton, page == ProbePage.InvertedPair);
+        ProbeUi.ApplyPillStyle(_frozenButton, page == ProbePage.FrozenSegment);
     }
 
     private enum ProbePage
     {
         DominantOnly,
-        InvertedPair
+        InvertedPair,
+        FrozenSegment
     }
 }

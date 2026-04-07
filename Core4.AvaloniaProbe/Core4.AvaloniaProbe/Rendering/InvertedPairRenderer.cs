@@ -76,14 +76,20 @@ public static class InvertedPairRenderer
         var basePoint = pointsLeft
             ? new Point(layout.DominantValuePoint.X + (arrowSize * 0.94d), layout.DominantLaneY)
             : new Point(layout.DominantValuePoint.X - (arrowSize * 0.94d), layout.DominantLaneY);
-        context.DrawLine(ProbePalette.DominantValuePen, layout.DominantLaneOrigin, basePoint);
-        ScenePrimitives.DrawTriangle(context, layout.DominantValuePoint, arrowSize, ProbePalette.Dominant, pointsLeft: pointsLeft);
+        var pen = layout.State.IsDominantHidden ? ProbePalette.HiddenValuePen : ProbePalette.DominantValuePen;
+        var fill = layout.State.IsDominantHidden ? ProbePalette.Hidden : ProbePalette.Dominant;
+        context.DrawLine(pen, layout.DominantLaneOrigin, basePoint);
+        ScenePrimitives.DrawTriangle(context, layout.DominantValuePoint, arrowSize, fill, pointsLeft: pointsLeft);
     }
 
     private static void DrawRecessiveValue(DrawingContext context, InvertedPairLayout layout)
     {
-        context.DrawLine(new Pen(ProbePalette.DominantSoft, 3.8d, lineCap: PenLineCap.Round), layout.RecessiveLaneOrigin, layout.RecessiveValuePoint);
-        ScenePrimitives.DrawCircle(context, layout.RecessiveValuePoint, 5.1d, ProbePalette.DominantSoft);
+        var pen = layout.State.IsRecessiveHidden
+            ? ProbePalette.HiddenValuePen
+            : new Pen(ProbePalette.DominantSoft, 3.8d, lineCap: PenLineCap.Round);
+        var fill = layout.State.IsRecessiveHidden ? ProbePalette.Hidden : ProbePalette.DominantSoft;
+        context.DrawLine(pen, layout.RecessiveLaneOrigin, layout.RecessiveValuePoint);
+        ScenePrimitives.DrawCircle(context, layout.RecessiveValuePoint, 5.1d, fill);
     }
 
     private static void DrawTicks(DrawingContext context, InvertedPairLayout layout)
@@ -137,8 +143,8 @@ public static class InvertedPairRenderer
     {
         var centerX = layout.Plot.Left + (layout.Plot.Width * 0.22d);
         var baseline = new Point(centerX, layout.Plot.Top + 1d);
-        var left = CreateText($"{layout.State.RecessiveReading}r +", 17d, ProbePalette.DominantSoft);
-        var right = CreateText($" {layout.State.DominantReading}d", 17d, ProbePalette.Dominant);
+        var left = CreateText($"{layout.State.DisplayRecessiveReading}r +", 17d, ProbePalette.DominantSoft);
+        var right = CreateText($" {layout.State.DisplayDominantReading}d", 17d, ProbePalette.Dominant);
         var totalWidth = left.Width + right.Width;
         var leftPoint = new Point(baseline.X - (totalWidth * 0.5d), baseline.Y);
         context.DrawText(left, leftPoint);

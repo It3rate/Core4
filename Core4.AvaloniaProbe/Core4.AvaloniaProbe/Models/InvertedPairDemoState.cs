@@ -47,11 +47,23 @@ public readonly record struct InvertedPairDemoState(
 
     public Measure RecessiveValueLocation => Origin - RecessiveValueOffset;
 
+    public bool IsDominantHidden => DominantValueOffset.Raw < 0;
+
+    public bool IsRecessiveHidden => RecessiveValueOffset.Raw < 0;
+
     public Ratio DominantReading => DominantBasis.Project(DominantValueSite).Normalize();
 
     public Ratio RecessiveReading => RecessiveBasis.Project(RecessiveValueSite).Normalize();
 
-    public string ComplexReading => $"{RecessiveReading}r + {DominantReading}d";
+    public Ratio DisplayDominantReading => IsDominantHidden
+        ? Ratio.Tension(DominantValueOffset.Absolute)
+        : DominantReading;
+
+    public Ratio DisplayRecessiveReading => IsRecessiveHidden
+        ? Ratio.Tension(RecessiveValueOffset.Absolute)
+        : RecessiveReading;
+
+    public string ComplexReading => $"{DisplayRecessiveReading}r + {DisplayDominantReading}d";
 
     public string ApproximateReading =>
         $"({RecessiveReading.Approximate:0.0}i + {DominantReading.Approximate:0.0})";
