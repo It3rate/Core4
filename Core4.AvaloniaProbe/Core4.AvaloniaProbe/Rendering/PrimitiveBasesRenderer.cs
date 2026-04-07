@@ -12,25 +12,28 @@ public static class PrimitiveBasesRenderer
 {
     private static readonly IBrush AreaFill = new SolidColorBrush(Color.Parse("#ecebe8"));
     private static readonly IBrush AntiAreaFill = new SolidColorBrush(Color.Parse("#e3ece1"));
+    private static readonly IBrush NegativeAreaFill = new SolidColorBrush(Color.Parse("#ece8e3"));
     private static readonly IBrush PrimitiveRay = new SolidColorBrush(Color.Parse("#5aa055"));
     private static readonly IBrush LabelTick = new SolidColorBrush(Color.Parse("#8f97a8"));
+    private static readonly IBrush AreaOutline = new SolidColorBrush(Color.Parse("#d9ccab"));
+    private static readonly IBrush AntiAreaOutline = new SolidColorBrush(Color.Parse("#b8d6b4"));
 
     private const double DividerX = 302d;
     private const double SelfOriginX = 140d;
     private const double SelfOriginY = 96d;
     private const double SegmentOriginX = 124d;
     private const double SegmentOriginY = 244d;
-    private const double AntiComplexOriginX = 560d;
+    private const double AntiComplexOriginX = 480d;
     private const double AreaOriginX = 770d;
     private const double AntiComplexOriginY = 96d;
     private const double AreaOriginY = 96d;
-    private const double AntiAreaOriginX = 560d;
+    private const double AntiAreaOriginX = 480d;
     private const double ComplexOriginX = 770d;
     private const double AntiAreaOriginY = 244d;
     private const double ComplexOriginY = 244d;
-    private const double CrossLeft = 560d;
-    private const double CrossRight = 770d;
-    private const double CrossCenterX = 665d;
+    private const double CrossLeft = 520d;
+    private const double CrossRight = 730d;
+    private const double CrossCenterX = 625d;
 
     public static PrimitiveBasesLayout Arrange(Rect bounds, PrimitiveBasesDemoState state)
     {
@@ -74,9 +77,6 @@ public static class PrimitiveBasesRenderer
 
     private static void DrawBackground(DrawingContext context, PrimitiveBasesLayout layout)
     {
-        var rect = layout.SceneRect;
-        context.FillRectangle(ProbePalette.Surface, rect);
-        context.DrawRectangle(null, new Pen(new SolidColorBrush(Color.Parse("#ddd6ca")), 1), rect, 20 * layout.Scale, 20 * layout.Scale);
         DrawLine(context, layout, DividerX, 94d, DividerX, 310d, new Pen(new SolidColorBrush(Color.Parse("#ddd6ca")), 1.2d * layout.Scale, lineCap: PenLineCap.Round));
         DrawLine(context, layout, CrossLeft, 170d, CrossRight, 170d, new Pen(new SolidColorBrush(Color.Parse("#e4dfd4")), 1.1d * layout.Scale, lineCap: PenLineCap.Round));
         DrawLine(context, layout, CrossCenterX, 70d, CrossCenterX, 270d, new Pen(new SolidColorBrush(Color.Parse("#e4dfd4")), 1.1d * layout.Scale, lineCap: PenLineCap.Round));
@@ -131,9 +131,11 @@ public static class PrimitiveBasesRenderer
         var top = Math.Min(AreaOriginY, AreaTopY(layout.State));
         var width = Math.Abs(AreaRightX(layout.State) - AreaOriginX);
         var height = Math.Abs(AreaTopY(layout.State) - AreaOriginY);
-        if (!layout.State.AreaIsTension && width > 0 && height > 0)
+        if (width > 0 && height > 0)
         {
-            context.FillRectangle(AreaFill, new Rect(layout.MapX(left), layout.MapY(top), width * layout.Scale, height * layout.Scale));
+            var rect = new Rect(layout.MapX(left), layout.MapY(top), width * layout.Scale, height * layout.Scale);
+            context.FillRectangle(layout.State.AreaIsTension ? NegativeAreaFill : AreaFill, rect);
+            context.DrawRectangle(null, BoxPen(AreaOutline, layout.Scale), rect);
         }
 
         DrawLine(context, layout, AreaOriginX, AreaOriginY, AreaRightX(layout.State), AreaOriginY, DominantQuadrantPen(layout, layout.State.DominantIsTension));
@@ -151,9 +153,11 @@ public static class PrimitiveBasesRenderer
         var top = Math.Min(AntiAreaOriginY, AntiAreaBottomY(layout.State));
         var width = Math.Abs(AntiAreaLeftX(layout.State) - AntiAreaOriginX);
         var height = Math.Abs(AntiAreaBottomY(layout.State) - AntiAreaOriginY);
-        if (!layout.State.AntiAreaIsTension && width > 0 && height > 0)
+        if (width > 0 && height > 0)
         {
-            context.FillRectangle(AntiAreaFill, new Rect(layout.MapX(left), layout.MapY(top), width * layout.Scale, height * layout.Scale));
+            var rect = new Rect(layout.MapX(left), layout.MapY(top), width * layout.Scale, height * layout.Scale);
+            context.FillRectangle(layout.State.AntiAreaIsTension ? NegativeAreaFill : AntiAreaFill, rect);
+            context.DrawRectangle(null, BoxPen(AntiAreaOutline, layout.Scale), rect);
         }
 
         DrawLine(context, layout, AntiAreaOriginX, AntiAreaOriginY, AntiAreaLeftX(layout.State), AntiAreaOriginY, DominantQuadrantPen(layout, layout.State.DominantIsTension));
@@ -303,8 +307,15 @@ public static class PrimitiveBasesRenderer
 
     private static Pen DashedPen(IBrush brush, double thickness, double scale) => new(
         brush,
-        thickness,
-        dashStyle: new DashStyle(new[] { 2d * scale, 2d * scale }, 0d),
+        thickness * 0.62d,
+        dashStyle: new DashStyle(new[] { 1d * scale, 1d * scale }, 0d),
+        lineCap: PenLineCap.Round,
+        lineJoin: PenLineJoin.Round);
+
+    private static Pen BoxPen(IBrush brush, double scale) => new(
+        brush,
+        1.1d * scale,
+        dashStyle: new DashStyle(new[] { 1.1d * scale, 1.1d * scale }, 0d),
         lineCap: PenLineCap.Round,
         lineJoin: PenLineJoin.Round);
 
