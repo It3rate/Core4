@@ -53,14 +53,19 @@ public static class DominantOnlyRenderer
 
         var unitArrowSize = 14d;
         var valueArrowSize = 14.8d;
-        var unitBase = new Point(layout.UnitPoint.X - (unitArrowSize * 0.78d), layout.UnitPoint.Y);
+        var unitBase = new Point(layout.UnitPoint.X - (unitArrowSize * 0.94d), layout.UnitPoint.Y);
         context.DrawLine(ProbePalette.DominantUnitPen, layout.OriginPoint, unitBase);
-        ScenePrimitives.DrawTriangle(context, layout.UnitPoint, unitArrowSize, ProbePalette.Surface, new Pen(ProbePalette.Dominant, 3.8d, lineCap: PenLineCap.Round));
+        ScenePrimitives.DrawTriangle(
+            context,
+            layout.UnitPoint,
+            unitArrowSize,
+            ProbePalette.Surface,
+            new Pen(ProbePalette.Dominant, 3.8d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
 
         var valuePen = layout.IsHiddenInverse ? ProbePalette.HiddenValuePen : ProbePalette.DominantValuePen;
         var valueBase = layout.IsHiddenInverse
-            ? new Point(layout.ValuePoint.X + (valueArrowSize * 0.78d), layout.ValuePoint.Y)
-            : new Point(layout.ValuePoint.X - (valueArrowSize * 0.78d), layout.ValuePoint.Y);
+            ? new Point(layout.ValuePoint.X + (valueArrowSize * 0.94d), layout.ValuePoint.Y)
+            : new Point(layout.ValuePoint.X - (valueArrowSize * 0.94d), layout.ValuePoint.Y);
         context.DrawLine(valuePen, layout.ValueLaneOrigin, valueBase);
 
         if (layout.IsHiddenInverse)

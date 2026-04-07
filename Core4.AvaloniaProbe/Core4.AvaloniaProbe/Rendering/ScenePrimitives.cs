@@ -74,30 +74,15 @@ public static class ScenePrimitives
 
     private static StreamGeometry TriangleGeometry(Point tip, double size, bool pointsLeft)
     {
-        var height = size * 0.58d;
-        var shoulder = size * 0.34d;
+        var height = size * 0.68d;
         var back = size * 0.92d;
-        var control = size * 0.14d;
         var direction = pointsLeft ? -1d : 1d;
-        var tipPoint = tip;
         var backX = tip.X - (direction * back);
-        var shoulderX = tip.X - (direction * shoulder);
-        var controlX = tip.X - (direction * control);
         var geometry = new StreamGeometry();
         using var stream = geometry.Open();
         stream.BeginFigure(new Point(backX, tip.Y - height), true);
-        stream.QuadraticBezierTo(
-            new Point(backX - (direction * (size * 0.08d)), tip.Y - (height * 0.72d)),
-            new Point(shoulderX, tip.Y - height));
-        stream.QuadraticBezierTo(
-            new Point(controlX, tip.Y - (height * 0.34d)),
-            tipPoint);
-        stream.QuadraticBezierTo(
-            new Point(controlX, tip.Y + (height * 0.34d)),
-            new Point(shoulderX, tip.Y + height));
-        stream.QuadraticBezierTo(
-            new Point(backX - (direction * (size * 0.08d)), tip.Y + (height * 0.72d)),
-            new Point(backX, tip.Y + height));
+        stream.LineTo(tip);
+        stream.LineTo(new Point(backX, tip.Y + height));
         stream.EndFigure(true);
         return geometry;
     }

@@ -410,7 +410,7 @@ public sealed class ProbeView : UserControl
         BorderThickness = new Thickness(0),
         FontSize = 11,
         FontFamily = ProbePalette.MonoFont,
-        Padding = new Thickness(7, 2),
+        Padding = new Thickness(10.5, 2, 4.5, 2),
         Height = 22,
         HorizontalContentAlignment = HorizontalAlignment.Left,
         VerticalContentAlignment = VerticalAlignment.Center
