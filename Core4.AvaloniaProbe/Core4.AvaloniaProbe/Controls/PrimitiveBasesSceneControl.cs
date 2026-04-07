@@ -24,8 +24,8 @@ public sealed class PrimitiveBasesSceneControl : Control
 
     public PrimitiveBasesSceneControl()
     {
-        MinHeight = 344;
-        MinWidth = 680;
+        MinHeight = 442;
+        MinWidth = 760;
         ClipToBounds = true;
     }
 

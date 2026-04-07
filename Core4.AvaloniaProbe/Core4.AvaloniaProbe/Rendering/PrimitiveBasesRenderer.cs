@@ -10,19 +10,27 @@ namespace Core4.AvaloniaProbe.Rendering;
 /// </summary>
 public static class PrimitiveBasesRenderer
 {
+    private static readonly IBrush AreaFill = new SolidColorBrush(Color.Parse("#ecebe8"));
+    private static readonly IBrush AntiAreaFill = new SolidColorBrush(Color.Parse("#e3ece1"));
+    private static readonly IBrush PrimitiveRay = new SolidColorBrush(Color.Parse("#5aa055"));
+    private static readonly IBrush LabelTick = new SolidColorBrush(Color.Parse("#8f97a8"));
+
     private const double DividerX = 302d;
     private const double SelfOriginX = 140d;
     private const double SelfOriginY = 96d;
     private const double SegmentOriginX = 124d;
     private const double SegmentOriginY = 244d;
-    private const double AntiComplexOriginX = 518d;
-    private const double AreaOriginX = 650d;
+    private const double AntiComplexOriginX = 560d;
+    private const double AreaOriginX = 770d;
     private const double AntiComplexOriginY = 96d;
     private const double AreaOriginY = 96d;
-    private const double AntiAreaOriginX = 518d;
-    private const double ComplexOriginX = 650d;
+    private const double AntiAreaOriginX = 560d;
+    private const double ComplexOriginX = 770d;
     private const double AntiAreaOriginY = 244d;
     private const double ComplexOriginY = 244d;
+    private const double CrossLeft = 560d;
+    private const double CrossRight = 770d;
+    private const double CrossCenterX = 665d;
 
     public static PrimitiveBasesLayout Arrange(Rect bounds, PrimitiveBasesDemoState state)
     {
@@ -70,8 +78,8 @@ public static class PrimitiveBasesRenderer
         context.FillRectangle(ProbePalette.Surface, rect);
         context.DrawRectangle(null, new Pen(new SolidColorBrush(Color.Parse("#ddd6ca")), 1), rect, 20 * layout.Scale, 20 * layout.Scale);
         DrawLine(context, layout, DividerX, 94d, DividerX, 310d, new Pen(new SolidColorBrush(Color.Parse("#ddd6ca")), 1.2d * layout.Scale, lineCap: PenLineCap.Round));
-        DrawLine(context, layout, 484d, 170d, 684d, 170d, new Pen(new SolidColorBrush(Color.Parse("#e4dfd4")), 1.1d * layout.Scale, lineCap: PenLineCap.Round));
-        DrawLine(context, layout, 584d, 70d, 584d, 270d, new Pen(new SolidColorBrush(Color.Parse("#e4dfd4")), 1.1d * layout.Scale, lineCap: PenLineCap.Round));
+        DrawLine(context, layout, CrossLeft, 170d, CrossRight, 170d, new Pen(new SolidColorBrush(Color.Parse("#e4dfd4")), 1.1d * layout.Scale, lineCap: PenLineCap.Round));
+        DrawLine(context, layout, CrossCenterX, 70d, CrossCenterX, 270d, new Pen(new SolidColorBrush(Color.Parse("#e4dfd4")), 1.1d * layout.Scale, lineCap: PenLineCap.Round));
     }
 
     private static void DrawSelfInteraction(DrawingContext context, PrimitiveBasesLayout layout)
@@ -107,8 +115,8 @@ public static class PrimitiveBasesRenderer
         DrawVerticalTicks(context, layout, AntiComplexOriginX, AntiComplexOriginY, -1, 3);
         DrawLine(context, layout, AntiComplexOriginX - 96d, AntiComplexOriginY, AntiComplexOriginX + 20d, AntiComplexOriginY, AxisPen(layout));
         DrawLine(context, layout, AntiComplexOriginX, AntiComplexOriginY - 96d, AntiComplexOriginX, AntiComplexOriginY + 18d, AxisPen(layout));
-        DrawLine(context, layout, AntiComplexOriginX, AntiComplexOriginY, AntiComplexHorizontalX(layout.State), AntiComplexOriginY, DominantLinePen(layout, layout.State.DominantIsTension));
-        DrawLine(context, layout, AntiComplexOriginX, AntiComplexOriginY, AntiComplexOriginX, AntiComplexTopY(layout.State), VerticalTopPen(layout, layout.State.RecessiveIsTension));
+        DrawLine(context, layout, AntiComplexOriginX, AntiComplexOriginY, AntiComplexHorizontalX(layout.State), AntiComplexOriginY, DominantQuadrantPen(layout, layout.State.DominantIsTension));
+        DrawLine(context, layout, AntiComplexOriginX, AntiComplexOriginY, AntiComplexOriginX, AntiComplexTopY(layout.State), VerticalTopQuadrantPen(layout, layout.State.RecessiveIsTension));
         DrawLine(context, layout, AntiComplexOriginX, AntiComplexOriginY, AntiComplexHorizontalX(layout.State), AntiComplexTopY(layout.State), RayPen(layout, layout.State.AntiComplexIsTension));
     }
 
@@ -125,12 +133,11 @@ public static class PrimitiveBasesRenderer
         var height = Math.Abs(AreaTopY(layout.State) - AreaOriginY);
         if (!layout.State.AreaIsTension && width > 0 && height > 0)
         {
-            context.FillRectangle(new SolidColorBrush(Color.Parse("#f5eedb")), new Rect(layout.MapX(left), layout.MapY(top), width * layout.Scale, height * layout.Scale));
-            context.DrawRectangle(new Pen(new SolidColorBrush(Color.Parse("#d9ccab")), 1.2d * layout.Scale), new Rect(layout.MapX(left), layout.MapY(top), width * layout.Scale, height * layout.Scale));
+            context.FillRectangle(AreaFill, new Rect(layout.MapX(left), layout.MapY(top), width * layout.Scale, height * layout.Scale));
         }
 
-        DrawLine(context, layout, AreaOriginX, AreaOriginY, AreaRightX(layout.State), AreaOriginY, DominantLinePen(layout, layout.State.DominantIsTension));
-        DrawLine(context, layout, AreaOriginX, AreaOriginY, AreaOriginX, AreaTopY(layout.State), VerticalTopPen(layout, layout.State.RecessiveIsTension));
+        DrawLine(context, layout, AreaOriginX, AreaOriginY, AreaRightX(layout.State), AreaOriginY, DominantQuadrantPen(layout, layout.State.DominantIsTension));
+        DrawLine(context, layout, AreaOriginX, AreaOriginY, AreaOriginX, AreaTopY(layout.State), VerticalTopQuadrantPen(layout, layout.State.RecessiveIsTension));
     }
 
     private static void DrawAntiArea(DrawingContext context, PrimitiveBasesLayout layout)
@@ -146,12 +153,11 @@ public static class PrimitiveBasesRenderer
         var height = Math.Abs(AntiAreaBottomY(layout.State) - AntiAreaOriginY);
         if (!layout.State.AntiAreaIsTension && width > 0 && height > 0)
         {
-            context.FillRectangle(new SolidColorBrush(Color.Parse("#e8e4df")), new Rect(layout.MapX(left), layout.MapY(top), width * layout.Scale, height * layout.Scale));
-            context.DrawRectangle(new Pen(new SolidColorBrush(Color.Parse("#c9c3bb")), 1.2d * layout.Scale), new Rect(layout.MapX(left), layout.MapY(top), width * layout.Scale, height * layout.Scale));
+            context.FillRectangle(AntiAreaFill, new Rect(layout.MapX(left), layout.MapY(top), width * layout.Scale, height * layout.Scale));
         }
 
-        DrawLine(context, layout, AntiAreaOriginX, AntiAreaOriginY, AntiAreaLeftX(layout.State), AntiAreaOriginY, DominantLinePen(layout, layout.State.DominantIsTension));
-        DrawLine(context, layout, AntiAreaOriginX, AntiAreaOriginY, AntiAreaOriginX, AntiAreaBottomY(layout.State), VerticalBottomPen(layout, layout.State.RecessiveIsTension));
+        DrawLine(context, layout, AntiAreaOriginX, AntiAreaOriginY, AntiAreaLeftX(layout.State), AntiAreaOriginY, DominantQuadrantPen(layout, layout.State.DominantIsTension));
+        DrawLine(context, layout, AntiAreaOriginX, AntiAreaOriginY, AntiAreaOriginX, AntiAreaBottomY(layout.State), VerticalBottomQuadrantPen(layout, layout.State.RecessiveIsTension));
     }
 
     private static void DrawComplex(DrawingContext context, PrimitiveBasesLayout layout)
@@ -160,8 +166,8 @@ public static class PrimitiveBasesRenderer
         DrawVerticalTicks(context, layout, ComplexOriginX, ComplexOriginY, 1, 3);
         DrawLine(context, layout, ComplexOriginX - 20d, ComplexOriginY, ComplexOriginX + 96d, ComplexOriginY, AxisPen(layout));
         DrawLine(context, layout, ComplexOriginX, ComplexOriginY - 18d, ComplexOriginX, ComplexOriginY + 96d, AxisPen(layout));
-        DrawLine(context, layout, ComplexOriginX, ComplexOriginY, ComplexRightX(layout.State), ComplexOriginY, DominantLinePen(layout, layout.State.DominantIsTension));
-        DrawLine(context, layout, ComplexOriginX, ComplexOriginY, ComplexOriginX, ComplexBottomY(layout.State), VerticalBottomPen(layout, layout.State.RecessiveIsTension));
+        DrawLine(context, layout, ComplexOriginX, ComplexOriginY, ComplexRightX(layout.State), ComplexOriginY, DominantQuadrantPen(layout, layout.State.DominantIsTension));
+        DrawLine(context, layout, ComplexOriginX, ComplexOriginY, ComplexOriginX, ComplexBottomY(layout.State), VerticalBottomQuadrantPen(layout, layout.State.RecessiveIsTension));
         DrawLine(context, layout, ComplexOriginX, ComplexOriginY, ComplexRightX(layout.State), ComplexBottomY(layout.State), RayPen(layout, layout.State.ComplexIsTension));
     }
 
@@ -170,10 +176,10 @@ public static class PrimitiveBasesRenderer
         DrawReading(context, layout, layout.State.ComplexReading, layout.State.ApproximateReading);
         DrawLabel(context, layout, "SELF-INTERACTION", 124d, 160d, 11d, FontWeight.ExtraBold, ProbePalette.Ink, centered: true);
         DrawLabel(context, layout, "DIRECTED SEGMENT", 124d, 286d, 11d, FontWeight.ExtraBold, ProbePalette.Ink, centered: true);
-        DrawLabel(context, layout, "ANTI-COMPLEX", 568d, 146d, 11d, FontWeight.ExtraBold, ProbePalette.Ink, rightAlign: true);
-        DrawLabel(context, layout, "AREA", 600d, 146d, 11d, FontWeight.ExtraBold, ProbePalette.Ink);
-        DrawLabel(context, layout, "ANTI-AREA", 568d, 194d, 11d, FontWeight.ExtraBold, ProbePalette.Ink, rightAlign: true);
-        DrawLabel(context, layout, "COMPLEX", 600d, 194d, 11d, FontWeight.ExtraBold, ProbePalette.Ink);
+        DrawLabel(context, layout, "ANTI-COMPLEX", CrossCenterX - 12d, 146d, 11d, FontWeight.ExtraBold, ProbePalette.Ink, rightAlign: true);
+        DrawLabel(context, layout, "AREA", CrossCenterX + 12d, 146d, 11d, FontWeight.ExtraBold, ProbePalette.Ink);
+        DrawLabel(context, layout, "ANTI-AREA", CrossCenterX - 12d, 194d, 11d, FontWeight.ExtraBold, ProbePalette.Ink, rightAlign: true);
+        DrawLabel(context, layout, "COMPLEX", CrossCenterX + 12d, 194d, 11d, FontWeight.ExtraBold, ProbePalette.Ink);
         DrawLabel(context, layout, "drag endpoints", SegmentOriginX, 316d, 12d, FontWeight.SemiBold, ProbePalette.Muted, centered: true);
     }
 
@@ -207,7 +213,7 @@ public static class PrimitiveBasesRenderer
             if (major)
             {
                 var labelY = originY + (direction > 0 ? 14d : -10d);
-                DrawLabel(context, layout, (index / 8).ToString(), x, labelY, 8d, FontWeight.Normal, new SolidColorBrush(Color.Parse("#8f97a8")), centered: true);
+                DrawLabel(context, layout, (index / 8).ToString(), x, labelY, 8d, FontWeight.Normal, LabelTick, centered: true);
             }
         }
     }
@@ -222,7 +228,7 @@ public static class PrimitiveBasesRenderer
             DrawLine(context, layout, originX - half, y, originX + half, y, TickPen(layout, major));
             if (major)
             {
-                DrawLabel(context, layout, (index / 8).ToString(), originX + 12d, y + 3d, 8d, FontWeight.Normal, new SolidColorBrush(Color.Parse("#8f97a8")));
+                DrawLabel(context, layout, (index / 8).ToString(), originX + 12d, y + 3d, 8d, FontWeight.Normal, LabelTick);
             }
         }
     }
@@ -237,25 +243,21 @@ public static class PrimitiveBasesRenderer
             ? new Point(end.X - (size * 0.94d), end.Y)
             : new Point(end.X + (size * 0.94d), end.Y);
         var pen = tension
-            ? new Pen(ProbePalette.Hidden, 3.2d * layout.Scale, dashStyle: new DashStyle(new[] { 4d * layout.Scale, 4d * layout.Scale }, 0d), lineCap: PenLineCap.Round)
+            ? DashedPen(ProbePalette.Overlay, 3.2d * layout.Scale, layout.Scale)
             : new Pen(ProbePalette.Overlay, 3.2d * layout.Scale, lineCap: PenLineCap.Round);
         context.DrawLine(pen, start, lineEnd);
-        ScenePrimitives.DrawTriangle(context, end, size, tension ? ProbePalette.Hidden : ProbePalette.Overlay, pointsLeft: !directionRight);
+        ScenePrimitives.DrawTriangle(context, end, size, ProbePalette.Overlay, pointsLeft: !directionRight);
     }
 
     private static void DrawTriangle(DrawingContext context, PrimitiveBasesLayout layout, double x, double y, IBrush brush, bool tension, bool pointsLeft)
     {
-        var pen = tension
-            ? new Pen(ProbePalette.Hidden, 3d * layout.Scale, dashStyle: new DashStyle(new[] { 4d * layout.Scale, 4d * layout.Scale }, 0d), lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round)
-            : null;
-        ScenePrimitives.DrawTriangle(context, layout.Map(x, y), 12d * layout.Scale, tension ? ProbePalette.Hidden : brush, pen, pointsLeft);
+        var pen = tension ? new Pen(brush, 1.2d * layout.Scale, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round) : null;
+        ScenePrimitives.DrawTriangle(context, layout.Map(x, y), 12d * layout.Scale, brush, pen, pointsLeft);
     }
 
     private static void DrawCircle(DrawingContext context, PrimitiveBasesLayout layout, double x, double y, IBrush brush, bool tension)
     {
-        var stroke = tension
-            ? new Pen(ProbePalette.Hidden, 3d * layout.Scale, dashStyle: new DashStyle(new[] { 4d * layout.Scale, 4d * layout.Scale }, 0d), lineCap: PenLineCap.Round)
-            : new Pen(brush, 3d * layout.Scale, lineCap: PenLineCap.Round);
+        var stroke = new Pen(brush, 3d * layout.Scale, lineCap: PenLineCap.Round);
         ScenePrimitives.DrawCircle(context, layout.Map(x, y), 5d * layout.Scale, ProbePalette.Surface, stroke);
     }
 
@@ -290,16 +292,19 @@ public static class PrimitiveBasesRenderer
         1d * layout.Scale,
         lineCap: PenLineCap.Round);
 
-    private static Pen DominantLinePen(PrimitiveBasesLayout layout, bool tension) => tension ? HiddenDashPen(layout) : new Pen(ProbePalette.Dominant, 3.4d * layout.Scale, lineCap: PenLineCap.Round);
-    private static Pen RecessiveLinePen(PrimitiveBasesLayout layout, bool tension) => tension ? HiddenDashPen(layout) : new Pen(ProbePalette.DominantSoft, 3.4d * layout.Scale, lineCap: PenLineCap.Round);
-    private static Pen VerticalTopPen(PrimitiveBasesLayout layout, bool tension) => tension ? HiddenDashPen(layout) : new Pen(ProbePalette.Orthogonal, 3.4d * layout.Scale, lineCap: PenLineCap.Round);
-    private static Pen VerticalBottomPen(PrimitiveBasesLayout layout, bool tension) => tension ? HiddenDashPen(layout) : new Pen(ProbePalette.OrthogonalInput, 3.4d * layout.Scale, lineCap: PenLineCap.Round);
-    private static Pen RayPen(PrimitiveBasesLayout layout, bool tension) => tension ? HiddenDashPen(layout) : new Pen(ProbePalette.Hidden, 2.2d * layout.Scale, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+    private static Pen DominantLinePen(PrimitiveBasesLayout layout, bool tension) => tension ? DashedPen(ProbePalette.Dominant, 3.4d * layout.Scale, layout.Scale) : new Pen(ProbePalette.Dominant, 3.4d * layout.Scale, lineCap: PenLineCap.Round);
+    private static Pen RecessiveLinePen(PrimitiveBasesLayout layout, bool tension) => tension ? DashedPen(ProbePalette.DominantSoft, 3.4d * layout.Scale, layout.Scale) : new Pen(ProbePalette.DominantSoft, 3.4d * layout.Scale, lineCap: PenLineCap.Round);
+    private static Pen VerticalTopPen(PrimitiveBasesLayout layout, bool tension) => tension ? DashedPen(ProbePalette.Orthogonal, 3.4d * layout.Scale, layout.Scale) : new Pen(ProbePalette.Orthogonal, 3.4d * layout.Scale, lineCap: PenLineCap.Round);
+    private static Pen VerticalBottomPen(PrimitiveBasesLayout layout, bool tension) => tension ? DashedPen(ProbePalette.OrthogonalInput, 3.4d * layout.Scale, layout.Scale) : new Pen(ProbePalette.OrthogonalInput, 3.4d * layout.Scale, lineCap: PenLineCap.Round);
+    private static Pen DominantQuadrantPen(PrimitiveBasesLayout layout, bool tension) => tension ? DashedPen(ProbePalette.Dominant, 4.4d * layout.Scale, layout.Scale) : new Pen(ProbePalette.Dominant, 4.4d * layout.Scale, lineCap: PenLineCap.Round);
+    private static Pen VerticalTopQuadrantPen(PrimitiveBasesLayout layout, bool tension) => tension ? DashedPen(ProbePalette.Orthogonal, 4.4d * layout.Scale, layout.Scale) : new Pen(ProbePalette.Orthogonal, 4.4d * layout.Scale, lineCap: PenLineCap.Round);
+    private static Pen VerticalBottomQuadrantPen(PrimitiveBasesLayout layout, bool tension) => tension ? DashedPen(ProbePalette.OrthogonalInput, 4.4d * layout.Scale, layout.Scale) : new Pen(ProbePalette.OrthogonalInput, 4.4d * layout.Scale, lineCap: PenLineCap.Round);
+    private static Pen RayPen(PrimitiveBasesLayout layout, bool tension) => tension ? DashedPen(PrimitiveRay, 3.2d * layout.Scale, layout.Scale) : new Pen(PrimitiveRay, 3.2d * layout.Scale, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
 
-    private static Pen HiddenDashPen(PrimitiveBasesLayout layout) => new(
-        ProbePalette.Hidden,
-        3.2d * layout.Scale,
-        dashStyle: new DashStyle(new[] { 4d * layout.Scale, 4d * layout.Scale }, 0d),
+    private static Pen DashedPen(IBrush brush, double thickness, double scale) => new(
+        brush,
+        thickness,
+        dashStyle: new DashStyle(new[] { 2d * scale, 2d * scale }, 0d),
         lineCap: PenLineCap.Round,
         lineJoin: PenLineJoin.Round);
 

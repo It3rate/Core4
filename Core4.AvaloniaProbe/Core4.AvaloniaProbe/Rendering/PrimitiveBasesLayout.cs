@@ -8,7 +8,7 @@ namespace Core4.AvaloniaProbe.Rendering;
 /// </summary>
 public readonly record struct PrimitiveBasesLayout(Rect SceneRect, double Scale, PrimitiveBasesDemoState State)
 {
-    public const double SceneWidth = 820d;
+    public const double SceneWidth = 920d;
     public const double SceneHeight = 340d;
     public const double TickPixels = 4.5d;
     public const double UnitPixels = TickPixels * 8d;
