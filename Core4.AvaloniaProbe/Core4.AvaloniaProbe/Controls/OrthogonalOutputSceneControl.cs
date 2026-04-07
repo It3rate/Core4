@@ -19,7 +19,7 @@ public sealed class OrthogonalOutputSceneControl : Control
     private const long MaximumOrigin = 16L;
     private const long MinimumSpan = 1L;
     private const long MaximumSpan = 16L;
-    private const long MaximumOutput = 16L;
+    private const long MaximumOutput = 14L;
 
     private OrthogonalOutputDemoState _state = OrthogonalOutputDemoState.Default;
     private DragSession _activeDrag;
@@ -143,11 +143,13 @@ public sealed class OrthogonalOutputSceneControl : Control
         var origin = Clamp(state.Origin, MinimumOrigin, MaximumOrigin);
         var span = Clamp(state.Span.Absolute, MinimumSpan, MaximumSpan);
         var output = Clamp(state.TopOutput.Absolute, 0L, MaximumOutput);
+        var tension = Clamp(state.TopTension, -22L, 20L);
         return state with
         {
             Origin = origin,
             Span = span,
-            TopOutput = output
+            TopOutput = output,
+            TopTension = tension
         };
     }
 

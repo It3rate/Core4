@@ -18,7 +18,9 @@ namespace Core4.AvaloniaProbe.Views;
 public sealed class OrthogonalOutputPageView : UserControl
 {
     private const long MaximumSpan = 16L;
-    private const long MaximumOutput = 16L;
+    private const long MinimumTension = -22L;
+    private const long MaximumTension = 20L;
+    private const long MaximumOutput = 14L;
     private readonly OrthogonalOutputSceneControl _scene;
     private readonly MeasureSliderControl _topOutputSlider;
     private readonly MeasureSliderControl _topTensionSlider;
@@ -49,8 +51,8 @@ public sealed class OrthogonalOutputPageView : UserControl
             SyncUiFromState();
         };
 
-        _topOutputSlider = ProbeUi.CreateSlider(0, 16, _state.TopOutput.Raw, ProbePalette.Orthogonal, true);
-        _topTensionSlider = ProbeUi.CreateSlider(-16, 16, _state.TopTension.Raw, ProbePalette.TensionPositive, false);
+        _topOutputSlider = ProbeUi.CreateSlider(0, MaximumOutput, _state.TopOutput.Raw, ProbePalette.Orthogonal, true);
+        _topTensionSlider = ProbeUi.CreateSlider(MinimumTension, MaximumTension, _state.TopTension.Raw, ProbePalette.TensionPositive, false);
 
         _topOutputSlider.ValueChanged += (_, value) =>
         {
@@ -183,9 +185,10 @@ public sealed class OrthogonalOutputPageView : UserControl
     private void SyncUiFromState()
     {
         _syncing = true;
-        var tensionExtent = Math.Max(16L, Math.Abs(_state.TopTension.Raw) + 8L);
-        _topTensionSlider.Minimum = -tensionExtent;
-        _topTensionSlider.Maximum = tensionExtent;
+        _topOutputSlider.Minimum = 0;
+        _topOutputSlider.Maximum = MaximumOutput;
+        _topTensionSlider.Minimum = MinimumTension;
+        _topTensionSlider.Maximum = MaximumTension;
         _topOutputSlider.Value = _state.TopOutput.Raw;
         _topTensionSlider.Value = _state.TopTension.Raw;
         _topOutputBox.Text = _state.TopOutput.Raw.ToString();
@@ -246,5 +249,6 @@ public sealed class OrthogonalOutputPageView : UserControl
     private static OrthogonalOutputDemoState Normalize(OrthogonalOutputDemoState state) =>
         state
             .WithSpan(new Measure(Math.Clamp(state.Span.Raw, 1L, MaximumSpan)))
-            .WithTopOutput(new Measure(Math.Clamp(state.TopOutput.Raw, 0L, MaximumOutput)));
+            .WithTopOutput(new Measure(Math.Clamp(state.TopOutput.Raw, 0L, MaximumOutput)))
+            .WithTopTension(new Measure(Math.Clamp(state.TopTension.Raw, MinimumTension, MaximumTension)));
 }

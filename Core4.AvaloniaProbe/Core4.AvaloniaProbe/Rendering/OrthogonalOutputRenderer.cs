@@ -19,7 +19,7 @@ public static class OrthogonalOutputRenderer
             Math.Max(160d, bounds.Width - 48d),
             Math.Max(220d, bounds.Height - 36d));
 
-        var axisY = plot.Y + (plot.Height * 0.64d);
+        var axisY = plot.Y + (plot.Height * 0.87d);
         var segmentLayout = new FrozenSegmentLayout(
             plot,
             state.Segment,
@@ -38,7 +38,7 @@ public static class OrthogonalOutputRenderer
         var tensionTip = new Point(segmentLayout.OriginPoint.X, segmentLayout.AxisY - Math.Max(outputHeight, tensionReach));
         var tensionAmplitude = state.TopTension == Measure.Zero
             ? 0d
-            : Math.Max(4.5d, Math.Min(8d, Math.Abs(state.TopTension.Raw) * 0.55d));
+            : Math.Max(3.8d, Math.Min(24d, Math.Abs(state.TopTension.Raw) * 1.2d));
 
         return new OrthogonalOutputLayout(
             segmentLayout,
@@ -57,8 +57,8 @@ public static class OrthogonalOutputRenderer
     public static void Render(DrawingContext context, OrthogonalOutputLayout layout)
     {
         FrozenSegmentRenderer.DrawSegment(context, layout.SegmentLayout, includeReadout: false);
-        DrawOutput(context, layout);
         DrawTension(context, layout);
+        DrawOutput(context, layout);
         FrozenSegmentRenderer.DrawReadout(context, layout.SegmentLayout);
     }
 
