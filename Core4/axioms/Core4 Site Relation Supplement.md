@@ -687,3 +687,81 @@ frozen invariant.
 
 This is likely one of the main bridges from static fused structure into
 operation, traversal, and later tension-lowering processes.
+
+## 19. Orbit, Rotation, And True Periodicity
+
+Circular-looking behavior should not all be collapsed into one claim.
+
+There is an important distinction between:
+
+- an **orbit**: a family of equal-magnitude positions around an origin
+- a **rotation**: ordered traversal through that family
+- a **loop**: true re-entry of the same path or state
+- **periodicity**: repeated re-entry under a stable turning law
+
+This matters because a projected path may look circular without actually
+closing.
+
+For example:
+
+- a spiral may look like repeated looping from one perspective
+- but if it is still advancing on another carrier, it is not truly rejoining
+  the same position in full structure
+
+So visual overlap is weaker than structural re-entry.
+
+One good Core4 reading is:
+
+- fix an origin
+- freeze a ray-like magnitude
+- allow ordered change in the position of the endpoint
+
+Then a circular orbit appears as the locus of positions with equal frozen
+magnitude, while rotation is the ordered traversal of those endpoint
+positions.
+
+This matters because it lets turning emerge from constrained geometric motion
+rather than assuming orientation in advance.
+
+Under this reading:
+
+- the orbit is the geometric family
+- rotation is motion through that family
+- loop closure only appears when the path truly rejoins itself
+
+So a drawn circle in a plane is weaker than a genuinely closed support.
+
+A stronger periodic claim means the system returns not only to a projected
+location, but to an equivalent structural state under the chosen reading.
+
+This suggests that modulo full turn should be treated as a later commitment,
+not as an automatic consequence of every circular-looking motion.
+
+It is also useful to note that circular or oscillatory behavior may emerge from
+carrier response itself.
+
+If an origin or frozen landmark affects traversal along a carrier, then motion
+need not remain uniform.
+
+For example:
+
+- motion toward an origin may accelerate
+- motion away from it may decelerate
+- the support being traversed can therefore perturb the traversal itself
+
+This is important because it means action is not only one structure affecting
+another. The traversed structure may also react back on the traversal.
+
+That makes oscillation, orbital bias, and periodic return feel like natural
+extensions of the same relation law rather than like a separate mechanics
+system.
+
+So the promising long-term Core4 reading is:
+
+- a traveler perturbs structure
+- structure perturbs the traveler
+- some frozen invariant may constrain the family of allowed positions
+- if those constraints and responses truly rejoin, the result is loop or
+  periodicity
+- if they only repeat in projection, the result is orbit-like appearance
+  without full closure
