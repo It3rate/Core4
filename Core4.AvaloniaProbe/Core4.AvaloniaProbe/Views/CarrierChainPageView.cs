@@ -25,6 +25,7 @@ public sealed class CarrierChainPageView : UserControl
     private readonly Button _hBridgeButton;
     private readonly Button _fanInButton;
     private readonly Button _triangleButton;
+    private readonly Button _diamondCrossButton;
     private readonly TextBlock _sceneDescriptionText;
     private readonly TextBlock _metaPresetText;
     private readonly TextBlock _metaCarrierText;
@@ -62,6 +63,9 @@ public sealed class CarrierChainPageView : UserControl
         _triangleButton = ProbeUi.PillButton("Triangle");
         _triangleButton.Click += (_, _) => ApplyState(CarrierChainDemoState.Triangle);
 
+        _diamondCrossButton = ProbeUi.PillButton("Diamond Cross");
+        _diamondCrossButton.Click += (_, _) => ApplyState(CarrierChainDemoState.DiamondCross);
+
         var resetButton = ProbeUi.PillButton("Reset Layout");
         resetButton.Click += (_, _) => _scene.ResetLayout();
 
@@ -91,6 +95,7 @@ public sealed class CarrierChainPageView : UserControl
                         _hBridgeButton,
                         _fanInButton,
                         _triangleButton,
+                        _diamondCrossButton,
                         resetButton
                     }
                 }, 20, new Thickness(12, 10)),
@@ -211,6 +216,7 @@ public sealed class CarrierChainPageView : UserControl
         ProbeUi.ApplyPillStyle(_hBridgeButton, _state.Label == CarrierChainDemoState.HBridge.Label);
         ProbeUi.ApplyPillStyle(_fanInButton, _state.Label == CarrierChainDemoState.FanIn.Label);
         ProbeUi.ApplyPillStyle(_triangleButton, _state.Label == CarrierChainDemoState.Triangle.Label);
+        ProbeUi.ApplyPillStyle(_diamondCrossButton, _state.Label == CarrierChainDemoState.DiamondCross.Label);
 
         _sceneDescriptionText.Text = _state.Description;
         _metaPresetText.Text = _state.Label;

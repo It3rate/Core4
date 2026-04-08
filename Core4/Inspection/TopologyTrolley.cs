@@ -214,7 +214,7 @@ public readonly record struct TopologyTrolleyObservation(
 
             foreach (var continuation in Continuations)
             {
-                if (!continuation.ReturnsAlongIngress)
+                if (!continuation.ReturnsAlongIngress && !continuation.IsIncoming)
                 {
                     continuations.Add(continuation);
                 }

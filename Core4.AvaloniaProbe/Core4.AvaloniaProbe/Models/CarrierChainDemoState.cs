@@ -33,6 +33,8 @@ public readonly record struct CarrierChainDemoState(
 
     public static CarrierChainDemoState Triangle => CreateTriangle();
 
+    public static CarrierChainDemoState DiamondCross => CreateDiamondCross();
+
     private static CarrierChainDemoState CreateTJunction()
     {
         Carrier x = 1;
@@ -251,6 +253,79 @@ public readonly record struct CarrierChainDemoState(
                 (apex, 0.50d, 0.22d),
                 (apexJoin, 0.50d, 0.22d),
                 (rightJoin, 0.76d, 0.74d)));
+    }
+
+    private static CarrierChainDemoState CreateDiamondCross()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+        Carrier z = 3;
+        Carrier w = 4;
+
+        var left = Site.Open(x, new Measure(0));
+        var entry = Site.Open(x, new Measure(4))
+            .Publish(
+                new Relation(
+                    Site.Open(y, new Measure(0)),
+                    Site.Open(y, new Measure(4))),
+                Ratio.Tension(new Measure(4)))
+            .Publish(
+                new Relation(
+                    Site.Open(z, new Measure(0)),
+                    Site.Open(z, new Measure(4))),
+                Ratio.Tension(new Measure(4)));
+
+        var upperApex = Site.Open(y, new Measure(4));
+        var upperExit = Site.Open(y, new Measure(8));
+        var lowerApex = Site.Open(z, new Measure(4));
+        var lowerExit = Site.Open(z, new Measure(8));
+        var merge = Site.Open(x, new Measure(12))
+            .Request(
+                new Relation(y, upperApex, upperExit),
+                Ratio.Tension(new Measure(4)))
+            .Request(
+                new Relation(z, lowerApex, lowerExit),
+                Ratio.Tension(new Measure(4)));
+
+        var verticalLow = Site.Open(w, new Measure(-4));
+        var verticalMid = Site.Open(w, new Measure(0));
+        var verticalHigh = Site.Open(w, new Measure(4));
+        var cross = Site.Open(x, new Measure(18))
+            .Request(
+                new Relation(verticalLow, verticalMid),
+                Ratio.Tension(new Measure(4)))
+            .Publish(
+                new Relation(verticalMid, verticalHigh),
+                Ratio.Tension(new Measure(4)));
+        var right = Site.Open(x, new Measure(22));
+
+        var upperEntry = Site.Open(y, new Measure(0));
+        var lowerEntry = Site.Open(z, new Measure(0));
+
+        return new CarrierChainDemoState(
+            "Diamond Cross",
+            "One carrier enters a diamond split, rejoins on the far side, then continues into a vertical through-site so one walk expresses branch, merge, continuation, and crossing.",
+            ConnectedSiteTopology.Create(
+                [entry, merge, cross],
+                new Relation(left, entry),
+                new Relation(merge, cross),
+                new Relation(cross, right)),
+            merge,
+            Seed(
+                (left, 0.10d, 0.54d),
+                (entry, 0.28d, 0.54d),
+                (upperEntry, 0.28d, 0.54d),
+                (upperApex, 0.42d, 0.30d),
+                (upperExit, 0.56d, 0.54d),
+                (lowerEntry, 0.28d, 0.54d),
+                (lowerApex, 0.42d, 0.78d),
+                (lowerExit, 0.56d, 0.54d),
+                (merge, 0.56d, 0.54d),
+                (cross, 0.78d, 0.56d),
+                (right, 0.90d, 0.57d),
+                (verticalLow, 0.78d, 0.86d),
+                (verticalMid, 0.78d, 0.56d),
+                (verticalHigh, 0.78d, 0.14d)));
     }
 
     private static ImmutableDictionary<Site, Point> Seed(params (Site Site, double X, double Y)[] items)

@@ -27,11 +27,13 @@ public sealed class TopologyTrolleyPageView : UserControl
     private readonly Button _tJunctionButton;
     private readonly Button _lCornerButton;
     private readonly Button _yBranchButton;
+    private readonly Button _diamondCrossButton;
     private readonly Button _continueButton;
     private readonly Button _leftButton;
     private readonly Button _rightButton;
     private readonly Button _forkButton;
     private readonly Button _reverseButton;
+    private readonly Button _autoButton;
     private readonly TextBlock _sceneDescriptionText;
     private readonly TextBlock _metaPresetText;
     private readonly TextBlock _metaFrontierText;
@@ -47,6 +49,7 @@ public sealed class TopologyTrolleyPageView : UserControl
     private ImmutableArray<TopologyTrolley> _pendingFrontiers = ImmutableArray<TopologyTrolley>.Empty;
     private DateTime _animationStartedUtc;
     private TimeSpan _activeMotionDuration;
+    private AutoTraversePhase _autoPhase;
 
     public TopologyTrolleyPageView()
     {
@@ -73,6 +76,9 @@ public sealed class TopologyTrolleyPageView : UserControl
         _yBranchButton = ProbeUi.PillButton("Y Branch");
         _yBranchButton.Click += (_, _) => ApplyPreset(TrolleyPreset.YBranch);
 
+        _diamondCrossButton = ProbeUi.PillButton("Diamond Cross");
+        _diamondCrossButton.Click += (_, _) => ApplyPreset(TrolleyPreset.DiamondCross);
+
         _continueButton = ProbeUi.PillButton("Continue Preferred");
         _continueButton.Click += (_, _) => ContinuePreferred();
 
@@ -87,6 +93,9 @@ public sealed class TopologyTrolleyPageView : UserControl
 
         _reverseButton = ProbeUi.PillButton("Reverse");
         _reverseButton.Click += (_, _) => ReverseAll();
+
+        _autoButton = ProbeUi.PillButton("Auto");
+        _autoButton.Click += (_, _) => ToggleAuto();
 
         var resetWalkButton = ProbeUi.PillButton("Reset Walk");
         resetWalkButton.Click += (_, _) => ResetWalk();
@@ -114,7 +123,8 @@ public sealed class TopologyTrolleyPageView : UserControl
                         ProbeUi.Mono("TROLLEY PRESETS", 10d, ProbePalette.Muted),
                         _tJunctionButton,
                         _lCornerButton,
-                        _yBranchButton
+                        _yBranchButton,
+                        _diamondCrossButton
                     }
                 }, 20, new Thickness(12, 10)),
                 ProbeUi.Card(new StackPanel
@@ -128,6 +138,7 @@ public sealed class TopologyTrolleyPageView : UserControl
                         _rightButton,
                         _forkButton,
                         _reverseButton,
+                        _autoButton,
                         resetWalkButton
                     }
                 }, 20, new Thickness(12, 10)),
@@ -146,7 +157,7 @@ public sealed class TopologyTrolleyPageView : UserControl
                     Children =
                     {
                         ProbeUi.Mono("INSPECTION RULE", 10d, ProbePalette.Muted),
-                        ProbeUi.Body("Purple side dots show the path already traversed. Green dotted lines show forward exits available from the current frontier. The trolley is external to topology: continue keeps one frontier, left/right choose one visible exit, and fork all splits across every forward exit.", 10d)
+                        ProbeUi.Body("Purple side dots show the path already traversed. Green dotted lines show forward exits available from the current frontier. The trolley is external to topology: continue keeps one frontier, left/right choose one visible exit, fork all splits across every forward exit, and auto fans out until every frontier terminates before each one returns along its own trail.", 10d)
                     }
                 }, 20, new Thickness(12, 10))
             }
@@ -236,6 +247,7 @@ public sealed class TopologyTrolleyPageView : UserControl
     private void ApplyPreset(TrolleyPreset preset)
     {
         StopAnimation();
+        StopAuto();
         _preset = preset;
         _scene.State = preset.Scene;
         ResetWalk();
@@ -244,6 +256,7 @@ public sealed class TopologyTrolleyPageView : UserControl
     private void ResetWalk()
     {
         StopAnimation();
+        StopAuto();
         _frontiers = [TopologyTrolley.Start(_preset.Scene.Topology, _preset.StartSite)];
         _scene.ResetLayout();
         SyncUi();
@@ -369,6 +382,125 @@ public sealed class TopologyTrolleyPageView : UserControl
         StartAnimation(motions.ToImmutable(), next.ToImmutable());
     }
 
+    private void ToggleAuto()
+    {
+        if (IsAutoRunning)
+        {
+            StopAuto();
+            SyncUi();
+            return;
+        }
+
+        if (HasActiveMotion)
+        {
+            return;
+        }
+
+        _autoPhase = AutoTraversePhase.Outbound;
+        SyncUi();
+        AdvanceAuto();
+    }
+
+    private void AdvanceAuto()
+    {
+        if (!IsAutoRunning || HasActiveMotion)
+        {
+            return;
+        }
+
+        if (_autoPhase == AutoTraversePhase.Outbound)
+        {
+            if (TryStartAutoForward())
+            {
+                return;
+            }
+
+            _autoPhase = AutoTraversePhase.Returning;
+            SyncUi();
+        }
+
+        if (_autoPhase == AutoTraversePhase.Returning)
+        {
+            if (TryStartAutoReverse())
+            {
+                return;
+            }
+
+            StopAuto();
+            SyncUi();
+        }
+    }
+
+    // Auto traversal keeps one frontier per traversed history. When branches meet again they may share a site or line,
+    // but they do not collapse into one path yet so the return pass can peel back along the same branch structure.
+    private bool TryStartAutoForward()
+    {
+        var next = ImmutableArray.CreateBuilder<TopologyTrolley>();
+        var motions = ImmutableArray.CreateBuilder<TrolleyMotion>();
+
+        foreach (var frontier in _frontiers)
+        {
+            var forward = frontier.Observe().ForwardContinuations;
+
+            if (forward.Length == 0)
+            {
+                next.Add(frontier);
+                continue;
+            }
+
+            foreach (var continuation in forward)
+            {
+                var moved = frontier.Move(continuation);
+
+                // Auto merge currently absorbs later arrivals into the first frontier that reaches a shared site.
+                // That keeps one surviving trolley on the merged line instead of reflecting duplicated return paths.
+                if (!TryAddAutoFrontier(next, moved))
+                {
+                    continue;
+                }
+
+                motions.Add(TrolleyMotion.Forward(frontier, moved));
+            }
+        }
+
+        if (motions.Count == 0)
+        {
+            return false;
+        }
+
+        StartAnimation(motions.ToImmutable(), next.ToImmutable());
+        return true;
+    }
+
+    private bool TryStartAutoReverse()
+    {
+        var next = ImmutableArray.CreateBuilder<TopologyTrolley>(_frontiers.Length);
+        var motions = ImmutableArray.CreateBuilder<TrolleyMotion>();
+
+        foreach (var frontier in _frontiers)
+        {
+            if (frontier.TryReverse(out var reversed))
+            {
+                if (TryAddAutoFrontier(next, reversed))
+                {
+                    motions.Add(TrolleyMotion.Reverse(frontier, reversed));
+                }
+            }
+            else
+            {
+                TryAddAutoFrontier(next, frontier);
+            }
+        }
+
+        if (motions.Count == 0)
+        {
+            return false;
+        }
+
+        StartAnimation(motions.ToImmutable(), next.ToImmutable());
+        return true;
+    }
+
     private void TakeSingleContinuation(TopologyTrolleyContinuation continuation)
     {
         if (_frontiers.Length != 1 || HasActiveMotion)
@@ -385,17 +517,19 @@ public sealed class TopologyTrolleyPageView : UserControl
         ProbeUi.ApplyPillStyle(_tJunctionButton, _preset.Label == TrolleyPreset.TJunction.Label);
         ProbeUi.ApplyPillStyle(_lCornerButton, _preset.Label == TrolleyPreset.LCorner.Label);
         ProbeUi.ApplyPillStyle(_yBranchButton, _preset.Label == TrolleyPreset.YBranch.Label);
+        ProbeUi.ApplyPillStyle(_diamondCrossButton, _preset.Label == TrolleyPreset.DiamondCross.Label);
 
-        _tJunctionButton.IsEnabled = !HasActiveMotion;
-        _lCornerButton.IsEnabled = !HasActiveMotion;
-        _yBranchButton.IsEnabled = !HasActiveMotion;
-        _scene.IsHitTestVisible = !HasActiveMotion;
+        var allowPresetChange = !HasActiveMotion && !IsAutoRunning;
+        _tJunctionButton.IsEnabled = allowPresetChange;
+        _lCornerButton.IsEnabled = allowPresetChange;
+        _yBranchButton.IsEnabled = allowPresetChange;
+        _diamondCrossButton.IsEnabled = allowPresetChange;
+        _scene.IsHitTestVisible = true;
         _sceneDescriptionText.Text = _preset.Description;
         _metaPresetText.Text = _preset.Label;
-        _metaFrontierText.Text = HasActiveMotion
-            ? $"{MotionFrontierCount()} frontier{(MotionFrontierCount() == 1 ? string.Empty : "s")} moving"
-            : $"{_frontiers.Length} frontier{(_frontiers.Length == 1 ? string.Empty : "s")}";
+        _metaFrontierText.Text = DescribeFrontierStatus();
         _metaChainText.Text = $"{_preset.Scene.Chains.Length} chains";
+        _autoButton.Content = IsAutoRunning ? "Stop Auto" : "Auto";
         _scene.Overlay = BuildOverlay();
         _currentText.Text = DescribeCurrent();
         _observationText.Text = DescribeObservation();
@@ -432,7 +566,7 @@ public sealed class TopologyTrolleyPageView : UserControl
 
                 if (TryCreateReadout(frontier, layout, out var readout))
                 {
-                    readouts.Add(readout);
+                    AddReadout(readouts, readout);
                 }
             }
 
@@ -466,12 +600,14 @@ public sealed class TopologyTrolleyPageView : UserControl
                     }
                 }
 
-                motionOverlays.Add(new CarrierChainOverlayMotion(
-                    motion.Relation,
-                    motion.FromSite,
-                    motion.ToSite,
-                    motion.TrailAnchor,
-                    EaseOut(MotionProgress())));
+                AddMotion(
+                    motionOverlays,
+                    new CarrierChainOverlayMotion(
+                        motion.Relation,
+                        motion.FromSite,
+                        motion.ToSite,
+                        motion.TrailAnchor,
+                        EaseOut(MotionProgress())));
             }
         }
 
@@ -487,6 +623,12 @@ public sealed class TopologyTrolleyPageView : UserControl
     private void RebuildCandidateButtons()
     {
         _candidatePanel.Children.Clear();
+
+        if (IsAutoRunning)
+        {
+            _candidatePanel.Children.Add(ProbeUi.Body("Auto is traversing every available branch and will reverse each frontier once no forward exits remain.", 10d));
+            return;
+        }
 
         if (HasActiveMotion)
         {
@@ -529,13 +671,14 @@ public sealed class TopologyTrolleyPageView : UserControl
         var hasForward = false;
         var hasReverse = false;
 
-        if (HasActiveMotion)
+        if (HasActiveMotion || IsAutoRunning)
         {
             _continueButton.IsEnabled = false;
             _leftButton.IsEnabled = false;
             _rightButton.IsEnabled = false;
             _forkButton.IsEnabled = false;
             _reverseButton.IsEnabled = false;
+            _autoButton.IsEnabled = IsAutoRunning || !HasActiveMotion;
             return;
         }
 
@@ -552,6 +695,7 @@ public sealed class TopologyTrolleyPageView : UserControl
         _rightButton.IsEnabled = hasForward;
         _forkButton.IsEnabled = hasForward;
         _reverseButton.IsEnabled = hasReverse;
+        _autoButton.IsEnabled = true;
     }
 
     private string DescribeCurrent()
@@ -641,6 +785,26 @@ public sealed class TopologyTrolleyPageView : UserControl
         return builder.ToString();
     }
 
+    private string DescribeFrontierStatus()
+    {
+        var count = HasActiveMotion ? MotionFrontierCount() : _frontiers.Length;
+        var label = $"{count} frontier{(count == 1 ? string.Empty : "s")}";
+
+        if (HasActiveMotion)
+        {
+            label += " moving";
+        }
+
+        if (IsAutoRunning)
+        {
+            label += _autoPhase == AutoTraversePhase.Outbound
+                ? " · auto out"
+                : " · auto back";
+        }
+
+        return label;
+    }
+
     private static string ContinuationLabel(TopologyTrolleyContinuation continuation) =>
         $"{CarrierLabel(continuation.Carrier)}:{continuation.Potential.Raw} to {SiteLabel(continuation.To)}";
 
@@ -670,6 +834,8 @@ public sealed class TopologyTrolleyPageView : UserControl
     }
 
     private bool HasActiveMotion => !_motions.IsDefaultOrEmpty && _motions.Length != 0;
+
+    private bool IsAutoRunning => _autoPhase != AutoTraversePhase.Idle;
 
     private int MotionFrontierCount() => _pendingFrontiers.IsDefaultOrEmpty ? _frontiers.Length : _pendingFrontiers.Length;
 
@@ -711,6 +877,11 @@ public sealed class TopologyTrolleyPageView : UserControl
         _activeMotionDuration = TimeSpan.Zero;
     }
 
+    private void StopAuto()
+    {
+        _autoPhase = AutoTraversePhase.Idle;
+    }
+
     private void OnAnimationTick(object? sender, EventArgs e)
     {
         if (!HasActiveMotion)
@@ -736,12 +907,17 @@ public sealed class TopologyTrolleyPageView : UserControl
         StopAnimation();
         _frontiers = finalFrontiers;
         SyncUi();
+
+        if (IsAutoRunning)
+        {
+            Dispatcher.UIThread.Post(AdvanceAuto, DispatcherPriority.Background);
+        }
     }
 
     private static double EaseOut(double progress)
     {
         var inverse = 1d - progress;
-        return 1d - (inverse * inverse * inverse);
+        return 1d - (inverse * inverse);
     }
 
     private TimeSpan ResolveMotionDuration(ImmutableArray<TrolleyMotion> motions)
@@ -852,6 +1028,52 @@ public sealed class TopologyTrolleyPageView : UserControl
         sites.Add(site);
     }
 
+    private static void AddReadout(ImmutableArray<CarrierChainOverlayReadout>.Builder readouts, CarrierChainOverlayReadout readout)
+    {
+        foreach (var known in readouts)
+        {
+            if (known.Site.Carrier == readout.Site.Carrier && known.Site.Location == readout.Site.Location)
+            {
+                return;
+            }
+        }
+
+        readouts.Add(readout);
+    }
+
+    private static void AddMotion(ImmutableArray<CarrierChainOverlayMotion>.Builder motions, CarrierChainOverlayMotion motion)
+    {
+        foreach (var known in motions)
+        {
+            if (known.Relation == motion.Relation
+                && known.From.Carrier == motion.From.Carrier
+                && known.From.Location == motion.From.Location
+                && known.To.Carrier == motion.To.Carrier
+                && known.To.Location == motion.To.Location
+                && known.TrailAnchor.Carrier == motion.TrailAnchor.Carrier
+                && known.TrailAnchor.Location == motion.TrailAnchor.Location)
+            {
+                return;
+            }
+        }
+
+        motions.Add(motion);
+    }
+
+    private static bool TryAddAutoFrontier(ImmutableArray<TopologyTrolley>.Builder frontiers, TopologyTrolley frontier)
+    {
+        foreach (var known in frontiers)
+        {
+            if (known.Site.Carrier == frontier.Site.Carrier && known.Site.Location == frontier.Site.Location)
+            {
+                return false;
+            }
+        }
+
+        frontiers.Add(frontier);
+        return true;
+    }
+
     private readonly record struct TrolleyPreset(
         string Label,
         string Description,
@@ -875,6 +1097,12 @@ public sealed class TopologyTrolleyPageView : UserControl
             "A stem rises into a true branch point. Preferred continuation stops making guesses here, so you can either choose one exit or fork across both.",
             CarrierChainDemoState.YBranch,
             Site.Open(new Carrier(2), new Measure(-6)));
+
+        public static TrolleyPreset DiamondCross => new(
+            "Diamond Cross",
+            "The trolley rides into a diamond split, traverses both arms under auto, rejoins, and then continues through one vertical cross before the return path unwinds the same branch history.",
+            CarrierChainDemoState.DiamondCross,
+            Site.Open(new Carrier(1), new Measure(0)));
     }
 
     private readonly record struct TrolleyMotion(
@@ -891,5 +1119,12 @@ public sealed class TopologyTrolleyPageView : UserControl
 
         public static TrolleyMotion Reverse(TopologyTrolley source, TopologyTrolley target) =>
             new(source, target, source.TrailRelations[^1], source.Site, target.Site, target.Site, target.TrailRelations);
+    }
+
+    private enum AutoTraversePhase
+    {
+        Idle,
+        Outbound,
+        Returning
     }
 }

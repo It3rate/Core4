@@ -1,3 +1,4 @@
+using System.Linq;
 using Core4.Inspection;
 using Core4.Numerics;
 using Core4.Structure;
@@ -113,6 +114,81 @@ public sealed class TopologyTrolleyTests
         Assert.Equal(2, forks.Length);
         Assert.Contains(forks, fork => SameNode(fork.Site, leftEnd));
         Assert.Contains(forks, fork => SameNode(fork.Site, rightEnd));
+    }
+
+    [Fact]
+    public void TrolleyTreatsOnlyOutgoingNonReturnLegsAsForward()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+        Carrier z = 3;
+        Carrier w = 4;
+
+        var left = Site.Open(x, new Measure(0));
+        var entry = Site.Open(x, new Measure(4))
+            .Publish(
+                new Relation(
+                    Site.Open(y, new Measure(0)),
+                    Site.Open(y, new Measure(4))),
+                Ratio.Tension(new Measure(4)))
+            .Publish(
+                new Relation(
+                    Site.Open(z, new Measure(0)),
+                    Site.Open(z, new Measure(4))),
+                Ratio.Tension(new Measure(4)));
+
+        var upperApex = Site.Open(y, new Measure(4));
+        var upperExit = Site.Open(y, new Measure(8));
+        var lowerApex = Site.Open(z, new Measure(4));
+        var lowerExit = Site.Open(z, new Measure(8));
+        var merge = Site.Open(x, new Measure(12))
+            .Request(
+                new Relation(y, upperApex, upperExit),
+                Ratio.Tension(new Measure(4)))
+            .Request(
+                new Relation(z, lowerApex, lowerExit),
+                Ratio.Tension(new Measure(4)));
+
+        var verticalLow = Site.Open(w, new Measure(-4));
+        var verticalMid = Site.Open(w, new Measure(0));
+        var verticalHigh = Site.Open(w, new Measure(4));
+        var cross = Site.Open(x, new Measure(18))
+            .Request(
+                new Relation(verticalLow, verticalMid),
+                Ratio.Tension(new Measure(4)))
+            .Publish(
+                new Relation(verticalMid, verticalHigh),
+                Ratio.Tension(new Measure(4)));
+        var right = Site.Open(x, new Measure(22));
+
+        var topology = ConnectedSiteTopology.Create(
+            [entry, merge, cross],
+            new Relation(left, entry),
+            new Relation(merge, cross),
+            new Relation(cross, right));
+
+        var trolley = TopologyTrolley.Start(topology, left);
+        Assert.True(trolley.TryContinuePreferred(out trolley));
+
+        var branch = trolley.Observe().ForwardContinuations;
+        var upper = Assert.Single(branch.Where(continuation => continuation.To.Carrier == y && continuation.To.Location == new Measure(4)));
+        trolley = trolley.Move(upper);
+
+        var apexObservation = trolley.Observe();
+        var mergeContinuation = Assert.Single(apexObservation.ForwardContinuations);
+        Assert.True(SameNode(mergeContinuation.To, merge));
+        trolley = trolley.Move(mergeContinuation);
+
+        var mergeObservation = trolley.Observe();
+        var crossContinuation = Assert.Single(mergeObservation.ForwardContinuations);
+        Assert.True(SameNode(crossContinuation.To, cross));
+        trolley = trolley.Move(crossContinuation);
+
+        var crossObservation = trolley.Observe();
+        Assert.Equal(2, crossObservation.ForwardContinuations.Length);
+        Assert.Contains(crossObservation.ForwardContinuations, continuation => SameNode(continuation.To, right));
+        Assert.Contains(crossObservation.ForwardContinuations, continuation => continuation.To.Carrier == w && continuation.To.Location == new Measure(4));
+        Assert.DoesNotContain(crossObservation.ForwardContinuations, continuation => continuation.To.Carrier == w && continuation.To.Location == new Measure(-4));
     }
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
