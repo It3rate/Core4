@@ -22,6 +22,7 @@ public sealed class ProbeView : UserControl
     private readonly OrthogonalOutputPageView _orthogonalOutputPage = new();
     private readonly OrthogonalInputPageView _orthogonalInputPage = new();
     private readonly PrimitiveBasesPageView _primitiveBasesPage = new();
+    private readonly LockedInvariantPageView _lockedInvariantPage = new();
     private readonly MultipleInputsPageView _multipleInputsPage = new();
     private readonly CarrierChainPageView _carrierChainPage = new();
     private readonly TopologyTrolleyPageView _topologyTrolleyPage = new();
@@ -77,6 +78,7 @@ public sealed class ProbeView : UserControl
             new PageDefinition(ProbePage.InvertedPair, ProbeCategory.Primitives, "Inverted Pair", _invertedPairPage),
             new PageDefinition(ProbePage.FrozenSegment, ProbeCategory.Primitives, "Frozen Segment", _frozenSegmentPage),
             new PageDefinition(ProbePage.PrimitiveBases, ProbeCategory.Primitives, "Primitive Bases", _primitiveBasesPage),
+            new PageDefinition(ProbePage.LockedInvariants, ProbeCategory.Primitives, "Locked Invariants", _lockedInvariantPage),
             new PageDefinition(ProbePage.OrthogonalOutput, ProbeCategory.Orthogonals, "Orthogonal Output", _orthogonalOutputPage),
             new PageDefinition(ProbePage.OrthogonalInput, ProbeCategory.Orthogonals, "Orthogonal Input", _orthogonalInputPage),
             new PageDefinition(ProbePage.MultipleInputs, ProbeCategory.Orthogonals, "Multiple Inputs", _multipleInputsPage),
@@ -372,9 +374,10 @@ public sealed class ProbeView : UserControl
         DominantOnly,
         InvertedPair,
         FrozenSegment,
+        PrimitiveBases,
+        LockedInvariants,
         OrthogonalOutput,
         OrthogonalInput,
-        PrimitiveBases,
         MultipleInputs,
         CarrierChain,
         TopologyTrolley
