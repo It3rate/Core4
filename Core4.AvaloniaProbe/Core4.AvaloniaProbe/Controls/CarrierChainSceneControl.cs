@@ -19,6 +19,7 @@ public sealed class CarrierChainSceneControl : Control
     private const double HandleRadius = 18d;
 
     private CarrierChainDemoState _state = CarrierChainDemoState.TJunction;
+    private CarrierChainSceneOverlay _overlay = CarrierChainSceneOverlay.Empty;
     private ImmutableDictionary<Site, Point> _positions = ImmutableDictionary<Site, Point>.Empty;
     private DragSession _activeDrag;
 
@@ -49,6 +50,16 @@ public sealed class CarrierChainSceneControl : Control
 
     public CarrierChainSceneLayout CurrentLayout => CarrierChainRenderer.Arrange(Bounds, _state, _positions);
 
+    public CarrierChainSceneOverlay Overlay
+    {
+        get => _overlay;
+        set
+        {
+            _overlay = value;
+            InvalidateVisual();
+        }
+    }
+
     public void ResetLayout()
     {
         _positions = _state.SeedPositions;
@@ -59,7 +70,7 @@ public sealed class CarrierChainSceneControl : Control
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        CarrierChainRenderer.Render(context, CurrentLayout);
+        CarrierChainRenderer.Render(context, CurrentLayout, _overlay);
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)

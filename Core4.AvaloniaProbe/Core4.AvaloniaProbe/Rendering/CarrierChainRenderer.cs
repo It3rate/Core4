@@ -36,7 +36,10 @@ public static class CarrierChainRenderer
         return new CarrierChainSceneLayout(content, hubs, edges);
     }
 
-    public static void Render(DrawingContext context, CarrierChainSceneLayout layout)
+    public static void Render(
+        DrawingContext context,
+        CarrierChainSceneLayout layout,
+        CarrierChainSceneOverlay overlay = default)
     {
         DrawBackdrop(context, layout.ContentRect);
         DrawHubBodies(context, layout.Hubs, EndpointMarkerSites(layout.Edges));
@@ -85,6 +88,7 @@ public static class CarrierChainRenderer
                 fontFamily: ProbePalette.MonoFont);
         }
 
+        RenderOverlay(context, layout, overlay);
         DrawHubLabels(context, layout.Hubs);
     }
 
@@ -220,6 +224,81 @@ public static class CarrierChainRenderer
         {
             var y = rect.Y + (horizontalStep * index);
             context.DrawLine(ProbePalette.TickPen, new Point(rect.X + 8d, y), new Point(rect.Right - 8d, y));
+        }
+    }
+
+    private static void RenderOverlay(
+        DrawingContext context,
+        CarrierChainSceneLayout layout,
+        CarrierChainSceneOverlay overlay)
+    {
+        var trailRelations = overlay.TrailRelations.IsDefault ? ImmutableArray<Relation>.Empty : overlay.TrailRelations;
+        var candidateRelations = overlay.CandidateRelations.IsDefault ? ImmutableArray<Relation>.Empty : overlay.CandidateRelations;
+        var candidateSites = overlay.CandidateSites.IsDefault ? ImmutableArray<Site>.Empty : overlay.CandidateSites;
+        var currentSites = overlay.CurrentSites.IsDefault ? ImmutableArray<Site>.Empty : overlay.CurrentSites;
+
+        foreach (var relation in trailRelations)
+        {
+            if (!TryFindEdge(layout, relation, out var edge))
+            {
+                continue;
+            }
+
+            var brush = new SolidColorBrush(Color.Parse("#8a2ad6"));
+            var pen = new Pen(brush, 7.2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+            context.DrawLine(pen, edge.Start, edge.End);
+        }
+
+        foreach (var relation in candidateRelations)
+        {
+            if (!TryFindEdge(layout, relation, out var edge))
+            {
+                continue;
+            }
+
+            var pen = new Pen(
+                ProbePalette.TensionPositive,
+                3.2d,
+                dashStyle: new DashStyle([4d, 4d], 0d),
+                lineCap: PenLineCap.Round,
+                lineJoin: PenLineJoin.Round);
+            context.DrawLine(pen, edge.Start, edge.End);
+        }
+
+        foreach (var site in candidateSites)
+        {
+            if (!TryFindHub(layout, site, out var hub))
+            {
+                continue;
+            }
+
+            ScenePrimitives.DrawCircle(
+                context,
+                hub.Point,
+                hub.Radius + 4d,
+                Brushes.Transparent,
+                new Pen(ProbePalette.TensionPositive, 2.2d, dashStyle: new DashStyle([3d, 3d], 0d), lineCap: PenLineCap.Round));
+        }
+
+        foreach (var site in currentSites)
+        {
+            if (!TryFindHub(layout, site, out var hub))
+            {
+                continue;
+            }
+
+            ScenePrimitives.DrawCircle(
+                context,
+                hub.Point,
+                hub.Radius + 6d,
+                Brushes.Transparent,
+                new Pen(ProbePalette.Origin, 3d, lineCap: PenLineCap.Round));
+            ScenePrimitives.DrawCircle(
+                context,
+                hub.Point,
+                4.6d,
+                ProbePalette.Origin,
+                new Pen(Brushes.White, 1.4d, lineCap: PenLineCap.Round));
         }
     }
 
@@ -614,12 +693,66 @@ public static class CarrierChainRenderer
     }
 
     private static Point Midpoint(Point left, Point right) => new((left.X + right.X) * 0.5d, (left.Y + right.Y) * 0.5d);
+
+    private static bool TryFindEdge(
+        CarrierChainSceneLayout layout,
+        Relation relation,
+        out CarrierChainEdgeLayout edge)
+    {
+        foreach (var candidate in layout.Edges)
+        {
+            if (candidate.Relation == relation)
+            {
+                edge = candidate;
+                return true;
+            }
+        }
+
+        edge = default;
+        return false;
+    }
+
+    private static bool TryFindHub(
+        CarrierChainSceneLayout layout,
+        Site site,
+        out CarrierChainHubLayout hub)
+    {
+        foreach (var candidate in layout.Hubs)
+        {
+            foreach (var member in candidate.MemberSites)
+            {
+                if (SameNode(member, site))
+                {
+                    hub = candidate;
+                    return true;
+                }
+            }
+        }
+
+        hub = default;
+        return false;
+    }
+
+    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
 }
 
 public readonly record struct CarrierChainSceneLayout(
     Rect ContentRect,
     ImmutableArray<CarrierChainHubLayout> Hubs,
     ImmutableArray<CarrierChainEdgeLayout> Edges);
+
+public readonly record struct CarrierChainSceneOverlay(
+    ImmutableArray<Site> CurrentSites,
+    ImmutableArray<Site> CandidateSites,
+    ImmutableArray<Relation> TrailRelations,
+    ImmutableArray<Relation> CandidateRelations)
+{
+    public static CarrierChainSceneOverlay Empty => new(
+        ImmutableArray<Site>.Empty,
+        ImmutableArray<Site>.Empty,
+        ImmutableArray<Relation>.Empty,
+        ImmutableArray<Relation>.Empty);
+}
 
 public readonly record struct CarrierChainHubLayout(
     ImmutableArray<Site> MemberSites,

@@ -24,6 +24,7 @@ public sealed class ProbeView : UserControl
     private readonly PrimitiveBasesPageView _primitiveBasesPage = new();
     private readonly MultipleInputsPageView _multipleInputsPage = new();
     private readonly CarrierChainPageView _carrierChainPage = new();
+    private readonly TopologyTrolleyPageView _topologyTrolleyPage = new();
     private readonly ContentControl _pageHost;
     private readonly StackPanel _pageButtonRow;
     private readonly TextBlock _categoryBlurb;
@@ -79,7 +80,8 @@ public sealed class ProbeView : UserControl
             new PageDefinition(ProbePage.OrthogonalOutput, ProbeCategory.Orthogonals, "Orthogonal Output", _orthogonalOutputPage),
             new PageDefinition(ProbePage.OrthogonalInput, ProbeCategory.Orthogonals, "Orthogonal Input", _orthogonalInputPage),
             new PageDefinition(ProbePage.MultipleInputs, ProbeCategory.Orthogonals, "Multiple Inputs", _multipleInputsPage),
-            new PageDefinition(ProbePage.CarrierChain, ProbeCategory.Topology, "Carrier Chain", _carrierChainPage)
+            new PageDefinition(ProbePage.CarrierChain, ProbeCategory.Topology, "Carrier Chain", _carrierChainPage),
+            new PageDefinition(ProbePage.TopologyTrolley, ProbeCategory.Topology, "Trolley", _topologyTrolleyPage)
         ];
 
         _categoryBlurb = ProbeUi.Body(string.Empty, 10d);
@@ -374,6 +376,7 @@ public sealed class ProbeView : UserControl
         OrthogonalInput,
         PrimitiveBases,
         MultipleInputs,
-        CarrierChain
+        CarrierChain,
+        TopologyTrolley
     }
 }
