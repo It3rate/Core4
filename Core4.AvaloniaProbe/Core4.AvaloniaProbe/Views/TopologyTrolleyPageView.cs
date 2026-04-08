@@ -23,6 +23,8 @@ public sealed class TopologyTrolleyPageView : UserControl
     private readonly Button _lCornerButton;
     private readonly Button _yBranchButton;
     private readonly Button _continueButton;
+    private readonly Button _leftButton;
+    private readonly Button _rightButton;
     private readonly Button _forkButton;
     private readonly Button _reverseButton;
     private readonly TextBlock _sceneDescriptionText;
@@ -57,6 +59,12 @@ public sealed class TopologyTrolleyPageView : UserControl
 
         _continueButton = ProbeUi.PillButton("Continue Preferred");
         _continueButton.Click += (_, _) => ContinuePreferred();
+
+        _leftButton = ProbeUi.PillButton("Take Left");
+        _leftButton.Click += (_, _) => TakeExtreme(left: true);
+
+        _rightButton = ProbeUi.PillButton("Take Right");
+        _rightButton.Click += (_, _) => TakeExtreme(left: false);
 
         _forkButton = ProbeUi.PillButton("Fork All");
         _forkButton.Click += (_, _) => ForkAll();
@@ -100,6 +108,8 @@ public sealed class TopologyTrolleyPageView : UserControl
                     {
                         ProbeUi.Mono("MOVEMENT", 10d, ProbePalette.Muted),
                         _continueButton,
+                        _leftButton,
+                        _rightButton,
                         _forkButton,
                         _reverseButton,
                         resetWalkButton
@@ -120,7 +130,7 @@ public sealed class TopologyTrolleyPageView : UserControl
                     Children =
                     {
                         ProbeUi.Mono("INSPECTION RULE", 10d, ProbePalette.Muted),
-                        ProbeUi.Body("The trolley is external to topology. By default it continues on one frontier. At a junction it exposes admissible next legs, then you can continue straight, choose one exit, or fork across all forward exits.", 10d)
+                        ProbeUi.Body("Purple side dots show the path already traversed. Green dotted lines show forward exits available from the current frontier. The trolley is external to topology: continue keeps one frontier, left/right choose one visible exit, and fork all splits across every forward exit.", 10d)
                     }
                 }, 20, new Thickness(12, 10))
             }
@@ -258,6 +268,35 @@ public sealed class TopologyTrolleyPageView : UserControl
         SyncUi();
     }
 
+    private void TakeExtreme(bool left)
+    {
+        var layout = _scene.CurrentLayout;
+        var next = ImmutableArray.CreateBuilder<TopologyTrolley>(_frontiers.Length);
+
+        foreach (var frontier in _frontiers)
+        {
+            var observation = frontier.Observe();
+            var candidates = observation.ForwardContinuations;
+
+            if (candidates.Length == 0)
+            {
+                next.Add(frontier);
+                continue;
+            }
+
+            if (candidates.Length == 1)
+            {
+                next.Add(frontier.Move(candidates[0]));
+                continue;
+            }
+
+            next.Add(frontier.Move(SelectExtreme(candidates, layout, left)));
+        }
+
+        _frontiers = next.ToImmutable();
+        SyncUi();
+    }
+
     private void ReverseAll()
     {
         var next = ImmutableArray.CreateBuilder<TopologyTrolley>(_frontiers.Length);
@@ -387,6 +426,8 @@ public sealed class TopologyTrolleyPageView : UserControl
         }
 
         _continueButton.IsEnabled = hasPreferred;
+        _leftButton.IsEnabled = hasForward;
+        _rightButton.IsEnabled = hasForward;
         _forkButton.IsEnabled = hasForward;
         _reverseButton.IsEnabled = hasReverse;
     }
@@ -480,6 +521,53 @@ public sealed class TopologyTrolleyPageView : UserControl
 
     private static string ContinuationLabel(TopologyTrolleyContinuation continuation) =>
         $"{CarrierLabel(continuation.Carrier)}:{continuation.Potential.Raw} to {SiteLabel(continuation.To)}";
+
+    private static TopologyTrolleyContinuation SelectExtreme(
+        ImmutableArray<TopologyTrolleyContinuation> continuations,
+        CarrierChainSceneLayout layout,
+        bool left)
+    {
+        var best = continuations[0];
+        var bestPoint = ContinuationPoint(best, layout);
+
+        for (var index = 1; index < continuations.Length; index++)
+        {
+            var candidate = continuations[index];
+            var candidatePoint = ContinuationPoint(candidate, layout);
+
+            if (left)
+            {
+                if (candidatePoint.X < bestPoint.X || (candidatePoint.X == bestPoint.X && candidatePoint.Y < bestPoint.Y))
+                {
+                    best = candidate;
+                    bestPoint = candidatePoint;
+                }
+            }
+            else if (candidatePoint.X > bestPoint.X || (candidatePoint.X == bestPoint.X && candidatePoint.Y < bestPoint.Y))
+            {
+                best = candidate;
+                bestPoint = candidatePoint;
+            }
+        }
+
+        return best;
+    }
+
+    private static Point ContinuationPoint(TopologyTrolleyContinuation continuation, CarrierChainSceneLayout layout)
+    {
+        foreach (var hub in layout.Hubs)
+        {
+            foreach (var site in hub.MemberSites)
+            {
+                if (site.Carrier == continuation.To.Carrier && site.Location == continuation.To.Location)
+                {
+                    return hub.Point;
+                }
+            }
+        }
+
+        return default;
+    }
 
     private static string SiteLabel(Site site) => $"{CarrierLabel(site.Carrier)}{site.Location.Raw}";
 

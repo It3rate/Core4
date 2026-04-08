@@ -244,9 +244,11 @@ public static class CarrierChainRenderer
                 continue;
             }
 
-            var brush = new SolidColorBrush(Color.Parse("#8a2ad6"));
-            var pen = new Pen(brush, 7.2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
-            context.DrawLine(pen, edge.Start, edge.End);
+            DrawTraversalRails(
+                context,
+                edge.Start,
+                edge.End,
+                new SolidColorBrush(Color.Parse("#8a2ad6")));
         }
 
         foreach (var relation in candidateRelations)
@@ -258,8 +260,8 @@ public static class CarrierChainRenderer
 
             var pen = new Pen(
                 ProbePalette.TensionPositive,
-                3.2d,
-                dashStyle: new DashStyle([4d, 4d], 0d),
+                1.8d,
+                dashStyle: new DashStyle([0.2d, 4.4d], 0d),
                 lineCap: PenLineCap.Round,
                 lineJoin: PenLineJoin.Round);
             context.DrawLine(pen, edge.Start, edge.End);
@@ -277,7 +279,7 @@ public static class CarrierChainRenderer
                 hub.Point,
                 hub.Radius + 4d,
                 Brushes.Transparent,
-                new Pen(ProbePalette.TensionPositive, 2.2d, dashStyle: new DashStyle([3d, 3d], 0d), lineCap: PenLineCap.Round));
+                new Pen(ProbePalette.TensionPositive, 1.8d, dashStyle: new DashStyle([0.2d, 4.2d], 0d), lineCap: PenLineCap.Round));
         }
 
         foreach (var site in currentSites)
@@ -300,6 +302,29 @@ public static class CarrierChainRenderer
                 ProbePalette.Origin,
                 new Pen(Brushes.White, 1.4d, lineCap: PenLineCap.Round));
         }
+    }
+
+    private static void DrawTraversalRails(DrawingContext context, Point start, Point end, IBrush brush)
+    {
+        var delta = end - start;
+        var length = Math.Sqrt((delta.X * delta.X) + (delta.Y * delta.Y));
+        if (length <= 0.01d)
+        {
+            return;
+        }
+
+        var unit = new Vector(delta.X / length, delta.Y / length);
+        var normal = new Vector(-unit.Y, unit.X);
+        var offset = normal * 4.2d;
+        var pen = new Pen(
+            brush,
+            1.6d,
+            dashStyle: new DashStyle([0.2d, 3.8d], 0d),
+            lineCap: PenLineCap.Round,
+            lineJoin: PenLineJoin.Round);
+
+        context.DrawLine(pen, start + offset, end + offset);
+        context.DrawLine(pen, start - offset, end - offset);
     }
 
     private static ImmutableDictionary<Site, Point> DefaultPositions(ImmutableArray<CarrierChain> chains)

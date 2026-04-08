@@ -72,6 +72,8 @@ public sealed class TopologyTrolleyTests
         Assert.False(trolley.TryContinuePreferred(out _));
         Assert.True(trolley.TryReverse(out var reversed));
         Assert.True(SameNode(reversed.Site, corner));
+        Assert.Single(reversed.TrailRelations);
+        Assert.Equal(2, reversed.TrailSites.Length);
     }
 
     [Fact]

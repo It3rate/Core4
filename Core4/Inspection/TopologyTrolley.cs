@@ -111,16 +111,25 @@ public readonly record struct TopologyTrolley(
 
     public bool TryReverse(out TopologyTrolley next)
     {
-        var observation = Observe();
-
-        foreach (var continuation in observation.Continuations)
+        if (TrailSites.Length >= 2 && TrailRelations.Length >= 1)
         {
-            if (!continuation.ReturnsAlongIngress)
-            {
-                continue;
-            }
+            var previousSite = TrailSites[^2];
+            var previousIngress = TrailRelations.Length >= 2
+                ? TrailRelations[^2]
+                : (Relation?)null;
+            var previousDirection = previousIngress.HasValue
+                ? TrailRelations[^1] == previousIngress.Value
+                    ? Direction
+                    : -Direction
+                : Measure.Zero;
 
-            next = Move(continuation);
+            next = new TopologyTrolley(
+                Topology,
+                previousSite,
+                previousIngress,
+                previousDirection,
+                TrailSites.RemoveAt(TrailSites.Length - 1),
+                TrailRelations.RemoveAt(TrailRelations.Length - 1));
             return true;
         }
 
