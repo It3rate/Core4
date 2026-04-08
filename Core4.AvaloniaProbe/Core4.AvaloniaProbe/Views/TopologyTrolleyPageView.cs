@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Immutable;
 using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.Threading;
 using Core4.AvaloniaProbe.Controls;
 using Core4.AvaloniaProbe.Models;
 using Core4.AvaloniaProbe.Rendering;
@@ -18,6 +20,9 @@ namespace Core4.AvaloniaProbe.Views;
 /// </summary>
 public sealed class TopologyTrolleyPageView : UserControl
 {
+    private const double MillisecondsPerUnit = 650d;
+    private const double MinimumMotionMilliseconds = 1800d;
+
     private readonly CarrierChainSceneControl _scene;
     private readonly Button _tJunctionButton;
     private readonly Button _lCornerButton;
@@ -35,8 +40,13 @@ public sealed class TopologyTrolleyPageView : UserControl
     private readonly TextBlock _observationText;
     private readonly TextBlock _trailText;
     private readonly StackPanel _candidatePanel;
+    private readonly DispatcherTimer _animationTimer;
     private TrolleyPreset _preset = TrolleyPreset.TJunction;
     private ImmutableArray<TopologyTrolley> _frontiers = ImmutableArray<TopologyTrolley>.Empty;
+    private ImmutableArray<TrolleyMotion> _motions = ImmutableArray<TrolleyMotion>.Empty;
+    private ImmutableArray<TopologyTrolley> _pendingFrontiers = ImmutableArray<TopologyTrolley>.Empty;
+    private DateTime _animationStartedUtc;
+    private TimeSpan _activeMotionDuration;
 
     public TopologyTrolleyPageView()
     {
@@ -47,6 +57,12 @@ public sealed class TopologyTrolleyPageView : UserControl
             VerticalAlignment = VerticalAlignment.Stretch
         };
         _scene.LayoutChanged += (_, _) => SyncUi();
+
+        _animationTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(16)
+        };
+        _animationTimer.Tick += OnAnimationTick;
 
         _tJunctionButton = ProbeUi.PillButton("T Junction", true);
         _tJunctionButton.Click += (_, _) => ApplyPreset(TrolleyPreset.TJunction);
@@ -219,6 +235,7 @@ public sealed class TopologyTrolleyPageView : UserControl
 
     private void ApplyPreset(TrolleyPreset preset)
     {
+        StopAnimation();
         _preset = preset;
         _scene.State = preset.Scene;
         ResetWalk();
@@ -226,6 +243,7 @@ public sealed class TopologyTrolleyPageView : UserControl
 
     private void ResetWalk()
     {
+        StopAnimation();
         _frontiers = [TopologyTrolley.Start(_preset.Scene.Topology, _preset.StartSite)];
         _scene.ResetLayout();
         SyncUi();
@@ -233,20 +251,39 @@ public sealed class TopologyTrolleyPageView : UserControl
 
     private void ContinuePreferred()
     {
+        if (HasActiveMotion)
+        {
+            return;
+        }
+
         var next = ImmutableArray.CreateBuilder<TopologyTrolley>(_frontiers.Length);
+        var motions = ImmutableArray.CreateBuilder<TrolleyMotion>();
 
         foreach (var frontier in _frontiers)
         {
-            next.Add(frontier.TryContinuePreferred(out var moved) ? moved : frontier);
+            if (frontier.TryContinuePreferred(out var moved))
+            {
+                next.Add(moved);
+                motions.Add(TrolleyMotion.Forward(frontier, moved));
+            }
+            else
+            {
+                next.Add(frontier);
+            }
         }
 
-        _frontiers = next.ToImmutable();
-        SyncUi();
+        StartAnimation(motions.ToImmutable(), next.ToImmutable());
     }
 
     private void ForkAll()
     {
+        if (HasActiveMotion)
+        {
+            return;
+        }
+
         var next = ImmutableArray.CreateBuilder<TopologyTrolley>();
+        var motions = ImmutableArray.CreateBuilder<TrolleyMotion>();
 
         foreach (var frontier in _frontiers)
         {
@@ -261,17 +298,23 @@ public sealed class TopologyTrolleyPageView : UserControl
             foreach (var fork in forks)
             {
                 next.Add(fork);
+                motions.Add(TrolleyMotion.Forward(frontier, fork));
             }
         }
 
-        _frontiers = next.ToImmutable();
-        SyncUi();
+        StartAnimation(motions.ToImmutable(), next.ToImmutable());
     }
 
     private void TakeExtreme(bool left)
     {
+        if (HasActiveMotion)
+        {
+            return;
+        }
+
         var layout = _scene.CurrentLayout;
         var next = ImmutableArray.CreateBuilder<TopologyTrolley>(_frontiers.Length);
+        var motions = ImmutableArray.CreateBuilder<TrolleyMotion>();
 
         foreach (var frontier in _frontiers)
         {
@@ -286,39 +329,55 @@ public sealed class TopologyTrolleyPageView : UserControl
 
             if (candidates.Length == 1)
             {
-                next.Add(frontier.Move(candidates[0]));
+                var moved = frontier.Move(candidates[0]);
+                next.Add(moved);
+                motions.Add(TrolleyMotion.Forward(frontier, moved));
                 continue;
             }
 
-            next.Add(frontier.Move(SelectExtreme(candidates, layout, left)));
+            var selected = frontier.Move(SelectExtreme(candidates, layout, left));
+            next.Add(selected);
+            motions.Add(TrolleyMotion.Forward(frontier, selected));
         }
 
-        _frontiers = next.ToImmutable();
-        SyncUi();
+        StartAnimation(motions.ToImmutable(), next.ToImmutable());
     }
 
     private void ReverseAll()
     {
-        var next = ImmutableArray.CreateBuilder<TopologyTrolley>(_frontiers.Length);
-
-        foreach (var frontier in _frontiers)
-        {
-            next.Add(frontier.TryReverse(out var reversed) ? reversed : frontier);
-        }
-
-        _frontiers = next.ToImmutable();
-        SyncUi();
-    }
-
-    private void TakeSingleContinuation(TopologyTrolleyContinuation continuation)
-    {
-        if (_frontiers.Length != 1)
+        if (HasActiveMotion)
         {
             return;
         }
 
-        _frontiers = [_frontiers[0].Move(continuation)];
-        SyncUi();
+        var next = ImmutableArray.CreateBuilder<TopologyTrolley>(_frontiers.Length);
+        var motions = ImmutableArray.CreateBuilder<TrolleyMotion>();
+
+        foreach (var frontier in _frontiers)
+        {
+            if (frontier.TryReverse(out var reversed))
+            {
+                next.Add(reversed);
+                motions.Add(TrolleyMotion.Reverse(frontier, reversed));
+            }
+            else
+            {
+                next.Add(frontier);
+            }
+        }
+
+        StartAnimation(motions.ToImmutable(), next.ToImmutable());
+    }
+
+    private void TakeSingleContinuation(TopologyTrolleyContinuation continuation)
+    {
+        if (_frontiers.Length != 1 || HasActiveMotion)
+        {
+            return;
+        }
+
+        var moved = _frontiers[0].Move(continuation);
+        StartAnimation([TrolleyMotion.Forward(_frontiers[0], moved)], [moved]);
     }
 
     private void SyncUi()
@@ -327,9 +386,15 @@ public sealed class TopologyTrolleyPageView : UserControl
         ProbeUi.ApplyPillStyle(_lCornerButton, _preset.Label == TrolleyPreset.LCorner.Label);
         ProbeUi.ApplyPillStyle(_yBranchButton, _preset.Label == TrolleyPreset.YBranch.Label);
 
+        _tJunctionButton.IsEnabled = !HasActiveMotion;
+        _lCornerButton.IsEnabled = !HasActiveMotion;
+        _yBranchButton.IsEnabled = !HasActiveMotion;
+        _scene.IsHitTestVisible = !HasActiveMotion;
         _sceneDescriptionText.Text = _preset.Description;
         _metaPresetText.Text = _preset.Label;
-        _metaFrontierText.Text = $"{_frontiers.Length} frontier{(_frontiers.Length == 1 ? string.Empty : "s")}";
+        _metaFrontierText.Text = HasActiveMotion
+            ? $"{MotionFrontierCount()} frontier{(MotionFrontierCount() == 1 ? string.Empty : "s")} moving"
+            : $"{_frontiers.Length} frontier{(_frontiers.Length == 1 ? string.Empty : "s")}";
         _metaChainText.Text = $"{_preset.Scene.Chains.Length} chains";
         _scene.Overlay = BuildOverlay();
         _currentText.Text = DescribeCurrent();
@@ -345,17 +410,28 @@ public sealed class TopologyTrolleyPageView : UserControl
         var candidateSites = ImmutableArray.CreateBuilder<Site>();
         var trailRelations = ImmutableArray.CreateBuilder<Relation>();
         var candidateRelations = ImmutableArray.CreateBuilder<Relation>();
+        var motionOverlays = ImmutableArray.CreateBuilder<CarrierChainOverlayMotion>();
 
         foreach (var frontier in _frontiers)
         {
-            AddSite(currentSites, frontier.Site);
+            var moving = HasMotionFrom(frontier);
 
-            foreach (var relation in frontier.TrailRelations)
+            if (!moving)
             {
-                if (!trailRelations.Contains(relation))
+                AddSite(currentSites, frontier.Site);
+
+                foreach (var relation in frontier.TrailRelations)
                 {
-                    trailRelations.Add(relation);
+                    if (!trailRelations.Contains(relation))
+                    {
+                        trailRelations.Add(relation);
+                    }
                 }
+            }
+
+            if (HasActiveMotion)
+            {
+                continue;
             }
 
             var observation = frontier.Observe();
@@ -371,16 +447,44 @@ public sealed class TopologyTrolleyPageView : UserControl
             }
         }
 
+        if (HasActiveMotion)
+        {
+            foreach (var motion in _motions)
+            {
+                foreach (var relation in motion.CommittedTrailRelations)
+                {
+                    if (!trailRelations.Contains(relation))
+                    {
+                        trailRelations.Add(relation);
+                    }
+                }
+
+                motionOverlays.Add(new CarrierChainOverlayMotion(
+                    motion.Relation,
+                    motion.FromSite,
+                    motion.ToSite,
+                    motion.TrailAnchor,
+                    EaseOut(MotionProgress())));
+            }
+        }
+
         return new CarrierChainSceneOverlay(
             currentSites.ToImmutable(),
             candidateSites.ToImmutable(),
             trailRelations.ToImmutable(),
-            candidateRelations.ToImmutable());
+            candidateRelations.ToImmutable(),
+            motionOverlays.ToImmutable());
     }
 
     private void RebuildCandidateButtons()
     {
         _candidatePanel.Children.Clear();
+
+        if (HasActiveMotion)
+        {
+            _candidatePanel.Children.Add(ProbeUi.Body("Animating the current traversal step.", 10d));
+            return;
+        }
 
         if (_frontiers.Length != 1)
         {
@@ -416,6 +520,16 @@ public sealed class TopologyTrolleyPageView : UserControl
         var hasPreferred = false;
         var hasForward = false;
         var hasReverse = false;
+
+        if (HasActiveMotion)
+        {
+            _continueButton.IsEnabled = false;
+            _leftButton.IsEnabled = false;
+            _rightButton.IsEnabled = false;
+            _forkButton.IsEnabled = false;
+            _reverseButton.IsEnabled = false;
+            return;
+        }
 
         foreach (var frontier in _frontiers)
         {
@@ -522,6 +636,118 @@ public sealed class TopologyTrolleyPageView : UserControl
     private static string ContinuationLabel(TopologyTrolleyContinuation continuation) =>
         $"{CarrierLabel(continuation.Carrier)}:{continuation.Potential.Raw} to {SiteLabel(continuation.To)}";
 
+    private bool HasActiveMotion => !_motions.IsDefaultOrEmpty && _motions.Length != 0;
+
+    private int MotionFrontierCount() => _pendingFrontiers.IsDefaultOrEmpty ? _frontiers.Length : _pendingFrontiers.Length;
+
+    private bool HasMotionFrom(TopologyTrolley frontier)
+    {
+        foreach (var motion in _motions)
+        {
+            if (motion.Source == frontier)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void StartAnimation(ImmutableArray<TrolleyMotion> motions, ImmutableArray<TopologyTrolley> nextFrontiers)
+    {
+        if (motions.IsDefaultOrEmpty)
+        {
+            _frontiers = nextFrontiers;
+            SyncUi();
+            return;
+        }
+
+        _motions = motions;
+        _pendingFrontiers = nextFrontiers;
+        _animationStartedUtc = DateTime.UtcNow;
+        _activeMotionDuration = ResolveMotionDuration(motions);
+        _animationTimer.Start();
+        SyncUi();
+    }
+
+    private void StopAnimation()
+    {
+        _animationTimer.Stop();
+        _motions = ImmutableArray<TrolleyMotion>.Empty;
+        _pendingFrontiers = ImmutableArray<TopologyTrolley>.Empty;
+        _activeMotionDuration = TimeSpan.Zero;
+    }
+
+    private void OnAnimationTick(object? sender, EventArgs e)
+    {
+        if (!HasActiveMotion)
+        {
+            StopAnimation();
+            return;
+        }
+
+        var elapsed = DateTime.UtcNow - _animationStartedUtc;
+        var duration = _activeMotionDuration == TimeSpan.Zero
+            ? TimeSpan.FromMilliseconds(MinimumMotionMilliseconds)
+            : _activeMotionDuration;
+        var t = Math.Clamp(elapsed.TotalMilliseconds / duration.TotalMilliseconds, 0d, 1d);
+        _scene.Overlay = BuildOverlay();
+        _metaFrontierText.Text = $"{MotionFrontierCount()} frontier{(MotionFrontierCount() == 1 ? string.Empty : "s")} moving";
+
+        if (t < 1d)
+        {
+            return;
+        }
+
+        var finalFrontiers = _pendingFrontiers;
+        StopAnimation();
+        _frontiers = finalFrontiers;
+        SyncUi();
+    }
+
+    private static double EaseOut(double progress)
+    {
+        var inverse = 1d - progress;
+        return 1d - (inverse * inverse * inverse);
+    }
+
+    private TimeSpan ResolveMotionDuration(ImmutableArray<TrolleyMotion> motions)
+    {
+        var layout = _scene.CurrentLayout;
+        var longest = 0d;
+
+        foreach (var motion in motions)
+        {
+            longest = Math.Max(longest, RelationMagnitude(layout, motion.Relation));
+        }
+
+        return TimeSpan.FromMilliseconds(Math.Max(MinimumMotionMilliseconds, longest * MillisecondsPerUnit));
+    }
+
+    private double MotionProgress()
+    {
+        if (_activeMotionDuration == TimeSpan.Zero)
+        {
+            return 0d;
+        }
+
+        var elapsed = DateTime.UtcNow - _animationStartedUtc;
+        return Math.Clamp(elapsed.TotalMilliseconds / _activeMotionDuration.TotalMilliseconds, 0d, 1d);
+    }
+
+    private static double RelationMagnitude(CarrierChainSceneLayout layout, Relation relation)
+    {
+        foreach (var edge in layout.Edges)
+        {
+            if (edge.Relation == relation)
+            {
+                return Math.Max(1d, edge.ActualMagnitude);
+            }
+        }
+
+        return 1d;
+    }
+
     private static TopologyTrolleyContinuation SelectExtreme(
         ImmutableArray<TopologyTrolleyContinuation> continuations,
         CarrierChainSceneLayout layout,
@@ -616,5 +842,21 @@ public sealed class TopologyTrolleyPageView : UserControl
             "A stem rises into a true branch point. Preferred continuation stops making guesses here, so you can either choose one exit or fork across both.",
             CarrierChainDemoState.YBranch,
             Site.Open(new Carrier(2), new Measure(-6)));
+    }
+
+    private readonly record struct TrolleyMotion(
+        TopologyTrolley Source,
+        TopologyTrolley Target,
+        Relation Relation,
+        Site FromSite,
+        Site ToSite,
+        Site TrailAnchor,
+        ImmutableArray<Relation> CommittedTrailRelations)
+    {
+        public static TrolleyMotion Forward(TopologyTrolley source, TopologyTrolley target) =>
+            new(source, target, target.TrailRelations[^1], source.Site, target.Site, source.Site, source.TrailRelations);
+
+        public static TrolleyMotion Reverse(TopologyTrolley source, TopologyTrolley target) =>
+            new(source, target, source.TrailRelations[^1], source.Site, target.Site, target.Site, target.TrailRelations);
     }
 }

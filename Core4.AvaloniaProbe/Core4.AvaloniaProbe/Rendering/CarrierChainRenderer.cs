@@ -236,6 +236,7 @@ public static class CarrierChainRenderer
         var candidateRelations = overlay.CandidateRelations.IsDefault ? ImmutableArray<Relation>.Empty : overlay.CandidateRelations;
         var candidateSites = overlay.CandidateSites.IsDefault ? ImmutableArray<Site>.Empty : overlay.CandidateSites;
         var currentSites = overlay.CurrentSites.IsDefault ? ImmutableArray<Site>.Empty : overlay.CurrentSites;
+        var motions = overlay.Motions.IsDefault ? ImmutableArray<CarrierChainOverlayMotion>.Empty : overlay.Motions;
 
         foreach (var relation in trailRelations)
         {
@@ -301,6 +302,43 @@ public static class CarrierChainRenderer
                 4.6d,
                 ProbePalette.Origin,
                 new Pen(Brushes.White, 1.4d, lineCap: PenLineCap.Round));
+        }
+
+        foreach (var motion in motions)
+        {
+            if (!TryFindHub(layout, motion.From, out var fromHub)
+                || !TryFindHub(layout, motion.To, out var toHub)
+                || !TryFindHub(layout, motion.TrailAnchor, out var trailHub)
+                || !TryFindEdge(layout, motion.Relation, out var edge))
+            {
+                continue;
+            }
+
+            var point = Interpolate(fromHub.Point, toHub.Point, motion.Progress);
+            DrawTraversalRails(
+                context,
+                trailHub.Point,
+                point,
+                new SolidColorBrush(Color.Parse("#8a2ad6")));
+            ScenePrimitives.DrawCircle(
+                context,
+                point,
+                6d,
+                ProbePalette.Origin,
+                new Pen(Brushes.White, 1.6d, lineCap: PenLineCap.Round));
+            ScenePrimitives.DrawCircle(
+                context,
+                point,
+                2.4d,
+                Brushes.White);
+            ScenePrimitives.DrawLabel(
+                context,
+                InspectionLabel(edge, motion),
+                point + new Vector(-44d, -28d),
+                10d,
+                ProbePalette.Ink,
+                FontWeight.SemiBold,
+                ProbePalette.MonoFont);
         }
     }
 
@@ -719,6 +757,21 @@ public static class CarrierChainRenderer
 
     private static Point Midpoint(Point left, Point right) => new((left.X + right.X) * 0.5d, (left.Y + right.Y) * 0.5d);
 
+    private static Point Interpolate(Point from, Point to, double progress) => new(
+        from.X + ((to.X - from.X) * progress),
+        from.Y + ((to.Y - from.Y) * progress));
+
+    private static string InspectionLabel(CarrierChainEdgeLayout edge, CarrierChainOverlayMotion motion)
+    {
+        var fromOrigin = SameNode(motion.From, edge.Relation.Origin);
+        var position = fromOrigin
+            ? motion.Progress
+            : 1d - motion.Progress;
+        var recessive = edge.ActualMagnitude * position;
+        var dominant = Math.Max(0d, edge.ActualMagnitude - recessive);
+        return $"({recessive:0.0}i+{dominant:0.0})";
+    }
+
     private static bool TryFindEdge(
         CarrierChainSceneLayout layout,
         Relation relation,
@@ -770,14 +823,23 @@ public readonly record struct CarrierChainSceneOverlay(
     ImmutableArray<Site> CurrentSites,
     ImmutableArray<Site> CandidateSites,
     ImmutableArray<Relation> TrailRelations,
-    ImmutableArray<Relation> CandidateRelations)
+    ImmutableArray<Relation> CandidateRelations,
+    ImmutableArray<CarrierChainOverlayMotion> Motions)
 {
     public static CarrierChainSceneOverlay Empty => new(
         ImmutableArray<Site>.Empty,
         ImmutableArray<Site>.Empty,
         ImmutableArray<Relation>.Empty,
-        ImmutableArray<Relation>.Empty);
+        ImmutableArray<Relation>.Empty,
+        ImmutableArray<CarrierChainOverlayMotion>.Empty);
 }
+
+public readonly record struct CarrierChainOverlayMotion(
+    Relation Relation,
+    Site From,
+    Site To,
+    Site TrailAnchor,
+    double Progress);
 
 public readonly record struct CarrierChainHubLayout(
     ImmutableArray<Site> MemberSites,
