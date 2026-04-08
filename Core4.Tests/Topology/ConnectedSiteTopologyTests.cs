@@ -78,6 +78,43 @@ public sealed class ConnectedSiteTopologyTests
     }
 
     [Fact]
+    public void ConnectedTopologyReadsLCornerAsTwoTerminalCarriers()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+
+        var left = Site.Open(x, new Measure(0));
+        var verticalBase = Site.Open(y, new Measure(0));
+        var top = Site.Open(y, new Measure(5));
+        var corner = Site.Open(x, new Measure(5))
+            .Publish(
+                new Relation(verticalBase, top),
+                Ratio.Tension(new Measure(5)));
+
+        var topology = ConnectedSiteTopology.Create(
+            [corner],
+            new Relation(left, corner));
+
+        var incidence = topology.IncidenceAt(corner);
+        var horizontal = topology.GeometryAt(corner, x);
+        var vertical = topology.GeometryAt(corner, y);
+        var neighbors = topology.NeighborsOf(corner);
+
+        Assert.Equal(new Measure(2), topology.SiteCount);
+        Assert.Equal(new Measure(2), topology.RelationCount);
+        Assert.Equal(new Measure(2), topology.CarrierCount);
+        Assert.Equal(new Measure(2), neighbors.Length);
+        Assert.Contains(left, neighbors);
+        Assert.Contains(top, neighbors);
+        Assert.True(incidence.Terminates(x));
+        Assert.True(incidence.Terminates(y));
+        Assert.Equal(new Measure(2), incidence.TerminalCarrierCount);
+        Assert.True(horizontal.IsEndEndpoint);
+        Assert.True(vertical.IsStartEndpoint);
+        Assert.Equal(new Ratio(0, 5), vertical.Position);
+    }
+
+    [Fact]
     public void ConnectedTopologyReadsHLikeBridgeWithTwoJunctionSites()
     {
         Carrier x = 1;
@@ -131,5 +168,100 @@ public sealed class ConnectedSiteTopologyTests
         Assert.True(leftGeometry.IsInterior);
         Assert.True(leftGeometry.IsCentered);
         Assert.Equal(new Ratio(4, 8), leftGeometry.Position);
+    }
+
+    [Fact]
+    public void ConnectedTopologyReadsYBranchAsThreeTerminalCarriers()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+        Carrier z = 3;
+
+        var stemBase = Site.Open(y, new Measure(-6));
+        var leftJoin = Site.Open(x, new Measure(0));
+        var leftEnd = Site.Open(x, new Measure(-4));
+        var rightJoin = Site.Open(z, new Measure(0));
+        var rightEnd = Site.Open(z, new Measure(4));
+        var center = Site.Open(y, new Measure(0))
+            .Publish(
+                new Relation(leftJoin, leftEnd),
+                Ratio.Tension(new Measure(4)))
+            .Publish(
+                new Relation(z, rightJoin, rightEnd),
+                Ratio.Tension(new Measure(4)));
+
+        var topology = ConnectedSiteTopology.Create(
+            [center],
+            new Relation(stemBase, center));
+
+        var incidence = topology.IncidenceAt(center);
+        var stem = topology.GeometryAt(center, y);
+        var leftBranch = topology.GeometryAt(center, x);
+        var rightBranch = topology.GeometryAt(center, z);
+        var neighbors = topology.NeighborsOf(center);
+
+        Assert.Equal(new Measure(2), topology.SiteCount);
+        Assert.Equal(new Measure(3), topology.RelationCount);
+        Assert.Equal(new Measure(3), topology.CarrierCount);
+        Assert.Equal(new Measure(3), neighbors.Length);
+        Assert.Contains(stemBase, neighbors);
+        Assert.Contains(leftEnd, neighbors);
+        Assert.Contains(rightEnd, neighbors);
+        Assert.Equal(new Measure(3), incidence.TerminalCarrierCount);
+        Assert.True(stem.IsEndEndpoint);
+        Assert.True(leftBranch.IsStartEndpoint);
+        Assert.True(rightBranch.IsStartEndpoint);
+    }
+
+    [Fact]
+    public void ConnectedTopologyKeepsTriangleLoopAsThreeConnectedCarrierRuns()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+        Carrier z = 3;
+
+        var leftJoin = Site.Open(y, new Measure(0));
+        var rightJoin = Site.Open(z, new Measure(0));
+        var apex = Site.Open(y, new Measure(6));
+        var apexJoin = Site.Open(z, new Measure(6));
+        var leftSlope = new Relation(leftJoin, apex);
+        var rightSlope = new Relation(z, apexJoin, rightJoin);
+        var left = Site.Open(x, new Measure(0))
+            .Publish(
+                leftSlope,
+                Ratio.Tension(new Measure(6)));
+        var right = Site.Open(x, new Measure(8))
+            .Request(
+                rightSlope,
+                Ratio.Tension(new Measure(6)));
+        apex = apex.Publish(
+            rightSlope,
+            Ratio.Tension(new Measure(6)));
+
+        var topology = ConnectedSiteTopology.Create(
+            [left, right, apex],
+            new Relation(left, right));
+
+        var leftIncidence = topology.IncidenceAt(left);
+        var apexIncidence = topology.IncidenceAt(apex);
+        var chains = topology.Chains();
+        var leftNeighbors = topology.NeighborsOf(left);
+        var apexNeighbors = topology.NeighborsOf(apex);
+
+        Assert.Equal(new Measure(3), topology.SiteCount);
+        Assert.Equal(new Measure(3), topology.RelationCount);
+        Assert.Equal(new Measure(3), topology.CarrierCount);
+        Assert.Equal(3, chains.Length);
+        Assert.Equal(new Measure(2), leftIncidence.TerminalCarrierCount);
+        Assert.Equal(new Measure(2), apexIncidence.TerminalCarrierCount);
+        Assert.Equal(new Measure(2), leftNeighbors.Length);
+        Assert.Contains(right, leftNeighbors);
+        Assert.Contains(Site.Open(y, new Measure(6)), leftNeighbors);
+        Assert.Equal(new Measure(2), apexNeighbors.Length);
+        Assert.Contains(leftJoin, apexNeighbors);
+        Assert.Contains(rightJoin, apexNeighbors);
+        Assert.True(topology.GeometryAt(left, x).IsStartEndpoint);
+        Assert.True(topology.GeometryAt(apex, y).IsEndEndpoint);
+        Assert.True(topology.GeometryAt(apex, z).IsStartEndpoint);
     }
 }

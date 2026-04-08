@@ -20,8 +20,11 @@ public sealed class CarrierChainPageView : UserControl
 {
     private readonly CarrierChainSceneControl _scene;
     private readonly Button _tJunctionButton;
+    private readonly Button _lCornerButton;
+    private readonly Button _yBranchButton;
     private readonly Button _hBridgeButton;
     private readonly Button _fanInButton;
+    private readonly Button _triangleButton;
     private readonly TextBlock _sceneDescriptionText;
     private readonly TextBlock _metaPresetText;
     private readonly TextBlock _metaCarrierText;
@@ -44,11 +47,20 @@ public sealed class CarrierChainPageView : UserControl
         _tJunctionButton = ProbeUi.PillButton("T Junction", true);
         _tJunctionButton.Click += (_, _) => ApplyState(CarrierChainDemoState.TJunction);
 
+        _lCornerButton = ProbeUi.PillButton("L Corner");
+        _lCornerButton.Click += (_, _) => ApplyState(CarrierChainDemoState.LCorner);
+
+        _yBranchButton = ProbeUi.PillButton("Y Branch");
+        _yBranchButton.Click += (_, _) => ApplyState(CarrierChainDemoState.YBranch);
+
         _hBridgeButton = ProbeUi.PillButton("H Bridge");
         _hBridgeButton.Click += (_, _) => ApplyState(CarrierChainDemoState.HBridge);
 
         _fanInButton = ProbeUi.PillButton("Fan In");
         _fanInButton.Click += (_, _) => ApplyState(CarrierChainDemoState.FanIn);
+
+        _triangleButton = ProbeUi.PillButton("Triangle");
+        _triangleButton.Click += (_, _) => ApplyState(CarrierChainDemoState.Triangle);
 
         var resetButton = ProbeUi.PillButton("Reset Layout");
         resetButton.Click += (_, _) => _scene.ResetLayout();
@@ -74,8 +86,11 @@ public sealed class CarrierChainPageView : UserControl
                     {
                         ProbeUi.Mono("TOPOLOGY PRESETS", 10d, ProbePalette.Muted),
                         _tJunctionButton,
+                        _lCornerButton,
+                        _yBranchButton,
                         _hBridgeButton,
                         _fanInButton,
+                        _triangleButton,
                         resetButton
                     }
                 }, 20, new Thickness(12, 10)),
@@ -191,8 +206,11 @@ public sealed class CarrierChainPageView : UserControl
     private void SyncUi()
     {
         ProbeUi.ApplyPillStyle(_tJunctionButton, _state.Label == CarrierChainDemoState.TJunction.Label);
+        ProbeUi.ApplyPillStyle(_lCornerButton, _state.Label == CarrierChainDemoState.LCorner.Label);
+        ProbeUi.ApplyPillStyle(_yBranchButton, _state.Label == CarrierChainDemoState.YBranch.Label);
         ProbeUi.ApplyPillStyle(_hBridgeButton, _state.Label == CarrierChainDemoState.HBridge.Label);
         ProbeUi.ApplyPillStyle(_fanInButton, _state.Label == CarrierChainDemoState.FanIn.Label);
+        ProbeUi.ApplyPillStyle(_triangleButton, _state.Label == CarrierChainDemoState.Triangle.Label);
 
         _sceneDescriptionText.Text = _state.Description;
         _metaPresetText.Text = _state.Label;

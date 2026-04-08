@@ -23,9 +23,15 @@ public readonly record struct CarrierChainDemoState(
 
     public static CarrierChainDemoState TJunction => CreateTJunction();
 
+    public static CarrierChainDemoState LCorner => CreateLCorner();
+
+    public static CarrierChainDemoState YBranch => CreateYBranch();
+
     public static CarrierChainDemoState HBridge => CreateHBridge();
 
     public static CarrierChainDemoState FanIn => CreateFanIn();
+
+    public static CarrierChainDemoState Triangle => CreateTriangle();
 
     private static CarrierChainDemoState CreateTJunction()
     {
@@ -55,6 +61,68 @@ public readonly record struct CarrierChainDemoState(
                 (right, 0.86d, 0.64d),
                 (stemStart, 0.50d, 0.64d),
                 (stemEnd, 0.50d, 0.24d)));
+    }
+
+    private static CarrierChainDemoState CreateLCorner()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+
+        var left = Site.Open(x, new Measure(0));
+        var verticalBase = Site.Open(y, new Measure(0));
+        var top = Site.Open(y, new Measure(5));
+        var corner = Site.Open(x, new Measure(5))
+            .Publish(
+                new Relation(verticalBase, top),
+                Ratio.Tension(new Measure(5)));
+
+        return new CarrierChainDemoState(
+            "L Corner",
+            "One aligned run terminates at a corner site, then turns into one orthogonal strand that climbs away from the same pinned place.",
+            ConnectedSiteTopology.Create(
+                [corner],
+                new Relation(left, corner)),
+            corner,
+            Seed(
+                (left, 0.18d, 0.68d),
+                (corner, 0.50d, 0.68d),
+                (verticalBase, 0.50d, 0.68d),
+                (top, 0.50d, 0.24d)));
+    }
+
+    private static CarrierChainDemoState CreateYBranch()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+        Carrier z = 3;
+
+        var stemBase = Site.Open(y, new Measure(-6));
+        var leftJoin = Site.Open(x, new Measure(0));
+        var leftEnd = Site.Open(x, new Measure(-4));
+        var rightJoin = Site.Open(z, new Measure(0));
+        var rightEnd = Site.Open(z, new Measure(4));
+        var center = Site.Open(y, new Measure(0))
+            .Publish(
+                new Relation(leftJoin, leftEnd),
+                Ratio.Tension(new Measure(4)))
+            .Publish(
+                new Relation(z, rightJoin, rightEnd),
+                Ratio.Tension(new Measure(4)));
+
+        return new CarrierChainDemoState(
+            "Y Branch",
+            "One stem rises into a shared site and then splits across two terminal orthogonal strands, giving a first branch-like primitive.",
+            ConnectedSiteTopology.Create(
+                [center],
+                new Relation(stemBase, center)),
+            center,
+            Seed(
+                (stemBase, 0.50d, 0.84d),
+                (center, 0.50d, 0.55d),
+                (leftJoin, 0.50d, 0.55d),
+                (leftEnd, 0.28d, 0.24d),
+                (rightJoin, 0.50d, 0.55d),
+                (rightEnd, 0.72d, 0.24d)));
     }
 
     private static CarrierChainDemoState CreateHBridge()
@@ -143,6 +211,46 @@ public readonly record struct CarrierChainDemoState(
                 (inputAJoin, 0.50d, 0.36d),
                 (inputB, 0.66d, 0.76d),
                 (inputBJoin, 0.50d, 0.36d)));
+    }
+
+    private static CarrierChainDemoState CreateTriangle()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+        Carrier z = 3;
+
+        var leftJoin = Site.Open(y, new Measure(0));
+        var rightJoin = Site.Open(z, new Measure(0));
+        var apex = Site.Open(y, new Measure(6));
+        var apexJoin = Site.Open(z, new Measure(6));
+        var leftSlope = new Relation(leftJoin, apex);
+        var rightSlope = new Relation(z, apexJoin, rightJoin);
+        var left = Site.Open(x, new Measure(0))
+            .Publish(
+                leftSlope,
+                Ratio.Tension(new Measure(6)));
+        var right = Site.Open(x, new Measure(8))
+            .Request(
+                rightSlope,
+                Ratio.Tension(new Measure(6)));
+        apex = apex.Publish(
+            rightSlope,
+            Ratio.Tension(new Measure(6)));
+
+        return new CarrierChainDemoState(
+            "Triangle",
+            "Three terminal connectors close into one three-side loop: an aligned base and two negotiated strands that meet at the apex.",
+            ConnectedSiteTopology.Create(
+                [left, right, apex],
+                new Relation(left, right)),
+            apex,
+            Seed(
+                (left, 0.24d, 0.74d),
+                (right, 0.76d, 0.74d),
+                (leftJoin, 0.24d, 0.74d),
+                (apex, 0.50d, 0.22d),
+                (apexJoin, 0.50d, 0.22d),
+                (rightJoin, 0.76d, 0.74d)));
     }
 
     private static ImmutableDictionary<Site, Point> Seed(params (Site Site, double X, double Y)[] items)
