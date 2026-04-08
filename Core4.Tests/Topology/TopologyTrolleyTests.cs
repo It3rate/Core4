@@ -117,7 +117,7 @@ public sealed class TopologyTrolleyTests
     }
 
     [Fact]
-    public void TrolleyTreatsOnlyOutgoingNonReturnLegsAsForward()
+    public void TrolleyIncludesAgainstFlowBranchWhenCarrierContinuesThroughSite()
     {
         Carrier x = 1;
         Carrier y = 2;
@@ -185,10 +185,10 @@ public sealed class TopologyTrolleyTests
         Assert.True(SameNode(trolley.Site, cross));
 
         var crossObservation = trolley.Observe();
-        Assert.Equal(2, crossObservation.ForwardContinuations.Length);
+        Assert.Equal(3, crossObservation.ForwardContinuations.Length);
         Assert.Contains(crossObservation.ForwardContinuations, continuation => SameNode(continuation.To, right));
         Assert.Contains(crossObservation.ForwardContinuations, continuation => continuation.To.Carrier == w && continuation.To.Location == new Measure(4));
-        Assert.DoesNotContain(crossObservation.ForwardContinuations, continuation => continuation.To.Carrier == w && continuation.To.Location == new Measure(-4));
+        Assert.Contains(crossObservation.ForwardContinuations, continuation => continuation.To.Carrier == w && continuation.To.Location == new Measure(-4));
     }
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;

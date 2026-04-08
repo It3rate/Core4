@@ -214,7 +214,12 @@ public readonly record struct TopologyTrolleyObservation(
 
             foreach (var continuation in Continuations)
             {
-                if (!continuation.ReturnsAlongIngress && !continuation.IsIncoming)
+                if (continuation.ReturnsAlongIngress)
+                {
+                    continue;
+                }
+
+                if (!continuation.IsIncoming || HasOutgoingOnCarrier(continuation.Carrier))
                 {
                     continuations.Add(continuation);
                 }
@@ -252,6 +257,21 @@ public readonly record struct TopologyTrolleyObservation(
         }
 
         continuation = default;
+        return false;
+    }
+
+    private bool HasOutgoingOnCarrier(Carrier carrier)
+    {
+        foreach (var continuation in Continuations)
+        {
+            if (!continuation.ReturnsAlongIngress
+                && continuation.Carrier == carrier
+                && continuation.IsOutgoing)
+            {
+                return true;
+            }
+        }
+
         return false;
     }
 }

@@ -332,7 +332,7 @@ public static class CarrierChainRenderer
             var edgeProgress = fromOrigin
                 ? motion.Progress
                 : 1d - motion.Progress;
-            var useTension = !motion.TowardAnchor;
+            var useTension = motion.UseTension;
             var point = EdgePoint(edge, edgeProgress, useTension);
             DrawTraversalRails(
                 context,
@@ -949,6 +949,7 @@ public readonly record struct CarrierChainOverlayMotion(
     Site To,
     Site TrailAnchor,
     bool TowardAnchor,
+    bool UseTension,
     double Progress);
 
 public readonly record struct CarrierChainOverlayReadout(

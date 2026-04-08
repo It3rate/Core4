@@ -535,6 +535,7 @@ public sealed class TopologyTrolleyPageView : UserControl
                         motion.ToSite,
                         motion.TrailAnchor,
                         motion.TowardAnchor,
+                        ShouldUseTensionPath(motion),
                         EaseOut(MotionProgress())));
             }
         }
@@ -1025,6 +1026,22 @@ public sealed class TopologyTrolleyPageView : UserControl
         }
 
         return mapped.ToImmutable();
+    }
+
+    private bool ShouldUseTensionPath(TrolleyMotion motion)
+    {
+        if (_preset.Label == CarrierChainDemoState.DiamondCross.Label)
+        {
+            return motion.Relation.Carrier.Id switch
+            {
+                2L => true,
+                3L => true,
+                4L => !motion.TowardAnchor,
+                _ => false
+            };
+        }
+
+        return !motion.TowardAnchor;
     }
 
     private readonly record struct TrolleyPreset(
