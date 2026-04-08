@@ -118,6 +118,93 @@ public readonly record struct TraversalDisposition(
 }
 
 /// <summary>
+/// A numeric read of whether a candidate traversal state has truly re-entered prior structure, only projected back
+/// onto the same place, or remained novel relative to the remembered trail.
+/// </summary>
+public readonly record struct TraversalReentry(
+    TraversalSignature Candidate,
+    TraversalSignature? Match,
+    Ratio Projection,
+    Ratio Agreement,
+    Measure TrailDistance)
+{
+    public bool HasMatch => Match.HasValue;
+
+    public bool IsExactReentry => Agreement.Sign.Raw > 0;
+
+    public bool IsProjectedRepeat => Projection.Sign.Raw > 0 && !IsExactReentry;
+
+    public bool IsNovel => Projection.Sign.Raw <= 0;
+
+    public static TraversalReentry Novel(TraversalSignature candidate) =>
+        new(candidate, null, Ratio.Zero(Measure.One), new Ratio(-Measure.One, Measure.One).Normalize(), Measure.Zero);
+}
+
+/// <summary>
+/// A remembered trail of traversal states. It keeps loop-sensitive state in Core4-native signatures so exact
+/// re-entry and projected repetition can be derived without topology-specific bookkeeping.
+/// </summary>
+public readonly record struct TraversalHistory(ImmutableArray<TraversalSignature> Signatures)
+{
+    public static TraversalHistory Start(TraversalSignature start) => new([start]);
+
+    public bool IsEmpty => Signatures.IsDefaultOrEmpty || Signatures.Length == 0;
+
+    public TraversalSignature Current => IsEmpty ? default : Signatures[^1];
+
+    public TraversalHistory Append(TraversalSignature signature) => new(
+        (Signatures.IsDefault ? ImmutableArray<TraversalSignature>.Empty : Signatures).Add(signature));
+
+    public TraversalHistory TrimLast() => IsEmpty
+        ? this
+        : new(Signatures.RemoveAt(Signatures.Length - 1));
+
+    public TraversalReentry Observe(TraversalSignature candidate)
+    {
+        if (IsEmpty)
+        {
+            return TraversalReentry.Novel(candidate);
+        }
+
+        TraversalSignature? projection = null;
+        var projectionIndex = -1;
+
+        for (var index = Signatures.Length - 1; index >= 0; index--)
+        {
+            var signature = Signatures[index];
+
+            if (candidate.Equivalent(signature))
+            {
+                return new TraversalReentry(
+                    candidate,
+                    signature,
+                    new Ratio(Measure.One, Measure.One),
+                    new Ratio(Measure.One, Measure.One),
+                    new Measure(Signatures.Length - 1 - index));
+            }
+
+            if (projectionIndex < 0 && candidate.SameProjection(signature))
+            {
+                projection = signature;
+                projectionIndex = index;
+            }
+        }
+
+        if (projectionIndex >= 0 && projection.HasValue)
+        {
+            return new TraversalReentry(
+                candidate,
+                projection,
+                new Ratio(Measure.One, Measure.One),
+                Ratio.Zero(Measure.One),
+                new Measure(Signatures.Length - 1 - projectionIndex));
+        }
+
+        return TraversalReentry.Novel(candidate);
+    }
+}
+
+/// <summary>
 /// A support-local candidate continuation expressed only in Core4 traversal terms: source/target signatures plus the
 /// numeric disposition relating them.
 /// </summary>
@@ -125,7 +212,8 @@ public readonly record struct TraversalContinuation(
     Carrier Carrier,
     TraversalSignature Source,
     TraversalSignature Target,
-    TraversalDisposition Disposition)
+    TraversalDisposition Disposition,
+    TraversalReentry Reentry)
 {
     public Measure Direction => Disposition.Direction;
 

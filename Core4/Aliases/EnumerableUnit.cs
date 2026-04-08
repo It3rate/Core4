@@ -166,7 +166,8 @@ public sealed class EnumerableUnit<TEnum> : IEnumerable<TEnum> where TEnum : str
                 Carrier,
                 source,
                 StepTarget(targetIndex, -Measure.One),
-                TraversalDisposition.Create(true, -Measure.One, false)));
+                TraversalDisposition.Create(true, -Measure.One, false),
+                TraversalReentry.Novel(StepTarget(targetIndex, -Measure.One))));
         }
 
         if (index.Raw < _samples.Length - 1L)
@@ -176,7 +177,8 @@ public sealed class EnumerableUnit<TEnum> : IEnumerable<TEnum> where TEnum : str
                 Carrier,
                 source,
                 StepTarget(targetIndex, Measure.One),
-                TraversalDisposition.Create(true, Measure.One, false)));
+                TraversalDisposition.Create(true, Measure.One, false),
+                TraversalReentry.Novel(StepTarget(targetIndex, Measure.One))));
         }
 
         observation = new TraversalObservation(source, continuations.ToImmutable());

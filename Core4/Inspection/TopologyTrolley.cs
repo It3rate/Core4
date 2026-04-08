@@ -16,27 +16,26 @@ public readonly record struct TopologyTrolley(
     Relation? Ingress,
     Measure Direction,
     ImmutableArray<Site> TrailSites,
-    ImmutableArray<Relation> TrailRelations)
+    ImmutableArray<Relation> TrailRelations,
+    TraversalHistory History)
 {
     public static TopologyTrolley Start(ConnectedSiteTopology topology, Site site)
     {
         var resolved = Canonicalize(topology, site);
+        var signature = SignatureOf(resolved, Measure.Zero, null);
         return new TopologyTrolley(
             topology,
             resolved,
             null,
             Measure.Zero,
             [resolved],
-            ImmutableArray<Relation>.Empty);
+            ImmutableArray<Relation>.Empty,
+            TraversalHistory.Start(signature));
     }
 
     public SiteConnector Connector => Topology.ConnectorAt(Site);
 
-    public TraversalSignature Signature => TraversalSignature.FromSite(
-        Site,
-        Direction,
-        CarriedValue(),
-        TraversalSignature.ProvenanceFor(Direction, Ingress?.Potential ?? Site.Potential));
+    public TraversalSignature Signature => SignatureOf(Site, Direction, Ingress);
 
     public TopologyTrolleyObservation Observe()
     {
@@ -71,6 +70,7 @@ public readonly record struct TopologyTrolley(
                 disposition.Direction,
                 relation.Span.Normalize(),
                 TraversalSignature.ProvenanceFor(disposition.Direction, relation.Potential));
+            var reentry = History.Observe(targetSignature);
 
             continuations.Add(new TopologyTrolleyContinuation(
                 relation,
@@ -78,7 +78,8 @@ public readonly record struct TopologyTrolley(
                 resolvedTarget,
                 disposition,
                 sourceSignature,
-                targetSignature));
+                targetSignature,
+                reentry));
         }
 
         return new TopologyTrolleyObservation(this, continuations.ToImmutable());
@@ -93,7 +94,8 @@ public readonly record struct TopologyTrolley(
             continuation.Relation,
             continuation.Direction,
             TrailSites.Add(next),
-            TrailRelations.Add(continuation.Relation));
+            TrailRelations.Add(continuation.Relation),
+            History.Append(continuation.TargetSignature));
     }
 
     public bool TryContinuePreferred(out TopologyTrolley next)
@@ -143,7 +145,8 @@ public readonly record struct TopologyTrolley(
                 previousIngress,
                 previousDirection,
                 TrailSites.RemoveAt(TrailSites.Length - 1),
-                TrailRelations.RemoveAt(TrailRelations.Length - 1));
+                TrailRelations.RemoveAt(TrailRelations.Length - 1),
+                History.TrimLast());
             return true;
         }
 
@@ -153,19 +156,26 @@ public readonly record struct TopologyTrolley(
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
 
-    private Ratio CarriedValue()
+    private static TraversalSignature SignatureOf(Site site, Measure direction, Relation? ingress) =>
+        TraversalSignature.FromSite(
+            site,
+            direction,
+            Carry(site, ingress),
+            TraversalSignature.ProvenanceFor(direction, ingress?.Potential ?? site.Potential));
+
+    private static Ratio Carry(Site site, Relation? ingress)
     {
-        if (Ingress.HasValue)
+        if (ingress.HasValue)
         {
-            return Ingress.Value.Span.Normalize();
+            return ingress.Value.Span.Normalize();
         }
 
-        if (Site.State.Potential != Measure.Zero || Site.State.Dominant != Measure.Zero)
+        if (site.State.Potential != Measure.Zero || site.State.Dominant != Measure.Zero)
         {
-            return Site.State.Normalize();
+            return site.State.Normalize();
         }
 
-        return Ratio.Tension(Site.Potential);
+        return Ratio.Tension(site.Potential);
     }
 
     private static Site Canonicalize(ConnectedSiteTopology topology, Site site)
@@ -212,11 +222,12 @@ public readonly record struct TopologyTrolleyContinuation(
     Site To,
     TraversalDisposition Disposition,
     TraversalSignature SourceSignature,
-    TraversalSignature TargetSignature)
+    TraversalSignature TargetSignature,
+    TraversalReentry Reentry)
 {
     public Carrier Carrier => Relation.Carrier;
 
-    public TraversalContinuation Traversal => new(Carrier, SourceSignature, TargetSignature, Disposition);
+    public TraversalContinuation Traversal => new(Carrier, SourceSignature, TargetSignature, Disposition, Reentry);
 
     public Measure Potential => Relation.Potential;
 

@@ -58,25 +58,29 @@ public sealed class TraversalEncodingTests
             new Ratio(new Measure(5), Measure.One),
             Provenance.SelfDriven(new Measure(5)));
 
+        var sameCarrierTarget = TraversalSignature.FromPlacement(
+            Placement.Exact(x, new Measure(10)),
+            Measure.One,
+            new Ratio(Measure.One, Measure.One),
+            Provenance.SelfDriven(Measure.One));
         var sameCarrier = new TraversalContinuation(
             x,
             source,
-            TraversalSignature.FromPlacement(
-                Placement.Exact(x, new Measure(10)),
-                Measure.One,
-                new Ratio(Measure.One, Measure.One),
-                Provenance.SelfDriven(Measure.One)),
-            TraversalDisposition.Create(continuesCarrier: true, direction: Measure.One, returnsAlongIngress: false));
+            sameCarrierTarget,
+            TraversalDisposition.Create(continuesCarrier: true, direction: Measure.One, returnsAlongIngress: false),
+            TraversalReentry.Novel(sameCarrierTarget));
 
+        var branchTarget = TraversalSignature.FromPlacement(
+            Placement.Exact(y, new Measure(4)),
+            Measure.One,
+            new Ratio(Measure.One, Measure.One),
+            Provenance.SelfDriven(Measure.One));
         var branch = new TraversalContinuation(
             y,
             source,
-            TraversalSignature.FromPlacement(
-                Placement.Exact(y, new Measure(4)),
-                Measure.One,
-                new Ratio(Measure.One, Measure.One),
-                Provenance.SelfDriven(Measure.One)),
-            TraversalDisposition.Create(continuesCarrier: false, direction: Measure.One, returnsAlongIngress: false));
+            branchTarget,
+            TraversalDisposition.Create(continuesCarrier: false, direction: Measure.One, returnsAlongIngress: false),
+            TraversalReentry.Novel(branchTarget));
 
         var observation = new TraversalObservation(source, [sameCarrier, branch]);
 
@@ -84,5 +88,29 @@ public sealed class TraversalEncodingTests
         Assert.True(observation.TryPreferred(out var preferred));
         Assert.Equal(x, preferred.Carrier);
         Assert.True(preferred.ContinuesCarrier);
+    }
+
+    [Fact]
+    public void TraversalHistoryDistinguishesExactReentryFromProjectedRepeat()
+    {
+        Carrier x = 1;
+        var forward = TraversalSignature.FromPlacement(
+            Placement.Exact(x, new Measure(5)),
+            Measure.One,
+            new Ratio(new Measure(4), Measure.One),
+            Provenance.SelfDriven(new Measure(4)));
+        var history = TraversalHistory.Start(forward);
+
+        var exact = history.Observe(forward);
+        var reflected = history.Observe(TraversalSignature.FromPlacement(
+            Placement.Exact(x, new Measure(5)),
+            -Measure.One,
+            new Ratio(new Measure(4), Measure.One),
+            Provenance.OtherDriven(new Measure(4))));
+
+        Assert.True(exact.IsExactReentry);
+        Assert.False(exact.IsProjectedRepeat);
+        Assert.False(reflected.IsExactReentry);
+        Assert.True(reflected.IsProjectedRepeat);
     }
 }
