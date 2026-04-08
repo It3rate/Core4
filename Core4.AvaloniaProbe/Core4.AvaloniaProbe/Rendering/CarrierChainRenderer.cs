@@ -29,7 +29,7 @@ public static class CarrierChainRenderer
         var chains = state.Topology.Chains();
         var defaults = DefaultPositions(chains);
         var hubs = BuildHubLayouts(content, state, chains, normalizedPositions, defaults);
-        var desiredHubs = BuildHubLayouts(content, state, chains, state.SeedPositions, defaults);
+        var desiredHubs = BuildHubLayouts(content, state, chains, state.DesiredSeedPositions, defaults);
         var hubLookup = HubLookup(hubs);
         var desiredLookup = HubLookup(desiredHubs);
         var edges = BuildEdgeLayouts(state, chains, hubLookup, desiredLookup);

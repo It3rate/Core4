@@ -73,5 +73,65 @@ public sealed class PropagationWaveTests
         Assert.Equal(new Measure(2), parkedHome.Multiplicity);
     }
 
+    [Fact]
+    public void WaveSplitsAgainOnReturnAfterDiamondMerge()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+        Carrier z = 3;
+
+        var left = Site.Open(x, new Measure(0));
+        var entry = Site.Open(x, new Measure(4))
+            .Publish(
+                new Relation(
+                    Site.Open(y, new Measure(0)),
+                    Site.Open(y, new Measure(4))),
+                Ratio.Tension(new Measure(4)))
+            .Publish(
+                new Relation(
+                    Site.Open(z, new Measure(0)),
+                    Site.Open(z, new Measure(4))),
+                Ratio.Tension(new Measure(4)));
+
+        var upperApex = Site.Open(y, new Measure(4));
+        var upperExit = Site.Open(y, new Measure(8));
+        var lowerApex = Site.Open(z, new Measure(4));
+        var lowerExit = Site.Open(z, new Measure(8));
+        var merge = Site.Open(x, new Measure(12))
+            .Request(
+                new Relation(y, upperApex, upperExit),
+                Ratio.Tension(new Measure(4)))
+            .Request(
+                new Relation(z, lowerApex, lowerExit),
+                Ratio.Tension(new Measure(4)));
+
+        var topology = ConnectedSiteTopology.Create(
+            [entry, merge],
+            new Relation(left, entry));
+
+        var wave = PropagationWave.Start(topology, left);
+
+        wave = wave.Advance().After;
+        wave = wave.Advance().After;
+        var merged = wave.Advance();
+
+        Assert.True(merged.HasMotion);
+        var mergedFront = Assert.Single(merged.After.Active);
+        Assert.True(SameNode(mergedFront.Site, merge));
+        Assert.Equal(new Measure(2), mergedFront.Multiplicity);
+
+        var flip = merged.After.Advance();
+        Assert.False(flip.HasMotion);
+        Assert.True(flip.After.IsReturning);
+
+        var split = flip.After.Advance();
+        Assert.True(split.HasMotion);
+        Assert.Equal(2, split.After.Active.Length);
+        Assert.Contains(split.After.Active, frontier => SameNode(frontier.Site, upperApex));
+        Assert.Contains(split.After.Active, frontier => SameNode(frontier.Site, lowerApex));
+        Assert.Contains(split.Moves, move => move.Relation.Carrier == y && SameNode(move.Target.Site, upperApex));
+        Assert.Contains(split.Moves, move => move.Relation.Carrier == z && SameNode(move.Target.Site, lowerApex));
+    }
+
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
 }

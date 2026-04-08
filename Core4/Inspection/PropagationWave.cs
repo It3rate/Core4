@@ -8,7 +8,8 @@ namespace Core4.Inspection;
 /// <summary>
 /// A topology-wide propagation pass. Outbound fronts follow forward-flowing continuations and park at termini until
 /// the whole wave goes quiescent. Return fronts then walk their own trails backward. Fronts that meet at one site
-/// fuse by summing multiplicity, so merge remains numeric rather than becoming a UI-only deletion rule.
+/// fuse numerically while still retaining their contributing histories, so a later return can split back out through
+/// the branch structure it actually traversed.
 /// </summary>
 public readonly record struct PropagationWave(
     Measure Perspective,
@@ -18,7 +19,7 @@ public readonly record struct PropagationWave(
     public static PropagationWave Start(ConnectedSiteTopology topology, Site site) =>
         new(
             Measure.One,
-            [new PropagationFrontier(TopologyTrolley.Start(topology, site), Measure.One)],
+            [new PropagationFrontier(TopologyTrolley.Start(topology, site))],
             ImmutableArray<PropagationFrontier>.Empty);
 
     public static PropagationWave FromTrolleys(ImmutableArray<TopologyTrolley> trolleys, Measure perspective)
@@ -27,7 +28,7 @@ public readonly record struct PropagationWave(
 
         foreach (var trolley in trolleys)
         {
-            MergeFrontier(active, new PropagationFrontier(trolley, Measure.One));
+            MergeFrontier(active, new PropagationFrontier(trolley));
         }
 
         return new PropagationWave(perspective, active.ToImmutable(), ImmutableArray<PropagationFrontier>.Empty);
@@ -106,9 +107,9 @@ public readonly record struct PropagationWave(
 
             foreach (var continuation in forward)
             {
-                var moved = new PropagationFrontier(frontier.Trolley.Move(continuation), frontier.Multiplicity);
+                var moved = frontier.Move(continuation);
                 MergeFrontier(nextActive, moved);
-                moves.Add(new PropagationMove(frontier, moved));
+                moves.Add(new PropagationMove(frontier.Trolley, moved.Trolley));
             }
         }
 
@@ -140,13 +141,22 @@ public readonly record struct PropagationWave(
 
         foreach (var frontier in Active)
         {
-            if (frontier.Trolley.TryReverse(out var reversed))
+            var reversedAny = false;
+
+            foreach (var history in frontier.Histories)
             {
-                var moved = new PropagationFrontier(reversed, frontier.Multiplicity);
+                if (!history.TryReverse(out var prior))
+                {
+                    continue;
+                }
+
+                reversedAny = true;
+                var moved = new PropagationFrontier(prior);
                 MergeFrontier(nextActive, moved);
-                moves.Add(new PropagationMove(frontier, moved));
+                moves.Add(new PropagationMove(history, prior));
             }
-            else
+
+            if (!reversedAny)
             {
                 MergeFrontier(nextParked, frontier);
             }
@@ -178,7 +188,7 @@ public readonly record struct PropagationWave(
 
             frontiers[index] = frontiers[index] with
             {
-                Multiplicity = frontiers[index].Multiplicity + frontier.Multiplicity
+                Histories = frontiers[index].Histories.AddRange(frontier.Histories)
             };
             return;
         }
@@ -190,17 +200,38 @@ public readonly record struct PropagationWave(
 }
 
 public readonly record struct PropagationFrontier(
-    TopologyTrolley Trolley,
-    Measure Multiplicity)
+    ImmutableArray<TopologyTrolley> Histories)
 {
+    public PropagationFrontier(TopologyTrolley trolley) : this([trolley])
+    {
+    }
+
+    public TopologyTrolley Trolley => Histories[0];
+
+    public Measure Multiplicity => new(Histories.Length);
+
     public Site Site => Trolley.Site;
+
+    public PropagationFrontier Move(TopologyTrolleyContinuation continuation)
+    {
+        var moved = ImmutableArray.CreateBuilder<TopologyTrolley>(Histories.Length);
+
+        foreach (var history in Histories)
+        {
+            moved.Add(history.Move(continuation));
+        }
+
+        return new PropagationFrontier(moved.ToImmutable());
+    }
 }
 
 public readonly record struct PropagationMove(
-    PropagationFrontier Source,
-    PropagationFrontier Target)
+    TopologyTrolley Source,
+    TopologyTrolley Target)
 {
-    public Relation Relation => Target.Trolley.TrailRelations[^1];
+    public Relation Relation => Target.TrailRelations.Length < Source.TrailRelations.Length
+        ? Source.TrailRelations[^1]
+        : Target.TrailRelations[^1];
 }
 
 public readonly record struct PropagationWaveStep(

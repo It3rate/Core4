@@ -138,32 +138,7 @@ public sealed class CarrierChainSceneControl : Control
     }
 
     private static ImmutableDictionary<Site, Point> InitializePositions(CarrierChainDemoState state)
-    {
-        if (state.Label != CarrierChainDemoState.DiamondCross.Label)
-        {
-            return state.SeedPositions;
-        }
-
-        var builder = state.SeedPositions.ToBuilder();
-
-        foreach (var (site, point) in state.SeedPositions)
-        {
-            builder[site] = site.Carrier.Id switch
-            {
-                2L when site.Location == new Core4.Numerics.Measure(4) => new Point(point.X - 0.01d, point.Y - 0.10d),
-                2L when site.Location == new Core4.Numerics.Measure(8) => new Point(point.X + 0.01d, point.Y - 0.03d),
-                3L when site.Location == new Core4.Numerics.Measure(4) => new Point(point.X - 0.01d, point.Y + 0.10d),
-                3L when site.Location == new Core4.Numerics.Measure(8) => new Point(point.X + 0.01d, point.Y + 0.03d),
-                1L when site.Location == new Core4.Numerics.Measure(12) => new Point(point.X - 0.05d, point.Y + 0.01d),
-                1L when site.Location == new Core4.Numerics.Measure(18) => new Point(point.X + 0.03d, point.Y - 0.02d),
-                4L when site.Location == new Core4.Numerics.Measure(4) => new Point(point.X + 0.02d, point.Y - 0.05d),
-                4L when site.Location == new Core4.Numerics.Measure(-4) => new Point(point.X + 0.02d, point.Y + 0.05d),
-                _ => point
-            };
-        }
-
-        return builder.ToImmutable();
-    }
+        => state.SeedPositions;
 
     private readonly record struct DragSession(ImmutableArray<Site> Sites, Vector PointerOffset);
 }

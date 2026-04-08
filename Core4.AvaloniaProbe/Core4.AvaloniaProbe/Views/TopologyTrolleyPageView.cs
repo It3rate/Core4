@@ -20,8 +20,8 @@ namespace Core4.AvaloniaProbe.Views;
 /// </summary>
 public sealed class TopologyTrolleyPageView : UserControl
 {
-    private const double MillisecondsPerUnit = 650d;
-    private const double MinimumMotionMilliseconds = 1800d;
+    private const double MillisecondsPerUnit = 333d;
+    private const double MinimumMotionMilliseconds = 922d;
 
     private readonly CarrierChainSceneControl _scene;
     private readonly Button _tJunctionButton;
@@ -1017,8 +1017,8 @@ public sealed class TopologyTrolleyPageView : UserControl
 
         foreach (var move in moves)
         {
-            var source = move.Source.Trolley;
-            var target = move.Target.Trolley;
+            var source = move.Source;
+            var target = move.Target;
             var reversed = target.TrailRelations.Length < source.TrailRelations.Length;
             mapped.Add(reversed
                 ? TrolleyMotion.Reverse(source, target)
@@ -1034,10 +1034,10 @@ public sealed class TopologyTrolleyPageView : UserControl
         {
             return motion.Relation.Carrier.Id switch
             {
-                2L => true,
-                3L => true,
+                2L => motion.TowardAnchor,
+                3L => motion.TowardAnchor,
                 4L => !motion.TowardAnchor,
-                _ => false
+                _ => !motion.TowardAnchor
             };
         }
 

@@ -8,7 +8,8 @@ namespace Core4.AvaloniaProbe.Models;
 
 /// <summary>
 /// One topology demo preset backed by a real connected Core4 topology plus seed positions for the visual hubs.
-/// The seed positions are only view hints; all structure, chains, and connector readings come from Core4 itself.
+/// The visible seed positions are only view hints; the tension read can compare those against a hidden rest layout
+/// when a sample wants live tension without visibly distorting its starting shape.
 /// </summary>
 public readonly record struct CarrierChainDemoState(
     string Label,
@@ -17,9 +18,15 @@ public readonly record struct CarrierChainDemoState(
     Site FocusSite,
     ImmutableDictionary<Site, Point> SeedPositions)
 {
+    public const string DiamondCrossLabel = "Diamond Cross";
+
     public SiteConnector FocusConnector => Topology.ConnectorAt(FocusSite);
 
     public ImmutableArray<CarrierChain> Chains => Topology.Chains();
+
+    public ImmutableDictionary<Site, Point> DesiredSeedPositions => Label == DiamondCrossLabel
+        ? DiamondCrossDesiredSeeds(SeedPositions)
+        : SeedPositions;
 
     public static CarrierChainDemoState TJunction => CreateTJunction();
 
@@ -303,7 +310,7 @@ public readonly record struct CarrierChainDemoState(
         var lowerEntry = Site.Open(z, new Measure(0));
 
         return new CarrierChainDemoState(
-            "Diamond Cross",
+            DiamondCrossLabel,
             "One carrier enters a diamond split, rejoins on the far side, then continues into a vertical through-site so one walk expresses branch, merge, continuation, and crossing.",
             ConnectedSiteTopology.Create(
                 [entry, merge, cross],
@@ -322,10 +329,39 @@ public readonly record struct CarrierChainDemoState(
                 (lowerExit, 0.56d, 0.54d),
                 (merge, 0.56d, 0.54d),
                 (cross, 0.78d, 0.56d),
-                (right, 0.90d, 0.57d),
+                (right, 0.90d, 0.54d),
                 (verticalLow, 0.78d, 0.86d),
                 (verticalMid, 0.78d, 0.56d),
                 (verticalHigh, 0.78d, 0.14d)));
+    }
+
+    private static ImmutableDictionary<Site, Point> DiamondCrossDesiredSeeds(ImmutableDictionary<Site, Point> visible)
+    {
+        var builder = visible.ToBuilder();
+
+        foreach (var (site, point) in visible)
+        {
+            builder[site] = site.Carrier.Id switch
+            {
+                1L when site.Location == new Measure(0) => new Point(0.02d, 0.54d),
+                1L when site.Location == new Measure(4) => new Point(0.28d, 0.54d),
+                2L when site.Location == new Measure(0) => new Point(0.28d, 0.54d),
+                3L when site.Location == new Measure(0) => new Point(0.28d, 0.54d),
+                2L when site.Location == new Measure(4) => new Point(0.36d, 0.40d),
+                3L when site.Location == new Measure(4) => new Point(0.36d, 0.68d),
+                1L when site.Location == new Measure(12) => new Point(0.66d, 0.54d),
+                2L when site.Location == new Measure(8) => new Point(0.66d, 0.54d),
+                3L when site.Location == new Measure(8) => new Point(0.66d, 0.54d),
+                1L when site.Location == new Measure(18) => new Point(0.82d, 0.56d),
+                4L when site.Location == new Measure(0) => new Point(0.82d, 0.56d),
+                1L when site.Location == new Measure(22) => new Point(0.95d, 0.54d),
+                4L when site.Location == new Measure(-4) => new Point(0.82d, 0.78d),
+                4L when site.Location == new Measure(4) => new Point(0.82d, 0.04d),
+                _ => point
+            };
+        }
+
+        return builder.ToImmutable();
     }
 
     private static ImmutableDictionary<Site, Point> Seed(params (Site Site, double X, double Y)[] items)
