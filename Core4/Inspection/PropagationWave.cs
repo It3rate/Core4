@@ -181,7 +181,7 @@ public readonly record struct PropagationWave(
     {
         for (var index = 0; index < frontiers.Count; index++)
         {
-            if (!SameNode(frontiers[index].Site, frontier.Site))
+            if (!frontiers[index].Signature.Equivalent(frontier.Signature))
             {
                 continue;
             }
@@ -195,8 +195,6 @@ public readonly record struct PropagationWave(
 
         frontiers.Add(frontier);
     }
-
-    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
 }
 
 public readonly record struct PropagationFrontier(
@@ -211,6 +209,8 @@ public readonly record struct PropagationFrontier(
     public Measure Multiplicity => new(Histories.Length);
 
     public Site Site => Trolley.Site;
+
+    public Core4.Dynamics.TraversalSignature Signature => Trolley.Signature;
 
     public PropagationFrontier Move(TopologyTrolleyContinuation continuation)
     {

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Immutable;
+using Core4.Dynamics;
 using Core4.Numerics;
 using Core4.Structure;
 
@@ -135,6 +136,64 @@ public sealed class EnumerableUnit<TEnum> : IEnumerable<TEnum> where TEnum : str
         return false;
     }
 
+    public TraversalSignature SignatureAt(Measure index, Measure? perspective = null)
+    {
+        var carried = PositionAt(index);
+        var direction = perspective ?? Measure.Zero;
+        return TraversalSignature.FromPlacement(
+            PlacementAt(index),
+            direction,
+            carried,
+            TraversalSignature.ProvenanceFor(direction, carried.Potential == Measure.Zero ? Measure.One : carried.Potential));
+    }
+
+    public bool TryObserve(Measure index, out TraversalObservation observation, Measure? perspective = null)
+    {
+        if (index.Raw < 0L || index.Raw >= _samples.Length)
+        {
+            observation = default;
+            return false;
+        }
+
+        var direction = perspective ?? Measure.Zero;
+        var source = SignatureAt(index, direction);
+        var continuations = ImmutableArray.CreateBuilder<TraversalContinuation>(2);
+
+        if (index.Raw > 0L)
+        {
+            var targetIndex = new Measure(index.Raw - 1L);
+            continuations.Add(new TraversalContinuation(
+                Carrier,
+                source,
+                StepTarget(targetIndex, -Measure.One),
+                TraversalDisposition.Create(true, -Measure.One, false)));
+        }
+
+        if (index.Raw < _samples.Length - 1L)
+        {
+            var targetIndex = new Measure(index.Raw + 1L);
+            continuations.Add(new TraversalContinuation(
+                Carrier,
+                source,
+                StepTarget(targetIndex, Measure.One),
+                TraversalDisposition.Create(true, Measure.One, false)));
+        }
+
+        observation = new TraversalObservation(source, continuations.ToImmutable());
+        return true;
+    }
+
+    public bool TryObserveCurrent(out TraversalObservation observation, Measure? perspective = null)
+    {
+        if (HasCurrent)
+        {
+            return TryObserve(CurrentIndex, out observation, perspective);
+        }
+
+        observation = default;
+        return false;
+    }
+
     public IEnumerable<TEnum> IterateSamples(Measure? stepTicks = null)
     {
         Reset();
@@ -261,5 +320,15 @@ public sealed class EnumerableUnit<TEnum> : IEnumerable<TEnum> where TEnum : str
         var leftScaled = checked(left.Recessive.Raw * right.Dominant.Raw);
         var rightScaled = checked(right.Recessive.Raw * left.Dominant.Raw);
         return leftScaled.CompareTo(rightScaled);
+    }
+
+    private TraversalSignature StepTarget(Measure index, Measure direction)
+    {
+        var carried = new Ratio(direction, Measure.One).Normalize();
+        return TraversalSignature.FromPlacement(
+            PlacementAt(index),
+            direction,
+            carried,
+            TraversalSignature.ProvenanceFor(direction, Measure.One));
     }
 }

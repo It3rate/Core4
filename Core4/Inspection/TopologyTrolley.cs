@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core4.Dynamics;
 using Core4.Numerics;
 using Core4.Structure;
 using Core4.Topology;
@@ -31,10 +32,17 @@ public readonly record struct TopologyTrolley(
 
     public SiteConnector Connector => Topology.ConnectorAt(Site);
 
+    public TraversalSignature Signature => TraversalSignature.FromSite(
+        Site,
+        Direction,
+        CarriedValue(),
+        TraversalSignature.ProvenanceFor(Direction, Ingress?.Potential ?? Site.Potential));
+
     public TopologyTrolleyObservation Observe()
     {
         var continuations = ImmutableArray.CreateBuilder<TopologyTrolleyContinuation>();
         var incidence = Topology.IncidenceAt(Site);
+        var sourceSignature = Signature;
 
         foreach (var leg in incidence.Legs)
         {
@@ -57,14 +65,20 @@ public readonly record struct TopologyTrolley(
             var continuesCarrier = Ingress.HasValue
                 ? relation != Ingress.Value && relation.Carrier == Ingress.Value.Carrier
                 : relation.Carrier == Site.Carrier;
+            var disposition = TraversalDisposition.Create(continuesCarrier, leg.Direction, returnsAlongIngress);
+            var targetSignature = TraversalSignature.FromSite(
+                resolvedTarget,
+                disposition.Direction,
+                relation.Span.Normalize(),
+                TraversalSignature.ProvenanceFor(disposition.Direction, relation.Potential));
 
             continuations.Add(new TopologyTrolleyContinuation(
                 relation,
                 Site,
                 resolvedTarget,
-                leg.Direction,
-                continuesCarrier,
-                returnsAlongIngress));
+                disposition,
+                sourceSignature,
+                targetSignature));
         }
 
         return new TopologyTrolleyObservation(this, continuations.ToImmutable());
@@ -139,6 +153,21 @@ public readonly record struct TopologyTrolley(
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
 
+    private Ratio CarriedValue()
+    {
+        if (Ingress.HasValue)
+        {
+            return Ingress.Value.Span.Normalize();
+        }
+
+        if (Site.State.Potential != Measure.Zero || Site.State.Dominant != Measure.Zero)
+        {
+            return Site.State.Normalize();
+        }
+
+        return Ratio.Tension(Site.Potential);
+    }
+
     private static Site Canonicalize(ConnectedSiteTopology topology, Site site)
     {
         var resolved = topology.IncidenceAt(site).Site;
@@ -181,17 +210,25 @@ public readonly record struct TopologyTrolleyContinuation(
     Relation Relation,
     Site From,
     Site To,
-    Measure Direction,
-    bool ContinuesCarrier,
-    bool ReturnsAlongIngress)
+    TraversalDisposition Disposition,
+    TraversalSignature SourceSignature,
+    TraversalSignature TargetSignature)
 {
     public Carrier Carrier => Relation.Carrier;
 
+    public TraversalContinuation Traversal => new(Carrier, SourceSignature, TargetSignature, Disposition);
+
     public Measure Potential => Relation.Potential;
 
-    public bool IsIncoming => Direction.Raw < 0;
+    public Measure Direction => Disposition.Direction;
 
-    public bool IsOutgoing => Direction.Raw > 0;
+    public bool ContinuesCarrier => Disposition.ContinuesCarrier;
+
+    public bool ReturnsAlongIngress => Disposition.ReturnsAlongIngress;
+
+    public bool IsIncoming => Disposition.IsIncoming;
+
+    public bool IsOutgoing => Disposition.IsOutgoing;
 }
 
 /// <summary>
@@ -206,23 +243,31 @@ public readonly record struct TopologyTrolleyObservation(
 
     public SiteConnector Connector => Trolley.Connector;
 
+    public TraversalObservation Traversal
+    {
+        get
+        {
+            var continuations = ImmutableArray.CreateBuilder<TraversalContinuation>(Continuations.Length);
+
+            foreach (var continuation in Continuations)
+            {
+                continuations.Add(continuation.Traversal);
+            }
+
+            return new TraversalObservation(Trolley.Signature, continuations.ToImmutable());
+        }
+    }
+
     public ImmutableArray<TopologyTrolleyContinuation> ForwardContinuations
     {
         get
         {
-            var continuations = ImmutableArray.CreateBuilder<TopologyTrolleyContinuation>();
+            var forward = Traversal.ForwardIndexes();
+            var continuations = ImmutableArray.CreateBuilder<TopologyTrolleyContinuation>(forward.Length);
 
-            foreach (var continuation in Continuations)
+            foreach (var index in forward)
             {
-                if (continuation.ReturnsAlongIngress)
-                {
-                    continue;
-                }
-
-                if (!continuation.IsIncoming || HasOutgoingOnCarrier(continuation.Carrier))
-                {
-                    continuations.Add(continuation);
-                }
+                continuations.Add(Continuations[index]);
             }
 
             return continuations.ToImmutable();
@@ -233,45 +278,13 @@ public readonly record struct TopologyTrolleyObservation(
 
     public bool TryPreferred(out TopologyTrolleyContinuation continuation)
     {
-        var forward = ForwardContinuations;
-        var continued = ImmutableArray.CreateBuilder<TopologyTrolleyContinuation>();
-
-        foreach (var candidate in forward)
+        if (Traversal.TryPreferredIndex(out var index))
         {
-            if (candidate.ContinuesCarrier)
-            {
-                continued.Add(candidate);
-            }
-        }
-
-        if (continued.Count == 1)
-        {
-            continuation = continued[0];
-            return true;
-        }
-
-        if (forward.Length == 1)
-        {
-            continuation = forward[0];
+            continuation = Continuations[index];
             return true;
         }
 
         continuation = default;
-        return false;
-    }
-
-    private bool HasOutgoingOnCarrier(Carrier carrier)
-    {
-        foreach (var continuation in Continuations)
-        {
-            if (!continuation.ReturnsAlongIngress
-                && continuation.Carrier == carrier
-                && continuation.IsOutgoing)
-            {
-                return true;
-            }
-        }
-
         return false;
     }
 }
