@@ -83,7 +83,7 @@ public sealed class CarrierChainPageView : UserControl
                     Children =
                     {
                         ProbeUi.Mono("VISUAL LANGUAGE", 10d, ProbePalette.Muted),
-                        ProbeUi.Body("Carrier spans are solid runs. Flow-backed orthogonal strands add wave overlays and endpoint markers. Drag any hub to stretch the map without changing the underlying topology.", 10d)
+                        ProbeUi.Body("Carrier spans are solid runs. Endpoint hubs carry one centered dot or arrow on the white site ring. Drag any hub to deform the live geometry: the underlying topology stays fixed while the wave shows desired-versus-actual tension.", 10d)
                     }
                 }, 20, new Thickness(12, 10)),
                 ProbeUi.Card(new StackPanel
