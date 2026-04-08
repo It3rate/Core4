@@ -28,18 +28,27 @@ public static class CarrierChainRenderer
         var chains = state.Topology.Chains();
         var defaults = DefaultPositions(chains);
         var hubs = BuildHubLayouts(content, state, chains, normalizedPositions, defaults);
-        var points = PointLookup(hubs);
-        var edges = BuildEdgeLayouts(state, chains, points);
+        var hubLookup = HubLookup(hubs);
+        var edges = BuildEdgeLayouts(state, chains, hubLookup);
         return new CarrierChainSceneLayout(content, hubs, edges);
     }
 
     public static void Render(DrawingContext context, CarrierChainSceneLayout layout)
     {
         DrawBackdrop(context, layout.ContentRect);
+        DrawHubBodies(context, layout.Hubs);
 
         foreach (var edge in layout.Edges)
         {
             context.DrawLine(edge.Pen, edge.Start, edge.End);
+            ScenePrimitives.DrawCircle(context, edge.StartCarrierMarker, 3.8d, Brushes.White, new Pen(edge.Pen.Brush, 2.4d, lineCap: PenLineCap.Round));
+            ScenePrimitives.DrawDirectedTriangle(
+                context,
+                edge.EndCarrierMarker,
+                8.8d,
+                Brushes.White,
+                edge.AnchorDirection,
+                new Pen(edge.Pen.Brush, 2.4d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
             ScenePrimitives.DrawCenteredLabel(
                 context,
                 edge.Label,
@@ -82,41 +91,7 @@ public static class CarrierChainRenderer
             }
         }
 
-        foreach (var hub in layout.Hubs)
-        {
-            var ringBrush = hub.IsFocus ? ProbePalette.Origin : hub.IsJunction ? ProbePalette.Overlay : ProbePalette.SurfaceSoft;
-            var ringPen = new Pen(ringBrush, hub.IsFocus ? 3.2d : 2.4d, lineCap: PenLineCap.Round);
-            ScenePrimitives.DrawCircle(context, hub.Point, hub.IsJunction ? 14d : 12d, ProbePalette.Surface, ringPen);
-
-            if (hub.AttachmentCount > 0)
-            {
-                ScenePrimitives.DrawCircle(
-                    context,
-                    hub.Point,
-                    hub.IsJunction ? 5.8d : 5.1d,
-                    hub.IsFocus ? ProbePalette.Origin : ProbePalette.Overlay);
-            }
-
-            if (hub.CarrierCount > 1)
-            {
-                ScenePrimitives.DrawSquare(
-                    context,
-                    hub.Point,
-                    8.4d,
-                    Brushes.Transparent,
-                    new Pen(ProbePalette.Ink, 1.6d, lineCap: PenLineCap.Round),
-                    3d);
-            }
-
-            ScenePrimitives.DrawCenteredLabel(
-                context,
-                hub.Label,
-                hub.Point + new Vector(0d, 13d),
-                11d,
-                ProbePalette.Ink,
-                FontWeight.SemiBold,
-                ProbePalette.MonoFont);
-        }
+        DrawHubLabels(context, layout.Hubs);
     }
 
     public static Rect ContentRect(Rect bounds) => new(
@@ -148,6 +123,55 @@ public static class CarrierChainRenderer
     public static Point ClampNormalized(Point normalized) => new(
         Math.Clamp(normalized.X, 0.05d, 0.95d),
         Math.Clamp(normalized.Y, 0.08d, 0.92d));
+
+    private static void DrawHubBodies(DrawingContext context, ImmutableArray<CarrierChainHubLayout> hubs)
+    {
+        foreach (var hub in hubs)
+        {
+            var ringBrush = hub.IsFocus
+                ? ProbePalette.Origin
+                : hub.IsJunction
+                    ? ProbePalette.Overlay
+                    : new SolidColorBrush(Color.Parse("#c5b6a0"));
+            var ringPen = new Pen(ringBrush, hub.IsFocus ? 3.2d : 2.2d, lineCap: PenLineCap.Round);
+            ScenePrimitives.DrawCircle(context, hub.Point, hub.Radius, Brushes.White, ringPen);
+
+            if (hub.AttachmentCount > 0)
+            {
+                ScenePrimitives.DrawCircle(
+                    context,
+                    hub.Point,
+                    hub.IsJunction ? 5.8d : 5.1d,
+                    hub.IsFocus ? ProbePalette.Origin : ProbePalette.Overlay);
+            }
+
+            if (hub.CarrierCount > 1)
+            {
+                ScenePrimitives.DrawSquare(
+                    context,
+                    hub.Point,
+                    8.4d,
+                    Brushes.Transparent,
+                    new Pen(ProbePalette.Ink, 1.6d, lineCap: PenLineCap.Round),
+                    3d);
+            }
+        }
+    }
+
+    private static void DrawHubLabels(DrawingContext context, ImmutableArray<CarrierChainHubLayout> hubs)
+    {
+        foreach (var hub in hubs)
+        {
+            ScenePrimitives.DrawCenteredLabel(
+                context,
+                hub.Label,
+                hub.Point + new Vector(0d, 13d),
+                11d,
+                ProbePalette.Ink,
+                FontWeight.SemiBold,
+                ProbePalette.MonoFont);
+        }
+    }
 
     private static void DrawBackdrop(DrawingContext context, Rect rect)
     {
@@ -315,15 +339,15 @@ public static class CarrierChainRenderer
         return ClampNormalized(new Point(totalX / group.Count, totalY / group.Count));
     }
 
-    private static ImmutableDictionary<Site, Point> PointLookup(ImmutableArray<CarrierChainHubLayout> hubs)
+    private static ImmutableDictionary<Site, CarrierChainHubLayout> HubLookup(ImmutableArray<CarrierChainHubLayout> hubs)
     {
-        var builder = ImmutableDictionary.CreateBuilder<Site, Point>();
+        var builder = ImmutableDictionary.CreateBuilder<Site, CarrierChainHubLayout>();
 
         foreach (var hub in hubs)
         {
             foreach (var site in hub.MemberSites)
             {
-                builder[site] = hub.Point;
+                builder[site] = hub;
             }
         }
 
@@ -333,7 +357,7 @@ public static class CarrierChainRenderer
     private static ImmutableArray<CarrierChainEdgeLayout> BuildEdgeLayouts(
         CarrierChainDemoState state,
         ImmutableArray<CarrierChain> chains,
-        ImmutableDictionary<Site, Point> points)
+        ImmutableDictionary<Site, CarrierChainHubLayout> hubs)
     {
         var edges = ImmutableArray.CreateBuilder<CarrierChainEdgeLayout>();
         var carriers = ImmutableArray.CreateBuilder<Carrier>();
@@ -353,13 +377,23 @@ public static class CarrierChainRenderer
 
             foreach (var relation in chain.Relations)
             {
+                var originHub = hubs[relation.Origin];
+                var anchorHub = hubs[relation.Anchor];
+                var spanStart = OffsetFromHub(originHub.Point, anchorHub.Point, originHub.Radius + 2d);
+                var spanEnd = OffsetFromHub(anchorHub.Point, originHub.Point, anchorHub.Radius + 2d);
+                var originMarker = OffsetFromHub(originHub.Point, anchorHub.Point, originHub.Radius + 9d);
+                var anchorMarker = OffsetFromHub(anchorHub.Point, originHub.Point, anchorHub.Radius + 9d);
+
                 edges.Add(new CarrierChainEdgeLayout(
                     relation,
-                    points[relation.Origin],
-                    points[relation.Anchor],
+                    spanStart,
+                    spanEnd,
+                    originMarker,
+                    anchorMarker,
+                    anchorHub.Point - anchorMarker,
                     pen,
                     $"{CarrierLabel(chain.Carrier)}:{relation.Potential.Raw}",
-                    BuildFlowLayouts(state, relation, points)));
+                    BuildFlowLayouts(state, relation, hubs)));
             }
         }
 
@@ -369,7 +403,7 @@ public static class CarrierChainRenderer
     private static ImmutableArray<CarrierChainFlowLayout> BuildFlowLayouts(
         CarrierChainDemoState state,
         Relation relation,
-        ImmutableDictionary<Site, Point> points)
+        ImmutableDictionary<Site, CarrierChainHubLayout> hubs)
     {
         var flows = ImmutableArray.CreateBuilder<CarrierChainFlowLayout>();
 
@@ -390,18 +424,20 @@ public static class CarrierChainRenderer
 
                 var origin = relation.OriginPosition.Normalize();
                 var anchor = relation.AnchorPosition.Normalize();
+                var originHub = hubs[relation.Origin];
+                var anchorHub = hubs[relation.Anchor];
                 var pinPoint = pin == origin
-                    ? points[relation.Origin]
+                    ? OffsetFromHub(originHub.Point, anchorHub.Point, originHub.Radius + 2d)
                     : pin == anchor
-                        ? points[relation.Anchor]
-                        : Midpoint(points[relation.Origin], points[relation.Anchor]);
+                        ? OffsetFromHub(anchorHub.Point, originHub.Point, anchorHub.Radius + 2d)
+                        : Midpoint(originHub.Point, anchorHub.Point);
                 var remotePoint = pin == origin
-                    ? points[relation.Anchor]
+                    ? OffsetFromHub(anchorHub.Point, originHub.Point, anchorHub.Radius + 8d)
                     : pin == anchor
-                        ? points[relation.Origin]
+                        ? OffsetFromHub(originHub.Point, anchorHub.Point, originHub.Radius + 8d)
                         : flow.IsOutgoing
-                            ? points[relation.Anchor]
-                            : points[relation.Origin];
+                            ? OffsetFromHub(anchorHub.Point, originHub.Point, anchorHub.Radius + 8d)
+                            : OffsetFromHub(originHub.Point, anchorHub.Point, originHub.Radius + 8d);
 
                 flows.Add(new CarrierChainFlowLayout(
                     pinPoint,
@@ -450,6 +486,19 @@ public static class CarrierChainRenderer
         content.X + (content.Width * normalized.X),
         content.Y + (content.Height * normalized.Y));
 
+    private static Point OffsetFromHub(Point hub, Point target, double distance)
+    {
+        var delta = target - hub;
+        var length = Math.Sqrt((delta.X * delta.X) + (delta.Y * delta.Y));
+        if (length <= 0d)
+        {
+            return hub;
+        }
+
+        var unit = new Vector(delta.X / length, delta.Y / length);
+        return hub + (unit * distance);
+    }
+
     private static Point Midpoint(Point left, Point right) => new((left.X + right.X) * 0.5d, (left.Y + right.Y) * 0.5d);
 }
 
@@ -469,12 +518,17 @@ public readonly record struct CarrierChainHubLayout(
     bool IsFocus)
 {
     public int CarrierCount => Carriers.Count;
+
+    public double Radius => IsJunction ? 14d : 12d;
 }
 
 public readonly record struct CarrierChainEdgeLayout(
     Relation Relation,
     Point Start,
     Point End,
+    Point StartCarrierMarker,
+    Point EndCarrierMarker,
+    Vector AnchorDirection,
     Pen Pen,
     string Label,
     ImmutableArray<CarrierChainFlowLayout> Flows);

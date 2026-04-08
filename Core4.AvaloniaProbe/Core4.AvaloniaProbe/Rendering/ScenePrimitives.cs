@@ -76,6 +76,34 @@ public static class ScenePrimitives
         context.DrawGeometry(fill, stroke, VerticalTriangleGeometry(tip, size, pointsUp));
     }
 
+    public static void DrawDirectedTriangle(
+        DrawingContext context,
+        Point tip,
+        double size,
+        IBrush fill,
+        Vector direction,
+        Pen? stroke = null)
+    {
+        var length = Math.Sqrt((direction.X * direction.X) + (direction.Y * direction.Y));
+        var unit = length <= 0d
+            ? new Vector(1d, 0d)
+            : new Vector(direction.X / length, direction.Y / length);
+        var perpendicular = new Vector(-unit.Y, unit.X);
+        var back = size * 0.92d;
+        var width = size * 0.68d;
+        var backCenter = tip - (unit * back);
+        var left = backCenter + (perpendicular * width);
+        var right = backCenter - (perpendicular * width);
+
+        var geometry = new StreamGeometry();
+        using var stream = geometry.Open();
+        stream.BeginFigure(left, true);
+        stream.LineTo(tip);
+        stream.LineTo(right);
+        stream.EndFigure(true);
+        context.DrawGeometry(fill, stroke, geometry);
+    }
+
     public static void DrawWave(DrawingContext context, Point start, Point end, double amplitude, Pen stroke, int minimumCycles = 3)
     {
         var dx = end.X - start.X;

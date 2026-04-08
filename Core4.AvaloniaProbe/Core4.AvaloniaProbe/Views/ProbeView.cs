@@ -38,8 +38,8 @@ public sealed class ProbeView : UserControl
 
     private readonly CategoryDefinition[] _categories;
     private readonly PageDefinition[] _pages;
-    private ProbeCategory _activeCategory = ProbeCategory.Primitives;
-    private ProbePage _activePage = ProbePage.DominantOnly;
+    private ProbeCategory _activeCategory = ProbeCategory.Topology;
+    private ProbePage _activePage = ProbePage.CarrierChain;
 
     public ProbeView()
     {
