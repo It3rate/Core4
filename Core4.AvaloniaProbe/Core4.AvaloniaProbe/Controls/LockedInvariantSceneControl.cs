@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -10,14 +11,15 @@ using Core4.Numerics;
 namespace Core4.AvaloniaProbe.Controls;
 
 /// <summary>
-/// Interactive scene for locked revealed invariants. Each panel is locally draggable and preserves its own frozen
-/// compatible-motion rule.
+/// Interactive scene for locked revealed invariants. The four 2D families share one signed probe pair so the same
+/// drag can be compared against several frozen loci at once.
 /// </summary>
 public sealed class LockedInvariantSceneControl : Control
 {
     private const double HandleRadius = 20d;
 
     private LockedInvariantDemoState _state = LockedInvariantDemoState.Default;
+    private readonly List<LockedInvariantDemoState> _quadrantTrail = [];
     private DragSession _activeDrag;
 
     public LockedInvariantSceneControl()
@@ -48,7 +50,13 @@ public sealed class LockedInvariantSceneControl : Control
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        LockedInvariantRenderer.Render(context, Bounds, _state);
+        LockedInvariantRenderer.Render(context, Bounds, _state, _quadrantTrail);
+    }
+
+    public void ResetTrails()
+    {
+        _quadrantTrail.Clear();
+        InvalidateVisual();
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -78,42 +86,42 @@ public sealed class LockedInvariantSceneControl : Control
             return;
         }
 
-        if (TryBeginDrag(e, point, layout, LockedHandle.AreaHorizontal, LockedInvariantRenderer.AreaHorizontalHandle(layout), AreaHorizontalTicksAt(layout, point) - _state.Area.PrimaryTicks))
+        if (TryBeginDrag(e, point, layout, LockedHandle.AreaHorizontal, LockedInvariantRenderer.AreaHorizontalHandle(layout), AreaHorizontalTicksAt(layout, point) - _state.Quadrant.PrimaryTicks))
         {
             return;
         }
 
-        if (TryBeginDrag(e, point, layout, LockedHandle.AreaVertical, LockedInvariantRenderer.AreaVerticalHandle(layout), AreaVerticalTicksAt(layout, point) - _state.Area.SecondaryTicks))
+        if (TryBeginDrag(e, point, layout, LockedHandle.AreaVertical, LockedInvariantRenderer.AreaVerticalHandle(layout), AreaVerticalTicksAt(layout, point) - _state.Quadrant.SecondaryTicks))
         {
             return;
         }
 
-        if (TryBeginDrag(e, point, layout, LockedHandle.AntiAreaHorizontal, LockedInvariantRenderer.AntiAreaHorizontalHandle(layout), AntiAreaHorizontalTicksAt(layout, point) - _state.AntiArea.PrimaryTicks))
+        if (TryBeginDrag(e, point, layout, LockedHandle.AntiAreaHorizontal, LockedInvariantRenderer.AntiAreaHorizontalHandle(layout), AntiAreaHorizontalTicksAt(layout, point) - _state.Quadrant.PrimaryTicks))
         {
             return;
         }
 
-        if (TryBeginDrag(e, point, layout, LockedHandle.AntiAreaVertical, LockedInvariantRenderer.AntiAreaVerticalHandle(layout), AntiAreaVerticalTicksAt(layout, point) - _state.AntiArea.SecondaryTicks))
+        if (TryBeginDrag(e, point, layout, LockedHandle.AntiAreaVertical, LockedInvariantRenderer.AntiAreaVerticalHandle(layout), AntiAreaVerticalTicksAt(layout, point) - _state.Quadrant.SecondaryTicks))
         {
             return;
         }
 
-        if (TryBeginDrag(e, point, layout, LockedHandle.ComplexHorizontal, LockedInvariantRenderer.ComplexHorizontalHandle(layout), ComplexHorizontalTicksAt(layout, point) - _state.Complex.PrimaryTicks))
+        if (TryBeginDrag(e, point, layout, LockedHandle.ComplexHorizontal, LockedInvariantRenderer.ComplexHorizontalHandle(layout), ComplexHorizontalTicksAt(layout, point) - _state.Quadrant.PrimaryTicks))
         {
             return;
         }
 
-        if (TryBeginDrag(e, point, layout, LockedHandle.ComplexVertical, LockedInvariantRenderer.ComplexVerticalHandle(layout), ComplexVerticalTicksAt(layout, point) - _state.Complex.SecondaryTicks))
+        if (TryBeginDrag(e, point, layout, LockedHandle.ComplexVertical, LockedInvariantRenderer.ComplexVerticalHandle(layout), ComplexVerticalTicksAt(layout, point) - _state.Quadrant.SecondaryTicks))
         {
             return;
         }
 
-        if (TryBeginDrag(e, point, layout, LockedHandle.AntiComplexHorizontal, LockedInvariantRenderer.AntiComplexHorizontalHandle(layout), AntiComplexHorizontalTicksAt(layout, point) - _state.AntiComplex.PrimaryTicks))
+        if (TryBeginDrag(e, point, layout, LockedHandle.AntiComplexHorizontal, LockedInvariantRenderer.AntiComplexHorizontalHandle(layout), AntiComplexHorizontalTicksAt(layout, point) - _state.Quadrant.PrimaryTicks))
         {
             return;
         }
 
-        TryBeginDrag(e, point, layout, LockedHandle.AntiComplexVertical, LockedInvariantRenderer.AntiComplexVerticalHandle(layout), AntiComplexVerticalTicksAt(layout, point) - _state.AntiComplex.SecondaryTicks);
+        TryBeginDrag(e, point, layout, LockedHandle.AntiComplexVertical, LockedInvariantRenderer.AntiComplexVerticalHandle(layout), AntiComplexVerticalTicksAt(layout, point) - _state.Quadrant.SecondaryTicks);
     }
 
     protected override void OnPointerMoved(PointerEventArgs e)
@@ -128,7 +136,7 @@ public sealed class LockedInvariantSceneControl : Control
         var layout = LockedInvariantRenderer.Arrange(Bounds, _state);
         var point = e.GetPosition(this);
 
-        State = _activeDrag.Handle switch
+        var nextState = _activeDrag.Handle switch
         {
             LockedHandle.SelfPrimary => _state.WithSelfPrimaryTicks(SelfPrimaryTicksAt(layout, point) - _activeDrag.PointerOffset),
             LockedHandle.SelfSecondary => _state.WithSelfSecondaryTicks(SelfSecondaryTicksAt(layout, point) - _activeDrag.PointerOffset),
@@ -144,6 +152,13 @@ public sealed class LockedInvariantSceneControl : Control
             LockedHandle.AntiComplexVertical => _state.WithAntiComplexVerticalTicks(AntiComplexVerticalTicksAt(layout, point) - _activeDrag.PointerOffset),
             _ => _state
         };
+
+        if (IsQuadrantHandle(_activeDrag.Handle) && nextState.Quadrant != _state.Quadrant)
+        {
+            TrackQuadrantPoint(nextState);
+        }
+
+        State = nextState;
 
         e.Handled = true;
     }
@@ -164,6 +179,11 @@ public sealed class LockedInvariantSceneControl : Control
         }
 
         _activeDrag = new DragSession(handle, offset);
+        if (IsQuadrantHandle(handle))
+        {
+            TrackQuadrantPoint(_state);
+        }
+
         e.Pointer.Capture(this);
         e.Handled = true;
         return true;
@@ -242,6 +262,33 @@ public sealed class LockedInvariantSceneControl : Control
     }
 
     private readonly record struct DragSession(LockedHandle Handle, Measure PointerOffset);
+
+    private void TrackQuadrantPoint(LockedInvariantDemoState state)
+    {
+        if (_quadrantTrail.Count > 0)
+        {
+            var last = _quadrantTrail[^1];
+            var dx = (LockedInvariantDemoState.Units(state.Quadrant.PrimaryTicks - last.Quadrant.PrimaryTicks) * LockedInvariantLayout.UnitPixels);
+            var dy = (LockedInvariantDemoState.Units(state.Quadrant.SecondaryTicks - last.Quadrant.SecondaryTicks) * LockedInvariantLayout.UnitPixels);
+            if ((dx * dx) + (dy * dy) < 9d)
+            {
+                return;
+            }
+        }
+
+        _quadrantTrail.Add(state);
+        InvalidateVisual();
+    }
+
+    private static bool IsQuadrantHandle(LockedHandle handle) => handle is
+        LockedHandle.AreaHorizontal or
+        LockedHandle.AreaVertical or
+        LockedHandle.AntiAreaHorizontal or
+        LockedHandle.AntiAreaVertical or
+        LockedHandle.ComplexHorizontal or
+        LockedHandle.ComplexVertical or
+        LockedHandle.AntiComplexHorizontal or
+        LockedHandle.AntiComplexVertical;
 
     private enum LockedHandle
     {

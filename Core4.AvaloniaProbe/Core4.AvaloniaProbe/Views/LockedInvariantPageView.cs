@@ -39,6 +39,7 @@ public sealed class LockedInvariantPageView : UserControl
         {
             _state = LockedInvariantDemoState.Default;
             _scene.State = _state;
+            _scene.ResetTrails();
             SyncUi();
         };
 
@@ -68,7 +69,7 @@ public sealed class LockedInvariantPageView : UserControl
                     Children =
                     {
                         ProbeUi.Mono("READING", 10d, ProbePalette.Muted),
-                        ProbeUi.Body("Product families respond reciprocally, the directed segment responds complementarily, and the complex families trace equal-length arcs.", 10d)
+                        ProbeUi.Body("Self and segment still solve locally against their lock. The four 2D families share one signed pair so the same motion can be inspected through several frozen loci.", 10d)
                     }
                 }, 20, new Thickness(12, 10)),
                 ProbeUi.Card(new StackPanel
@@ -123,7 +124,7 @@ public sealed class LockedInvariantPageView : UserControl
             {
                 ProbeUi.Mono("INTERACTIVE SCENE", 10d, ProbePalette.Muted),
                 ProbeUi.DisplayTitle("Compatible Motion", 18d),
-                ProbeUi.Body("Drag the white handles. Each panel preserves one frozen revealed invariant and traces the motion it permits.", 10d)
+                ProbeUi.Body("Drag the white handles. Self and segment preserve their local lock, while the four 2D panels share one signed probe and leave a resettable trail.", 10d)
             }
         };
 
@@ -149,6 +150,6 @@ public sealed class LockedInvariantPageView : UserControl
     {
         _selfMeta.Text = $"self {_state.SelfPrimaryUnits:0.0}x{_state.SelfSecondaryUnits:0.0}";
         _segmentMeta.Text = $"segment {_state.SegmentRecessiveUnits:0.0}+{_state.SegmentDominantUnits:0.0}";
-        _complexMeta.Text = $"complex {_state.ComplexHorizontalUnits:0.0}/{_state.ComplexVerticalUnits:0.0}";
+        _complexMeta.Text = $"2d {_state.QuadrantPrimaryUnits:0.0}/{_state.QuadrantSecondaryUnits:0.0}";
     }
 }

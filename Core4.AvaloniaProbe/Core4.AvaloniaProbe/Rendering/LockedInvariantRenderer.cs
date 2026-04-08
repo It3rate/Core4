@@ -16,6 +16,8 @@ public static class LockedInvariantRenderer
     private static readonly IBrush AntiAreaFill = new SolidColorBrush(Color.Parse("#e3ece1"));
     private static readonly IBrush TraceBrush = new SolidColorBrush(Color.Parse("#bfa778"));
     private static readonly IBrush GraphTraceBrush = new SolidColorBrush(Color.Parse("#b08a56"));
+    private static readonly IBrush TrailBrush = new SolidColorBrush(Color.Parse("#468e7141"));
+    private static readonly IBrush NegativeTrailBrush = new SolidColorBrush(Color.Parse("#50aaa59d"));
     private static readonly IBrush InsetSurface = new SolidColorBrush(Color.Parse("#f4efe6"));
     private static readonly IBrush InsetStroke = new SolidColorBrush(Color.Parse("#d8cebb"));
     private static readonly IBrush RayBrush = new SolidColorBrush(Color.Parse("#5aa055"));
@@ -37,8 +39,8 @@ public static class LockedInvariantRenderer
     private const double CrossLeft = 520d;
     private const double CrossRight = 730d;
     private const double CrossCenterX = 625d;
-    private const double SelfGraphLeft = 202d;
-    private const double SelfGraphTop = 28d;
+    private const double SelfGraphLeft = 96d;
+    private const double SelfGraphTop = -52d;
     private const double SelfGraphWidth = 84d;
     private const double SelfGraphHeight = 82d;
     private const double HandleRadius = 6d;
@@ -61,20 +63,20 @@ public static class LockedInvariantRenderer
         return new LockedInvariantLayout(sceneRect, scale, state);
     }
 
-    public static void Render(DrawingContext context, Rect bounds, LockedInvariantDemoState state)
+    public static void Render(DrawingContext context, Rect bounds, LockedInvariantDemoState state, IReadOnlyList<LockedInvariantDemoState>? quadrantTrail = null)
     {
-        Render(context, Arrange(bounds, state));
+        Render(context, Arrange(bounds, state), quadrantTrail);
     }
 
-    public static void Render(DrawingContext context, LockedInvariantLayout layout)
+    public static void Render(DrawingContext context, LockedInvariantLayout layout, IReadOnlyList<LockedInvariantDemoState>? quadrantTrail = null)
     {
         DrawBackground(context, layout);
         DrawSelf(context, layout);
         DrawSegment(context, layout);
-        DrawAntiComplex(context, layout);
-        DrawArea(context, layout);
-        DrawAntiArea(context, layout);
-        DrawComplex(context, layout);
+        DrawAntiComplex(context, layout, quadrantTrail);
+        DrawArea(context, layout, quadrantTrail);
+        DrawAntiArea(context, layout, quadrantTrail);
+        DrawComplex(context, layout, quadrantTrail);
         DrawLabels(context, layout);
     }
 
@@ -144,78 +146,74 @@ public static class LockedInvariantRenderer
         DrawValueLabel(context, layout, SegmentDominantHandle(layout), $"{layout.State.SegmentDominantUnits:0.0}", new Vector(0d, 8d));
     }
 
-    private static void DrawAntiComplex(DrawingContext context, LockedInvariantLayout layout)
+    private static void DrawAntiComplex(DrawingContext context, LockedInvariantLayout layout, IReadOnlyList<LockedInvariantDemoState>? quadrantTrail)
     {
         DrawHorizontalTicks(context, layout, AntiComplexOriginX, AntiComplexOriginY, -1, 4);
         DrawVerticalTicks(context, layout, AntiComplexOriginX, AntiComplexOriginY, -1, 4);
         DrawLine(context, layout, AntiComplexOriginX - 144d, AntiComplexOriginY, AntiComplexOriginX + 18d, AntiComplexOriginY, AxisPen(layout));
         DrawLine(context, layout, AntiComplexOriginX, AntiComplexOriginY - 144d, AntiComplexOriginX, AntiComplexOriginY + 18d, AxisPen(layout));
         DrawTraceDots(context, SampleNormTrace(layout, AntiComplexOriginX, AntiComplexOriginY, left: true, up: true, layout.State.AntiComplexRadiusUnits), layout.Scale, TraceBrush);
+        DrawQuadrantTrail(context, layout, quadrantTrail, AntiComplexEndpoint);
         DrawLine(context, layout, AntiComplexOriginX, AntiComplexOriginY, AntiComplexLeftX(layout.State), AntiComplexOriginY, SoftDominantPen(layout));
         DrawLine(context, layout, AntiComplexOriginX, AntiComplexOriginY, AntiComplexOriginX, AntiComplexTopY(layout.State), OrthogonalPen(layout));
         DrawLine(context, layout, AntiComplexOriginX, AntiComplexOriginY, AntiComplexLeftX(layout.State), AntiComplexTopY(layout.State), RayPen(layout));
         DrawHandle(context, layout, AntiComplexHorizontalHandle(layout), ProbePalette.DominantSoft);
         DrawHandle(context, layout, AntiComplexVerticalHandle(layout), ProbePalette.Orthogonal);
-        DrawEndpoint(context, layout.Map(AntiComplexLeftX(layout.State), AntiComplexTopY(layout.State)), RayBrush);
+        DrawEndpoint(context, AntiComplexEndpoint(layout, layout.State), RayBrush);
     }
 
-    private static void DrawArea(DrawingContext context, LockedInvariantLayout layout)
+    private static void DrawArea(DrawingContext context, LockedInvariantLayout layout, IReadOnlyList<LockedInvariantDemoState>? quadrantTrail)
     {
         DrawHorizontalTicks(context, layout, AreaOriginX, AreaOriginY, 1, 4);
         DrawVerticalTicks(context, layout, AreaOriginX, AreaOriginY, -1, 4);
         DrawLine(context, layout, AreaOriginX - 18d, AreaOriginY, AreaOriginX + 144d, AreaOriginY, AxisPen(layout));
         DrawLine(context, layout, AreaOriginX, AreaOriginY - 144d, AreaOriginX, AreaOriginY + 18d, AxisPen(layout));
         DrawTraceDots(context, SampleProductTrace(layout, AreaOriginX, AreaOriginY, right: true, up: true, layout.State.AreaInvariantUnits, 2.25d, 4d), layout.Scale, TraceBrush);
+        DrawQuadrantTrail(context, layout, quadrantTrail, AreaEndpoint);
 
-        var rect = new Rect(
-            layout.MapX(AreaOriginX),
-            layout.MapY(AreaTopY(layout.State)),
-            (AreaRightX(layout.State) - AreaOriginX) * layout.Scale,
-            (AreaOriginY - AreaTopY(layout.State)) * layout.Scale);
+        var rect = RectFromCorners(layout, AreaOriginX, AreaOriginY, AreaRightX(layout.State), AreaTopY(layout.State));
         context.FillRectangle(AreaFill, rect);
         context.DrawRectangle(null, new Pen(new SolidColorBrush(Color.Parse("#d9ccab")), 1.1d * layout.Scale, lineCap: PenLineCap.Round), rect);
         DrawLine(context, layout, AreaOriginX, AreaOriginY, AreaRightX(layout.State), AreaOriginY, DominantPen(layout));
         DrawLine(context, layout, AreaOriginX, AreaOriginY, AreaOriginX, AreaTopY(layout.State), OrthogonalPen(layout));
         DrawHandle(context, layout, AreaHorizontalHandle(layout), ProbePalette.Dominant);
         DrawHandle(context, layout, AreaVerticalHandle(layout), ProbePalette.Orthogonal);
-        DrawEndpoint(context, layout.Map(AreaRightX(layout.State), AreaTopY(layout.State)), ProbePalette.Overlay);
+        DrawEndpoint(context, AreaEndpoint(layout, layout.State), ProbePalette.Overlay);
     }
 
-    private static void DrawAntiArea(DrawingContext context, LockedInvariantLayout layout)
+    private static void DrawAntiArea(DrawingContext context, LockedInvariantLayout layout, IReadOnlyList<LockedInvariantDemoState>? quadrantTrail)
     {
         DrawHorizontalTicks(context, layout, AntiAreaOriginX, AntiAreaOriginY, -1, 4);
         DrawVerticalTicks(context, layout, AntiAreaOriginX, AntiAreaOriginY, 1, 4);
         DrawLine(context, layout, AntiAreaOriginX - 144d, AntiAreaOriginY, AntiAreaOriginX + 18d, AntiAreaOriginY, AxisPen(layout));
         DrawLine(context, layout, AntiAreaOriginX, AntiAreaOriginY - 18d, AntiAreaOriginX, AntiAreaOriginY + 144d, AxisPen(layout));
         DrawTraceDots(context, SampleProductTrace(layout, AntiAreaOriginX, AntiAreaOriginY, right: false, up: false, layout.State.AntiAreaInvariantUnits, 1d, 4d), layout.Scale, TraceBrush);
+        DrawQuadrantTrail(context, layout, quadrantTrail, AntiAreaEndpoint);
 
-        var rect = new Rect(
-            layout.MapX(AntiAreaLeftX(layout.State)),
-            layout.MapY(AntiAreaOriginY),
-            (AntiAreaOriginX - AntiAreaLeftX(layout.State)) * layout.Scale,
-            (AntiAreaBottomY(layout.State) - AntiAreaOriginY) * layout.Scale);
+        var rect = RectFromCorners(layout, AntiAreaOriginX, AntiAreaOriginY, AntiAreaLeftX(layout.State), AntiAreaBottomY(layout.State));
         context.FillRectangle(AntiAreaFill, rect);
         context.DrawRectangle(null, new Pen(new SolidColorBrush(Color.Parse("#b8d6b4")), 1.1d * layout.Scale, lineCap: PenLineCap.Round), rect);
         DrawLine(context, layout, AntiAreaOriginX, AntiAreaOriginY, AntiAreaLeftX(layout.State), AntiAreaOriginY, SoftDominantPen(layout));
         DrawLine(context, layout, AntiAreaOriginX, AntiAreaOriginY, AntiAreaOriginX, AntiAreaBottomY(layout.State), OrthogonalInputPen(layout));
         DrawHandle(context, layout, AntiAreaHorizontalHandle(layout), ProbePalette.DominantSoft);
         DrawHandle(context, layout, AntiAreaVerticalHandle(layout), ProbePalette.OrthogonalInput);
-        DrawEndpoint(context, layout.Map(AntiAreaLeftX(layout.State), AntiAreaBottomY(layout.State)), ProbePalette.Overlay);
+        DrawEndpoint(context, AntiAreaEndpoint(layout, layout.State), ProbePalette.Overlay);
     }
 
-    private static void DrawComplex(DrawingContext context, LockedInvariantLayout layout)
+    private static void DrawComplex(DrawingContext context, LockedInvariantLayout layout, IReadOnlyList<LockedInvariantDemoState>? quadrantTrail)
     {
         DrawHorizontalTicks(context, layout, ComplexOriginX, ComplexOriginY, 1, 4);
         DrawVerticalTicks(context, layout, ComplexOriginX, ComplexOriginY, 1, 4);
         DrawLine(context, layout, ComplexOriginX - 18d, ComplexOriginY, ComplexOriginX + 144d, ComplexOriginY, AxisPen(layout));
         DrawLine(context, layout, ComplexOriginX, ComplexOriginY - 18d, ComplexOriginX, ComplexOriginY + 144d, AxisPen(layout));
         DrawTraceDots(context, SampleNormTrace(layout, ComplexOriginX, ComplexOriginY, left: false, up: false, layout.State.ComplexRadiusUnits), layout.Scale, TraceBrush);
+        DrawQuadrantTrail(context, layout, quadrantTrail, ComplexEndpoint);
         DrawLine(context, layout, ComplexOriginX, ComplexOriginY, ComplexRightX(layout.State), ComplexOriginY, DominantPen(layout));
         DrawLine(context, layout, ComplexOriginX, ComplexOriginY, ComplexOriginX, ComplexBottomY(layout.State), OrthogonalInputPen(layout));
         DrawLine(context, layout, ComplexOriginX, ComplexOriginY, ComplexRightX(layout.State), ComplexBottomY(layout.State), RayPen(layout));
         DrawHandle(context, layout, ComplexHorizontalHandle(layout), ProbePalette.Dominant);
         DrawHandle(context, layout, ComplexVerticalHandle(layout), ProbePalette.OrthogonalInput);
-        DrawEndpoint(context, layout.Map(ComplexRightX(layout.State), ComplexBottomY(layout.State)), RayBrush);
+        DrawEndpoint(context, ComplexEndpoint(layout, layout.State), RayBrush);
     }
 
     private static void DrawSelfGraph(DrawingContext context, LockedInvariantLayout layout)
@@ -272,7 +270,7 @@ public static class LockedInvariantRenderer
         DrawPanelTitle(context, layout, "AREA", "lock area", $"{layout.State.AreaInvariantUnits:0.0}", CrossCenterX + 12d, 144d);
         DrawPanelTitle(context, layout, "ANTI-AREA", "lock area", $"{layout.State.AntiAreaInvariantUnits:0.0}", CrossCenterX - 12d, 194d, rightAlign: true);
         DrawPanelTitle(context, layout, "COMPLEX", "lock length", $"{layout.State.ComplexRadiusUnits:0.0}", CrossCenterX + 12d, 194d);
-        DrawMono(context, layout, "drag white handles to preserve the locked invariant", 460d, 322d, 11d, ProbePalette.Muted, centered: true);
+        DrawMono(context, layout, "self and segment preserve their lock; the 2D families share one signed probe", 460d, 322d, 11d, ProbePalette.Muted, centered: true);
     }
 
     private static void DrawPanelTitle(
@@ -337,6 +335,26 @@ public static class LockedInvariantRenderer
         }
     }
 
+    private static void DrawQuadrantTrail(
+        DrawingContext context,
+        LockedInvariantLayout layout,
+        IReadOnlyList<LockedInvariantDemoState>? trail,
+        Func<LockedInvariantLayout, LockedInvariantDemoState, Point> endpoint)
+    {
+        if (trail is null || trail.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var sample in trail)
+        {
+            var brush = sample.Quadrant.PrimaryTicks.Raw < 0 || sample.Quadrant.SecondaryTicks.Raw < 0
+                ? NegativeTrailBrush
+                : TrailBrush;
+            ScenePrimitives.DrawCircle(context, endpoint(layout, sample), 1.35d * layout.Scale, brush);
+        }
+    }
+
     private static void DrawEndpoint(DrawingContext context, Point point, IBrush brush, double radius = 4.8d)
     {
         ScenePrimitives.DrawCircle(context, point, radius, brush, new Pen(Brushes.White, 1.4d));
@@ -388,6 +406,15 @@ public static class LockedInvariantRenderer
             var y = originY + ((up ? -1d : 1d) * vertical * LockedInvariantLayout.UnitPixels);
             yield return layout.Map(x, y);
         }
+    }
+
+    private static Rect RectFromCorners(LockedInvariantLayout layout, double x1, double y1, double x2, double y2)
+    {
+        var left = Math.Min(x1, x2);
+        var top = Math.Min(y1, y2);
+        var width = Math.Abs(x2 - x1) * layout.Scale;
+        var height = Math.Abs(y2 - y1) * layout.Scale;
+        return new Rect(layout.MapX(left), layout.MapY(top), width, height);
     }
 
     private static void DrawHorizontalTicks(DrawingContext context, LockedInvariantLayout layout, double originX, double originY, int direction, int units)
@@ -457,6 +484,22 @@ public static class LockedInvariantRenderer
     private static Pen OrthogonalInputPen(LockedInvariantLayout layout) => new(ProbePalette.OrthogonalInput, 3.8d * layout.Scale, lineCap: PenLineCap.Round);
 
     private static Pen RayPen(LockedInvariantLayout layout) => new(RayBrush, 3d * layout.Scale, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+
+    private static Point AreaEndpoint(LockedInvariantLayout layout, LockedInvariantDemoState state) => layout.Map(
+        AreaOriginX + (state.AreaHorizontalUnits * LockedInvariantLayout.UnitPixels),
+        AreaOriginY - (state.AreaVerticalUnits * LockedInvariantLayout.UnitPixels));
+
+    private static Point AntiAreaEndpoint(LockedInvariantLayout layout, LockedInvariantDemoState state) => layout.Map(
+        AntiAreaOriginX - (state.AntiAreaHorizontalUnits * LockedInvariantLayout.UnitPixels),
+        AntiAreaOriginY + (state.AntiAreaVerticalUnits * LockedInvariantLayout.UnitPixels));
+
+    private static Point ComplexEndpoint(LockedInvariantLayout layout, LockedInvariantDemoState state) => layout.Map(
+        ComplexOriginX + (state.ComplexHorizontalUnits * LockedInvariantLayout.UnitPixels),
+        ComplexOriginY + (state.ComplexVerticalUnits * LockedInvariantLayout.UnitPixels));
+
+    private static Point AntiComplexEndpoint(LockedInvariantLayout layout, LockedInvariantDemoState state) => layout.Map(
+        AntiComplexOriginX - (state.AntiComplexHorizontalUnits * LockedInvariantLayout.UnitPixels),
+        AntiComplexOriginY - (state.AntiComplexVerticalUnits * LockedInvariantLayout.UnitPixels));
 
     private static double SelfPrimaryX(LockedInvariantDemoState state) => SelfOriginX + (state.SelfPrimaryUnits * LockedInvariantLayout.UnitPixels);
 

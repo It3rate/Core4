@@ -5,34 +5,46 @@ using Core4.Structure;
 namespace Core4.AvaloniaProbe.Models;
 
 /// <summary>
-/// First-pass locked-invariant explorer state. Each primitive family keeps one revealed property fixed and lets one
-/// participant be perturbed while the compatible counterpart is re-derived.
+/// First-pass locked-invariant explorer state. Self interaction and the directed segment still solve locally against
+/// their frozen property, while the four 2D families share one signed driven coordinate so the same perturbation can
+/// be read through four different locked loci.
 /// </summary>
 public readonly record struct LockedInvariantDemoState(
     InvariantPair Self,
     InvariantPair Segment,
-    InvariantPair Area,
-    InvariantPair AntiArea,
-    InvariantPair Complex,
-    InvariantPair AntiComplex)
+    InvariantPair Quadrant,
+    Measure QuadrantDriver)
 {
     private static readonly Measure Resolution = new(64);
     private static readonly Carrier MagnitudeCarrier = new(61);
     private static readonly Basis MagnitudeBasis = Basis.Freeze(MagnitudeCarrier, Measure.Zero, Resolution);
+    private static readonly InvariantPair QuadrantSeed = new(Ticks(3d), Ticks(2d));
 
     private static readonly PairRange SelfRange = new(1.5d, 4.0d);
     private static readonly PairRange SegmentRange = new(1.0d, 4.0d);
-    private static readonly PairRange AreaRange = new(2.25d, 4.0d);
-    private static readonly PairRange AntiAreaRange = new(1.0d, 4.0d);
-    private static readonly PairRange ComplexRange = new(0.5d, 3.5d);
+    private static readonly PairRange QuadrantRange = new(-4.0d, 4.0d);
+    private static readonly Ratio LockedArea = Magnitude(QuadrantSeed.PrimaryTicks).Multiply(Magnitude(QuadrantSeed.SecondaryTicks)).Normalize();
+    private static readonly Ratio LockedNormSquared = Magnitude(QuadrantSeed.PrimaryTicks).Multiply(Magnitude(QuadrantSeed.PrimaryTicks))
+        .Add(Magnitude(QuadrantSeed.SecondaryTicks).Multiply(Magnitude(QuadrantSeed.SecondaryTicks)))
+        .Normalize();
 
     public static LockedInvariantDemoState Default => new(
         new InvariantPair(Ticks(3d), Ticks(2d)),
         new InvariantPair(Ticks(2d), Ticks(3d)),
-        new InvariantPair(Ticks(3d), Ticks(3d)),
-        new InvariantPair(Ticks(2d), Ticks(2d)),
-        new InvariantPair(Ticks(3d), Ticks(2d)),
-        new InvariantPair(Ticks(2d), Ticks(3d)));
+        QuadrantSeed,
+        Measure.One);
+
+    public InvariantPair AreaPair => QuadrantDriver.Raw >= 0
+        ? LockSignedProductFromPrimary(AreaInvariant, Quadrant.PrimaryTicks, QuadrantRange)
+        : LockSignedProductFromSecondary(AreaInvariant, Quadrant.SecondaryTicks, QuadrantRange);
+
+    public InvariantPair AntiAreaPair => AreaPair;
+
+    public InvariantPair ComplexPair => QuadrantDriver.Raw >= 0
+        ? LockSignedNormFromPrimary(ComplexNormSquared, Quadrant.PrimaryTicks, Quadrant.SecondaryTicks.Sign)
+        : LockSignedNormFromSecondary(ComplexNormSquared, Quadrant.SecondaryTicks, Quadrant.PrimaryTicks.Sign);
+
+    public InvariantPair AntiComplexPair => ComplexPair;
 
     public Ratio SelfPrimaryValue => Magnitude(Self.PrimaryTicks);
 
@@ -42,37 +54,33 @@ public readonly record struct LockedInvariantDemoState(
 
     public Ratio SegmentDominantValue => Magnitude(Segment.SecondaryTicks);
 
-    public Ratio AreaHorizontalValue => Magnitude(Area.PrimaryTicks);
+    public Ratio AreaHorizontalValue => Magnitude(AreaPair.PrimaryTicks);
 
-    public Ratio AreaVerticalValue => Magnitude(Area.SecondaryTicks);
+    public Ratio AreaVerticalValue => Magnitude(AreaPair.SecondaryTicks);
 
-    public Ratio AntiAreaHorizontalValue => Magnitude(AntiArea.PrimaryTicks);
+    public Ratio AntiAreaHorizontalValue => Magnitude(AntiAreaPair.PrimaryTicks);
 
-    public Ratio AntiAreaVerticalValue => Magnitude(AntiArea.SecondaryTicks);
+    public Ratio AntiAreaVerticalValue => Magnitude(AntiAreaPair.SecondaryTicks);
 
-    public Ratio ComplexHorizontalValue => Magnitude(Complex.PrimaryTicks);
+    public Ratio ComplexHorizontalValue => Magnitude(ComplexPair.PrimaryTicks);
 
-    public Ratio ComplexVerticalValue => Magnitude(Complex.SecondaryTicks);
+    public Ratio ComplexVerticalValue => Magnitude(ComplexPair.SecondaryTicks);
 
-    public Ratio AntiComplexHorizontalValue => Magnitude(AntiComplex.PrimaryTicks);
+    public Ratio AntiComplexHorizontalValue => Magnitude(AntiComplexPair.PrimaryTicks);
 
-    public Ratio AntiComplexVerticalValue => Magnitude(AntiComplex.SecondaryTicks);
+    public Ratio AntiComplexVerticalValue => Magnitude(AntiComplexPair.SecondaryTicks);
 
     public Ratio SelfInvariant => SelfPrimaryValue.Multiply(SelfSecondaryValue).Normalize();
 
     public Ratio SegmentInvariant => SegmentRecessiveValue.Add(SegmentDominantValue).Normalize();
 
-    public Ratio AreaInvariant => AreaHorizontalValue.Multiply(AreaVerticalValue).Normalize();
+    public Ratio AreaInvariant => LockedArea;
 
-    public Ratio AntiAreaInvariant => AntiAreaHorizontalValue.Multiply(AntiAreaVerticalValue).Normalize();
+    public Ratio AntiAreaInvariant => LockedArea;
 
-    public Ratio ComplexNormSquared => ComplexHorizontalValue.Multiply(ComplexHorizontalValue)
-        .Add(ComplexVerticalValue.Multiply(ComplexVerticalValue))
-        .Normalize();
+    public Ratio ComplexNormSquared => LockedNormSquared;
 
-    public Ratio AntiComplexNormSquared => AntiComplexHorizontalValue.Multiply(AntiComplexHorizontalValue)
-        .Add(AntiComplexVerticalValue.Multiply(AntiComplexVerticalValue))
-        .Normalize();
+    public Ratio AntiComplexNormSquared => LockedNormSquared;
 
     public double SelfPrimaryUnits => Units(Self.PrimaryTicks);
 
@@ -82,21 +90,25 @@ public readonly record struct LockedInvariantDemoState(
 
     public double SegmentDominantUnits => Units(Segment.SecondaryTicks);
 
-    public double AreaHorizontalUnits => Units(Area.PrimaryTicks);
+    public double QuadrantPrimaryUnits => Units(Quadrant.PrimaryTicks);
 
-    public double AreaVerticalUnits => Units(Area.SecondaryTicks);
+    public double QuadrantSecondaryUnits => Units(Quadrant.SecondaryTicks);
 
-    public double AntiAreaHorizontalUnits => Units(AntiArea.PrimaryTicks);
+    public double AreaHorizontalUnits => Units(AreaPair.PrimaryTicks);
 
-    public double AntiAreaVerticalUnits => Units(AntiArea.SecondaryTicks);
+    public double AreaVerticalUnits => Units(AreaPair.SecondaryTicks);
 
-    public double ComplexHorizontalUnits => Units(Complex.PrimaryTicks);
+    public double AntiAreaHorizontalUnits => Units(AntiAreaPair.PrimaryTicks);
 
-    public double ComplexVerticalUnits => Units(Complex.SecondaryTicks);
+    public double AntiAreaVerticalUnits => Units(AntiAreaPair.SecondaryTicks);
 
-    public double AntiComplexHorizontalUnits => Units(AntiComplex.PrimaryTicks);
+    public double ComplexHorizontalUnits => Units(ComplexPair.PrimaryTicks);
 
-    public double AntiComplexVerticalUnits => Units(AntiComplex.SecondaryTicks);
+    public double ComplexVerticalUnits => Units(ComplexPair.SecondaryTicks);
+
+    public double AntiComplexHorizontalUnits => Units(AntiComplexPair.PrimaryTicks);
+
+    public double AntiComplexVerticalUnits => Units(AntiComplexPair.SecondaryTicks);
 
     public double SelfInvariantUnits => SelfInvariant.Normalize().Approximate;
 
@@ -132,43 +144,27 @@ public readonly record struct LockedInvariantDemoState(
 
     public LockedInvariantDemoState WithAreaHorizontalTicks(Measure ticks) => this with
     {
-        Area = LockProductFromPrimary(AreaInvariant, ticks, AreaRange)
+        Quadrant = new InvariantPair(ClampSignedTicks(ticks, QuadrantRange), Quadrant.SecondaryTicks),
+        QuadrantDriver = Measure.One
     };
 
     public LockedInvariantDemoState WithAreaVerticalTicks(Measure ticks) => this with
     {
-        Area = LockProductFromSecondary(AreaInvariant, ticks, AreaRange)
+        Quadrant = new InvariantPair(Quadrant.PrimaryTicks, ClampSignedTicks(ticks, QuadrantRange)),
+        QuadrantDriver = -Measure.One
     };
 
-    public LockedInvariantDemoState WithAntiAreaHorizontalTicks(Measure ticks) => this with
-    {
-        AntiArea = LockProductFromPrimary(AntiAreaInvariant, ticks, AntiAreaRange)
-    };
+    public LockedInvariantDemoState WithAntiAreaHorizontalTicks(Measure ticks) => WithAreaHorizontalTicks(ticks);
 
-    public LockedInvariantDemoState WithAntiAreaVerticalTicks(Measure ticks) => this with
-    {
-        AntiArea = LockProductFromSecondary(AntiAreaInvariant, ticks, AntiAreaRange)
-    };
+    public LockedInvariantDemoState WithAntiAreaVerticalTicks(Measure ticks) => WithAreaVerticalTicks(ticks);
 
-    public LockedInvariantDemoState WithComplexHorizontalTicks(Measure ticks) => this with
-    {
-        Complex = LockNormFromPrimary(ComplexNormSquared, ticks, ComplexRange)
-    };
+    public LockedInvariantDemoState WithComplexHorizontalTicks(Measure ticks) => WithAreaHorizontalTicks(ticks);
 
-    public LockedInvariantDemoState WithComplexVerticalTicks(Measure ticks) => this with
-    {
-        Complex = LockNormFromSecondary(ComplexNormSquared, ticks, ComplexRange)
-    };
+    public LockedInvariantDemoState WithComplexVerticalTicks(Measure ticks) => WithAreaVerticalTicks(ticks);
 
-    public LockedInvariantDemoState WithAntiComplexHorizontalTicks(Measure ticks) => this with
-    {
-        AntiComplex = LockNormFromPrimary(AntiComplexNormSquared, ticks, ComplexRange)
-    };
+    public LockedInvariantDemoState WithAntiComplexHorizontalTicks(Measure ticks) => WithAreaHorizontalTicks(ticks);
 
-    public LockedInvariantDemoState WithAntiComplexVerticalTicks(Measure ticks) => this with
-    {
-        AntiComplex = LockNormFromSecondary(AntiComplexNormSquared, ticks, ComplexRange)
-    };
+    public LockedInvariantDemoState WithAntiComplexVerticalTicks(Measure ticks) => WithAreaVerticalTicks(ticks);
 
     public static Measure Ticks(double units) =>
         new((long)Math.Round(units * Resolution.Raw, MidpointRounding.AwayFromZero));
@@ -205,23 +201,56 @@ public readonly record struct LockedInvariantDemoState(
         return new InvariantPair(primary, secondary);
     }
 
-    private static InvariantPair LockNormFromPrimary(Ratio invariant, Measure ticks, PairRange range)
+    private static InvariantPair LockSignedProductFromPrimary(Ratio invariant, Measure ticks, PairRange range)
     {
-        var primary = ClampMagnitudeTicks(ticks, range);
-        var primaryUnits = Units(primary);
-        var secondary = Ticks(Math.Sqrt(Math.Max(0d, invariant.Normalize().Approximate - (primaryUnits * primaryUnits))));
-        return new InvariantPair(primary, secondary);
+        var primary = ClampSignedTicks(ticks, range);
+        var primaryUnits = Math.Abs(Units(primary));
+        if (primaryUnits < 0.0001d)
+        {
+            return new InvariantPair(primary, Measure.Zero);
+        }
+
+        var secondaryUnits = invariant.Normalize().Approximate / primaryUnits;
+        var sign = primary.Sign.Raw == 0 ? 1L : primary.Sign.Raw;
+        return new InvariantPair(primary, new Measure(Ticks(secondaryUnits).Raw * sign));
     }
 
-    private static InvariantPair LockNormFromSecondary(Ratio invariant, Measure ticks, PairRange range)
+    private static InvariantPair LockSignedProductFromSecondary(Ratio invariant, Measure ticks, PairRange range)
     {
-        var secondary = ClampMagnitudeTicks(ticks, range);
+        var secondary = ClampSignedTicks(ticks, range);
+        var secondaryUnits = Math.Abs(Units(secondary));
+        if (secondaryUnits < 0.0001d)
+        {
+            return new InvariantPair(Measure.Zero, secondary);
+        }
+
+        var primaryUnits = invariant.Normalize().Approximate / secondaryUnits;
+        var sign = secondary.Sign.Raw == 0 ? 1L : secondary.Sign.Raw;
+        return new InvariantPair(new Measure(Ticks(primaryUnits).Raw * sign), secondary);
+    }
+
+    private static InvariantPair LockSignedNormFromPrimary(Ratio invariant, Measure ticks, Measure secondarySign)
+    {
+        var primary = ClampSignedTicks(ticks, QuadrantRange);
+        var primaryUnits = Units(primary);
+        var secondaryUnits = Math.Sqrt(Math.Max(0d, invariant.Normalize().Approximate - (primaryUnits * primaryUnits)));
+        var sign = secondarySign.Raw == 0 ? 1L : secondarySign.Raw;
+        return new InvariantPair(primary, new Measure(Ticks(secondaryUnits).Raw * sign));
+    }
+
+    private static InvariantPair LockSignedNormFromSecondary(Ratio invariant, Measure ticks, Measure primarySign)
+    {
+        var secondary = ClampSignedTicks(ticks, QuadrantRange);
         var secondaryUnits = Units(secondary);
-        var primary = Ticks(Math.Sqrt(Math.Max(0d, invariant.Normalize().Approximate - (secondaryUnits * secondaryUnits))));
-        return new InvariantPair(primary, secondary);
+        var primaryUnits = Math.Sqrt(Math.Max(0d, invariant.Normalize().Approximate - (secondaryUnits * secondaryUnits)));
+        var sign = primarySign.Raw == 0 ? 1L : primarySign.Raw;
+        return new InvariantPair(new Measure(Ticks(primaryUnits).Raw * sign), secondary);
     }
 
     private static Measure ClampMagnitudeTicks(Measure ticks, PairRange range) =>
+        Ticks(Math.Clamp(Units(ticks), range.MinimumUnits, range.MaximumUnits));
+
+    private static Measure ClampSignedTicks(Measure ticks, PairRange range) =>
         Ticks(Math.Clamp(Units(ticks), range.MinimumUnits, range.MaximumUnits));
 
     private readonly record struct PairRange(double MinimumUnits, double MaximumUnits);
