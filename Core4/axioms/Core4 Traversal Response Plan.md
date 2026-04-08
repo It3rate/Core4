@@ -55,23 +55,39 @@ This is partly to expose wrong assumptions if the table fails to cohere.
 | Core4 structure | Structural reading | Action on structure | Action on traveler |
 | --- | --- | --- | --- |
 | primitive measure | raw amount without calibration | contributes magnitude | contributes sensed amount |
-| resolved ratio | ordered relation against a denominator | places or scales structure | positions or phases traveler |
-| tension ratio `m/0` | unresolved attachment potential | requests accommodation | perturbs or diverts traversal |
-| unit / frozen basis | reusable denominator or support | stabilizes interpretation | gives local resolution and admissible interpolation |
-| inverted unit | same magnitude under opposite perspective | reverses aligned reading | reverses local traversal perspective |
-| directed segment | bounded opposed support | defines span and boundary | admits continuation, overflow, reflection, or closure response |
-| site | pinned relation place | couples supports | decision / transfer point |
-| boundary | admissibility limit or closure seam | constrains structure | causes wrap, reflect, stall, absorb, or emit |
-| provenance | self / other weighting | biases publication and reception | biases candidate path choice |
-| flow | live directional support influence | transmits pressure | offers outgoing, incoming, or oscillating legs |
-| zero unit | unknown orthogonal explanatory need | spawns or seeks attachment | pushes traversal off default continuation |
-| grade | compositional depth | expresses fused richness | changes what kinds of re-entry count as equivalent |
-| repeated carrier relation | accumulated / self-interacting support | creates power-like or repeated action | creates repeated transfer under one law |
+| resolved ratio | ordered state against a denominator | places, scales, compares, or filters | positions, phases, gates, or weights traversal |
+| tension ratio `m/0` | unresolved attachment or explanatory mismatch | requests accommodation or new support | perturbs, diverts, or stalls traversal |
+| carrier | primitive support axis | defines one family of ordered change | defines local interpolation direction and resolution |
+| relation | live ordered coupling on a support | carries current span, orientation, and negotiability | offers a traversable leg with direction and potential |
+| frozen basis / unit | committed reusable support | stabilizes denominator and reusable law | gives local resolution, admissible interpolation, and reusable response |
+| inverted unit or opposed basis | same support under opposite perspective | reverses aligned reading or span interpretation | reverses local traversal perspective or re-entry reading |
+| placement | where something is on a support | locates present structure | locates the traveler and gives the next interpolation frame |
+| site | pinned relation place | couples, transfers, branches, and joins | acts as a transfer, choice, or reaction point |
+| attachment | live reading of sites through frozen support | binds present state into reusable structure | lets the traveler inspect present structure through a basis |
+| provenance | self / other weighting | biases publication and reception | biases candidate path choice and handedness of response |
+| flow | live directional support influence | transmits pressure or explanation | offers incoming, outgoing, or oscillating continuation |
+| zero unit | unresolved orthogonal explanatory need | spawns or seeks attachment and new support | pushes traversal off default continuation into new explanatory dimension |
+| directed segment | bounded opposed support | defines span and admissible boundary relation | admits continuation, overflow, reflection, or closure response |
+| boundary / closure seam | admissibility limit or identified return edge | constrains, wraps, reflects, absorbs, or emits | causes wrap, reflect, stall, absorb, or emit behavior |
+| grade | compositional depth and fused richness | changes how much structure is internalized | changes what kinds of re-entry or equivalence are meaningful |
+| repeated carrier relation / self-interaction | accumulated or self-referential support law | creates repeated action, power-like response, or non-linearity | creates repeated transfer under one law or repeated local reaction |
+| orthogonal independence | a second explanatory axis rather than same-carrier continuation | enables area, ray, branch, and cross-support response | enables turning, branching, and non-collinear inspection paths |
 
 This table is not final.
 
 Its purpose is to test whether these meanings are numerically natural and
 perspective-consistent.
+
+The more semantic categories behind this table are probably:
+
+- magnitude or state
+- support
+- placement
+- perspective
+- commitment
+- mismatch
+- composition
+- boundary and re-entry
 
 ## 4. Dual Perspective Hypothesis
 
@@ -96,7 +112,42 @@ This is similar to the way:
 
 often look like dual readings of the same relation under changed perspective.
 
-## 5. Repetition Family To Separate Carefully
+## 5. Same Value, Different Stance
+
+One thing the next pass should test explicitly is whether the same Core4 value
+can carry different but coherent meanings under different stances without
+changing ontology.
+
+For example, `3` should not need a different symbolic species in order to
+mean:
+
+- a measured amount
+- a position on a unit
+- a coefficient acting on another support
+- a local traversal weighting
+- a repeated local action recipe
+
+Which reading appears should depend on:
+
+- what support the value is attached to
+- whether it is being claimed, measured, inspected, or generated
+- whether it is being read from the structure side or the traveler side
+
+For example:
+
+- a positive `3` on a unit can be read as location or amount
+- a positive `3` acting on a second support can stretch, repeat, or shift by
+  three
+- a negative value should negate or reflect under the same law rather than
+  requiring a special traversal directive
+- an inverted unit should naturally reverse perspective
+
+So the aim is not just to catalog objects.
+
+It is to see whether the same numeric structure already implies coherent
+behavior across several modalities.
+
+## 6. Repetition Family To Separate Carefully
 
 The next pass should keep these distinct:
 
@@ -112,7 +163,7 @@ The next pass should keep these distinct:
 These should not be collapsed too early, but they also should not require a
 separate symbolic mechanism for each.
 
-## 6. Likely Core Mechanism
+## 7. Likely Core Mechanism
 
 The likely next primitive is not another trolley class.
 
@@ -134,7 +185,7 @@ Then traversal can compare signatures to determine:
 - whether it has wrapped
 - whether it has truly re-entered
 
-## 7. Immediate Next Pass
+## 8. Immediate Next Pass
 
 Before rewriting core code, inspect current mechanisms and map where they
 already align:
@@ -153,7 +204,7 @@ Then identify which parts of current traversal are:
 - thin but acceptable scaffolding
 - hard-coded policy that should be re-expressed numerically
 
-## 8. Design Constraint
+## 9. Design Constraint
 
 When possible:
 

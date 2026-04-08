@@ -796,15 +796,48 @@ For example:
 - a claim and a measurement are similarly dual under changed perspective
 
 So a traversal law should likely be expressed in the same Core4-native terms
-as structure itself:
+as structure itself.
 
-- support
-- placement
-- ratio
-- polarity
-- provenance
-- tension
-- closure or non-closure
+The earlier short list of nouns is useful, but it is probably not the best
+final division of meaning.
+
+A better first grouping is:
+
+- **magnitude or state**:
+  - primitive measure
+  - resolved or unresolved ratio
+- **support**:
+  - carrier
+  - live relation
+  - frozen basis or unit
+- **placement**:
+  - where something is on a support
+  - how interpolation proceeds there
+- **perspective**:
+  - polarity
+  - provenance
+  - observer stance
+- **commitment**:
+  - open
+  - live
+  - frozen
+  - graded or compounded
+- **mismatch**:
+  - tension
+  - zero-unit style unresolved explanatory need
+- **composition**:
+  - fusion
+  - branching
+  - joining
+  - repetition
+  - self-interaction
+- **boundary and re-entry**:
+  - admissible range
+  - closure or non-closure
+  - exact or inexact return
+
+These are probably closer to the main divisions of meaning in Core4 than a
+flat list of specific object names.
 
 This suggests a common decomposition:
 
