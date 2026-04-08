@@ -246,11 +246,7 @@ public static class CarrierChainRenderer
                 continue;
             }
 
-            DrawTraversalRails(
-                context,
-                edge.Start,
-                edge.End,
-                new SolidColorBrush(Color.Parse("#8a2ad6")));
+            DrawTraversalRails(context, edge, 0d, 1d, new SolidColorBrush(Color.Parse("#8a2ad6")));
         }
 
         foreach (var relation in candidateRelations)
@@ -332,11 +328,16 @@ public static class CarrierChainRenderer
                 continue;
             }
 
-            var point = Interpolate(fromHub.Point, toHub.Point, motion.Progress);
+            var fromOrigin = motion.TowardAnchor;
+            var edgeProgress = fromOrigin
+                ? motion.Progress
+                : 1d - motion.Progress;
+            var point = EdgePoint(edge, edgeProgress);
             DrawTraversalRails(
                 context,
-                trailHub.Point,
-                point,
+                edge,
+                fromOrigin ? 0d : edgeProgress,
+                fromOrigin ? edgeProgress : 1d,
                 new SolidColorBrush(Color.Parse("#8a2ad6")));
             ScenePrimitives.DrawCircle(
                 context,
@@ -360,18 +361,32 @@ public static class CarrierChainRenderer
         }
     }
 
-    private static void DrawTraversalRails(DrawingContext context, Point start, Point end, IBrush brush)
+    private static void DrawTraversalRails(DrawingContext context, CarrierChainEdgeLayout edge, double fromProgress, double toProgress, IBrush brush)
     {
-        var delta = end - start;
-        var length = Math.Sqrt((delta.X * delta.X) + (delta.Y * delta.Y));
-        if (length <= 0.01d)
+        var left = ImmutableArray.CreateBuilder<Point>();
+        var right = ImmutableArray.CreateBuilder<Point>();
+        var samples = SampleEdge(edge, fromProgress, toProgress);
+
+        if (samples.Length < 2)
         {
             return;
         }
 
-        var unit = new Vector(delta.X / length, delta.Y / length);
-        var normal = new Vector(-unit.Y, unit.X);
-        var offset = normal * 4.2d;
+        for (var index = 0; index < samples.Length; index++)
+        {
+            var current = samples[index];
+            var previous = index == 0 ? samples[index] : samples[index - 1];
+            var next = index == samples.Length - 1 ? samples[index] : samples[index + 1];
+            var tangent = next - previous;
+            var length = Math.Sqrt((tangent.X * tangent.X) + (tangent.Y * tangent.Y));
+            var unit = length <= 0.001d
+                ? new Vector(1d, 0d)
+                : new Vector(tangent.X / length, tangent.Y / length);
+            var normal = new Vector(-unit.Y, unit.X) * 4.2d;
+            left.Add(current + normal);
+            right.Add(current - normal);
+        }
+
         var pen = new Pen(
             brush,
             1.6d,
@@ -379,8 +394,8 @@ public static class CarrierChainRenderer
             lineCap: PenLineCap.Round,
             lineJoin: PenLineJoin.Round);
 
-        context.DrawLine(pen, start + offset, end + offset);
-        context.DrawLine(pen, start - offset, end - offset);
+        DrawPolyline(context, left.ToImmutable(), pen);
+        DrawPolyline(context, right.ToImmutable(), pen);
     }
 
     private static ImmutableDictionary<Site, Point> DefaultPositions(ImmutableArray<CarrierChain> chains)
@@ -773,6 +788,68 @@ public static class CarrierChainRenderer
         return Math.Sqrt((delta.X * delta.X) + (delta.Y * delta.Y));
     }
 
+    private static void DrawPolyline(DrawingContext context, ImmutableArray<Point> points, Pen pen)
+    {
+        if (points.Length < 2)
+        {
+            return;
+        }
+
+        var geometry = new StreamGeometry();
+        using var stream = geometry.Open();
+        stream.BeginFigure(points[0], false);
+
+        for (var index = 1; index < points.Length; index++)
+        {
+            stream.LineTo(points[index]);
+        }
+
+        stream.EndFigure(false);
+        context.DrawGeometry(null, pen, geometry);
+    }
+
+    private static ImmutableArray<Point> SampleEdge(CarrierChainEdgeLayout edge, double fromProgress, double toProgress)
+    {
+        var start = Math.Clamp(fromProgress, 0d, 1d);
+        var end = Math.Clamp(toProgress, 0d, 1d);
+        var distance = Distance(edge.Start, edge.End);
+        var samples = Math.Max(6, (int)Math.Ceiling(Math.Abs(end - start) * distance / 14d));
+        var points = ImmutableArray.CreateBuilder<Point>(samples + 1);
+
+        for (var index = 0; index <= samples; index++)
+        {
+            var t = start + ((end - start) * (index / (double)samples));
+            points.Add(EdgePoint(edge, t));
+        }
+
+        return points.ToImmutable();
+    }
+
+    private static Point EdgePoint(CarrierChainEdgeLayout edge, double progress)
+    {
+        var t = Math.Clamp(progress, 0d, 1d);
+        var along = Interpolate(edge.Start, edge.End, t);
+
+        if (Math.Abs(edge.DrivenTension) <= 0.025d || edge.TensionAmplitude <= 0.01d)
+        {
+            return along;
+        }
+
+        var delta = edge.End - edge.Start;
+        var distance = Math.Sqrt((delta.X * delta.X) + (delta.Y * delta.Y));
+
+        if (distance <= 0.01d)
+        {
+            return along;
+        }
+
+        var unit = new Vector(delta.X / distance, delta.Y / distance);
+        var normal = new Vector(-unit.Y, unit.X);
+        var cycles = Math.Max(3, (int)Math.Ceiling(distance / 24d));
+        var offset = Math.Sin(t * Math.PI * 2d * cycles) * Math.Sin(t * Math.PI) * edge.TensionAmplitude;
+        return along + (normal * offset);
+    }
+
     private static Point Midpoint(Point left, Point right) => new((left.X + right.X) * 0.5d, (left.Y + right.Y) * 0.5d);
 
     private static Point Interpolate(Point from, Point to, double progress) => new(
@@ -859,6 +936,7 @@ public readonly record struct CarrierChainOverlayMotion(
     Site From,
     Site To,
     Site TrailAnchor,
+    bool TowardAnchor,
     double Progress);
 
 public readonly record struct CarrierChainOverlayReadout(

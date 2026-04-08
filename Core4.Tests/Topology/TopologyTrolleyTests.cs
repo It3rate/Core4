@@ -176,13 +176,13 @@ public sealed class TopologyTrolleyTests
 
         var apexObservation = trolley.Observe();
         var mergeContinuation = Assert.Single(apexObservation.ForwardContinuations);
-        Assert.True(SameNode(mergeContinuation.To, merge));
         trolley = trolley.Move(mergeContinuation);
+        Assert.True(SameNode(trolley.Site, merge));
 
         var mergeObservation = trolley.Observe();
         var crossContinuation = Assert.Single(mergeObservation.ForwardContinuations);
-        Assert.True(SameNode(crossContinuation.To, cross));
         trolley = trolley.Move(crossContinuation);
+        Assert.True(SameNode(trolley.Site, cross));
 
         var crossObservation = trolley.Observe();
         Assert.Equal(2, crossObservation.ForwardContinuations.Length);

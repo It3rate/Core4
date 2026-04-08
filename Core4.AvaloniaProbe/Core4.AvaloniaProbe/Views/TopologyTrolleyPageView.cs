@@ -49,7 +49,7 @@ public sealed class TopologyTrolleyPageView : UserControl
     private ImmutableArray<TopologyTrolley> _pendingFrontiers = ImmutableArray<TopologyTrolley>.Empty;
     private DateTime _animationStartedUtc;
     private TimeSpan _activeMotionDuration;
-    private AutoTraversePhase _autoPhase;
+    private PropagationWave _autoWave;
 
     public TopologyTrolleyPageView()
     {
@@ -396,7 +396,8 @@ public sealed class TopologyTrolleyPageView : UserControl
             return;
         }
 
-        _autoPhase = AutoTraversePhase.Outbound;
+        _autoWave = PropagationWave.FromTrolleys(_frontiers, Core4.Numerics.Measure.One);
+        _frontiers = _autoWave.VisibleTrolleys();
         SyncUi();
         AdvanceAuto();
     }
@@ -408,97 +409,23 @@ public sealed class TopologyTrolleyPageView : UserControl
             return;
         }
 
-        if (_autoPhase == AutoTraversePhase.Outbound)
-        {
-            if (TryStartAutoForward())
-            {
-                return;
-            }
+        var step = _autoWave.Advance();
+        _autoWave = step.After;
+        _frontiers = step.Before.VisibleTrolleys();
 
-            _autoPhase = AutoTraversePhase.Returning;
-            SyncUi();
+        if (step.HasMotion)
+        {
+            StartAnimation(MapMoves(step.Moves), step.After.VisibleTrolleys());
+            return;
         }
 
-        if (_autoPhase == AutoTraversePhase.Returning)
+        _frontiers = step.After.VisibleTrolleys();
+        SyncUi();
+
+        if (IsAutoRunning)
         {
-            if (TryStartAutoReverse())
-            {
-                return;
-            }
-
-            StopAuto();
-            SyncUi();
+            Dispatcher.UIThread.Post(AdvanceAuto, DispatcherPriority.Background);
         }
-    }
-
-    // Auto traversal keeps one frontier per traversed history. When branches meet again they may share a site or line,
-    // but they do not collapse into one path yet so the return pass can peel back along the same branch structure.
-    private bool TryStartAutoForward()
-    {
-        var next = ImmutableArray.CreateBuilder<TopologyTrolley>();
-        var motions = ImmutableArray.CreateBuilder<TrolleyMotion>();
-
-        foreach (var frontier in _frontiers)
-        {
-            var forward = frontier.Observe().ForwardContinuations;
-
-            if (forward.Length == 0)
-            {
-                next.Add(frontier);
-                continue;
-            }
-
-            foreach (var continuation in forward)
-            {
-                var moved = frontier.Move(continuation);
-
-                // Auto merge currently absorbs later arrivals into the first frontier that reaches a shared site.
-                // That keeps one surviving trolley on the merged line instead of reflecting duplicated return paths.
-                if (!TryAddAutoFrontier(next, moved))
-                {
-                    continue;
-                }
-
-                motions.Add(TrolleyMotion.Forward(frontier, moved));
-            }
-        }
-
-        if (motions.Count == 0)
-        {
-            return false;
-        }
-
-        StartAnimation(motions.ToImmutable(), next.ToImmutable());
-        return true;
-    }
-
-    private bool TryStartAutoReverse()
-    {
-        var next = ImmutableArray.CreateBuilder<TopologyTrolley>(_frontiers.Length);
-        var motions = ImmutableArray.CreateBuilder<TrolleyMotion>();
-
-        foreach (var frontier in _frontiers)
-        {
-            if (frontier.TryReverse(out var reversed))
-            {
-                if (TryAddAutoFrontier(next, reversed))
-                {
-                    motions.Add(TrolleyMotion.Reverse(frontier, reversed));
-                }
-            }
-            else
-            {
-                TryAddAutoFrontier(next, frontier);
-            }
-        }
-
-        if (motions.Count == 0)
-        {
-            return false;
-        }
-
-        StartAnimation(motions.ToImmutable(), next.ToImmutable());
-        return true;
     }
 
     private void TakeSingleContinuation(TopologyTrolleyContinuation continuation)
@@ -570,7 +497,7 @@ public sealed class TopologyTrolleyPageView : UserControl
                 }
             }
 
-            if (HasActiveMotion)
+            if (HasActiveMotion || IsAutoRunning)
             {
                 continue;
             }
@@ -607,6 +534,7 @@ public sealed class TopologyTrolleyPageView : UserControl
                         motion.FromSite,
                         motion.ToSite,
                         motion.TrailAnchor,
+                        motion.TowardAnchor,
                         EaseOut(MotionProgress())));
             }
         }
@@ -713,6 +641,7 @@ public sealed class TopologyTrolleyPageView : UserControl
             builder.Append(index + 1);
             builder.Append("               ");
             builder.Append(SiteLabel(frontier.Site));
+            builder.Append(MultiplicityLabel(frontier.Site));
             builder.Append('\n');
             builder.Append("carrier exits             ");
             builder.Append(observation.Connector.Carriers.Length);
@@ -737,6 +666,7 @@ public sealed class TopologyTrolleyPageView : UserControl
 
             builder.Append("site                      ");
             builder.Append(SiteLabel(frontier.Site));
+            builder.Append(MultiplicityLabel(frontier.Site));
             builder.Append('\n');
             builder.Append("forward exits             ");
             builder.Append(observation.ForwardContinuations.Length);
@@ -797,7 +727,7 @@ public sealed class TopologyTrolleyPageView : UserControl
 
         if (IsAutoRunning)
         {
-            label += _autoPhase == AutoTraversePhase.Outbound
+            label += _autoWave.IsOutbound
                 ? " · auto out"
                 : " · auto back";
         }
@@ -807,6 +737,26 @@ public sealed class TopologyTrolleyPageView : UserControl
 
     private static string ContinuationLabel(TopologyTrolleyContinuation continuation) =>
         $"{CarrierLabel(continuation.Carrier)}:{continuation.Potential.Raw} to {SiteLabel(continuation.To)}";
+
+    private string MultiplicityLabel(Site site)
+    {
+        if (!IsAutoRunning)
+        {
+            return string.Empty;
+        }
+
+        foreach (var frontier in _autoWave.VisibleFrontiers)
+        {
+            if (frontier.Site.Carrier == site.Carrier && frontier.Site.Location == site.Location)
+            {
+                return frontier.Multiplicity.Raw > 1L
+                    ? $" x{frontier.Multiplicity.Raw}"
+                    : string.Empty;
+            }
+        }
+
+        return string.Empty;
+    }
 
     private static bool TryCreateReadout(
         TopologyTrolley frontier,
@@ -835,7 +785,7 @@ public sealed class TopologyTrolleyPageView : UserControl
 
     private bool HasActiveMotion => !_motions.IsDefaultOrEmpty && _motions.Length != 0;
 
-    private bool IsAutoRunning => _autoPhase != AutoTraversePhase.Idle;
+    private bool IsAutoRunning => !_autoWave.IsComplete;
 
     private int MotionFrontierCount() => _pendingFrontiers.IsDefaultOrEmpty ? _frontiers.Length : _pendingFrontiers.Length;
 
@@ -879,7 +829,7 @@ public sealed class TopologyTrolleyPageView : UserControl
 
     private void StopAuto()
     {
-        _autoPhase = AutoTraversePhase.Idle;
+        _autoWave = default;
     }
 
     private void OnAnimationTick(object? sender, EventArgs e)
@@ -896,7 +846,7 @@ public sealed class TopologyTrolleyPageView : UserControl
             : _activeMotionDuration;
         var t = Math.Clamp(elapsed.TotalMilliseconds / duration.TotalMilliseconds, 0d, 1d);
         _scene.Overlay = BuildOverlay();
-        _metaFrontierText.Text = $"{MotionFrontierCount()} frontier{(MotionFrontierCount() == 1 ? string.Empty : "s")} moving";
+        _metaFrontierText.Text = DescribeFrontierStatus();
 
         if (t < 1d)
         {
@@ -1060,18 +1010,21 @@ public sealed class TopologyTrolleyPageView : UserControl
         motions.Add(motion);
     }
 
-    private static bool TryAddAutoFrontier(ImmutableArray<TopologyTrolley>.Builder frontiers, TopologyTrolley frontier)
+    private static ImmutableArray<TrolleyMotion> MapMoves(ImmutableArray<PropagationMove> moves)
     {
-        foreach (var known in frontiers)
+        var mapped = ImmutableArray.CreateBuilder<TrolleyMotion>(moves.Length);
+
+        foreach (var move in moves)
         {
-            if (known.Site.Carrier == frontier.Site.Carrier && known.Site.Location == frontier.Site.Location)
-            {
-                return false;
-            }
+            var source = move.Source.Trolley;
+            var target = move.Target.Trolley;
+            var reversed = target.TrailRelations.Length < source.TrailRelations.Length;
+            mapped.Add(reversed
+                ? TrolleyMotion.Reverse(source, target)
+                : TrolleyMotion.Forward(source, target));
         }
 
-        frontiers.Add(frontier);
-        return true;
+        return mapped.ToImmutable();
     }
 
     private readonly record struct TrolleyPreset(
@@ -1112,19 +1065,29 @@ public sealed class TopologyTrolleyPageView : UserControl
         Site FromSite,
         Site ToSite,
         Site TrailAnchor,
+        bool TowardAnchor,
         ImmutableArray<Relation> CommittedTrailRelations)
     {
         public static TrolleyMotion Forward(TopologyTrolley source, TopologyTrolley target) =>
-            new(source, target, target.TrailRelations[^1], source.Site, target.Site, source.Site, source.TrailRelations);
+            new(
+                source,
+                target,
+                target.TrailRelations[^1],
+                source.Site,
+                target.Site,
+                source.Site,
+                target.Direction.Raw > 0L,
+                source.TrailRelations);
 
         public static TrolleyMotion Reverse(TopologyTrolley source, TopologyTrolley target) =>
-            new(source, target, source.TrailRelations[^1], source.Site, target.Site, target.Site, target.TrailRelations);
-    }
-
-    private enum AutoTraversePhase
-    {
-        Idle,
-        Outbound,
-        Returning
+            new(
+                source,
+                target,
+                source.TrailRelations[^1],
+                source.Site,
+                target.Site,
+                target.Site,
+                source.Direction.Raw < 0L,
+                target.TrailRelations);
     }
 }
