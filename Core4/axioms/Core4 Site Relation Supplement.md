@@ -612,3 +612,78 @@ numeric choice. It can be read as a difference in available basis structure:
 
 This should be treated as a promising structural explanation, though the exact
 quantization law still needs to be worked through when the axioms are rewritten.
+
+## 18. Locked Invariants And Revealed Properties
+
+Freezing should not be limited to origins, units, and directly encountered
+relations.
+
+Once a fusion has revealed a new stable structure, that revealed structure may
+itself become the thing an observer chooses to hold fixed.
+
+This gives a second important use of freeze:
+
+- first freeze stabilizes ingredients into a reusable structure
+- later freeze stabilizes some property revealed by that structure
+
+This is important because many operational behaviors are not fully expressed by
+the forward construction alone.
+
+For example:
+
+- if a directed span is frozen and one endpoint moves, the other must respond
+  to preserve total extent
+- if a product-like self-interaction is frozen and one factor moves, the other
+  responds non-linearly
+- if area is frozen and one axis moves, the other responds reciprocally
+- if a complex-like ray length is frozen and one axis moves, the endpoint traces
+  a circular family
+
+So a useful Core4 reading is:
+
+- a fusion does not only create a new quantity
+- it also creates new properties that can later be frozen
+- freezing those properties reveals lawful compatible motions in the ingredients
+
+Those compatible motions should be treated as part of the structure, not as a
+separate symbolic inverse procedure.
+
+In this sense, operation is not only:
+
+- expand ingredients into a result
+
+It is also:
+
+- freeze some structurally revealed invariant
+- perturb one participant
+- observe the compatible response of the rest
+
+This suggests a useful distinction:
+
+- **directly frozen structure**: the relation, basis, or fusion that was
+  explicitly committed
+- **revealed property**: a stable magnitude or geometric feature that only
+  becomes available after that structure exists
+
+Examples of revealed properties include:
+
+- total directed span
+- product-like magnitude
+- bounded area
+- ray length
+- orientation or turning family
+
+These should not require a second ontology.
+
+They are still Core4-native because:
+
+- the invariant is numeric
+- the perturbation is numeric
+- the resulting path is numeric
+- intermediate states remain inspectable as live attachment or tension states
+
+So "solving" should often be re-read as constrained structural motion under a
+frozen invariant.
+
+This is likely one of the main bridges from static fused structure into
+operation, traversal, and later tension-lowering processes.
