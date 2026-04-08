@@ -765,3 +765,84 @@ So the promising long-term Core4 reading is:
   periodicity
 - if they only repeat in projection, the result is orbit-like appearance
   without full closure
+
+## 20. Traversal, Response, And Dual Perspective
+
+Traversal should probably not remain a separate algorithmic ontology.
+
+It looks increasingly like it should fall out of the same Core4 structures
+already used for:
+
+- measurement
+- attachment
+- projection
+- operation
+- settlement
+
+One useful way to frame this is:
+
+- a structure may be read as something being **acted on**
+- the same structure may be read as something being **inspected from within**
+
+These are not unrelated readings.
+
+They often behave like local duals.
+
+For example:
+
+- acting on a support may move or scale what is attached to it
+- inspecting from the traveler perspective makes the support appear to move
+  relative to the traveler
+- a claim and a measurement are similarly dual under changed perspective
+
+So a traversal law should likely be expressed in the same Core4-native terms
+as structure itself:
+
+- support
+- placement
+- ratio
+- polarity
+- provenance
+- tension
+- closure or non-closure
+
+This suggests a common decomposition:
+
+- **advance**: interpolate on a support
+- **transfer**: allow site, boundary, or attached structure to alter the
+  carried state
+- **re-entry**: compare the new state against prior state and decide whether
+  the result is:
+  - novel continuation
+  - reflection
+  - oscillation
+  - wrap or self-feed
+  - merge
+  - exact periodic return
+
+Under this reading:
+
+- sequence is just continued advance without meaningful re-entry
+- repeated action is repeated transfer under the same law
+- reflection is a response that inverts perspective
+- oscillation is repeated reflection or bidirectional exchange under a stable
+  local constraint
+- looping is true re-entry into equivalent structure
+- periodicity is stable repeated re-entry
+
+This is still incomplete and should not be frozen too early.
+
+But the likely long-term rule is that traversal should be driven by numeric
+response encoded in structure, not by a large menu of special traversal
+directives.
+
+So later pathfinding should likely depend on:
+
+- local continuity
+- boundary response
+- provenance alignment
+- available denominator or resolution
+- tension lowering
+- explicit frozen constraints
+
+rather than on hard-coded branch behavior alone.
