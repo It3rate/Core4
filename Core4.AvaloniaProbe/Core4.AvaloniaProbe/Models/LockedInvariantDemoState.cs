@@ -22,11 +22,11 @@ public readonly record struct LockedInvariantDemoState(
 
     private static readonly PairRange SelfRange = new(1.5d, 4.0d);
     private static readonly PairRange SegmentRange = new(1.0d, 4.0d);
-    private static readonly PairRange QuadrantRange = new(-4.0d, 4.0d);
     private static readonly Ratio LockedArea = Magnitude(QuadrantSeed.PrimaryTicks).Multiply(Magnitude(QuadrantSeed.SecondaryTicks)).Normalize();
     private static readonly Ratio LockedNormSquared = Magnitude(QuadrantSeed.PrimaryTicks).Multiply(Magnitude(QuadrantSeed.PrimaryTicks))
         .Add(Magnitude(QuadrantSeed.SecondaryTicks).Multiply(Magnitude(QuadrantSeed.SecondaryTicks)))
         .Normalize();
+    private static readonly PairRange QuadrantRange = new(-Math.Sqrt(LockedNormSquared.Normalize().Approximate), Math.Sqrt(LockedNormSquared.Normalize().Approximate));
 
     public static LockedInvariantDemoState Default => new(
         new InvariantPair(Ticks(3d), Ticks(2d)),

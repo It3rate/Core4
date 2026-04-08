@@ -73,8 +73,8 @@ public static class LockedInvariantRenderer
         DrawBackground(context, layout);
         DrawSelf(context, layout);
         DrawSegment(context, layout);
-        DrawAntiComplex(context, layout, quadrantTrail);
         DrawArea(context, layout, quadrantTrail);
+        DrawAntiComplex(context, layout, quadrantTrail);
         DrawAntiArea(context, layout, quadrantTrail);
         DrawComplex(context, layout, quadrantTrail);
         DrawLabels(context, layout);
@@ -168,12 +168,12 @@ public static class LockedInvariantRenderer
         DrawVerticalTicks(context, layout, AreaOriginX, AreaOriginY, -1, 4);
         DrawLine(context, layout, AreaOriginX - 18d, AreaOriginY, AreaOriginX + 144d, AreaOriginY, AxisPen(layout));
         DrawLine(context, layout, AreaOriginX, AreaOriginY - 144d, AreaOriginX, AreaOriginY + 18d, AxisPen(layout));
-        DrawTraceDots(context, SampleProductTrace(layout, AreaOriginX, AreaOriginY, right: true, up: true, layout.State.AreaInvariantUnits, 2.25d, 4d), layout.Scale, TraceBrush);
-        DrawQuadrantTrail(context, layout, quadrantTrail, AreaEndpoint);
 
         var rect = RectFromCorners(layout, AreaOriginX, AreaOriginY, AreaRightX(layout.State), AreaTopY(layout.State));
         context.FillRectangle(AreaFill, rect);
         context.DrawRectangle(null, new Pen(new SolidColorBrush(Color.Parse("#d9ccab")), 1.1d * layout.Scale, lineCap: PenLineCap.Round), rect);
+        DrawTraceDots(context, SampleProductTrace(layout, AreaOriginX, AreaOriginY, right: true, up: true, layout.State.AreaInvariantUnits, 2.25d, 4d), layout.Scale, TraceBrush);
+        DrawQuadrantTrail(context, layout, quadrantTrail, AreaEndpoint);
         DrawLine(context, layout, AreaOriginX, AreaOriginY, AreaRightX(layout.State), AreaOriginY, DominantPen(layout));
         DrawLine(context, layout, AreaOriginX, AreaOriginY, AreaOriginX, AreaTopY(layout.State), OrthogonalPen(layout));
         DrawHandle(context, layout, AreaHorizontalHandle(layout), ProbePalette.Dominant);
@@ -270,7 +270,6 @@ public static class LockedInvariantRenderer
         DrawPanelTitle(context, layout, "AREA", "lock area", $"{layout.State.AreaInvariantUnits:0.0}", CrossCenterX + 12d, 144d);
         DrawPanelTitle(context, layout, "ANTI-AREA", "lock area", $"{layout.State.AntiAreaInvariantUnits:0.0}", CrossCenterX - 12d, 194d, rightAlign: true);
         DrawPanelTitle(context, layout, "COMPLEX", "lock length", $"{layout.State.ComplexRadiusUnits:0.0}", CrossCenterX + 12d, 194d);
-        DrawMono(context, layout, "self and segment preserve their lock; the 2D families share one signed probe", 460d, 322d, 11d, ProbePalette.Muted, centered: true);
     }
 
     private static void DrawPanelTitle(
