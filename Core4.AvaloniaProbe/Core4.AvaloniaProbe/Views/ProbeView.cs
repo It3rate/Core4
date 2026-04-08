@@ -26,9 +26,7 @@ public sealed class ProbeView : UserControl
     private readonly CarrierChainPageView _carrierChainPage = new();
     private readonly ContentControl _pageHost;
     private readonly StackPanel _pageButtonRow;
-    private readonly TextBlock _sectionLabel;
-    private readonly TextBlock _sectionTitle;
-    private readonly TextBlock _sectionBody;
+    private readonly TextBlock _categoryBlurb;
     private readonly Dictionary<ProbeCategory, Button> _categoryButtons = [];
     private readonly Dictionary<ProbePage, Button> _pageButtons = [];
     private readonly Dictionary<ProbeCategory, ProbePage> _pageSelections = new()
@@ -84,9 +82,9 @@ public sealed class ProbeView : UserControl
             new PageDefinition(ProbePage.CarrierChain, ProbeCategory.Topology, "Carrier Chain", _carrierChainPage)
         ];
 
-        _sectionLabel = ProbeUi.Mono(string.Empty, 10d, ProbePalette.Muted);
-        _sectionTitle = ProbeUi.DisplayTitle(string.Empty, 18d);
-        _sectionBody = ProbeUi.Body(string.Empty, 10d);
+        _categoryBlurb = ProbeUi.Body(string.Empty, 10d);
+        _categoryBlurb.VerticalAlignment = VerticalAlignment.Center;
+        _categoryBlurb.MaxWidth = 560;
 
         _pageButtonRow = new StackPanel
         {
@@ -100,7 +98,7 @@ public sealed class ProbeView : UserControl
         {
             Content = new StackPanel
             {
-                Spacing = 10,
+                Spacing = 8,
                 Margin = new Thickness(8),
                 Children =
                 {
@@ -116,40 +114,17 @@ public sealed class ProbeView : UserControl
 
     private Border Header()
     {
-        var titleStack = new StackPanel
-        {
-            Spacing = 2,
-            Children =
-            {
-                ProbeUi.DisplayTitle("Numeric Explorer", 22d),
-                ProbeUi.Body("Browse Core4 demos by family and drill into one page at a time.", 10d)
-            }
-        };
-
-        var sectionCard = ProbeUi.Card(new StackPanel
-        {
-            Spacing = 2,
-            Children =
-            {
-                _sectionLabel,
-                _sectionTitle,
-                _sectionBody
-            }
-        }, 20d, new Thickness(12, 10));
-
         var grid = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"),
+            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
             ColumnSpacing = 10,
             Children =
             {
-                titleStack,
-                sectionCard,
+                ProbeUi.DisplayTitle("Numeric Explorer", 22d),
                 UtilityCluster()
             }
         };
-        Grid.SetColumn(sectionCard, 1);
-        Grid.SetColumn(grid.Children[2], 2);
+        Grid.SetColumn(grid.Children[1], 1);
 
         return new Border
         {
@@ -167,7 +142,7 @@ public sealed class ProbeView : UserControl
             },
             BorderBrush = new SolidColorBrush(Color.Parse("#dfd7c8")),
             BorderThickness = new Thickness(1),
-            Padding = new Thickness(14, 10),
+            Padding = new Thickness(14, 8),
             Child = grid
         };
     }
@@ -176,10 +151,9 @@ public sealed class ProbeView : UserControl
     {
         return ProbeUi.Card(new StackPanel
         {
-            Spacing = 8,
+            Spacing = 6,
             Children =
             {
-                ProbeUi.Mono("NAVIGATION", 10d, ProbePalette.Muted),
                 CategoryRow(),
                 new Border
                 {
@@ -188,12 +162,12 @@ public sealed class ProbeView : UserControl
                 },
                 _pageButtonRow
             }
-        }, 20d, new Thickness(12, 10));
+        }, 20d, new Thickness(12, 8));
     }
 
-    private StackPanel CategoryRow()
+    private Control CategoryRow()
     {
-        var row = new StackPanel
+        var buttons = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             Spacing = 10
@@ -207,10 +181,30 @@ public sealed class ProbeView : UserControl
             button.PointerEntered += (_, _) => PreviewCategory(category.Category);
             button.PointerExited += (_, _) => RestoreCategoryPreview();
             _categoryButtons[category.Category] = button;
-            row.Children.Add(button);
+            buttons.Children.Add(button);
         }
 
-        return row;
+        var separator = new Border
+        {
+            Width = 1,
+            Margin = new Thickness(0, 2),
+            Background = new SolidColorBrush(Color.Parse("#d4cabb"))
+        };
+
+        var grid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"),
+            ColumnSpacing = 10,
+            Children =
+            {
+                buttons,
+                separator,
+                _categoryBlurb
+            }
+        };
+        Grid.SetColumn(separator, 1);
+        Grid.SetColumn(_categoryBlurb, 2);
+        return grid;
     }
 
     private Control UtilityCluster()
@@ -265,9 +259,10 @@ public sealed class ProbeView : UserControl
     private void ShowCategory(ProbeCategory category, bool preview)
     {
         var definition = CategoryFor(category);
-        _sectionLabel.Text = preview ? "SECTION PREVIEW" : "ACTIVE SECTION";
-        _sectionTitle.Text = definition.Label;
-        _sectionBody.Text = definition.Blurb;
+        _categoryBlurb.Text = definition.Blurb;
+        _categoryBlurb.Foreground = preview
+            ? ProbePalette.Ink
+            : ProbePalette.Muted;
     }
 
     private void RebuildPageRow()

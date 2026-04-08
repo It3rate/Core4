@@ -2,56 +2,88 @@ using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
-using Core4.Numerics;
+using Core4.AvaloniaProbe.Controls;
+using Core4.AvaloniaProbe.Models;
+using Core4.AvaloniaProbe.Rendering;
+using Core4.Dynamics;
 using Core4.Structure;
 using Core4.Topology;
-using Core4.AvaloniaProbe.Rendering;
 
 namespace Core4.AvaloniaProbe.Views;
 
 /// <summary>
-/// First topology landing page. It uses a real Core4 T-like structure and reads it through carrier chains and a
-/// site connector so the probe has a concrete topology destination before richer visuals arrive.
+/// Topology explorer page for carrier chains and connected sites. The diagram is draggable, but every chain,
+/// connector reading, and flow overlay is still derived from real Core4 topology structures.
 /// </summary>
 public sealed class CarrierChainPageView : UserControl
 {
+    private readonly CarrierChainSceneControl _scene;
+    private readonly Button _tJunctionButton;
+    private readonly Button _hBridgeButton;
+    private readonly Button _fanInButton;
+    private readonly TextBlock _sceneDescriptionText;
+    private readonly TextBlock _metaPresetText;
+    private readonly TextBlock _metaCarrierText;
+    private readonly TextBlock _metaChainText;
+    private readonly TextBlock _structureText;
+    private readonly TextBlock _focusText;
+    private readonly TextBlock _flowText;
+    private CarrierChainDemoState _state = CarrierChainDemoState.TJunction;
+
     public CarrierChainPageView()
     {
-        Carrier x = 1;
-        Carrier y = 2;
+        _scene = new CarrierChainSceneControl
+        {
+            State = _state,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch
+        };
 
-        var left = Site.Open(x, new Measure(0));
-        var stemStart = Site.Open(y, new Measure(0));
-        var stemEnd = Site.Open(y, new Measure(4));
-        var center = Site.Open(x, new Measure(5))
-            .Publish(
-                new Relation(stemStart, stemEnd),
-                Ratio.Tension(new Measure(4)));
-        var right = Site.Open(x, new Measure(10));
+        _tJunctionButton = ProbeUi.PillButton("T Junction", true);
+        _tJunctionButton.Click += (_, _) => ApplyState(CarrierChainDemoState.TJunction);
 
-        var topology = ConnectedSiteTopology.Create(
-            [center],
-            new Relation(left, center),
-            new Relation(center, right));
+        _hBridgeButton = ProbeUi.PillButton("H Bridge");
+        _hBridgeButton.Click += (_, _) => ApplyState(CarrierChainDemoState.HBridge);
 
-        var mainChain = topology.ChainsOn(x)[0];
-        var stemChain = topology.ChainsOn(y)[0];
-        var connector = topology.ConnectorAt(center);
+        _fanInButton = ProbeUi.PillButton("Fan In");
+        _fanInButton.Click += (_, _) => ApplyState(CarrierChainDemoState.FanIn);
+
+        var resetButton = ProbeUi.PillButton("Reset Layout");
+        resetButton.Click += (_, _) => _scene.ResetLayout();
+
+        _sceneDescriptionText = ProbeUi.Body(string.Empty, 10d);
+        _metaPresetText = ProbeUi.Mono(string.Empty, 11d, ProbePalette.Muted);
+        _metaCarrierText = ProbeUi.Mono(string.Empty, 11d, ProbePalette.Muted);
+        _metaChainText = ProbeUi.Mono(string.Empty, 11d, ProbePalette.Muted);
+        _structureText = ProbeUi.Mono(string.Empty, 10d, ProbePalette.Ink);
+        _focusText = ProbeUi.Mono(string.Empty, 10d, ProbePalette.Ink);
+        _flowText = ProbeUi.Mono(string.Empty, 10d, ProbePalette.Ink);
 
         var leftColumn = new StackPanel
         {
-            Width = 188,
+            Width = 198,
             Spacing = 6,
             Children =
             {
                 ProbeUi.Card(new StackPanel
                 {
+                    Spacing = 6,
+                    Children =
+                    {
+                        ProbeUi.Mono("TOPOLOGY PRESETS", 10d, ProbePalette.Muted),
+                        _tJunctionButton,
+                        _hBridgeButton,
+                        _fanInButton,
+                        resetButton
+                    }
+                }, 20, new Thickness(12, 10)),
+                ProbeUi.Card(new StackPanel
+                {
                     Spacing = 4,
                     Children =
                     {
-                        ProbeUi.Mono("ACTIVE PRESET", 10d, ProbePalette.Muted),
-                        ProbeUi.DisplayTitle("Carrier Chain", 18d),
-                        ProbeUi.Body("A connected topology projected into carrier-local runs.", 10d)
+                        ProbeUi.Mono("VISUAL LANGUAGE", 10d, ProbePalette.Muted),
+                        ProbeUi.Body("Carrier spans are solid runs. Flow-backed orthogonal strands add wave overlays and endpoint markers. Drag any hub to stretch the map without changing the underlying topology.", 10d)
                     }
                 }, 20, new Thickness(12, 10)),
                 ProbeUi.Card(new StackPanel
@@ -60,16 +92,7 @@ public sealed class CarrierChainPageView : UserControl
                     Children =
                     {
                         ProbeUi.Mono("READING RULE", 10d, ProbePalette.Muted),
-                        ProbeUi.Body("Read each chain as node, relation, node, relation, node. Wider branch structure stays attached at the nodes.", 10d)
-                    }
-                }, 20, new Thickness(12, 10)),
-                ProbeUi.Card(new StackPanel
-                {
-                    Spacing = 4,
-                    Children =
-                    {
-                        ProbeUi.Mono("NEXT", 10d, ProbePalette.Muted),
-                        ProbeUi.Body("This page is a landing scaffold for future topology visuals. The underlying chains and connector summaries are already real Core4 structures.", 10d)
+                        ProbeUi.Body("Walk each carrier as node, relation, node. Multi-carrier junctions appear where hubs carry attached sites from more than one carrier.", 10d)
                     }
                 }, 20, new Thickness(12, 10))
             }
@@ -81,32 +104,18 @@ public sealed class CarrierChainPageView : UserControl
             Children =
             {
                 SceneHeader(),
-                ProbeUi.PlotCard(new StackPanel
-                {
-                    Spacing = 8,
-                    Margin = new Thickness(6),
-                    Children =
-                    {
-                        ProbeUi.Mono($"carrier x    {DescribeChain(mainChain)}", 11d, ProbePalette.Ink),
-                        ProbeUi.Mono($"carrier y    {DescribeChain(stemChain)}", 11d, ProbePalette.Ink),
-                        ProbeUi.Mono($"connector    neighbors {connector.NeighborCount.Raw}, continuing {connector.Incidence.ContinuingCarrierCount.Raw}, terminal {connector.Incidence.TerminalCarrierCount.Raw}", 11d, ProbePalette.Muted)
-                    }
-                })
+                ProbeUi.PlotCard(_scene)
             }
         }, 22, new Thickness(12));
-
-        var mainChainText = ProbeUi.Mono(DescribeChainDetails(mainChain), 10d, ProbePalette.Ink);
-        var stemChainText = ProbeUi.Mono(DescribeChainDetails(stemChain), 10d, ProbePalette.Ink);
-        var connectorText = ProbeUi.Mono(DescribeConnectorDetails(connector), 10d, ProbePalette.Ink);
 
         var infoCards = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("*,*,*"),
             ColumnSpacing = 10
         };
-        ProbeUi.AddInfoCard(infoCards, 0, "MAIN CHAIN", mainChainText);
-        ProbeUi.AddInfoCard(infoCards, 1, "STEM CHAIN", stemChainText);
-        ProbeUi.AddInfoCard(infoCards, 2, "CENTER CONNECTOR", connectorText);
+        ProbeUi.AddInfoCard(infoCards, 0, "STRUCTURE", _structureText);
+        ProbeUi.AddInfoCard(infoCards, 1, "FOCUS CONNECTOR", _focusText);
+        ProbeUi.AddInfoCard(infoCards, 2, "FLOW PATHS", _flowText);
 
         var rightColumn = new StackPanel
         {
@@ -120,7 +129,7 @@ public sealed class CarrierChainPageView : UserControl
 
         var mainGrid = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("188,*"),
+            ColumnDefinitions = new ColumnDefinitions("198,*"),
             ColumnSpacing = 8,
             Children =
             {
@@ -131,9 +140,10 @@ public sealed class CarrierChainPageView : UserControl
         Grid.SetColumn(rightColumn, 1);
 
         Content = mainGrid;
+        SyncUi();
     }
 
-    private static Grid SceneHeader()
+    private Grid SceneHeader()
     {
         var grid = new Grid
         {
@@ -145,9 +155,9 @@ public sealed class CarrierChainPageView : UserControl
             Spacing = 2,
             Children =
             {
-                ProbeUi.Mono("TOPOLOGY SNAPSHOT", 10d, ProbePalette.Muted),
+                ProbeUi.Mono("TOPOLOGY SCENE", 10d, ProbePalette.Muted),
                 ProbeUi.DisplayTitle("Carrier Chain Explorer", 18d),
-                ProbeUi.Body("A T-like Core4 structure read as one main carrier run plus one orthogonal strand.", 10d)
+                _sceneDescriptionText
             }
         };
 
@@ -157,9 +167,9 @@ public sealed class CarrierChainPageView : UserControl
             HorizontalAlignment = HorizontalAlignment.Right,
             Children =
             {
-                ProbeUi.Mono("preset T junction", 11d, ProbePalette.Muted),
-                ProbeUi.Mono("2 carriers", 11d, ProbePalette.Muted),
-                ProbeUi.Mono("2 chains", 11d, ProbePalette.Muted)
+                _metaPresetText,
+                _metaCarrierText,
+                _metaChainText
             }
         };
 
@@ -167,6 +177,105 @@ public sealed class CarrierChainPageView : UserControl
         grid.Children.Add(metaStack);
         Grid.SetColumn(metaStack, 1);
         return grid;
+    }
+
+    private void ApplyState(CarrierChainDemoState state)
+    {
+        _state = state;
+        _scene.State = state;
+        SyncUi();
+    }
+
+    private void SyncUi()
+    {
+        ProbeUi.ApplyPillStyle(_tJunctionButton, _state.Label == CarrierChainDemoState.TJunction.Label);
+        ProbeUi.ApplyPillStyle(_hBridgeButton, _state.Label == CarrierChainDemoState.HBridge.Label);
+        ProbeUi.ApplyPillStyle(_fanInButton, _state.Label == CarrierChainDemoState.FanIn.Label);
+
+        _sceneDescriptionText.Text = _state.Description;
+        _metaPresetText.Text = _state.Label;
+        _metaCarrierText.Text = $"{_state.Topology.CarrierCount.Raw} carriers";
+        _metaChainText.Text = $"{_state.Chains.Length} chains";
+        _structureText.Text = DescribeStructure(_state);
+        _focusText.Text = DescribeFocus(_state);
+        _flowText.Text = DescribeFlows(_state);
+    }
+
+    private static string DescribeStructure(CarrierChainDemoState state)
+    {
+        var builder = new StringBuilder();
+        builder.Append("chains                    ");
+        builder.Append(state.Chains.Length);
+        builder.Append('\n');
+        builder.Append("sites                     ");
+        builder.Append(state.Topology.SiteCount.Raw);
+        builder.Append('\n');
+        builder.Append("shared relations          ");
+        builder.Append(state.Topology.RelationCount.Raw);
+
+        foreach (var chain in state.Chains)
+        {
+            builder.Append('\n');
+            builder.Append(CarrierLabel(chain.Carrier));
+            builder.Append(" walk                    ");
+            builder.Append(DescribeChain(chain));
+        }
+
+        return builder.ToString();
+    }
+
+    private static string DescribeFocus(CarrierChainDemoState state)
+    {
+        var connector = state.FocusConnector;
+        return
+            $"focus                     {SiteLabel(state.FocusSite)}\n" +
+            $"neighbors                 {connector.NeighborCount.Raw}\n" +
+            $"carriers                  {connector.Incidence.CarrierCount.Raw}\n" +
+            $"continuing                {connector.Incidence.ContinuingCarrierCount.Raw}\n" +
+            $"terminal                  {connector.Incidence.TerminalCarrierCount.Raw}\n" +
+            $"geometry carriers         {connector.GeometryCarrierCount.Raw}\n" +
+            $"site position             {connector.SiteCarrierPosition.Normalize()}";
+    }
+
+    private static string DescribeFlows(CarrierChainDemoState state)
+    {
+        var builder = new StringBuilder();
+        var hasAny = false;
+
+        foreach (var site in state.Topology.Sites)
+        {
+            foreach (var flow in site.Orthogonal.Flows)
+            {
+                if (flow.Support is not Relation relation)
+                {
+                    continue;
+                }
+
+                if (hasAny)
+                {
+                    builder.Append('\n');
+                }
+
+                hasAny = true;
+                builder.Append(flow.IsIncoming ? "incoming" : "outgoing");
+                builder.Append("                  ");
+                builder.Append(SiteLabel(site));
+                builder.Append(" -> ");
+                builder.Append(CarrierLabel(relation.Carrier));
+                builder.Append(':');
+                builder.Append(relation.Potential.Raw);
+                builder.Append("  tension ");
+                builder.Append(flow.Value.Normalize());
+            }
+        }
+
+        if (!hasAny)
+        {
+            return "flows                     none\n" +
+                   "tension                   0/0";
+        }
+
+        return builder.ToString();
     }
 
     private static string DescribeChain(CarrierChain chain)
@@ -193,24 +302,14 @@ public sealed class CarrierChainPageView : UserControl
         return builder.ToString();
     }
 
-    private static string DescribeChainDetails(CarrierChain chain)
-    {
-        return
-            $"nodes                     {chain.NodeCount.Raw}\n" +
-            $"relations                 {chain.RelationCount.Raw}\n" +
-            $"span                      {chain.TotalSpan.Raw}\n" +
-            $"walk                      {DescribeChain(chain)}\n" +
-            $"attachments               {chain.AttachmentCount.Raw}";
-    }
+    private static string SiteLabel(Site site) => $"{CarrierLabel(site.Carrier)}{site.Location.Raw}";
 
-    private static string DescribeConnectorDetails(SiteConnector connector)
+    private static string CarrierLabel(Carrier carrier) => carrier.Id switch
     {
-        return
-            $"neighbors                 {connector.NeighborCount.Raw}\n" +
-            $"carriers                  {connector.Incidence.CarrierCount.Raw}\n" +
-            $"continuing                {connector.Incidence.ContinuingCarrierCount.Raw}\n" +
-            $"terminal                  {connector.Incidence.TerminalCarrierCount.Raw}\n" +
-            $"geometry carriers         {connector.GeometryCarrierCount.Raw}\n" +
-            $"site position             {connector.SiteCarrierPosition.Normalize()}";
-    }
+        1L => "x",
+        2L => "y",
+        3L => "z",
+        4L => "w",
+        _ => $"c{carrier.Id}"
+    };
 }
