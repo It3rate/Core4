@@ -43,7 +43,7 @@ public static class CarrierChainRenderer
 
         foreach (var edge in layout.Edges)
         {
-            if (edge.TensionValue != 0L)
+            if (Math.Abs(edge.DrivenTension) > 0.025d)
             {
                 ScenePrimitives.DrawWave(
                     context,
@@ -421,9 +421,12 @@ public static class CarrierChainRenderer
                 var desiredDistance = Distance(desiredOriginHub.Point, desiredAnchorHub.Point);
                 var actualDistance = Distance(originHub.Point, anchorHub.Point);
                 var actualMagnitude = ResolveDrivenMagnitude(relation.Potential.Raw, desiredDistance, actualDistance);
-                var tension = relation.Potential.Raw - actualMagnitude;
-                var tensionBrush = tension < 0 ? ProbePalette.TensionNegative : ProbePalette.TensionPositive;
-                var tensionPen = new Pen(tensionBrush, 2.6d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+                var displayedActualMagnitude = DisplayMagnitude(actualMagnitude);
+                var drivenTension = relation.Potential.Raw - actualMagnitude;
+                var displayTension = DisplaySignedMagnitude(drivenTension);
+                var visualTension = Math.Min(16d, Math.Abs(drivenTension) * 2d);
+                var tensionBrush = drivenTension < 0d ? ProbePalette.TensionNegative : ProbePalette.TensionPositive;
+                var tensionPen = new Pen(tensionBrush, 3d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
 
                 edges.Add(new CarrierChainEdgeLayout(
                     relation,
@@ -435,9 +438,12 @@ public static class CarrierChainRenderer
                     relationIndex == 0,
                     relationIndex == chain.Relations.Length - 1,
                     pen,
-                    EdgeLabel(chain.Carrier, relation.Potential.Raw, actualMagnitude),
-                    tension,
-                    Math.Max(3.4d, Math.Min(22d, Math.Abs(tension) * 1.15d)),
+                    EdgeLabel(chain.Carrier, relation.Potential.Raw, displayedActualMagnitude),
+                    relation.Potential.Raw,
+                    actualMagnitude,
+                    displayTension,
+                    drivenTension,
+                    Math.Max(3.4d, Math.Min(22d, visualTension * 1.15d)),
                     tensionPen));
             }
         }
@@ -575,11 +581,11 @@ public static class CarrierChainRenderer
             : $"{prefix}->{actualMagnitude}";
     }
 
-    private static long ResolveDrivenMagnitude(long desiredMagnitude, double desiredDistance, double actualDistance)
+    private static double ResolveDrivenMagnitude(long desiredMagnitude, double desiredDistance, double actualDistance)
     {
         if (desiredMagnitude <= 0L)
         {
-            return 0L;
+            return 0d;
         }
 
         if (desiredDistance <= 1d)
@@ -587,7 +593,18 @@ public static class CarrierChainRenderer
             return desiredMagnitude;
         }
 
-        return Math.Max(0L, (long)Math.Round(desiredMagnitude * (actualDistance / desiredDistance), MidpointRounding.AwayFromZero));
+        return Math.Max(0d, desiredMagnitude * (actualDistance / desiredDistance));
+    }
+
+    private static long DisplayMagnitude(double value)
+    {
+        return Math.Max(0L, (long)Math.Round(value, MidpointRounding.AwayFromZero));
+    }
+
+    private static long DisplaySignedMagnitude(double value)
+    {
+        var rounded = Math.Round(Math.Abs(value), MidpointRounding.AwayFromZero);
+        return value < 0d ? -(long)rounded : (long)rounded;
     }
 
     private static double Distance(Point left, Point right)
@@ -630,6 +647,9 @@ public readonly record struct CarrierChainEdgeLayout(
     bool ShowEndCarrierMarker,
     Pen Pen,
     string Label,
-    long TensionValue,
+    long DesiredMagnitude,
+    double ActualMagnitude,
+    long DisplayTension,
+    double DrivenTension,
     double TensionAmplitude,
     Pen TensionPen);

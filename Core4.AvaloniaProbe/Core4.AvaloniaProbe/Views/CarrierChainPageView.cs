@@ -1,4 +1,5 @@
 using System.Text;
+using System.Collections.Immutable;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -38,6 +39,7 @@ public sealed class CarrierChainPageView : UserControl
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch
         };
+        _scene.LayoutChanged += (_, _) => SyncUi();
 
         _tJunctionButton = ProbeUi.PillButton("T Junction", true);
         _tJunctionButton.Click += (_, _) => ApplyState(CarrierChainDemoState.TJunction);
@@ -198,7 +200,7 @@ public sealed class CarrierChainPageView : UserControl
         _metaChainText.Text = $"{_state.Chains.Length} chains";
         _structureText.Text = DescribeStructure(_state);
         _focusText.Text = DescribeFocus(_state);
-        _flowText.Text = DescribeFlows(_state);
+        _flowText.Text = DescribeFlows(_state, _scene.CurrentLayout);
     }
 
     private static string DescribeStructure(CarrierChainDemoState state)
@@ -237,10 +239,16 @@ public sealed class CarrierChainPageView : UserControl
             $"site position             {connector.SiteCarrierPosition.Normalize()}";
     }
 
-    private static string DescribeFlows(CarrierChainDemoState state)
+    private static string DescribeFlows(CarrierChainDemoState state, CarrierChainSceneLayout layout)
     {
         var builder = new StringBuilder();
         var hasAny = false;
+        var edgeLookup = ImmutableDictionary.CreateBuilder<Relation, CarrierChainEdgeLayout>();
+
+        foreach (var edge in layout.Edges)
+        {
+            edgeLookup[edge.Relation] = edge;
+        }
 
         foreach (var site in state.Topology.Sites)
         {
@@ -253,29 +261,46 @@ public sealed class CarrierChainPageView : UserControl
 
                 if (hasAny)
                 {
-                    builder.Append('\n');
+                    builder.Append("\n\n");
                 }
 
                 hasAny = true;
+                edgeLookup.TryGetValue(relation, out var edge);
+                var edgeMagnitude = edge.Relation == relation && !string.IsNullOrWhiteSpace(edge.Label)
+                    ? edge.Label[(edge.Label.IndexOf(':') + 1)..]
+                    : relation.Potential.Raw.ToString();
                 builder.Append(flow.IsIncoming ? "incoming" : "outgoing");
                 builder.Append("                  ");
                 builder.Append(SiteLabel(site));
                 builder.Append(" -> ");
                 builder.Append(CarrierLabel(relation.Carrier));
                 builder.Append(':');
-                builder.Append(relation.Potential.Raw);
-                builder.Append("  tension ");
+                builder.Append(edgeMagnitude);
+                builder.Append('\n');
+                builder.Append("stated/driven             ");
                 builder.Append(flow.Value.Normalize());
+                builder.Append(" / ");
+                builder.Append(FormatSigned(edge.DisplayTension));
             }
         }
 
         if (!hasAny)
         {
             return "flows                     none\n" +
-                   "tension                   0/0";
+                   "stated/driven             0/0 / 0";
         }
 
         return builder.ToString();
+    }
+
+    private static string FormatSigned(long value)
+    {
+        if (value > 0L)
+        {
+            return $"+{value}";
+        }
+
+        return value.ToString();
     }
 
     private static string DescribeChain(CarrierChain chain)

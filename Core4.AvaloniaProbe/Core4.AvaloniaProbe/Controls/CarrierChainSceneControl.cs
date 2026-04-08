@@ -22,6 +22,8 @@ public sealed class CarrierChainSceneControl : Control
     private ImmutableDictionary<Site, Point> _positions = ImmutableDictionary<Site, Point>.Empty;
     private DragSession _activeDrag;
 
+    public event EventHandler? LayoutChanged;
+
     public CarrierChainSceneControl()
     {
         MinHeight = 360;
@@ -45,16 +47,19 @@ public sealed class CarrierChainSceneControl : Control
         }
     }
 
+    public CarrierChainSceneLayout CurrentLayout => CarrierChainRenderer.Arrange(Bounds, _state, _positions);
+
     public void ResetLayout()
     {
         _positions = _state.SeedPositions;
         InvalidateVisual();
+        LayoutChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        CarrierChainRenderer.Render(context, CarrierChainRenderer.Arrange(Bounds, _state, _positions));
+        CarrierChainRenderer.Render(context, CurrentLayout);
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -96,6 +101,7 @@ public sealed class CarrierChainSceneControl : Control
 
         _positions = builder.ToImmutable();
         InvalidateVisual();
+        LayoutChanged?.Invoke(this, EventArgs.Empty);
         e.Handled = true;
     }
 
@@ -112,6 +118,12 @@ public sealed class CarrierChainSceneControl : Control
         _activeDrag = new DragSession(sites, pointerOffset);
         e.Pointer.Capture(this);
         e.Handled = true;
+    }
+
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        LayoutChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private readonly record struct DragSession(ImmutableArray<Site> Sites, Vector PointerOffset);
