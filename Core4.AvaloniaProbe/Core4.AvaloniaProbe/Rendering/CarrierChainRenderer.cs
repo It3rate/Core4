@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Media;
 using Core4.AvaloniaProbe.Models;
 using Core4.Dynamics;
+using Core4.Numerics;
 using Core4.Structure;
 using Core4.Topology;
 
@@ -40,23 +41,6 @@ public static class CarrierChainRenderer
 
         foreach (var edge in layout.Edges)
         {
-            context.DrawLine(edge.Pen, edge.Start, edge.End);
-            ScenePrimitives.DrawCircle(context, edge.StartCarrierMarker, 3.8d, Brushes.White, new Pen(edge.Pen.Brush, 2.4d, lineCap: PenLineCap.Round));
-            ScenePrimitives.DrawDirectedTriangle(
-                context,
-                edge.EndCarrierMarker,
-                8.8d,
-                Brushes.White,
-                edge.AnchorDirection,
-                new Pen(edge.Pen.Brush, 2.4d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
-            ScenePrimitives.DrawCenteredLabel(
-                context,
-                edge.Label,
-                Midpoint(edge.Start, edge.End) + new Vector(0d, -16d),
-                10d,
-                ProbePalette.Muted,
-                fontFamily: ProbePalette.MonoFont);
-
             foreach (var flow in edge.Flows)
             {
                 if (flow.Amplitude > 0d)
@@ -68,16 +52,50 @@ public static class CarrierChainRenderer
                         flow.Amplitude,
                         flow.Pen);
                 }
+            }
 
+            context.DrawLine(edge.Pen, edge.Start, edge.End);
+            var edgeBrush = edge.Pen.Brush ?? ProbePalette.Ink;
+
+            if (edge.ShowStartCarrierMarker)
+            {
+                ScenePrimitives.DrawCircle(
+                    context,
+                    edge.StartCarrierMarker,
+                    3.8d,
+                    edgeBrush);
+            }
+
+            if (edge.ShowEndCarrierMarker)
+            {
+                ScenePrimitives.DrawDirectedTriangle(
+                    context,
+                    edge.EndCarrierMarker,
+                    8.8d,
+                    edgeBrush,
+                    edge.AnchorDirection,
+                    new Pen(edgeBrush, 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
+            }
+
+            ScenePrimitives.DrawCenteredLabel(
+                context,
+                edge.Label,
+                Midpoint(edge.Start, edge.End) + new Vector(0d, -16d),
+                10d,
+                ProbePalette.Muted,
+                fontFamily: ProbePalette.MonoFont);
+
+            foreach (var flow in edge.Flows)
+            {
                 if (flow.IsOutgoing)
                 {
-                    ScenePrimitives.DrawVerticalTriangle(
+                    ScenePrimitives.DrawDirectedTriangle(
                         context,
                         flow.RemotePoint,
                         11d,
-                        ProbePalette.Surface,
-                        new Pen(flow.Brush, 3.2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round),
-                        pointsUp: flow.RemotePoint.Y < flow.PinPoint.Y);
+                        flow.Brush,
+                        flow.RemotePoint - flow.PinPoint,
+                        new Pen(flow.Brush, 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
                 }
                 else
                 {
@@ -85,8 +103,7 @@ public static class CarrierChainRenderer
                         context,
                         flow.RemotePoint,
                         5.6d,
-                        ProbePalette.Surface,
-                        new Pen(flow.Brush, 3d, lineCap: PenLineCap.Round));
+                        flow.Brush);
                 }
             }
         }
@@ -372,17 +389,19 @@ public static class CarrierChainRenderer
 
         foreach (var chain in chains)
         {
-            var color = CarrierBrush(carriers.IndexOf(chain.Carrier));
-            var pen = new Pen(color, 4.4d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+            var focusPosition = state.FocusSite.On(chain.Carrier).Normalize();
 
-            foreach (var relation in chain.Relations)
+            for (var relationIndex = 0; relationIndex < chain.Relations.Length; relationIndex++)
             {
+                var relation = chain.Relations[relationIndex];
                 var originHub = hubs[relation.Origin];
                 var anchorHub = hubs[relation.Anchor];
-                var spanStart = OffsetFromHub(originHub.Point, anchorHub.Point, originHub.Radius + 2d);
-                var spanEnd = OffsetFromHub(anchorHub.Point, originHub.Point, anchorHub.Radius + 2d);
-                var originMarker = OffsetFromHub(originHub.Point, anchorHub.Point, originHub.Radius + 9d);
-                var anchorMarker = OffsetFromHub(anchorHub.Point, originHub.Point, anchorHub.Radius + 9d);
+                var spanStart = originHub.Point;
+                var spanEnd = anchorHub.Point;
+                var originMarker = OffsetFromHub(originHub.Point, anchorHub.Point, Math.Max(1d, originHub.Radius - 1.5d));
+                var anchorMarker = OffsetFromHub(anchorHub.Point, originHub.Point, Math.Max(1d, anchorHub.Radius - 1.5d));
+                var brush = EdgeBrush(state, chain, relation, carriers.IndexOf(chain.Carrier), focusPosition);
+                var pen = new Pen(brush, 4.4d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
 
                 edges.Add(new CarrierChainEdgeLayout(
                     relation,
@@ -391,6 +410,8 @@ public static class CarrierChainRenderer
                     originMarker,
                     anchorMarker,
                     anchorHub.Point - anchorMarker,
+                    relationIndex == 0,
+                    relationIndex == chain.Relations.Length - 1,
                     pen,
                     $"{CarrierLabel(chain.Carrier)}:{relation.Potential.Raw}",
                     BuildFlowLayouts(state, relation, hubs)));
@@ -482,6 +503,87 @@ public static class CarrierChainRenderer
         _ => $"c{carrier.Id}"
     };
 
+    private static IBrush EdgeBrush(
+        CarrierChainDemoState state,
+        CarrierChain chain,
+        Relation relation,
+        int carrierIndex,
+        Ratio focusPosition)
+    {
+        if (chain.Carrier != state.FocusSite.Carrier)
+        {
+            var roleBrush = RelationFlowBrush(state, relation);
+            return roleBrush ?? CarrierBrush(carrierIndex);
+        }
+
+        var lower = LowerPosition(relation).Normalize();
+        var upper = UpperPosition(relation).Normalize();
+
+        if (Compare(upper, focusPosition) <= 0)
+        {
+            return ProbePalette.DominantSoft;
+        }
+
+        if (Compare(lower, focusPosition) >= 0)
+        {
+            return ProbePalette.Dominant;
+        }
+
+        return ProbePalette.Dominant;
+    }
+
+    private static IBrush? RelationFlowBrush(CarrierChainDemoState state, Relation relation)
+    {
+        var hasIncoming = false;
+        var hasOutgoing = false;
+
+        foreach (var site in state.Topology.Sites)
+        {
+            foreach (var flow in site.Orthogonal.Flows)
+            {
+                if (flow.Support is not Relation support || support != relation)
+                {
+                    continue;
+                }
+
+                hasIncoming |= flow.IsIncoming;
+                hasOutgoing |= flow.IsOutgoing;
+            }
+        }
+
+        if (hasOutgoing && !hasIncoming)
+        {
+            return ProbePalette.Orthogonal;
+        }
+
+        if (hasIncoming && !hasOutgoing)
+        {
+            return ProbePalette.OrthogonalInput;
+        }
+
+        return null;
+    }
+
+    private static Ratio LowerPosition(Relation relation)
+    {
+        var origin = relation.OriginPosition.Normalize();
+        var anchor = relation.AnchorPosition.Normalize();
+        return Compare(origin, anchor) <= 0 ? origin : anchor;
+    }
+
+    private static Ratio UpperPosition(Relation relation)
+    {
+        var origin = relation.OriginPosition.Normalize();
+        var anchor = relation.AnchorPosition.Normalize();
+        return Compare(origin, anchor) >= 0 ? origin : anchor;
+    }
+
+    private static int Compare(Ratio left, Ratio right)
+    {
+        var comparison = checked((left.Recessive.Raw * right.Dominant.Raw) - (right.Recessive.Raw * left.Dominant.Raw));
+        return comparison < 0 ? -1 : comparison > 0 ? 1 : 0;
+    }
+
     private static Point ResolvePoint(Rect content, Point normalized) => new(
         content.X + (content.Width * normalized.X),
         content.Y + (content.Height * normalized.Y));
@@ -529,6 +631,8 @@ public readonly record struct CarrierChainEdgeLayout(
     Point StartCarrierMarker,
     Point EndCarrierMarker,
     Vector AnchorDirection,
+    bool ShowStartCarrierMarker,
+    bool ShowEndCarrierMarker,
     Pen Pen,
     string Label,
     ImmutableArray<CarrierChainFlowLayout> Flows);
