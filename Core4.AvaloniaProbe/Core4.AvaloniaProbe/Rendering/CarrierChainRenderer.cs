@@ -246,7 +246,7 @@ public static class CarrierChainRenderer
                 continue;
             }
 
-            DrawTraversalRails(context, edge, 0d, 1d, new SolidColorBrush(Color.Parse("#8a2ad6")));
+            DrawTraversalRails(context, edge, 0d, 1d, useTension: false, new SolidColorBrush(Color.Parse("#8a2ad6")));
         }
 
         foreach (var relation in candidateRelations)
@@ -332,12 +332,14 @@ public static class CarrierChainRenderer
             var edgeProgress = fromOrigin
                 ? motion.Progress
                 : 1d - motion.Progress;
-            var point = EdgePoint(edge, edgeProgress);
+            var useTension = !motion.TowardAnchor;
+            var point = EdgePoint(edge, edgeProgress, useTension);
             DrawTraversalRails(
                 context,
                 edge,
                 fromOrigin ? 0d : edgeProgress,
                 fromOrigin ? edgeProgress : 1d,
+                useTension,
                 new SolidColorBrush(Color.Parse("#8a2ad6")));
             ScenePrimitives.DrawCircle(
                 context,
@@ -361,11 +363,17 @@ public static class CarrierChainRenderer
         }
     }
 
-    private static void DrawTraversalRails(DrawingContext context, CarrierChainEdgeLayout edge, double fromProgress, double toProgress, IBrush brush)
+    private static void DrawTraversalRails(
+        DrawingContext context,
+        CarrierChainEdgeLayout edge,
+        double fromProgress,
+        double toProgress,
+        bool useTension,
+        IBrush brush)
     {
         var left = ImmutableArray.CreateBuilder<Point>();
         var right = ImmutableArray.CreateBuilder<Point>();
-        var samples = SampleEdge(edge, fromProgress, toProgress);
+        var samples = SampleEdge(edge, fromProgress, toProgress, useTension);
 
         if (samples.Length < 2)
         {
@@ -808,7 +816,11 @@ public static class CarrierChainRenderer
         context.DrawGeometry(null, pen, geometry);
     }
 
-    private static ImmutableArray<Point> SampleEdge(CarrierChainEdgeLayout edge, double fromProgress, double toProgress)
+    private static ImmutableArray<Point> SampleEdge(
+        CarrierChainEdgeLayout edge,
+        double fromProgress,
+        double toProgress,
+        bool useTension)
     {
         var start = Math.Clamp(fromProgress, 0d, 1d);
         var end = Math.Clamp(toProgress, 0d, 1d);
@@ -819,18 +831,18 @@ public static class CarrierChainRenderer
         for (var index = 0; index <= samples; index++)
         {
             var t = start + ((end - start) * (index / (double)samples));
-            points.Add(EdgePoint(edge, t));
+            points.Add(EdgePoint(edge, t, useTension));
         }
 
         return points.ToImmutable();
     }
 
-    private static Point EdgePoint(CarrierChainEdgeLayout edge, double progress)
+    private static Point EdgePoint(CarrierChainEdgeLayout edge, double progress, bool useTension)
     {
         var t = Math.Clamp(progress, 0d, 1d);
         var along = Interpolate(edge.Start, edge.End, t);
 
-        if (Math.Abs(edge.DrivenTension) <= 0.025d || edge.TensionAmplitude <= 0.01d)
+        if (!useTension || Math.Abs(edge.DrivenTension) <= 0.025d || edge.TensionAmplitude <= 0.01d)
         {
             return along;
         }

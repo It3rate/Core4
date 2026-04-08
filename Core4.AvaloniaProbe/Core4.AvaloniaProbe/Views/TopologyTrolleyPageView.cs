@@ -1076,7 +1076,7 @@ public sealed class TopologyTrolleyPageView : UserControl
                 source.Site,
                 target.Site,
                 source.Site,
-                target.Direction.Raw > 0L,
+                DetermineTowardAnchor(target.TrailRelations[^1], source.Site, target.Site),
                 source.TrailRelations);
 
         public static TrolleyMotion Reverse(TopologyTrolley source, TopologyTrolley target) =>
@@ -1087,7 +1087,47 @@ public sealed class TopologyTrolleyPageView : UserControl
                 source.Site,
                 target.Site,
                 target.Site,
-                source.Direction.Raw < 0L,
+                DetermineTowardAnchor(source.TrailRelations[^1], source.Site, target.Site),
                 target.TrailRelations);
+
+        private static bool DetermineTowardAnchor(Relation relation, Site fromSite, Site toSite)
+        {
+            var from = fromSite.On(relation.Carrier).Normalize();
+            var to = toSite.On(relation.Carrier).Normalize();
+            var origin = relation.OriginPosition.Normalize();
+            var anchor = relation.AnchorPosition.Normalize();
+
+            if (from == origin && to == anchor)
+            {
+                return true;
+            }
+
+            if (from == anchor && to == origin)
+            {
+                return false;
+            }
+
+            if (from == origin)
+            {
+                return true;
+            }
+
+            if (from == anchor)
+            {
+                return false;
+            }
+
+            if (to == anchor)
+            {
+                return true;
+            }
+
+            if (to == origin)
+            {
+                return false;
+            }
+
+            return relation.Orientation.Raw >= 0L;
+        }
     }
 }
