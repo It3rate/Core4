@@ -406,11 +406,13 @@ public sealed class TopologyTrolleyPageView : UserControl
 
     private CarrierChainSceneOverlay BuildOverlay()
     {
+        var layout = _scene.CurrentLayout;
         var currentSites = ImmutableArray.CreateBuilder<Site>();
         var candidateSites = ImmutableArray.CreateBuilder<Site>();
         var trailRelations = ImmutableArray.CreateBuilder<Relation>();
         var candidateRelations = ImmutableArray.CreateBuilder<Relation>();
         var motionOverlays = ImmutableArray.CreateBuilder<CarrierChainOverlayMotion>();
+        var readouts = ImmutableArray.CreateBuilder<CarrierChainOverlayReadout>();
 
         foreach (var frontier in _frontiers)
         {
@@ -426,6 +428,11 @@ public sealed class TopologyTrolleyPageView : UserControl
                     {
                         trailRelations.Add(relation);
                     }
+                }
+
+                if (TryCreateReadout(frontier, layout, out var readout))
+                {
+                    readouts.Add(readout);
                 }
             }
 
@@ -473,7 +480,8 @@ public sealed class TopologyTrolleyPageView : UserControl
             candidateSites.ToImmutable(),
             trailRelations.ToImmutable(),
             candidateRelations.ToImmutable(),
-            motionOverlays.ToImmutable());
+            motionOverlays.ToImmutable(),
+            readouts.ToImmutable());
     }
 
     private void RebuildCandidateButtons()
@@ -635,6 +643,31 @@ public sealed class TopologyTrolleyPageView : UserControl
 
     private static string ContinuationLabel(TopologyTrolleyContinuation continuation) =>
         $"{CarrierLabel(continuation.Carrier)}:{continuation.Potential.Raw} to {SiteLabel(continuation.To)}";
+
+    private static bool TryCreateReadout(
+        TopologyTrolley frontier,
+        CarrierChainSceneLayout layout,
+        out CarrierChainOverlayReadout readout)
+    {
+        if (frontier.TrailRelations.IsDefaultOrEmpty)
+        {
+            readout = default;
+            return false;
+        }
+
+        var relation = frontier.TrailRelations[^1];
+        var actualMagnitude = RelationMagnitude(layout, relation);
+        var atOrigin = frontier.Site.Carrier == relation.Origin.Carrier
+            && frontier.Site.Location == relation.Origin.Location;
+        var position = atOrigin ? 0d : 1d;
+        var recessive = actualMagnitude * position;
+        var dominant = Math.Max(0d, actualMagnitude - recessive);
+        readout = new CarrierChainOverlayReadout(
+            frontier.Site,
+            $"({recessive:0.0}i+{dominant:0.0})",
+            new Vector(-44d, -28d));
+        return true;
+    }
 
     private bool HasActiveMotion => !_motions.IsDefaultOrEmpty && _motions.Length != 0;
 

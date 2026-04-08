@@ -50,6 +50,42 @@ public static class ScenePrimitives
         context.DrawText(formatted, new Point(center.X - (formatted.Width * 0.5d), center.Y));
     }
 
+    public static void DrawBadgeLabel(
+        DrawingContext context,
+        string text,
+        Point point,
+        double size,
+        IBrush textBrush,
+        FontWeight weight = FontWeight.Normal,
+        FontFamily? fontFamily = null,
+        IBrush? background = null,
+        Pen? stroke = null,
+        Thickness? padding = null,
+        double cornerRadius = 6d)
+    {
+        var formatted = new FormattedText(
+            text,
+            CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            new Typeface(fontFamily ?? FontFamily.Default, FontStyle.Normal, weight),
+            size,
+            textBrush);
+        var inset = padding ?? new Thickness(6d, 3d, 6d, 3d);
+        var rect = new Rect(
+            point.X - inset.Left,
+            point.Y - inset.Top,
+            formatted.Width + inset.Left + inset.Right,
+            formatted.Height + inset.Top + inset.Bottom);
+
+        context.DrawRectangle(
+            background ?? new SolidColorBrush(Color.FromArgb(153, 255, 255, 255)),
+            stroke ?? new Pen(new SolidColorBrush(Color.FromArgb(96, 197, 182, 160)), 0.9d),
+            rect,
+            cornerRadius,
+            cornerRadius);
+        context.DrawText(formatted, point);
+    }
+
     public static void DrawCircle(DrawingContext context, Point center, double radius, IBrush fill, Pen? stroke = null)
     {
         context.DrawEllipse(fill, stroke, center, radius, radius);

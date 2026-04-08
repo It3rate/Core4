@@ -237,6 +237,7 @@ public static class CarrierChainRenderer
         var candidateSites = overlay.CandidateSites.IsDefault ? ImmutableArray<Site>.Empty : overlay.CandidateSites;
         var currentSites = overlay.CurrentSites.IsDefault ? ImmutableArray<Site>.Empty : overlay.CurrentSites;
         var motions = overlay.Motions.IsDefault ? ImmutableArray<CarrierChainOverlayMotion>.Empty : overlay.Motions;
+        var readouts = overlay.Readouts.IsDefault ? ImmutableArray<CarrierChainOverlayReadout>.Empty : overlay.Readouts;
 
         foreach (var relation in trailRelations)
         {
@@ -304,6 +305,23 @@ public static class CarrierChainRenderer
                 new Pen(Brushes.White, 1.4d, lineCap: PenLineCap.Round));
         }
 
+        foreach (var readout in readouts)
+        {
+            if (!TryFindHub(layout, readout.Site, out var hub))
+            {
+                continue;
+            }
+
+            ScenePrimitives.DrawBadgeLabel(
+                context,
+                readout.Label,
+                hub.Point + readout.Offset,
+                10d,
+                ProbePalette.Ink,
+                FontWeight.SemiBold,
+                ProbePalette.MonoFont);
+        }
+
         foreach (var motion in motions)
         {
             if (!TryFindHub(layout, motion.From, out var fromHub)
@@ -331,7 +349,7 @@ public static class CarrierChainRenderer
                 point,
                 2.4d,
                 Brushes.White);
-            ScenePrimitives.DrawLabel(
+            ScenePrimitives.DrawBadgeLabel(
                 context,
                 InspectionLabel(edge, motion),
                 point + new Vector(-44d, -28d),
@@ -824,14 +842,16 @@ public readonly record struct CarrierChainSceneOverlay(
     ImmutableArray<Site> CandidateSites,
     ImmutableArray<Relation> TrailRelations,
     ImmutableArray<Relation> CandidateRelations,
-    ImmutableArray<CarrierChainOverlayMotion> Motions)
+    ImmutableArray<CarrierChainOverlayMotion> Motions,
+    ImmutableArray<CarrierChainOverlayReadout> Readouts)
 {
     public static CarrierChainSceneOverlay Empty => new(
         ImmutableArray<Site>.Empty,
         ImmutableArray<Site>.Empty,
         ImmutableArray<Relation>.Empty,
         ImmutableArray<Relation>.Empty,
-        ImmutableArray<CarrierChainOverlayMotion>.Empty);
+        ImmutableArray<CarrierChainOverlayMotion>.Empty,
+        ImmutableArray<CarrierChainOverlayReadout>.Empty);
 }
 
 public readonly record struct CarrierChainOverlayMotion(
@@ -840,6 +860,11 @@ public readonly record struct CarrierChainOverlayMotion(
     Site To,
     Site TrailAnchor,
     double Progress);
+
+public readonly record struct CarrierChainOverlayReadout(
+    Site Site,
+    string Label,
+    Vector Offset);
 
 public readonly record struct CarrierChainHubLayout(
     ImmutableArray<Site> MemberSites,
