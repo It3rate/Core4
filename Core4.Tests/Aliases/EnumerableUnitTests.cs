@@ -87,8 +87,8 @@ public sealed class EnumerableUnitTests
         var unit = new EnumerableUnit<SettlementPhase>(new Carrier(20));
 
         Assert.True(unit.TryObserve(new Measure(3), out var observation));
-        Assert.Equal(2, observation.ForwardContinuations.Length);
-        Assert.True(observation.IsDecisionPoint);
+        Assert.Single(observation.ForwardContinuations);
+        Assert.False(observation.IsDecisionPoint);
         Assert.True(observation.TryPreferred(out var preferred));
         Assert.True(preferred.IsOutgoing);
         Assert.Equal(unit.Carrier, preferred.Carrier);

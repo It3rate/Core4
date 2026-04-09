@@ -1025,17 +1025,6 @@ public sealed class TopologyTrolleyPageView : UserControl
 
     private bool ShouldUseTensionPath(TrolleyMotion motion)
     {
-        if (_preset.Label == CarrierChainDemoState.DiamondCross.Label)
-        {
-            return motion.Relation.Carrier.Id switch
-            {
-                2L => motion.TowardAnchor,
-                3L => motion.TowardAnchor,
-                4L => !motion.TowardAnchor,
-                _ => !motion.TowardAnchor
-            };
-        }
-
         return !motion.TowardAnchor;
     }
 

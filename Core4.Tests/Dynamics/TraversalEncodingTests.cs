@@ -119,7 +119,7 @@ public sealed class TraversalEncodingTests
 
         Assert.Single(observation.ForwardContinuationsIn(Measure.One));
         Assert.Equal(new Measure(10), observation.ForwardContinuationsIn(Measure.One)[0].Target.Position.Whole);
-        Assert.Equal(2, observation.ForwardContinuationsIn(-Measure.One).Length);
+        Assert.Single(observation.ForwardContinuationsIn(-Measure.One));
         Assert.True(observation.TryPreferred(-Measure.One, out var preferred));
         Assert.Equal(new Measure(0), preferred.Target.Position.Whole);
     }

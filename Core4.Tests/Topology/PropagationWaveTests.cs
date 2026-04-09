@@ -74,7 +74,7 @@ public sealed class PropagationWaveTests
     }
 
     [Fact]
-    public void WaveSplitsAgainOnReturnAfterDiamondMerge()
+    public void WaveSplitsAgainOnReverseFlowAfterDiamondMerge()
     {
         Carrier x = 1;
         Carrier y = 2;

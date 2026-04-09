@@ -116,8 +116,13 @@ public readonly record struct TraversalDisposition(
             return false;
         }
 
+        if (observerPerspective.Raw < 0L && ReturnsAlongIngress)
+        {
+            return true;
+        }
+
         var direction = DirectionIn(observerPerspective);
-        return direction.Raw > 0L || (direction.Raw < 0L && carrierContinues);
+        return direction.Raw > 0L;
     }
 
     public Ratio ForwardPreference(Measure observerPerspective, bool carrierContinues)

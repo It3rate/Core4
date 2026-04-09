@@ -328,10 +328,10 @@ public readonly record struct CarrierChainDemoState(
                 (lowerApex, 0.42d, 0.78d),
                 (lowerExit, 0.56d, 0.54d),
                 (merge, 0.56d, 0.54d),
-                (cross, 0.78d, 0.56d),
+                (cross, 0.78d, 0.54d),
                 (right, 0.90d, 0.54d),
                 (verticalLow, 0.78d, 0.86d),
-                (verticalMid, 0.78d, 0.56d),
+                (verticalMid, 0.78d, 0.54d),
                 (verticalHigh, 0.78d, 0.14d)));
     }
 
@@ -352,8 +352,8 @@ public readonly record struct CarrierChainDemoState(
                 1L when site.Location == new Measure(12) => new Point(0.66d, 0.54d),
                 2L when site.Location == new Measure(8) => new Point(0.66d, 0.54d),
                 3L when site.Location == new Measure(8) => new Point(0.66d, 0.54d),
-                1L when site.Location == new Measure(18) => new Point(0.82d, 0.56d),
-                4L when site.Location == new Measure(0) => new Point(0.82d, 0.56d),
+                1L when site.Location == new Measure(18) => new Point(0.82d, 0.54d),
+                4L when site.Location == new Measure(0) => new Point(0.82d, 0.54d),
                 1L when site.Location == new Measure(22) => new Point(0.95d, 0.54d),
                 4L when site.Location == new Measure(-4) => new Point(0.82d, 0.78d),
                 4L when site.Location == new Measure(4) => new Point(0.82d, 0.04d),

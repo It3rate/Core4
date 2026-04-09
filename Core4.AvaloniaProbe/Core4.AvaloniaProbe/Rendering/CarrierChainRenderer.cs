@@ -667,8 +667,8 @@ public static class CarrierChainRenderer
     {
         if (chain.Carrier != state.FocusSite.Carrier)
         {
-            var roleBrush = RelationFlowBrush(state, relation);
-            return roleBrush ?? CarrierBrush(carrierIndex);
+            var chainBrush = ChainDirectionBrush(chain, relation);
+            return chainBrush ?? CarrierBrush(carrierIndex);
         }
 
         var lower = LowerPosition(relation).Normalize();
@@ -685,6 +685,36 @@ public static class CarrierChainRenderer
         }
 
         return ProbePalette.Dominant;
+    }
+
+    private static IBrush? ChainDirectionBrush(CarrierChain chain, Relation relation)
+    {
+        if (chain.Relations.Length == 0)
+        {
+            return null;
+        }
+
+        if (chain.Relations.Length == 1)
+        {
+            return Compare(LowerPosition(relation), UpperPosition(relation)) <= 0
+                ? ProbePalette.OrthogonalInput
+                : ProbePalette.Orthogonal;
+        }
+
+        for (var index = 0; index < chain.Relations.Length; index++)
+        {
+            if (chain.Relations[index] != relation)
+            {
+                continue;
+            }
+
+            var progress = index / (double)(chain.Relations.Length - 1);
+            return progress < 0.5d
+                ? ProbePalette.OrthogonalInput
+                : ProbePalette.Orthogonal;
+        }
+
+        return null;
     }
 
     private static IBrush? RelationFlowBrush(CarrierChainDemoState state, Relation relation)

@@ -8,7 +8,8 @@ namespace Core4.Inspection;
 /// <summary>
 /// A topology-wide propagation pass. Outbound fronts follow forward continuations under positive perspective and park
 /// at termini until the whole wave goes quiescent. Return fronts then run the same continuation law under opposite
-/// perspective instead of replaying stored path history. Fronts that meet at one site still fuse numerically.
+/// perspective instead of replaying stored path history, so reverse branching now follows structural reverse flow
+/// rather than trail replay.
 /// </summary>
 public readonly record struct PropagationWave(
     Measure Perspective,
@@ -94,6 +95,14 @@ public readonly record struct PropagationWave(
 
         foreach (var frontier in Active)
         {
+            if (observerPerspective.Raw < 0L
+                && frontier.Trolley.TrailSites.Length != 0
+                && SameNode(frontier.Site, frontier.Trolley.TrailSites[0]))
+            {
+                MergeFrontier(nextParked, frontier);
+                continue;
+            }
+
             var observation = frontier.Trolley.Observe(observerPerspective);
             var forward = observerPerspective.Raw < 0L && observation.TryPreferred(observerPerspective, out var preferred)
                 ? [preferred]
@@ -155,6 +164,8 @@ public readonly record struct PropagationWave(
 
         frontiers.Add(frontier);
     }
+
+    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
 }
 
 public readonly record struct PropagationFrontier(
