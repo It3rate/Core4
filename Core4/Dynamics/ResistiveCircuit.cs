@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Immutable;
 using Core4.Numerics;
 using Core4.Structure;
@@ -354,6 +355,8 @@ public readonly record struct ResistiveCircuitState(
     Measure Iteration,
     Ratio MaxResidual)
 {
+    private static readonly Measure RelaxationResolution = new(4096);
+
     public Ratio PotentialAt(Site site) => PotentialAt(Circuit.NodeKeyOf(site));
 
     public Ratio PotentialAt(Placement key) => Potentials.TryGetValue(key, out var potential)
@@ -384,8 +387,8 @@ public readonly record struct ResistiveCircuitState(
                 continue;
             }
 
-            var weighted = Ratio.Zero(Measure.One);
-            var total = Ratio.Zero(Measure.One);
+            var weighted = 0d;
+            var total = 0d;
 
             foreach (var branch in Circuit.Branches)
             {
@@ -398,15 +401,13 @@ public readonly record struct ResistiveCircuitState(
                 }
 
                 var neighbor = isFrom ? branch.To : branch.From;
-                weighted = weighted
-                    .Add(PotentialAt(neighbor).Multiply(branch.Conductance).Canonicalize())
-                    .Canonicalize();
-                total = total.Add(branch.Conductance).Canonicalize();
+                weighted += PotentialAt(neighbor).Approximate * branch.Conductance.Approximate;
+                total += branch.Conductance.Approximate;
             }
 
-            var resolved = total.Recessive == Measure.Zero
+            var resolved = total <= 0d
                 ? PotentialAt(node.Key)
-                : weighted.Divide(total).Canonicalize();
+                : Quantize(weighted / total);
             next[node.Key] = resolved;
 
             var residual = Absolute(resolved.Subtract(PotentialAt(node.Key)).Canonicalize());
@@ -458,4 +459,16 @@ public readonly record struct ResistiveCircuitState(
         : new Ratio(value.Recessive.Absolute, value.Dominant.Absolute).Canonicalize();
 
     private static int Compare(Ratio left, Ratio right) => left.Approximate.CompareTo(right.Approximate);
+
+    private static Ratio Quantize(double value)
+    {
+        var scaled = value * RelaxationResolution.Raw;
+
+        if (double.IsNaN(scaled) || double.IsInfinity(scaled) || scaled > long.MaxValue || scaled < long.MinValue)
+        {
+            throw new OverflowException("Relaxed circuit potential exceeded the current Measure range.");
+        }
+
+        return new Ratio(new Measure((long)Math.Round(scaled)), RelaxationResolution).Canonicalize();
+    }
 }

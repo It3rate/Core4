@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Numerics;
 
 namespace Core4.Numerics;
 
@@ -46,50 +47,50 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant)
     {
         if (IsTension || other.IsTension)
         {
-            return Tension(Recessive + other.Recessive);
+            return Tension(ToMeasure(new BigInteger(Recessive.Raw) + other.Recessive.Raw));
         }
 
         if (Dominant == other.Dominant)
         {
-            return new Ratio(
-                new Measure(checked(Recessive.Raw + other.Recessive.Raw)),
-                Dominant).Normalize();
+            return FromBigInteger(
+                new BigInteger(Recessive.Raw) + other.Recessive.Raw,
+                Dominant.Raw);
         }
 
-        return new Ratio(
-            new Measure(checked((Recessive.Raw * other.Dominant.Raw) + (other.Recessive.Raw * Dominant.Raw))),
-            new Measure(checked(Dominant.Raw * other.Dominant.Raw))).Normalize();
+        return FromBigInteger(
+            (new BigInteger(Recessive.Raw) * other.Dominant.Raw) + (new BigInteger(other.Recessive.Raw) * Dominant.Raw),
+            new BigInteger(Dominant.Raw) * other.Dominant.Raw);
     }
 
     public Ratio Subtract(Ratio other)
     {
         if (IsTension || other.IsTension)
         {
-            return Tension(Recessive - other.Recessive);
+            return Tension(ToMeasure(new BigInteger(Recessive.Raw) - other.Recessive.Raw));
         }
 
         if (Dominant == other.Dominant)
         {
-            return new Ratio(
-                new Measure(checked(Recessive.Raw - other.Recessive.Raw)),
-                Dominant).Normalize();
+            return FromBigInteger(
+                new BigInteger(Recessive.Raw) - other.Recessive.Raw,
+                Dominant.Raw);
         }
 
-        return new Ratio(
-            new Measure(checked((Recessive.Raw * other.Dominant.Raw) - (other.Recessive.Raw * Dominant.Raw))),
-            new Measure(checked(Dominant.Raw * other.Dominant.Raw))).Normalize();
+        return FromBigInteger(
+            (new BigInteger(Recessive.Raw) * other.Dominant.Raw) - (new BigInteger(other.Recessive.Raw) * Dominant.Raw),
+            new BigInteger(Dominant.Raw) * other.Dominant.Raw);
     }
 
     public Ratio Multiply(Ratio other)
     {
         if (IsTension || other.IsTension)
         {
-            return Tension(new Measure(checked(Recessive.Raw * other.Recessive.Raw)));
+            return Tension(ToMeasure(new BigInteger(Recessive.Raw) * other.Recessive.Raw));
         }
 
-        return new Ratio(
-            new Measure(checked(Recessive.Raw * other.Recessive.Raw)),
-            new Measure(checked(Dominant.Raw * other.Dominant.Raw))).Normalize();
+        return FromBigInteger(
+            new BigInteger(Recessive.Raw) * other.Recessive.Raw,
+            new BigInteger(Dominant.Raw) * other.Dominant.Raw);
     }
 
     public Ratio Divide(Ratio other)
@@ -99,9 +100,9 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant)
             return Tension(Potential);
         }
 
-        return new Ratio(
-            new Measure(checked(Recessive.Raw * other.Dominant.Raw)),
-            new Measure(checked(Dominant.Raw * other.Recessive.Raw))).Normalize();
+        return FromBigInteger(
+            new BigInteger(Recessive.Raw) * other.Dominant.Raw,
+            new BigInteger(Dominant.Raw) * other.Recessive.Raw);
     }
 
     public Ratio Canonicalize()
@@ -156,5 +157,50 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant)
         }
 
         return left < 0 ? -left : left;
+    }
+
+    private static Ratio FromBigInteger(BigInteger recessive, BigInteger dominant)
+    {
+        if (dominant.IsZero)
+        {
+            return Tension(ToMeasure(BigInteger.Abs(recessive)));
+        }
+
+        if (dominant.Sign < 0)
+        {
+            recessive = BigInteger.Negate(recessive);
+            dominant = BigInteger.Negate(dominant);
+        }
+
+        if (Fits(recessive) && Fits(dominant))
+        {
+            return new Ratio(new Measure((long)recessive), new Measure((long)dominant));
+        }
+
+        var gcd = BigInteger.GreatestCommonDivisor(BigInteger.Abs(recessive), BigInteger.Abs(dominant));
+        if (gcd > BigInteger.One)
+        {
+            recessive /= gcd;
+            dominant /= gcd;
+        }
+
+        if (Fits(recessive) && Fits(dominant))
+        {
+            return new Ratio(new Measure((long)recessive), new Measure((long)dominant));
+        }
+
+        throw new OverflowException("Ratio magnitude exceeded the current Measure range even after exact reduction.");
+    }
+
+    private static bool Fits(BigInteger value) => value >= long.MinValue && value <= long.MaxValue;
+
+    private static Measure ToMeasure(BigInteger value)
+    {
+        if (!Fits(value))
+        {
+            throw new OverflowException("Ratio magnitude exceeded the current Measure range.");
+        }
+
+        return new Measure((long)value);
     }
 }

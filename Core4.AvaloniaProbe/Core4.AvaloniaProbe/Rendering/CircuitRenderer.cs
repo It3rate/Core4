@@ -47,7 +47,7 @@ public static class CircuitRenderer
 
             var from = Resolve(content, fromNormalized);
             var to = Resolve(content, toNormalized);
-            DrawBranch(context, branch, state, from, to);
+            DrawBranch(context, branch, state, from, to, content.Center);
         }
 
         foreach (var node in circuit.Nodes)
@@ -93,7 +93,8 @@ public static class CircuitRenderer
         ResolvedResistiveBranch branch,
         ResistiveCircuitState state,
         Point from,
-        Point to)
+        Point to,
+        Point sceneCenter)
     {
         var delta = to - from;
         var distance = Math.Sqrt((delta.X * delta.X) + (delta.Y * delta.Y));
@@ -105,19 +106,20 @@ public static class CircuitRenderer
         var unit = new Vector(delta.X / distance, delta.Y / distance);
         var start = from + (unit * 15d);
         var end = to - (unit * 15d);
+        var midpoint = Midpoint(start, end);
+        var normal = new Vector(-unit.Y, unit.X);
         var drop = state.DropOn(branch);
         var current = state.CurrentOn(branch);
         var dissipation = state.DissipationOn(branch);
-        var resistorPen = new Pen(ProbePalette.Ink, 2.2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
         var leadPen = new Pen(ProbePalette.Hidden, 2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
 
-        DrawResistor(context, start, end, leadPen, resistorPen);
+        DrawResistor(context, branch, start, end, leadPen);
 
         var currentMagnitude = Math.Abs(current.Approximate);
         if (currentMagnitude > 0.0001d)
         {
             var arrowDirection = current.Approximate >= 0d ? unit : -unit;
-            var arrowPoint = Midpoint(start, end) + (arrowDirection * 16d);
+            var arrowPoint = midpoint + (arrowDirection * 16d);
             ScenePrimitives.DrawDirectedTriangle(
                 context,
                 arrowPoint,
@@ -127,24 +129,12 @@ public static class CircuitRenderer
                 new Pen(ProbePalette.TensionPositive, 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
         }
 
-        var midpoint = Midpoint(start, end);
-        ScenePrimitives.DrawBadgeLabel(
+        var calloutDirection = ChooseCalloutDirection(normal, midpoint, sceneCenter);
+        DrawCallout(
             context,
-            $"R {Format(branch.Resistance)}",
-            midpoint + new Vector(-24d, -28d),
-            10d,
-            ProbePalette.Ink,
-            FontWeight.SemiBold,
-            ProbePalette.MonoFont);
-        ScenePrimitives.DrawBadgeLabel(
-            context,
-            $"d {Format(drop)}  i {Format(current)}  h {Format(dissipation)}",
-            midpoint + new Vector(-58d, 10d),
-            9.4d,
-            ProbePalette.Muted,
-            fontFamily: ProbePalette.MonoFont,
-            background: new SolidColorBrush(Color.FromArgb(128, 255, 255, 255)),
-            stroke: new Pen(new SolidColorBrush(Color.FromArgb(64, 197, 182, 160)), 0.8d));
+            midpoint,
+            calloutDirection,
+            $"R {Format(branch.Resistance)}  d {Format(drop)}  i {Format(current)}  h {Format(dissipation)}");
     }
 
     private static void DrawNode(
@@ -198,10 +188,10 @@ public static class CircuitRenderer
 
     private static void DrawResistor(
         DrawingContext context,
+        ResolvedResistiveBranch branch,
         Point start,
         Point end,
-        Pen leadPen,
-        Pen resistorPen)
+        Pen leadPen)
     {
         var delta = end - start;
         var distance = Math.Sqrt((delta.X * delta.X) + (delta.Y * delta.Y));
@@ -218,22 +208,84 @@ public static class CircuitRenderer
         context.DrawLine(leadPen, start, leftLead);
         context.DrawLine(leadPen, rightLead, end);
 
-        var zigzag = new StreamGeometry();
-        using var stream = zigzag.Open();
-        var segment = (rightLead - leftLead) / 6d;
-        stream.BeginFigure(leftLead, false);
+        var outlinePen = new Pen(ProbePalette.Ink, 14d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+        var bodyPen = new Pen(Brushes.White, 10d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+        context.DrawLine(outlinePen, leftLead, rightLead);
+        context.DrawLine(bodyPen, leftLead, rightLead);
 
-        for (var index = 1; index <= 5; index++)
+        var bandPositions = new[] { 0.24d, 0.5d, 0.76d };
+        var bandBrushes = ResistanceBands(branch.Resistance);
+
+        for (var index = 0; index < bandPositions.Length; index++)
         {
-            var basePoint = leftLead + (segment * index);
-            var offset = index == 5
-                ? Vector.Zero
-                : normal * (index % 2 == 0 ? -7d : 7d);
-            stream.LineTo(basePoint + offset);
+            var point = leftLead + ((rightLead - leftLead) * bandPositions[index]);
+            var bandPen = new Pen(bandBrushes[index], 3.2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+            context.DrawLine(
+                bandPen,
+                point - (normal * 6d),
+                point + (normal * 6d));
         }
+    }
 
-        stream.EndFigure(false);
-        context.DrawGeometry(null, resistorPen, zigzag);
+    private static void DrawCallout(
+        DrawingContext context,
+        Point anchor,
+        Vector direction,
+        string text)
+    {
+        var dot = anchor + (direction * 8d);
+        var labelPoint = dot + (direction * 20d);
+        var background = new SolidColorBrush(Color.FromArgb(168, 255, 255, 255));
+        var stroke = new Pen(new SolidColorBrush(Color.FromArgb(72, 197, 182, 160)), 0.8d);
+        var xOffset = direction.X >= 0d ? 12d : -180d;
+        var yOffset = direction.Y >= 0d ? 8d : -24d;
+        var origin = labelPoint + new Vector(xOffset, yOffset);
+
+        context.DrawLine(
+            new Pen(new SolidColorBrush(Color.FromArgb(120, 168, 154, 132)), 1d, lineCap: PenLineCap.Round),
+            anchor,
+            labelPoint);
+        ScenePrimitives.DrawCircle(context, labelPoint, 2.6d, ProbePalette.Hidden);
+        ScenePrimitives.DrawBadgeLabel(
+            context,
+            text,
+            origin,
+            9.4d,
+            ProbePalette.Muted,
+            fontFamily: ProbePalette.MonoFont,
+            background: background,
+            stroke: stroke);
+    }
+
+    private static Vector ChooseCalloutDirection(Vector normal, Point midpoint, Point sceneCenter)
+    {
+        var desiredY = midpoint.Y <= sceneCenter.Y ? -1d : 1d;
+        var candidate = normal.Y * desiredY >= 0d ? normal : -normal;
+        var length = Math.Sqrt((candidate.X * candidate.X) + (candidate.Y * candidate.Y));
+        return length <= 0d
+            ? new Vector(0d, desiredY)
+            : new Vector(candidate.X / length, candidate.Y / length);
+    }
+
+    private static IBrush[] ResistanceBands(Ratio resistance)
+    {
+        var magnitude = (int)Math.Abs(resistance.Canonicalize().Approximate * 10d);
+        var palette = new[]
+        {
+            new SolidColorBrush(Color.Parse("#6b3e26")),
+            new SolidColorBrush(Color.Parse("#c0482d")),
+            new SolidColorBrush(Color.Parse("#c38c2a")),
+            new SolidColorBrush(Color.Parse("#2f8f46")),
+            new SolidColorBrush(Color.Parse("#1f5da8")),
+            new SolidColorBrush(Color.Parse("#6f3ba8"))
+        };
+
+        return
+        [
+            palette[(magnitude + 1) % palette.Length],
+            palette[(magnitude + 3) % palette.Length],
+            palette[(magnitude + 5) % palette.Length]
+        ];
     }
 
     private static Point Resolve(Rect rect, Point normalized) => new(

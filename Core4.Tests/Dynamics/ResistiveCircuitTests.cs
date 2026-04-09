@@ -89,4 +89,65 @@ public sealed class ResistiveCircuitTests
         Assert.Equal(3d, state.CurrentOn(circuit.Branches[0]).Approximate, 6);
         Assert.True(state.MaxResidual.Approximate <= 0.000_001d);
     }
+
+    [Fact]
+    public void ResistiveCircuitSettlesLeadLoopAndTailWithoutOverflow()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+        Carrier z = 3;
+
+        var source = Site.Open(x, new Measure(0));
+        var split = Site.Open(x, new Measure(4));
+        var sink = Site.Open(x, new Measure(18));
+
+        var upperEntry = Site.Open(y, new Measure(0));
+        var upperMid = Site.Open(y, new Measure(4));
+        var upperExit = Site.Open(y, new Measure(8));
+        var lowerEntry = Site.Open(z, new Measure(0));
+        var lowerMid = Site.Open(z, new Measure(4));
+        var lowerExit = Site.Open(z, new Measure(8));
+
+        var topLeft = new Relation(upperEntry, upperMid);
+        var topRight = new Relation(y, upperMid, upperExit);
+        var bottomLeft = new Relation(lowerEntry, lowerMid);
+        var bottomRight = new Relation(z, lowerMid, lowerExit);
+        var merge = Site.Open(x, new Measure(12))
+            .Request(topRight, Ratio.Tension(new Measure(3)))
+            .Request(bottomRight, Ratio.Tension(new Measure(2)));
+        split = split
+            .Publish(topLeft, Ratio.Tension(new Measure(1)))
+            .Publish(bottomLeft, Ratio.Tension(new Measure(2)));
+
+        var sourceLead = new Relation(source, split);
+        var tailLead = new Relation(merge, sink);
+
+        var topology = ConnectedSiteTopology.Create([split, merge], sourceLead, tailLead);
+        var circuit = ResistiveCircuit.Create(
+            topology,
+            [
+                ResistiveBranch.Create(sourceLead, Measure.One),
+                ResistiveBranch.Create(topLeft, Measure.One),
+                ResistiveBranch.Create(topRight, new Measure(3)),
+                ResistiveBranch.Create(bottomLeft, new Measure(2)),
+                ResistiveBranch.Create(bottomRight, new Measure(2)),
+                ResistiveBranch.Create(tailLead, Measure.One)
+            ],
+            [
+                ResistiveBoundary.Create(source, new Measure(12)),
+                ResistiveBoundary.Create(sink, Measure.Zero)
+            ]);
+
+        var state = circuit.Seed().Settle(new Measure(128));
+
+        Assert.True(state.MaxResidual.Approximate <= 0.000_001d);
+        Assert.True(state.PotentialAt(upperMid).Approximate > state.PotentialAt(lowerMid).Approximate);
+
+        foreach (var branch in circuit.Branches)
+        {
+            _ = state.DropOn(branch);
+            _ = state.CurrentOn(branch);
+            _ = state.DissipationOn(branch);
+        }
+    }
 }
