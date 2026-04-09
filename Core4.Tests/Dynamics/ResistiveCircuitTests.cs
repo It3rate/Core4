@@ -1,9 +1,9 @@
-using Core4.Dynamics;
 using Core4.Numerics;
 using Core4.Structure;
 using Core4.Topology;
+using Core4.Types;
 
-namespace Core4.Tests.Dynamics;
+namespace Core4.Tests.Types;
 
 public sealed class ResistiveCircuitTests
 {

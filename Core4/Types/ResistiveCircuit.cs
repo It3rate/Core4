@@ -4,7 +4,7 @@ using Core4.Numerics;
 using Core4.Structure;
 using Core4.Topology;
 
-namespace Core4.Dynamics;
+namespace Core4.Types;
 
 /// <summary>
 /// One passive resistive span between two physical circuit nodes. The relation remains the Core4 support, while the

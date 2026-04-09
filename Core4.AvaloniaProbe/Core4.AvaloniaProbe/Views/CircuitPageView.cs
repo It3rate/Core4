@@ -6,9 +6,9 @@ using Avalonia.Layout;
 using Core4.AvaloniaProbe.Controls;
 using Core4.AvaloniaProbe.Models;
 using Core4.AvaloniaProbe.Rendering;
-using Core4.Dynamics;
 using Core4.Numerics;
 using Core4.Structure;
+using Core4.Types;
 
 namespace Core4.AvaloniaProbe.Views;
 

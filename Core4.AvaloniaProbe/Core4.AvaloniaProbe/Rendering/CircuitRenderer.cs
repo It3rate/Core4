@@ -3,9 +3,9 @@ using System.Collections.Immutable;
 using Avalonia;
 using Avalonia.Media;
 using Core4.AvaloniaProbe.Models;
-using Core4.Dynamics;
 using Core4.Numerics;
 using Core4.Structure;
+using Core4.Types;
 
 namespace Core4.AvaloniaProbe.Rendering;
 
@@ -234,27 +234,45 @@ public static class CircuitRenderer
         string text)
     {
         var dot = anchor + (direction * 8d);
-        var labelPoint = dot + (direction * 20d);
         var background = new SolidColorBrush(Color.FromArgb(168, 255, 255, 255));
         var stroke = new Pen(new SolidColorBrush(Color.FromArgb(72, 197, 182, 160)), 0.8d);
-        var xOffset = direction.X >= 0d ? 12d : -180d;
-        var yOffset = direction.Y >= 0d ? 8d : -24d;
-        var origin = labelPoint + new Vector(xOffset, yOffset);
-
-        context.DrawLine(
-            new Pen(new SolidColorBrush(Color.FromArgb(120, 168, 154, 132)), 1d, lineCap: PenLineCap.Round),
-            anchor,
-            labelPoint);
-        ScenePrimitives.DrawCircle(context, labelPoint, 2.6d, ProbePalette.Hidden);
-        ScenePrimitives.DrawBadgeLabel(
-            context,
+        var formatted = new FormattedText(
             text,
-            origin,
+            System.Globalization.CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            new Typeface(ProbePalette.MonoFont, FontStyle.Normal, FontWeight.Normal),
             9.4d,
-            ProbePalette.Muted,
-            fontFamily: ProbePalette.MonoFont,
-            background: background,
-            stroke: stroke);
+            ProbePalette.Muted);
+        var padding = new Thickness(6d, 3d, 6d, 3d);
+        var bodySize = new Size(
+            formatted.Width + padding.Left + padding.Right,
+            formatted.Height + padding.Top + padding.Bottom);
+        var bodyAnchor = dot + (direction * 20d);
+        var xOffset = direction.X >= 0d ? 12d : -(bodySize.Width + 12d);
+        var yOffset = direction.Y >= 0d ? 8d : -(bodySize.Height + 8d);
+        var rect = new Rect(bodyAnchor + new Vector(xOffset, yOffset), bodySize);
+        var target = CalloutTarget(rect, anchor, direction);
+        var leadPen = new Pen(new SolidColorBrush(Color.FromArgb(120, 168, 154, 132)), 1d, lineCap: PenLineCap.Round);
+
+        context.DrawLine(leadPen, anchor, dot);
+        context.DrawLine(leadPen, dot, target);
+        ScenePrimitives.DrawCircle(context, dot, 2.6d, ProbePalette.Hidden);
+        context.DrawRectangle(background, stroke, rect, 6d, 6d);
+        context.DrawText(formatted, new Point(rect.X + padding.Left, rect.Y + padding.Top));
+    }
+
+    private static Point CalloutTarget(Rect rect, Point anchor, Vector direction)
+    {
+        var insetLeft = rect.X + (rect.Width * 0.2d);
+        var insetRight = rect.Right - (rect.Width * 0.2d);
+        var x = Math.Clamp(anchor.X, insetLeft, insetRight);
+
+        if (direction.Y < 0d)
+        {
+            return new Point(x, rect.Bottom);
+        }
+
+        return new Point(x, rect.Y);
     }
 
     private static Vector ChooseCalloutDirection(Vector normal, Point midpoint, Point sceneCenter)
