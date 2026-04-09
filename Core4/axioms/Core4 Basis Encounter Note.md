@@ -83,6 +83,7 @@ The trolley state gives:
 - current step size
 - current carried value or tension
 - provenance or local intent
+- any local modifier currently being applied to the carried basis
 
 These are related, but they are not the same object.
 
@@ -93,6 +94,16 @@ For example:
 
 So the trolley's own signed motion is not identical to the sign of the basis
 it currently carries.
+
+One useful way to say this is:
+
+- the trolley carries a basis of understanding
+- plus its own traversal state
+
+The basis supplies calibration.
+
+The traversal state supplies intent and any local modification being applied to
+that calibration.
 
 ## 3. Basis Encounter
 
@@ -105,7 +116,7 @@ At that point, the trolley may:
 
 - retain its current basis
 - replace its current basis with the encountered basis
-- compose its current basis with the encountered basis
+- compose its current traversal state against the encountered basis
 - fail to reconcile them and generate tension
 
 So the key event is not "the trolley hit a seam object."
@@ -117,11 +128,25 @@ The key event is:
 Traversal then becomes a negotiation between:
 
 - carried calibration
+- trolley-local traversal state
 - encountered local calibration
 - present topology and commitment
 
 This gives a much more Core4-native reading than introducing a second symbolic
 class of boundary laws.
+
+The important refinement is that composition should not be read as mutating the
+carried basis itself.
+
+The better reading is:
+
+- the trolley may retain the basis it is carrying
+- the trolley may replace that carried basis with the encountered basis
+- or the trolley may keep the carried basis while composing its own traversal
+  state against the encountered basis
+
+So the mutable part is the traversal state, not necessarily the carried basis
+reference.
 
 ## 4. Seam As A Mode Of Encounter
 
@@ -206,6 +231,72 @@ For clamp-like behavior, it may be:
 So the missing thing is probably not a new seam object, but an explicit
 continuation law attached to basis encounter.
 
+This should not be read as if a separate list of symbolic laws is being
+attached from outside.
+
+The better reading is:
+
+- the encountered basis already encodes possible interpretations at that place
+- traversal asks what those interpretations permit or deny
+- continuation falls out of that encounter
+
+So a basis can already carry action information in the same broad sense that it
+carries interpretive information.
+
+It does not need a second symbolic payload bolted onto it in order to be
+actionable when traversed.
+
+### 5A. Partial Basis Cases
+
+Some useful cases can already be described by the kinds of basis the trolley
+encounters.
+
+#### Dominant-only unit
+
+A dominant-only grade-1 basis gives one-sided calibration.
+
+It says, in effect:
+
+- forward is intelligible here
+- reverse is not symmetrically available under this calibration
+
+If a trolley adopts or obeys this basis, then backward traversal does not
+vanish from reality, but it may become unresolved or tension-bearing.
+
+#### Opposed local unit at a boundary
+
+If the only encountered local basis is opposed to the carried reading, then the
+trolley may:
+
+- replace its carried basis with that opposed basis
+- or retain its carried basis and invert its traversal state
+
+Either way, the result can be reflective behavior without requiring a special
+reflection token.
+
+#### Bilateral directed-segment basis
+
+A directed-segment basis gives bilateral calibration.
+
+It makes both forward and backward change meaningful within one bounded reading.
+
+So a trolley that encounters such a basis may find natural continuation
+available without losing bilateral capability.
+
+#### Higher-grade basis
+
+A higher-grade basis may expose new structured possibilities rather than merely
+changing sign.
+
+For example, it may make available:
+
+- bounded reverse motion
+- off-axis interpretation
+- compound change
+- orthogonal branching
+
+So basis encounter can expand or shrink capability, not only redirect motion.
+
 ## 6. Identity, Invert, Clamp, Closure
 
 The simplest useful continuation family looks like:
@@ -276,6 +367,9 @@ This is likely important later for:
 - permeability
 - dissipation
 - imperfect transmission
+
+These should ideally be thought of as interpretations made available by the
+encountered basis and local topology, not as a menu of external branch rules.
 
 ## 7. Football Field Reading
 
@@ -398,6 +492,20 @@ than to:
 This matters because many continuation questions are really calibration
 questions, not dimensional questions.
 
+The same point also suggests that composition should usually be read as acting
+on the trolley state rather than mutating the basis reference itself.
+
+One good base case is:
+
+- trolley begins with identity local modifier
+- encountered basis acts on that local modifier
+- carried basis may be retained or replaced depending on the encounter
+
+That keeps the distinction between:
+
+- calibration being carried
+- state currently being applied through that calibration
+
 ## 11. Site Encounter And Basis Encounter
 
 A useful pushback was:
@@ -443,6 +551,8 @@ The following seem strong enough to record now.
 - Not every pinned basis encounter is a seam in the interesting sense.
 - Seam is best treated as a role of basis encounter where continuation becomes
   nontrivial.
+- Composition should usually be read as acting on traversal state rather than
+  mutating the carried basis reference.
 - Resolution mismatch on one carrier is tension to negotiate, not orthogonality.
 - Higher-grade basis encounter can change capability, not only orientation.
 
@@ -467,6 +577,8 @@ It should first test whether the existing primitive family can be extended by:
 - making basis encounter explicit
 - making continuation law explicit
 - keeping both numeric and local
+- letting encountered basis act on traversal state without requiring a new seam
+  ontology
 
 In other words, the next primitive may be closer to:
 
