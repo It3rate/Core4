@@ -86,5 +86,25 @@ public sealed class SiteBasisEncounterTests
         Assert.True(explicitBasis.IsLocalToSite);
         Assert.True(explicitBasis.HasRecessiveCalibration);
         Assert.False(explicitBasis.HasDominantCalibration);
+        Assert.Equal(new Ratio(Measure.One, Measure.One), explicitBasis.Commitment);
+    }
+
+    [Fact]
+    public void ExplicitPinnedBasisCanBePartiallyCommittedByAttachedValue()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var right = Site.Open(x, new Measure(10))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(6)),
+                new Ratio(new Measure(2), Measure.One),
+                Provenance.Shared(new Measure(2)));
+
+        var encounters = ConnectedSiteTopology.FromRelations(new Relation(left, right))
+            .BasisEncountersAt(right, x);
+
+        var explicitBasis = Assert.Single(encounters, encounter => encounter.IsExplicitPinnedBasis);
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), explicitBasis.Commitment);
     }
 }

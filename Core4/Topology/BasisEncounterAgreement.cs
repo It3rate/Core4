@@ -12,9 +12,10 @@ public readonly record struct BasisEncounterAgreement(
     SiteBasisEncounter Encounter,
     Ratio Resolution,
     Ratio Continuation,
-    Ratio Capability)
+    Ratio Capability,
+    Ratio Commitment)
 {
-    public Ratio Rank => Resolution.Add(Continuation).Add(Capability).Normalize();
+    public Ratio Rank => Resolution.Add(Continuation).Add(Capability).Add(Commitment).Normalize();
 
     public bool PreservesDirection => Continuation == new Ratio(Measure.One, Measure.One);
 
@@ -45,8 +46,9 @@ public readonly record struct BasisEncounterAgreement(
                 ? new Ratio(Measure.One, new Measure(2))
                 : Ratio.Zero(Measure.One);
         var resolution = ResolutionAgreement(signature.Calibration.Potential, encounter.Potential);
+        var commitment = encounter.Commitment;
 
-        return new BasisEncounterAgreement(encounter, resolution, continuation, capability);
+        return new BasisEncounterAgreement(encounter, resolution, continuation, capability, commitment);
     }
 
     private static Ratio ResolutionAgreement(Measure left, Measure right)

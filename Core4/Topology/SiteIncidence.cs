@@ -80,7 +80,7 @@ public readonly record struct SiteIncidence(Site Site, ImmutableArray<Relation> 
         {
             if (leg.Support is Basis basis && basis.PrimaryCarrier == carrier)
             {
-                encounters.Add(SiteBasisEncounter.FromPinnedBasis(Site, carrier, basis));
+                encounters.Add(SiteBasisEncounter.FromPinnedBasis(Site, carrier, basis, leg.Potential));
                 continue;
             }
 

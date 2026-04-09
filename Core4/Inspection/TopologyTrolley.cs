@@ -255,7 +255,7 @@ public readonly record struct TopologyTrolleyContinuation(
 
             foreach (var agreement in BasisAgreements)
             {
-                if (!hasBest || Compare(agreement.Rank, best.Rank) > 0)
+                if (!hasBest || Compare(agreement, best) > 0)
                 {
                     best = agreement;
                     hasBest = true;
@@ -271,6 +271,32 @@ public readonly record struct TopologyTrolleyContinuation(
         var leftScaled = checked(left.Recessive.Raw * right.Dominant.Raw);
         var rightScaled = checked(right.Recessive.Raw * left.Dominant.Raw);
         return leftScaled.CompareTo(rightScaled);
+    }
+
+    private static int Compare(BasisEncounterAgreement left, BasisEncounterAgreement right)
+    {
+        var continuation = Compare(left.Continuation, right.Continuation);
+
+        if (continuation != 0)
+        {
+            return continuation;
+        }
+
+        var capability = Compare(left.Capability, right.Capability);
+
+        if (capability != 0)
+        {
+            return capability;
+        }
+
+        var commitment = Compare(left.Commitment, right.Commitment);
+
+        if (commitment != 0)
+        {
+            return commitment;
+        }
+
+        return Compare(left.Resolution, right.Resolution);
     }
 }
 
@@ -364,6 +390,7 @@ public readonly record struct TopologyTrolleyObservation(
         var best = default(TopologyTrolleyContinuation);
         var bestContinuation = new Ratio(-Measure.One, Measure.One);
         var bestCapability = Ratio.Zero(Measure.One);
+        var bestCommitment = Ratio.Zero(Measure.One);
         var hasBest = false;
         var ambiguous = false;
 
@@ -375,22 +402,32 @@ public readonly record struct TopologyTrolleyObservation(
             var capabilityRank = candidate.HasBasisAgreement
                 ? candidate.BestBasisAgreement.Capability
                 : Ratio.Zero(Measure.One);
+            var commitmentRank = candidate.HasBasisAgreement
+                ? candidate.BestBasisAgreement.Commitment
+                : Ratio.Zero(Measure.One);
             var continuationComparison = Compare(continuationRank, bestContinuation);
             var capabilityComparison = continuationComparison == 0
                 ? Compare(capabilityRank, bestCapability)
                 : 0;
+            var commitmentComparison = continuationComparison == 0 && capabilityComparison == 0
+                ? Compare(commitmentRank, bestCommitment)
+                : 0;
 
-            if (!hasBest || continuationComparison > 0 || (continuationComparison == 0 && capabilityComparison > 0))
+            if (!hasBest
+                || continuationComparison > 0
+                || (continuationComparison == 0 && capabilityComparison > 0)
+                || (continuationComparison == 0 && capabilityComparison == 0 && commitmentComparison > 0))
             {
                 best = candidate;
                 bestContinuation = continuationRank;
                 bestCapability = capabilityRank;
+                bestCommitment = commitmentRank;
                 hasBest = true;
                 ambiguous = false;
                 continue;
             }
 
-            if (continuationComparison == 0 && capabilityComparison == 0)
+            if (continuationComparison == 0 && capabilityComparison == 0 && commitmentComparison == 0)
             {
                 ambiguous = true;
             }

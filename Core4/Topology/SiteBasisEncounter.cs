@@ -9,7 +9,12 @@ namespace Core4.Topology;
 /// local one-sided or bilateral calibration already implied by incident relations without yet deciding traversal
 /// policy from it.
 /// </summary>
-public readonly record struct SiteBasisEncounter(Site Site, Carrier Carrier, Basis Basis, ISupport SourceSupport)
+public readonly record struct SiteBasisEncounter(
+    Site Site,
+    Carrier Carrier,
+    Basis Basis,
+    ISupport SourceSupport,
+    Measure SupportPotential)
 {
     public Measure Grade => Basis.Grade;
 
@@ -22,6 +27,14 @@ public readonly record struct SiteBasisEncounter(Site Site, Carrier Carrier, Bas
     public bool IsAtomic => Basis.IsAtomic;
 
     public bool IsComposite => Basis.IsComposite;
+
+    public Ratio Commitment => Basis.Potential == Measure.Zero
+        ? Ratio.Zero(Measure.One)
+        : new Ratio(
+            SupportPotential.Raw <= Basis.Potential.Raw
+                ? SupportPotential
+                : Basis.Potential,
+            Basis.Potential).Canonicalize();
 
     public bool IsExplicitPinnedBasis => SourceSupport is Basis;
 
@@ -56,10 +69,10 @@ public readonly record struct SiteBasisEncounter(Site Site, Carrier Carrier, Bas
     public ImmutableArray<Relation> LocalRelations => Basis.SelectRelations();
 
     internal static SiteBasisEncounter FromIncoming(Site site, Relation relation) =>
-        new(site, relation.Carrier, Basis.Freeze(relation.Flip()), relation);
+        new(site, relation.Carrier, Basis.Freeze(relation.Flip()), relation, relation.Potential);
 
     internal static SiteBasisEncounter FromOutgoing(Site site, Relation relation) =>
-        new(site, relation.Carrier, Basis.Freeze(relation), relation);
+        new(site, relation.Carrier, Basis.Freeze(relation), relation, relation.Potential);
 
     internal static SiteBasisEncounter FromPassThrough(Site site, Relation incoming, Relation outgoing) =>
         new(
@@ -68,10 +81,11 @@ public readonly record struct SiteBasisEncounter(Site Site, Carrier Carrier, Bas
             Basis.Fuse(
                 Basis.Freeze(incoming.Flip()),
                 Basis.Freeze(outgoing)),
-            outgoing);
+            outgoing,
+            incoming.Potential + outgoing.Potential);
 
-    internal static SiteBasisEncounter FromPinnedBasis(Site site, Carrier carrier, Basis basis) =>
-        new(site, carrier, basis, basis);
+    internal static SiteBasisEncounter FromPinnedBasis(Site site, Carrier carrier, Basis basis, Measure supportPotential) =>
+        new(site, carrier, basis, basis, supportPotential);
 
     internal bool TryGetExplicitRemap(out Site target, out Relation relation)
     {

@@ -167,6 +167,40 @@ public sealed class TopologyTrolleyTests
     }
 
     [Fact]
+    public void TrolleyPrefersMoreCommittedClosureWhenMultipleRemapsExist()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var middle = Site.Open(x, new Measure(5));
+        var right = Site.Open(x, new Measure(10))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(0)),
+                Ratio.Tension(new Measure(10)),
+                Provenance.Shared(new Measure(10)))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(5)),
+                new Ratio(new Measure(2), Measure.One),
+                Provenance.Shared(new Measure(2)));
+
+        var trolley = TopologyTrolley.Start(
+            ConnectedSiteTopology.Create(
+                [right],
+                new Relation(left, middle),
+                new Relation(middle, right)),
+            left);
+        Assert.True(trolley.TryContinuePreferred(out trolley));
+        Assert.True(trolley.TryContinuePreferred(out trolley));
+        Assert.True(SameNode(trolley.Site, right));
+
+        var closureObservation = trolley.Observe();
+        Assert.Equal(2, closureObservation.ForwardContinuations.Length);
+        Assert.True(closureObservation.TryPreferred(out var preferred));
+        Assert.True(SameNode(preferred.To, left));
+        Assert.Equal(new Ratio(Measure.One, Measure.One), preferred.BestBasisAgreement.Commitment);
+    }
+
+    [Fact]
     public void TrolleyContinuationCarriesBestLocalBasisAgreementOnPassThroughCarrier()
     {
         Carrier x = 1;
