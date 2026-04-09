@@ -105,7 +105,7 @@ public sealed class TopologyTrolleyTests
     }
 
     [Fact]
-    public void TrolleySurfacesBranchChoicesAtYJunction()
+    public void TrolleyPrefersBranchThatPreservesLocalBasisDirectionAtYJunction()
     {
         Carrier x = 1;
         Carrier y = 2;
@@ -134,7 +134,8 @@ public sealed class TopologyTrolleyTests
         var observation = trolley.Observe();
 
         Assert.True(observation.IsDecisionPoint);
-        Assert.False(observation.TryPreferred(out _));
+        Assert.True(observation.TryPreferred(out var preferred));
+        Assert.True(SameNode(preferred.To, rightEnd));
 
         var forks = trolley.ForkAll();
 
@@ -174,6 +175,44 @@ public sealed class TopologyTrolleyTests
         Assert.True(branch.BestBasisAgreement.PreservesDirection);
         Assert.True(branch.BestBasisAgreement.IsOneSided);
         Assert.True(branch.BestBasisAgreement.Encounter.HasDominantCalibration);
+    }
+
+    [Fact]
+    public void TrolleyUsesBasisAgreementToBreakOtherwiseEqualBranchTie()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+        Carrier z = 3;
+
+        var left = Site.Open(x, new Measure(0));
+        var yStart = Site.Open(y, new Measure(0));
+        var yMiddle = Site.Open(y, new Measure(4));
+        var yEnd = Site.Open(y, new Measure(8));
+        var zStart = Site.Open(z, new Measure(0));
+        var zEnd = Site.Open(z, new Measure(4));
+        var center = Site.Open(x, new Measure(5))
+            .Publish(
+                new Relation(yStart, yMiddle),
+                Ratio.Tension(new Measure(4)))
+            .Request(
+                new Relation(yMiddle, yEnd),
+                Ratio.Tension(new Measure(4)))
+            .Publish(
+                new Relation(zStart, zEnd),
+                Ratio.Tension(new Measure(4)));
+
+        var topology = ConnectedSiteTopology.Create(
+            [center],
+            new Relation(left, center));
+
+        var trolley = TopologyTrolley.Start(topology, left);
+        Assert.True(trolley.TryContinuePreferred(out trolley));
+
+        var observation = trolley.Observe();
+        Assert.True(observation.IsDecisionPoint);
+        Assert.True(observation.TryPreferred(out var preferred));
+        Assert.Equal(y, preferred.Carrier);
+        Assert.True(preferred.BestBasisAgreement.IsBilateral);
     }
 
     [Fact]

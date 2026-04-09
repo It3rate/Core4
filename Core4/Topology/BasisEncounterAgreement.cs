@@ -26,9 +26,12 @@ public readonly record struct BasisEncounterAgreement(
 
     public bool IsOneSided => Capability == new Ratio(Measure.One, new Measure(2));
 
-    public static BasisEncounterAgreement Create(TraversalSignature signature, SiteBasisEncounter encounter)
+    public static BasisEncounterAgreement Create(
+        TraversalSignature signature,
+        SiteBasisEncounter encounter,
+        Measure desiredDirection)
     {
-        var current = signature.Perspective.Sign;
+        var current = desiredDirection.Sign;
         var supportsCurrent = current.Raw != 0L && encounter.SupportsDirection(current);
         var supportsOpposite = current.Raw != 0L && encounter.SupportsDirection(-current);
         var continuation = supportsCurrent

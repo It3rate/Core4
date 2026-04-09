@@ -73,7 +73,7 @@ public readonly record struct TopologyTrolley(
 
             foreach (var encounter in Topology.BasisEncountersAt(Site, relation.Carrier))
             {
-                basisAgreements.Add(BasisEncounterAgreement.Create(sourceSignature, encounter));
+                basisAgreements.Add(BasisEncounterAgreement.Create(sourceSignature, encounter, disposition.Direction));
             }
 
             continuations.Add(new TopologyTrolleyContinuation(
@@ -331,7 +331,69 @@ public readonly record struct TopologyTrolleyObservation(
             return true;
         }
 
-        continuation = default;
-        return false;
+        var forward = ForwardContinuationsIn(observerPerspective);
+
+        if (forward.Length == 0)
+        {
+            continuation = default;
+            return false;
+        }
+
+        if (forward.Length == 1)
+        {
+            continuation = forward[0];
+            return true;
+        }
+
+        var best = default(TopologyTrolleyContinuation);
+        var bestContinuation = new Ratio(-Measure.One, Measure.One);
+        var bestCapability = Ratio.Zero(Measure.One);
+        var hasBest = false;
+        var ambiguous = false;
+
+        foreach (var candidate in forward)
+        {
+            var continuationRank = candidate.HasBasisAgreement
+                ? candidate.BestBasisAgreement.Continuation
+                : Ratio.Zero(Measure.One);
+            var capabilityRank = candidate.HasBasisAgreement
+                ? candidate.BestBasisAgreement.Capability
+                : Ratio.Zero(Measure.One);
+            var continuationComparison = Compare(continuationRank, bestContinuation);
+            var capabilityComparison = continuationComparison == 0
+                ? Compare(capabilityRank, bestCapability)
+                : 0;
+
+            if (!hasBest || continuationComparison > 0 || (continuationComparison == 0 && capabilityComparison > 0))
+            {
+                best = candidate;
+                bestContinuation = continuationRank;
+                bestCapability = capabilityRank;
+                hasBest = true;
+                ambiguous = false;
+                continue;
+            }
+
+            if (continuationComparison == 0 && capabilityComparison == 0)
+            {
+                ambiguous = true;
+            }
+        }
+
+        if (ambiguous || !hasBest)
+        {
+            continuation = default;
+            return false;
+        }
+
+        continuation = best;
+        return true;
+    }
+
+    private static int Compare(Ratio left, Ratio right)
+    {
+        var leftScaled = checked(left.Recessive.Raw * right.Dominant.Raw);
+        var rightScaled = checked(right.Recessive.Raw * left.Dominant.Raw);
+        return leftScaled.CompareTo(rightScaled);
     }
 }
