@@ -116,11 +116,6 @@ public readonly record struct TraversalDisposition(
             return false;
         }
 
-        if (observerPerspective.Raw < 0L && ReturnsAlongIngress)
-        {
-            return true;
-        }
-
         var direction = DirectionIn(observerPerspective);
         return direction.Raw > 0L;
     }
@@ -206,6 +201,17 @@ public readonly record struct TraversalObservation(
             if (continuation.Disposition.IsForward(observerPerspective, carrierContinues))
             {
                 indexes.Add(index);
+            }
+        }
+
+        if (indexes.Count == 0 && observerPerspective.Raw < 0L)
+        {
+            for (var index = 0; index < Continuations.Length; index++)
+            {
+                if (Continuations[index].ReturnsAlongIngress)
+                {
+                    indexes.Add(index);
+                }
             }
         }
 
