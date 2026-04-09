@@ -5,14 +5,37 @@ using Core4.Structure;
 namespace Core4.Dynamics;
 
 /// <summary>
-/// A small Core4-native read of a carried traversal state. It keeps placement, perspective, carried value, and
-/// provenance together so later transport, re-entry, and path choice can compare structural state rather than only
-/// raw site identity.
+/// A trolley-local modifier applied through the carried calibration law. This is the mutable traversal state:
+/// intent, handedness, and later step shaping should live here rather than by mutating the basis being carried.
+/// </summary>
+public readonly record struct TraversalModifier(Ratio State)
+{
+    public static TraversalModifier Identity => new(new Ratio(Measure.One, Measure.One));
+
+    public Ratio Ratio => State.Normalize();
+
+    public Measure Direction => Ratio.Sign;
+
+    public Measure Potential => Ratio.Potential;
+
+    public Ratio Agreement(TraversalModifier other) => new Ratio(
+        new Measure(Direction.Raw * other.Direction.Raw),
+        Measure.One).Normalize();
+
+    public static TraversalModifier FromDirection(Measure direction) => direction.Raw == 0L
+        ? new TraversalModifier(Ratio.Zero(Measure.One))
+        : new TraversalModifier(new Ratio(direction.Sign, Measure.One).Normalize());
+}
+
+/// <summary>
+/// A small Core4-native read of a carried traversal state. It keeps placement, carried calibration, mutable
+/// traversal modifier, and provenance together so later transport, re-entry, and path choice can compare structural
+/// state rather than only raw site identity.
 /// </summary>
 public readonly record struct TraversalSignature(
     Placement Placement,
-    Measure Perspective,
-    Ratio Carried,
+    Ratio Basis,
+    TraversalModifier Modifier,
     Provenance Provenance)
 {
     public Carrier Carrier => Placement.PrimaryCarrier;
@@ -21,7 +44,15 @@ public readonly record struct TraversalSignature(
 
     public Ratio Position => Placement.Ratio.Normalize();
 
-    public Measure Potential => Placement.Potential + Carried.Potential + Provenance.Potential;
+    public Ratio Calibration => Basis.Normalize();
+
+    public Measure CalibrationDirection => Calibration.Sign;
+
+    public Measure Perspective => Modifier.Direction;
+
+    public Measure EffectiveDirection => new Measure(CalibrationDirection.Raw * Modifier.Direction.Raw);
+
+    public Measure Potential => Placement.Potential + Calibration.Potential + Provenance.Potential;
 
     public bool SameProjection(TraversalSignature other) =>
         Carrier == other.Carrier && Position == other.Position;
@@ -29,16 +60,27 @@ public readonly record struct TraversalSignature(
     public bool Equivalent(TraversalSignature other) =>
         SameProjection(other)
         && Grade == other.Grade
-        && Perspective.Sign == other.Perspective.Sign
+        && Calibration == other.Calibration
+        && Modifier == other.Modifier
         && Provenance.Direction == other.Provenance.Direction
-        && Carried.Sign == other.Carried.Sign;
+        && Perspective.Sign == other.Perspective.Sign;
 
     public Ratio ProjectionAgreement(TraversalSignature other) => SameProjection(other)
         ? new Ratio(Measure.One, Measure.One)
         : Ratio.Zero(Measure.One);
 
+    public Ratio CalibrationAgreement(TraversalSignature other) => Calibration == other.Calibration
+        ? new Ratio(Measure.One, Measure.One)
+        : new Ratio(new Measure(Calibration.Sign.Raw * other.Calibration.Sign.Raw), Measure.One).Normalize();
+
+    public Ratio ModifierAgreement(TraversalSignature other) => Modifier.Agreement(other.Modifier);
+
     public Ratio PerspectiveAgreement(TraversalSignature other) => new Ratio(
         new Measure(Perspective.Sign.Raw * other.Perspective.Sign.Raw),
+        Measure.One).Normalize();
+
+    public Ratio EffectiveAgreement(TraversalSignature other) => new Ratio(
+        new Measure(EffectiveDirection.Sign.Raw * other.EffectiveDirection.Sign.Raw),
         Measure.One).Normalize();
 
     public Ratio ReentryAgreement(TraversalSignature other) => Equivalent(other)
@@ -49,17 +91,31 @@ public readonly record struct TraversalSignature(
 
     public static TraversalSignature FromPlacement(
         Placement placement,
-        Measure perspective,
-        Ratio carried,
+        Ratio basis,
+        TraversalModifier modifier,
         Provenance provenance) =>
-        new(placement, perspective, carried.Normalize(), provenance);
+        new(placement, basis.Normalize(), modifier, provenance);
+
+    public static TraversalSignature FromPlacement(
+        Placement placement,
+        Measure perspective,
+        Ratio basis,
+        Provenance provenance) =>
+        FromPlacement(placement, basis, TraversalModifier.FromDirection(perspective), provenance);
+
+    public static TraversalSignature FromSite(
+        Site site,
+        Ratio basis,
+        TraversalModifier modifier,
+        Provenance provenance) =>
+        FromPlacement(site.Placement, basis, modifier, provenance);
 
     public static TraversalSignature FromSite(
         Site site,
         Measure perspective,
-        Ratio carried,
+        Ratio basis,
         Provenance provenance) =>
-        FromPlacement(site.Placement, perspective, carried, provenance);
+        FromPlacement(site.Placement, perspective, basis, provenance);
 
     public static Provenance ProvenanceFor(Measure perspective, Measure potential)
     {

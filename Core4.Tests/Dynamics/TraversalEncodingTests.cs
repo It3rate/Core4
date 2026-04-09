@@ -30,6 +30,31 @@ public sealed class TraversalEncodingTests
     }
 
     [Fact]
+    public void TraversalSignatureKeepsCalibrationDistinctFromTraversalModifier()
+    {
+        Carrier x = 1;
+        var site = Site.Open(x, new Measure(5));
+
+        var adopted = TraversalSignature.FromSite(
+            site,
+            new Ratio(Measure.One, Measure.One),
+            TraversalModifier.Identity,
+            Provenance.SelfDriven(Measure.One));
+        var invertedState = TraversalSignature.FromSite(
+            site,
+            new Ratio(-Measure.One, Measure.One),
+            TraversalModifier.FromDirection(-Measure.One),
+            Provenance.SelfDriven(Measure.One));
+
+        Assert.True(adopted.SameProjection(invertedState));
+        Assert.False(adopted.Equivalent(invertedState));
+        Assert.Equal(new Ratio(-Measure.One, Measure.One), adopted.CalibrationAgreement(invertedState));
+        Assert.Equal(new Ratio(-Measure.One, Measure.One), adopted.ModifierAgreement(invertedState));
+        Assert.Equal(new Ratio(-Measure.One, Measure.One), adopted.PerspectiveAgreement(invertedState));
+        Assert.Equal(new Ratio(Measure.One, Measure.One), adopted.EffectiveAgreement(invertedState));
+    }
+
+    [Fact]
     public void TraversalDispositionEncodesContinuationPerspectiveAndReturnNumerically()
     {
         var disposition = TraversalDisposition.Create(
