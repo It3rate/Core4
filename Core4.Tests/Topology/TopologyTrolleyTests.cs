@@ -80,6 +80,31 @@ public sealed class TopologyTrolleyTests
     }
 
     [Fact]
+    public void TrolleyContinuationCarriesBestLocalBasisAgreementOnPassThroughCarrier()
+    {
+        Carrier x = 1;
+        var left = Site.Open(x, new Measure(0));
+        var middle = Site.Open(x, new Measure(5));
+        var right = Site.Open(x, new Measure(10));
+
+        var trolley = TopologyTrolley.Start(
+            ConnectedSiteTopology.FromRelations(
+                new Relation(left, middle),
+                new Relation(middle, right)),
+            left);
+        Assert.True(trolley.TryContinuePreferred(out trolley));
+
+        var continuation = Assert.Single(
+            trolley.Observe().ForwardContinuations,
+            candidate => SameNode(candidate.To, right));
+
+        Assert.True(continuation.HasBasisAgreement);
+        Assert.True(continuation.BestBasisAgreement.Encounter.IsBilateral);
+        Assert.True(continuation.BestBasisAgreement.PreservesDirection);
+        Assert.True(continuation.BestBasisAgreement.IsBilateral);
+    }
+
+    [Fact]
     public void TrolleySurfacesBranchChoicesAtYJunction()
     {
         Carrier x = 1;
@@ -116,6 +141,39 @@ public sealed class TopologyTrolleyTests
         Assert.Equal(2, forks.Length);
         Assert.Contains(forks, fork => SameNode(fork.Site, leftEnd));
         Assert.Contains(forks, fork => SameNode(fork.Site, rightEnd));
+    }
+
+    [Fact]
+    public void TrolleyContinuationReadsOneSidedOutgoingBasisOnBranchStart()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+
+        var left = Site.Open(x, new Measure(0));
+        var stemStart = Site.Open(y, new Measure(0));
+        var stemEnd = Site.Open(y, new Measure(4));
+        var center = Site.Open(x, new Measure(5))
+            .Publish(
+                new Relation(stemStart, stemEnd),
+                Ratio.Tension(new Measure(4)));
+        var right = Site.Open(x, new Measure(10));
+
+        var topology = ConnectedSiteTopology.Create(
+            [center],
+            new Relation(left, center),
+            new Relation(center, right));
+
+        var trolley = TopologyTrolley.Start(topology, left);
+        Assert.True(trolley.TryContinuePreferred(out trolley));
+
+        var branch = Assert.Single(
+            trolley.Observe().ForwardContinuations,
+            continuation => continuation.To.Carrier == y && continuation.To.Location == new Measure(4));
+
+        Assert.True(branch.HasBasisAgreement);
+        Assert.True(branch.BestBasisAgreement.PreservesDirection);
+        Assert.True(branch.BestBasisAgreement.IsOneSided);
+        Assert.True(branch.BestBasisAgreement.Encounter.HasDominantCalibration);
     }
 
     [Fact]

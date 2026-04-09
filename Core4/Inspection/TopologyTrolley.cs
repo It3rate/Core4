@@ -69,6 +69,12 @@ public readonly record struct TopologyTrolley(
                 disposition.Direction,
                 relation.Span.Normalize(),
                 TraversalSignature.ProvenanceFor(disposition.Direction, relation.Potential));
+            var basisAgreements = ImmutableArray.CreateBuilder<BasisEncounterAgreement>();
+
+            foreach (var encounter in Topology.BasisEncountersAt(Site, relation.Carrier))
+            {
+                basisAgreements.Add(BasisEncounterAgreement.Create(sourceSignature, encounter));
+            }
 
             continuations.Add(new TopologyTrolleyContinuation(
                 relation,
@@ -76,7 +82,8 @@ public readonly record struct TopologyTrolley(
                 resolvedTarget,
                 disposition,
                 sourceSignature,
-                targetSignature));
+                targetSignature,
+                basisAgreements.ToImmutable()));
         }
 
         return new TopologyTrolleyObservation(this, continuations.ToImmutable());
@@ -218,7 +225,8 @@ public readonly record struct TopologyTrolleyContinuation(
     Site To,
     TraversalDisposition Disposition,
     TraversalSignature SourceSignature,
-    TraversalSignature TargetSignature)
+    TraversalSignature TargetSignature,
+    ImmutableArray<BasisEncounterAgreement> BasisAgreements)
 {
     public Carrier Carrier => Relation.Carrier;
 
@@ -235,6 +243,35 @@ public readonly record struct TopologyTrolleyContinuation(
     public bool IsIncoming => Disposition.IsIncoming;
 
     public bool IsOutgoing => Disposition.IsOutgoing;
+
+    public bool HasBasisAgreement => BasisAgreements.Length != 0;
+
+    public BasisEncounterAgreement BestBasisAgreement
+    {
+        get
+        {
+            var best = default(BasisEncounterAgreement);
+            var hasBest = false;
+
+            foreach (var agreement in BasisAgreements)
+            {
+                if (!hasBest || Compare(agreement.Rank, best.Rank) > 0)
+                {
+                    best = agreement;
+                    hasBest = true;
+                }
+            }
+
+            return best;
+        }
+    }
+
+    private static int Compare(Ratio left, Ratio right)
+    {
+        var leftScaled = checked(left.Recessive.Raw * right.Dominant.Raw);
+        var rightScaled = checked(right.Recessive.Raw * left.Dominant.Raw);
+        return leftScaled.CompareTo(rightScaled);
+    }
 }
 
 /// <summary>
