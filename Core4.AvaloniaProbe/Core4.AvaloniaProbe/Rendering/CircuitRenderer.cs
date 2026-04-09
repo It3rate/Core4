@@ -28,7 +28,8 @@ public static class CircuitRenderer
         ImmutableDictionary<Placement, Point> normalizedPositions,
         Placement positiveNode,
         Placement negativeNode,
-        bool core4View)
+        bool core4View,
+        bool fractionView)
     {
         var content = new Rect(
             bounds.X + HorizontalPadding,
@@ -48,7 +49,7 @@ public static class CircuitRenderer
 
             var from = Resolve(content, fromNormalized);
             var to = Resolve(content, toNormalized);
-            DrawBranch(context, branch, state, from, to, content.Center, core4View);
+            DrawBranch(context, branch, state, from, to, content.Center, core4View, fractionView);
         }
 
         foreach (var node in circuit.Nodes)
@@ -65,7 +66,8 @@ public static class CircuitRenderer
                 state.PotentialAt(node.Key),
                 Resolve(content, normalized),
                 node.Key == positiveNode,
-                node.Key == negativeNode);
+                node.Key == negativeNode,
+                fractionView);
         }
     }
 
@@ -96,7 +98,8 @@ public static class CircuitRenderer
         Point from,
         Point to,
         Point sceneCenter,
-        bool core4View)
+        bool core4View,
+        bool fractionView)
     {
         var delta = to - from;
         var distance = Math.Sqrt((delta.X * delta.X) + (delta.Y * delta.Y));
@@ -114,6 +117,7 @@ public static class CircuitRenderer
         var current = state.CurrentOn(branch);
         var dissipation = state.DissipationOn(branch);
         var leadPen = new Pen(ProbePalette.Hidden, 2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+        var calloutDirection = ChooseCalloutDirection(normal, midpoint, sceneCenter);
 
         if (core4View)
         {
@@ -122,6 +126,7 @@ public static class CircuitRenderer
         else
         {
             DrawResistor(context, branch, start, end, leadPen);
+            DrawResistanceLabel(context, branch, midpoint, unit, -calloutDirection, fractionView);
         }
 
         var currentMagnitude = Math.Abs(current.Approximate);
@@ -143,12 +148,11 @@ public static class CircuitRenderer
                 new Pen(arrowBrush, 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
         }
 
-        var calloutDirection = ChooseCalloutDirection(normal, midpoint, sceneCenter);
         DrawCallout(
             context,
             midpoint,
             calloutDirection,
-            $"R {Format(branch.Resistance)}  d {Format(drop)}  i {Format(current)}  h {Format(dissipation)}");
+            $"R {Format(branch.Resistance, fractionView)}  d {Format(drop, fractionView)}  i {Format(current, fractionView)}  h {Format(dissipation, fractionView)}");
     }
 
     private static void DrawNode(
@@ -158,7 +162,8 @@ public static class CircuitRenderer
         Ratio potential,
         Point center,
         bool isPositiveBoundary,
-        bool isNegativeBoundary)
+        bool isNegativeBoundary,
+        bool fractionView)
     {
         var ringBrush = isPositiveBoundary
             ? ProbePalette.Origin
@@ -184,7 +189,7 @@ public static class CircuitRenderer
 
         ScenePrimitives.DrawBadgeLabel(
             context,
-            $"V {Format(potential)}",
+            $"V {Format(potential, fractionView)}",
             center + new Vector(-22d, -32d),
             9.2d,
             ProbePalette.Ink,
@@ -261,6 +266,33 @@ public static class CircuitRenderer
                 end,
                 4.2d,
                 new Pen(ProbePalette.TensionNegative, 2.2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
+        }
+    }
+
+    private static void DrawResistanceLabel(
+        DrawingContext context,
+        ResolvedResistiveBranch branch,
+        Point midpoint,
+        Vector unit,
+        Vector oppositeCalloutDirection,
+        bool fractionView)
+    {
+        var direction = NormalizeForText(unit);
+        var angle = Math.Atan2(direction.Y, direction.X) * (180d / Math.PI);
+        var center = midpoint + (oppositeCalloutDirection * 18d);
+        var text = CircuitFormat.FormatResistanceLabel(branch.Resistance);
+        var formatted = new FormattedText(
+            text,
+            System.Globalization.CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            new Typeface(ProbePalette.MonoFont, FontStyle.Normal, FontWeight.Bold),
+            8d,
+            ProbePalette.Hidden);
+        var origin = new Point(center.X - (formatted.Width * 0.5d), center.Y - (formatted.Height * 0.5d));
+
+        using (context.PushTransform(new RotateTransform(angle, center.X, center.Y).Value))
+        {
+            context.DrawText(formatted, origin);
         }
     }
 
@@ -350,18 +382,21 @@ public static class CircuitRenderer
     private static Point Midpoint(Point left, Point right) =>
         new((left.X + right.X) * 0.5d, (left.Y + right.Y) * 0.5d);
 
-    private static string Format(Ratio value)
-    {
-        var normalized = value.Canonicalize();
+    private static string Format(Ratio value, bool fractionView) => CircuitFormat.FormatRatio(value, fractionView);
 
-        if (normalized.IsTension)
+    private static Vector NormalizeForText(Vector direction)
+    {
+        var normalized = direction;
+
+        if (normalized.X < 0d)
         {
-            return $"{normalized.Potential.Raw}/0";
+            normalized = -normalized;
         }
 
-        return normalized.Dominant == Measure.One
-            ? normalized.Recessive.Raw.ToString()
-            : $"{normalized.Recessive.Raw}/{normalized.Dominant.Raw}";
+        var length = Math.Sqrt((normalized.X * normalized.X) + (normalized.Y * normalized.Y));
+        return length <= 0d
+            ? new Vector(1d, 0d)
+            : new Vector(normalized.X / length, normalized.Y / length);
     }
 
     private static IBrush CarrierBrush(Carrier carrier) => carrier.Id switch

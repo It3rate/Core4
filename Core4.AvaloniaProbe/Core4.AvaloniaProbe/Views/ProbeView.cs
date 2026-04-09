@@ -95,7 +95,7 @@ public sealed class ProbeView : UserControl
         _pageButtonRow = new StackPanel
         {
             Orientation = Orientation.Horizontal,
-            Spacing = 8
+            Spacing = 6
         };
 
         _pageHost = new ContentControl();
@@ -104,8 +104,8 @@ public sealed class ProbeView : UserControl
         {
             Content = new StackPanel
             {
-                Spacing = 8,
-                Margin = new Thickness(8),
+                Spacing = 6,
+                Margin = new Thickness(6),
                 Children =
                 {
                     Header(),
@@ -124,17 +124,17 @@ public sealed class ProbeView : UserControl
         {
             ColumnDefinitions = new ColumnDefinitions("*,Auto"),
             ColumnSpacing = 10,
-            Children =
-            {
-                ProbeUi.DisplayTitle("Numeric Explorer", 22d),
-                UtilityCluster()
-            }
-        };
+                Children =
+                {
+                    ProbeUi.DisplayTitle("Numeric Explorer", 18d),
+                    UtilityCluster()
+                }
+            };
         Grid.SetColumn(grid.Children[1], 1);
 
         return new Border
         {
-            CornerRadius = new CornerRadius(24),
+            CornerRadius = new CornerRadius(20),
             Background = new LinearGradientBrush
             {
                 StartPoint = new RelativePoint(0d, 0d, RelativeUnit.Relative),
@@ -148,7 +148,7 @@ public sealed class ProbeView : UserControl
             },
             BorderBrush = new SolidColorBrush(Color.Parse("#dfd7c8")),
             BorderThickness = new Thickness(1),
-            Padding = new Thickness(14, 8),
+            Padding = new Thickness(12, 5),
             Child = grid
         };
     }
@@ -157,7 +157,7 @@ public sealed class ProbeView : UserControl
     {
         return ProbeUi.Card(new StackPanel
         {
-            Spacing = 6,
+            Spacing = 5,
             Children =
             {
                 CategoryRow(),
@@ -168,7 +168,7 @@ public sealed class ProbeView : UserControl
                 },
                 _pageButtonRow
             }
-        }, 20d, new Thickness(12, 8));
+        }, 18d, new Thickness(10, 6));
     }
 
     private Control CategoryRow()
@@ -176,7 +176,7 @@ public sealed class ProbeView : UserControl
         var buttons = new StackPanel
         {
             Orientation = Orientation.Horizontal,
-            Spacing = 10
+            Spacing = 8
         };
 
         foreach (var category in _categories)
@@ -200,7 +200,7 @@ public sealed class ProbeView : UserControl
         var grid = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"),
-            ColumnSpacing = 10,
+            ColumnSpacing = 8,
             Children =
             {
                 buttons,

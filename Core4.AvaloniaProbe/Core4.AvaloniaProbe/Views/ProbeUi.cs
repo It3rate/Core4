@@ -112,8 +112,8 @@ internal static class ProbeUi
             FontFamily = ProbePalette.UiFont,
             FontWeight = FontWeight.SemiBold,
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(15),
-            Padding = new Thickness(12, 5)
+            CornerRadius = new CornerRadius(14),
+            Padding = new Thickness(11, 3)
         };
 
         ApplyPillStyle(button, active);
@@ -129,8 +129,8 @@ internal static class ProbeUi
             FontFamily = ProbePalette.UiFont,
             FontWeight = FontWeight.SemiBold,
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(17),
-            Padding = new Thickness(14, 6)
+            CornerRadius = new CornerRadius(16),
+            Padding = new Thickness(12, 4)
         };
 
         ApplySectionStyle(button, active);

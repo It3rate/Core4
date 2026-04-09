@@ -19,11 +19,14 @@ namespace Core4.AvaloniaProbe.Views;
 /// </summary>
 public sealed class CircuitPageView : UserControl
 {
+    private const double PlotHorizontalPadding = 44d;
+    private const double PlotVerticalPadding = 28d;
     private readonly CircuitSceneControl _scene;
     private readonly Button _balancedButton;
     private readonly Button _unevenButton;
     private readonly Button _circuitViewButton;
     private readonly Button _core4ViewButton;
+    private readonly Button _formatToggleButton;
     private readonly TextBlock _sceneDescriptionText;
     private readonly TextBlock _metaPresetText;
     private readonly TextBlock _metaIterationText;
@@ -35,6 +38,7 @@ public sealed class CircuitPageView : UserControl
     private CircuitDemoState _demo = CircuitDemoState.BalancedLoop;
     private bool _reversed;
     private bool _core4View;
+    private bool _fractionView;
     private ResistiveCircuit _circuit;
     private ResistiveCircuitState _state;
     private Placement _positiveNode;
@@ -59,6 +63,9 @@ public sealed class CircuitPageView : UserControl
 
         _core4ViewButton = ProbeUi.PillButton("Core4");
         _core4ViewButton.Click += (_, _) => ApplyView(core4View: true);
+
+        _formatToggleButton = ProbeUi.PillButton("1.0", true);
+        _formatToggleButton.Click += (_, _) => ToggleFormat();
 
         var relaxOneButton = ProbeUi.PillButton("Relax 1");
         relaxOneButton.Click += (_, _) => Relax(new Measure(1));
@@ -145,13 +152,13 @@ public sealed class CircuitPageView : UserControl
 
         var sceneCard = ProbeUi.Card(new StackPanel
         {
-            Spacing = 8,
+            Spacing = 3,
             Children =
             {
                 SceneHeader(),
-                ProbeUi.PlotCard(_scene)
+                SceneHost()
             }
-        }, 22, new Thickness(12));
+        }, 20, new Thickness(10));
 
         var infoCards = new Grid
         {
@@ -224,6 +231,24 @@ public sealed class CircuitPageView : UserControl
         return grid;
     }
 
+    private Grid SceneHost()
+    {
+        var grid = new Grid();
+        grid.Children.Add(_scene);
+
+        var toggleHost = new Border
+        {
+            Background = Avalonia.Media.Brushes.Transparent,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, PlotVerticalPadding + 6d, PlotHorizontalPadding + 8d, 0),
+            Child = _formatToggleButton
+        };
+
+        grid.Children.Add(toggleHost);
+        return grid;
+    }
+
     private void ApplyDemo(CircuitDemoState demo)
     {
         _demo = demo;
@@ -241,6 +266,13 @@ public sealed class CircuitPageView : UserControl
     {
         _core4View = core4View;
         _scene.Core4View = core4View;
+        SyncUi();
+    }
+
+    private void ToggleFormat()
+    {
+        _fractionView = !_fractionView;
+        _scene.FractionView = _fractionView;
         SyncUi();
     }
 
@@ -288,6 +320,7 @@ public sealed class CircuitPageView : UserControl
         _scene.PositiveNode = _positiveNode;
         _scene.NegativeNode = _negativeNode;
         _scene.Core4View = _core4View;
+        _scene.FractionView = _fractionView;
     }
 
     private void SyncUi()
@@ -296,6 +329,8 @@ public sealed class CircuitPageView : UserControl
         ProbeUi.ApplyPillStyle(_unevenButton, _demo.Label == CircuitDemoState.UnevenLoop.Label);
         ProbeUi.ApplyPillStyle(_circuitViewButton, !_core4View);
         ProbeUi.ApplyPillStyle(_core4ViewButton, _core4View);
+        ProbeUi.ApplyPillStyle(_formatToggleButton, true);
+        _formatToggleButton.Content = _fractionView ? "a/b" : "1.0";
 
         _sceneDescriptionText.Text = _core4View
             ? $"{_demo.Description} Core4 view shows the same settled network as carrier-colored relations with opposing current rendered as tension."
@@ -386,19 +421,7 @@ public sealed class CircuitPageView : UserControl
         return key.On(key.PrimaryCarrier).Whole.Raw.ToString();
     }
 
-    private static string Format(Ratio value)
-    {
-        var normalized = value.Canonicalize();
-
-        if (normalized.IsTension)
-        {
-            return $"{normalized.Potential.Raw}/0";
-        }
-
-        return normalized.Dominant == Core4.Numerics.Measure.One
-            ? normalized.Recessive.Raw.ToString()
-            : $"{normalized.Recessive.Raw}/{normalized.Dominant.Raw}";
-    }
+    private string Format(Ratio value) => CircuitFormat.FormatRatio(value, _fractionView);
 
     private static int CountNodes(ImmutableArray<ResistiveNode> nodes, bool fixedOnly)
     {

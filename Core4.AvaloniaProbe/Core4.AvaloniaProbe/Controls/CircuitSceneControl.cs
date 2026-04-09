@@ -22,6 +22,7 @@ public sealed class CircuitSceneControl : Control
     private Placement _positiveNode;
     private Placement _negativeNode;
     private bool _core4View;
+    private bool _fractionView;
 
     public CircuitSceneControl()
     {
@@ -100,9 +101,19 @@ public sealed class CircuitSceneControl : Control
         }
     }
 
+    public bool FractionView
+    {
+        get => _fractionView;
+        set
+        {
+            _fractionView = value;
+            InvalidateVisual();
+        }
+    }
+
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        CircuitRenderer.Render(context, Bounds, _demo, _circuit, _state, _positions, _positiveNode, _negativeNode, _core4View);
+        CircuitRenderer.Render(context, Bounds, _demo, _circuit, _state, _positions, _positiveNode, _negativeNode, _core4View, _fractionView);
     }
 }
