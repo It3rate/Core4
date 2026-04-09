@@ -104,6 +104,34 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant)
             new Measure(checked(Dominant.Raw * other.Recessive.Raw))).Normalize();
     }
 
+    public Ratio Canonicalize()
+    {
+        if (IsTension)
+        {
+            return this;
+        }
+
+        var normalized = Normalize();
+
+        if (normalized.Recessive.Raw == 0)
+        {
+            return new Ratio(Measure.Zero, Measure.One);
+        }
+
+        var numerator = normalized.Recessive.Absolute.Raw;
+        var denominator = normalized.Dominant.Absolute.Raw;
+        var gcd = GreatestCommonDivisor(numerator, denominator);
+
+        if (gcd <= 1)
+        {
+            return normalized;
+        }
+
+        return new Ratio(
+            new Measure(normalized.Recessive.Raw / gcd),
+            new Measure(normalized.Dominant.Raw / gcd));
+    }
+
     public Ratio Normalize()
     {
         if (IsTension || Dominant.Raw > 0)
@@ -117,4 +145,16 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant)
     public override string ToString() => string.Create(
         CultureInfo.InvariantCulture,
         $"{Recessive.Raw}/{Dominant.Raw}");
+
+    private static long GreatestCommonDivisor(long left, long right)
+    {
+        while (right != 0)
+        {
+            var next = left % right;
+            left = right;
+            right = next;
+        }
+
+        return left < 0 ? -left : left;
+    }
 }

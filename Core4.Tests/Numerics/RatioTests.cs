@@ -28,6 +28,15 @@ public sealed class RatioTests
     }
 
     [Fact]
+    public void CanonicalizeReducesResolvedRatiosWithoutChangingMeaning()
+    {
+        Assert.Equal(new Ratio(3, 4), new Ratio(6, 8).Canonicalize());
+        Assert.Equal(new Ratio(-3, 4), new Ratio(6, -8).Canonicalize());
+        Assert.Equal(new Ratio(0, 1), new Ratio(0, 10).Canonicalize());
+        Assert.Equal(new Ratio(5, 0), Ratio.Tension(new Measure(5)).Canonicalize());
+    }
+
+    [Fact]
     public void AddWithSharedDenominatorKeepsTickResolution()
     {
         var result = new Ratio(2, 10).Add(new Ratio(3, 10));

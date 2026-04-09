@@ -26,6 +26,7 @@ public sealed class ProbeView : UserControl
     private readonly MultipleInputsPageView _multipleInputsPage = new();
     private readonly CarrierChainPageView _carrierChainPage = new();
     private readonly TopologyTrolleyPageView _topologyTrolleyPage = new();
+    private readonly CircuitPageView _circuitPage = new();
     private readonly ContentControl _pageHost;
     private readonly StackPanel _pageButtonRow;
     private readonly TextBlock _categoryBlurb;
@@ -69,7 +70,7 @@ public sealed class ProbeView : UserControl
             new CategoryDefinition(
                 ProbeCategory.Topology,
                 "Topology",
-                "Connected sites, carrier chains, and connector structure built from live Core4 relations.")
+                "Connected sites, carrier chains, traversal, and first real-world relaxation scenes built from live Core4 relations.")
         ];
 
         _pages =
@@ -83,7 +84,8 @@ public sealed class ProbeView : UserControl
             new PageDefinition(ProbePage.OrthogonalInput, ProbeCategory.Orthogonals, "Orthogonal Input", _orthogonalInputPage),
             new PageDefinition(ProbePage.MultipleInputs, ProbeCategory.Orthogonals, "Multiple Inputs", _multipleInputsPage),
             new PageDefinition(ProbePage.CarrierChain, ProbeCategory.Topology, "Carrier Chain", _carrierChainPage),
-            new PageDefinition(ProbePage.TopologyTrolley, ProbeCategory.Topology, "Trolley", _topologyTrolleyPage)
+            new PageDefinition(ProbePage.TopologyTrolley, ProbeCategory.Topology, "Trolley", _topologyTrolleyPage),
+            new PageDefinition(ProbePage.Circuit, ProbeCategory.Topology, "Circuit", _circuitPage)
         ];
 
         _categoryBlurb = ProbeUi.Body(string.Empty, 10d);
@@ -380,6 +382,7 @@ public sealed class ProbeView : UserControl
         OrthogonalInput,
         MultipleInputs,
         CarrierChain,
-        TopologyTrolley
+        TopologyTrolley,
+        Circuit
     }
 }
