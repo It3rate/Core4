@@ -6,10 +6,9 @@ using Core4.Topology;
 namespace Core4.Inspection;
 
 /// <summary>
-/// A topology-wide propagation pass. Outbound fronts follow forward-flowing continuations and park at termini until
-/// the whole wave goes quiescent. Return fronts then walk their own trails backward. Fronts that meet at one site
-/// fuse numerically while still retaining their contributing histories, so a later return can split back out through
-/// the branch structure it actually traversed.
+/// A topology-wide propagation pass. Outbound fronts follow forward continuations under positive perspective and park
+/// at termini until the whole wave goes quiescent. Return fronts then run the same continuation law under opposite
+/// perspective instead of replaying stored path history. Fronts that meet at one site still fuse numerically.
 /// </summary>
 public readonly record struct PropagationWave(
     Measure Perspective,
@@ -79,12 +78,10 @@ public readonly record struct PropagationWave(
             return new PropagationWaveStep(this, this, ImmutableArray<PropagationMove>.Empty);
         }
 
-        return IsOutbound
-            ? AdvanceOutbound()
-            : AdvanceReturn();
+        return AdvanceInPerspective(Perspective);
     }
 
-    private PropagationWaveStep AdvanceOutbound()
+    private PropagationWaveStep AdvanceInPerspective(Measure observerPerspective)
     {
         var nextActive = ImmutableArray.CreateBuilder<PropagationFrontier>();
         var nextParked = ImmutableArray.CreateBuilder<PropagationFrontier>(Parked.Length + Active.Length);
@@ -97,7 +94,10 @@ public readonly record struct PropagationWave(
 
         foreach (var frontier in Active)
         {
-            var forward = frontier.Trolley.Observe().ForwardContinuations;
+            var observation = frontier.Trolley.Observe(observerPerspective);
+            var forward = observerPerspective.Raw < 0L && observation.TryPreferred(observerPerspective, out var preferred)
+                ? [preferred]
+                : observation.ForwardContinuationsIn(observerPerspective);
 
             if (forward.Length == 0)
             {
@@ -109,61 +109,21 @@ public readonly record struct PropagationWave(
             {
                 var moved = frontier.Move(continuation);
                 MergeFrontier(nextActive, moved);
-                moves.Add(new PropagationMove(frontier.Trolley, moved.Trolley));
+                moves.Add(new PropagationMove(frontier.Trolley, moved.Trolley, continuation.Relation, observerPerspective));
             }
         }
 
         if (nextActive.Count == 0)
         {
-            var returning = new PropagationWave(
-                nextParked.Count == 0 ? Measure.Zero : -Measure.One,
-                nextParked.ToImmutable(),
-                ImmutableArray<PropagationFrontier>.Empty);
-            return new PropagationWaveStep(this, returning, ImmutableArray<PropagationMove>.Empty);
-        }
-
-        return new PropagationWaveStep(
-            this,
-            new PropagationWave(Measure.One, nextActive.ToImmutable(), nextParked.ToImmutable()),
-            moves.ToImmutable());
-    }
-
-    private PropagationWaveStep AdvanceReturn()
-    {
-        var nextActive = ImmutableArray.CreateBuilder<PropagationFrontier>();
-        var nextParked = ImmutableArray.CreateBuilder<PropagationFrontier>(Parked.Length + Active.Length);
-        var moves = ImmutableArray.CreateBuilder<PropagationMove>();
-
-        foreach (var frontier in Parked)
-        {
-            MergeFrontier(nextParked, frontier);
-        }
-
-        foreach (var frontier in Active)
-        {
-            var reversedAny = false;
-
-            foreach (var history in frontier.Histories)
+            if (observerPerspective.Raw > 0L)
             {
-                if (!history.TryReverse(out var prior))
-                {
-                    continue;
-                }
-
-                reversedAny = true;
-                var moved = new PropagationFrontier(prior);
-                MergeFrontier(nextActive, moved);
-                moves.Add(new PropagationMove(history, prior));
+                var returning = new PropagationWave(
+                    nextParked.Count == 0 ? Measure.Zero : -Measure.One,
+                    nextParked.ToImmutable(),
+                    ImmutableArray<PropagationFrontier>.Empty);
+                return new PropagationWaveStep(this, returning, ImmutableArray<PropagationMove>.Empty);
             }
 
-            if (!reversedAny)
-            {
-                MergeFrontier(nextParked, frontier);
-            }
-        }
-
-        if (nextActive.Count == 0)
-        {
             var completed = new PropagationWave(
                 Measure.Zero,
                 ImmutableArray<PropagationFrontier>.Empty,
@@ -173,7 +133,7 @@ public readonly record struct PropagationWave(
 
         return new PropagationWaveStep(
             this,
-            new PropagationWave(-Measure.One, nextActive.ToImmutable(), nextParked.ToImmutable()),
+            new PropagationWave(observerPerspective.Sign, nextActive.ToImmutable(), nextParked.ToImmutable()),
             moves.ToImmutable());
     }
 
@@ -181,7 +141,7 @@ public readonly record struct PropagationWave(
     {
         for (var index = 0; index < frontiers.Count; index++)
         {
-            if (!frontiers[index].Signature.Equivalent(frontier.Signature))
+            if (!frontiers[index].CanMergeWith(frontier))
             {
                 continue;
             }
@@ -212,6 +172,10 @@ public readonly record struct PropagationFrontier(
 
     public Core4.Dynamics.TraversalSignature Signature => Trolley.Signature;
 
+    public bool CanMergeWith(PropagationFrontier other) =>
+        Signature.SameProjection(other.Signature)
+        && Signature.Perspective.Sign == other.Signature.Perspective.Sign;
+
     public PropagationFrontier Move(TopologyTrolleyContinuation continuation)
     {
         var moved = ImmutableArray.CreateBuilder<TopologyTrolley>(Histories.Length);
@@ -227,11 +191,11 @@ public readonly record struct PropagationFrontier(
 
 public readonly record struct PropagationMove(
     TopologyTrolley Source,
-    TopologyTrolley Target)
+    TopologyTrolley Target,
+    Relation Relation,
+    Measure Perspective)
 {
-    public Relation Relation => Target.TrailRelations.Length < Source.TrailRelations.Length
-        ? Source.TrailRelations[^1]
-        : Target.TrailRelations[^1];
+    public bool IsReturning => Perspective.Raw < 0L;
 }
 
 public readonly record struct PropagationWaveStep(

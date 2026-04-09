@@ -157,7 +157,7 @@ public sealed class TopologyTrolleyPageView : UserControl
                     Children =
                     {
                         ProbeUi.Mono("INSPECTION RULE", 10d, ProbePalette.Muted),
-                        ProbeUi.Body("Purple side dots show the path already traversed. Green dotted lines show forward exits available from the current frontier. The trolley is external to topology: continue keeps one frontier, left/right choose one visible exit, fork all splits across every forward exit, and auto fans out until every frontier terminates before each one returns along its own trail.", 10d)
+                        ProbeUi.Body("Purple side dots show the path already traversed. Green dotted lines show forward exits available from the current frontier. The trolley is external to topology: continue keeps one frontier, left/right choose one visible exit, fork all splits across every forward exit, and auto fans out until every frontier terminates before the same structural rules are read again from opposite perspective.", 10d)
                     }
                 }, 20, new Thickness(12, 10))
             }
@@ -368,10 +368,10 @@ public sealed class TopologyTrolleyPageView : UserControl
 
         foreach (var frontier in _frontiers)
         {
-            if (frontier.TryReverse(out var reversed))
+            if (frontier.TryContinuePreferred(-Core4.Numerics.Measure.One, out var reversed))
             {
                 next.Add(reversed);
-                motions.Add(TrolleyMotion.Reverse(frontier, reversed));
+                motions.Add(TrolleyMotion.Move(frontier, reversed, reversed.TrailRelations[^1], reversePerspective: true));
             }
             else
             {
@@ -616,7 +616,7 @@ public sealed class TopologyTrolleyPageView : UserControl
             var observation = frontier.Observe();
             hasPreferred |= observation.TryPreferred(out _);
             hasForward |= observation.ForwardContinuations.Length > 0;
-            hasReverse |= frontier.TryReverse(out _);
+            hasReverse |= frontier.Observe(-Core4.Numerics.Measure.One).ForwardContinuationsIn(-Core4.Numerics.Measure.One).Length > 0;
         }
 
         _continueButton.IsEnabled = hasPreferred;
@@ -1017,12 +1017,7 @@ public sealed class TopologyTrolleyPageView : UserControl
 
         foreach (var move in moves)
         {
-            var source = move.Source;
-            var target = move.Target;
-            var reversed = target.TrailRelations.Length < source.TrailRelations.Length;
-            mapped.Add(reversed
-                ? TrolleyMotion.Reverse(source, target)
-                : TrolleyMotion.Forward(source, target));
+            mapped.Add(TrolleyMotion.Move(move.Source, move.Target, move.Relation, move.IsReturning));
         }
 
         return mapped.ToImmutable();
@@ -1070,7 +1065,7 @@ public sealed class TopologyTrolleyPageView : UserControl
 
         public static TrolleyPreset DiamondCross => new(
             "Diamond Cross",
-            "The trolley rides into a diamond split, traverses both arms under auto, rejoins, and then continues through one vertical cross before the return path unwinds the same branch history.",
+            "The trolley rides into a diamond split, traverses both arms under auto, rejoins, and then continues through one vertical cross before the return pass reads the same structure from opposite perspective.",
             CarrierChainDemoState.DiamondCross,
             Site.Open(new Carrier(1), new Measure(0)));
     }
@@ -1083,29 +1078,30 @@ public sealed class TopologyTrolleyPageView : UserControl
         Site ToSite,
         Site TrailAnchor,
         bool TowardAnchor,
+        bool ReversePerspective,
         ImmutableArray<Relation> CommittedTrailRelations)
     {
         public static TrolleyMotion Forward(TopologyTrolley source, TopologyTrolley target) =>
-            new(
-                source,
-                target,
-                target.TrailRelations[^1],
-                source.Site,
-                target.Site,
-                source.Site,
-                DetermineTowardAnchor(target.TrailRelations[^1], source.Site, target.Site),
-                source.TrailRelations);
+            Move(source, target, target.TrailRelations[^1], reversePerspective: false);
 
         public static TrolleyMotion Reverse(TopologyTrolley source, TopologyTrolley target) =>
+            Move(source, target, target.TrailRelations[^1], reversePerspective: true);
+
+        public static TrolleyMotion Move(
+            TopologyTrolley source,
+            TopologyTrolley target,
+            Relation relation,
+            bool reversePerspective) =>
             new(
                 source,
                 target,
-                source.TrailRelations[^1],
+                relation,
                 source.Site,
                 target.Site,
-                target.Site,
-                DetermineTowardAnchor(source.TrailRelations[^1], source.Site, target.Site),
-                target.TrailRelations);
+                source.Site,
+                DetermineTowardAnchor(relation, source.Site, target.Site),
+                reversePerspective,
+                source.TrailRelations);
 
         private static bool DetermineTowardAnchor(Relation relation, Site fromSite, Site toSite)
         {

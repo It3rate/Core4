@@ -48,7 +48,7 @@ public sealed class TopologyTrolleyTests
     }
 
     [Fact]
-    public void TrolleyTurnsAutomaticallyAtSimpleLCorner()
+    public void TrolleyCanContinueFromOppositePerspectiveWithoutTrailReplay()
     {
         Carrier x = 1;
         Carrier y = 2;
@@ -71,10 +71,12 @@ public sealed class TopologyTrolleyTests
 
         Assert.True(SameNode(trolley.Site, top));
         Assert.False(trolley.TryContinuePreferred(out _));
-        Assert.True(trolley.TryReverse(out var reversed));
+        Assert.True(trolley.TryContinuePreferred(-Measure.One, out var reversed));
         Assert.True(SameNode(reversed.Site, corner));
-        Assert.Single(reversed.TrailRelations);
-        Assert.Equal(2, reversed.TrailSites.Length);
+        Assert.Equal(4, reversed.TrailSites.Length);
+
+        Assert.True(reversed.TryContinuePreferred(-Measure.One, out var returned));
+        Assert.True(SameNode(returned.Site, left));
     }
 
     [Fact]

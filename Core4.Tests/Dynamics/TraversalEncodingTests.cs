@@ -67,8 +67,7 @@ public sealed class TraversalEncodingTests
             x,
             source,
             sameCarrierTarget,
-            TraversalDisposition.Create(continuesCarrier: true, direction: Measure.One, returnsAlongIngress: false),
-            TraversalReentry.Novel(sameCarrierTarget));
+            TraversalDisposition.Create(continuesCarrier: true, direction: Measure.One, returnsAlongIngress: false));
 
         var branchTarget = TraversalSignature.FromPlacement(
             Placement.Exact(y, new Measure(4)),
@@ -79,8 +78,7 @@ public sealed class TraversalEncodingTests
             y,
             source,
             branchTarget,
-            TraversalDisposition.Create(continuesCarrier: false, direction: Measure.One, returnsAlongIngress: false),
-            TraversalReentry.Novel(branchTarget));
+            TraversalDisposition.Create(continuesCarrier: false, direction: Measure.One, returnsAlongIngress: false));
 
         var observation = new TraversalObservation(source, [sameCarrier, branch]);
 
@@ -91,26 +89,38 @@ public sealed class TraversalEncodingTests
     }
 
     [Fact]
-    public void TraversalHistoryDistinguishesExactReentryFromProjectedRepeat()
+    public void TraversalObservationFlipsForwardReadingUnderOppositePerspective()
     {
         Carrier x = 1;
-        var forward = TraversalSignature.FromPlacement(
+        var source = TraversalSignature.FromPlacement(
             Placement.Exact(x, new Measure(5)),
             Measure.One,
             new Ratio(new Measure(4), Measure.One),
             Provenance.SelfDriven(new Measure(4)));
-        var history = TraversalHistory.Start(forward);
+        var ingress = new TraversalContinuation(
+            x,
+            source,
+            TraversalSignature.FromPlacement(
+                Placement.Exact(x, new Measure(0)),
+                -Measure.One,
+                new Ratio(Measure.One, Measure.One),
+                Provenance.OtherDriven(Measure.One)),
+            TraversalDisposition.Create(continuesCarrier: true, direction: -Measure.One, returnsAlongIngress: true));
+        var onward = new TraversalContinuation(
+            x,
+            source,
+            TraversalSignature.FromPlacement(
+                Placement.Exact(x, new Measure(10)),
+                Measure.One,
+                new Ratio(Measure.One, Measure.One),
+                Provenance.SelfDriven(Measure.One)),
+            TraversalDisposition.Create(continuesCarrier: true, direction: Measure.One, returnsAlongIngress: false));
+        var observation = new TraversalObservation(source, [ingress, onward]);
 
-        var exact = history.Observe(forward);
-        var reflected = history.Observe(TraversalSignature.FromPlacement(
-            Placement.Exact(x, new Measure(5)),
-            -Measure.One,
-            new Ratio(new Measure(4), Measure.One),
-            Provenance.OtherDriven(new Measure(4))));
-
-        Assert.True(exact.IsExactReentry);
-        Assert.False(exact.IsProjectedRepeat);
-        Assert.False(reflected.IsExactReentry);
-        Assert.True(reflected.IsProjectedRepeat);
+        Assert.Single(observation.ForwardContinuationsIn(Measure.One));
+        Assert.Equal(new Measure(10), observation.ForwardContinuationsIn(Measure.One)[0].Target.Position.Whole);
+        Assert.Equal(2, observation.ForwardContinuationsIn(-Measure.One).Length);
+        Assert.True(observation.TryPreferred(-Measure.One, out var preferred));
+        Assert.Equal(new Measure(0), preferred.Target.Position.Whole);
     }
 }

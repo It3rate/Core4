@@ -100,108 +100,45 @@ public readonly record struct TraversalDisposition(
 
     public Ratio Rank => Continuity.Add(Perspective).Add(Reentry).Normalize();
 
-    public bool IsForward(bool carrierContinues) =>
-        !ReturnsAlongIngress && (!IsIncoming || carrierContinues);
+    public Measure DirectionIn(Measure observerPerspective)
+    {
+        var sign = observerPerspective.Raw < 0L ? -1L : 1L;
+        return new Measure(Direction.Raw * sign);
+    }
 
-    public Ratio ForwardPreference(bool carrierContinues) => Continuity
-        .Add(IsOutgoing
+    public bool ReturnsAlongIngressIn(Measure observerPerspective) =>
+        observerPerspective.Raw >= 0L && ReturnsAlongIngress;
+
+    public bool IsForward(Measure observerPerspective, bool carrierContinues)
+    {
+        if (ReturnsAlongIngressIn(observerPerspective))
+        {
+            return false;
+        }
+
+        var direction = DirectionIn(observerPerspective);
+        return direction.Raw > 0L || (direction.Raw < 0L && carrierContinues);
+    }
+
+    public Ratio ForwardPreference(Measure observerPerspective, bool carrierContinues)
+    {
+        var direction = DirectionIn(observerPerspective);
+        var directionBias = direction.Raw > 0L
             ? new Ratio(Measure.One, Measure.One)
             : carrierContinues
                 ? Ratio.Zero(Measure.One)
-                : new Ratio(-Measure.One, Measure.One))
-        .Normalize();
+                : new Ratio(-Measure.One, Measure.One);
+        var ingressBias = ReturnsAlongIngressIn(observerPerspective)
+            ? new Ratio(-Measure.One, Measure.One)
+            : Ratio.Zero(Measure.One);
+
+        return Continuity.Add(directionBias).Add(ingressBias).Normalize();
+    }
 
     public static TraversalDisposition Create(bool continuesCarrier, Measure direction, bool returnsAlongIngress) => new(
         continuesCarrier ? new Ratio(Measure.One, Measure.One) : Ratio.Zero(Measure.One),
         new Ratio(direction, Measure.One).Normalize(),
         new Ratio(returnsAlongIngress ? -Measure.One : Measure.One, Measure.One).Normalize());
-}
-
-/// <summary>
-/// A numeric read of whether a candidate traversal state has truly re-entered prior structure, only projected back
-/// onto the same place, or remained novel relative to the remembered trail.
-/// </summary>
-public readonly record struct TraversalReentry(
-    TraversalSignature Candidate,
-    TraversalSignature? Match,
-    Ratio Projection,
-    Ratio Agreement,
-    Measure TrailDistance)
-{
-    public bool HasMatch => Match.HasValue;
-
-    public bool IsExactReentry => Agreement.Sign.Raw > 0;
-
-    public bool IsProjectedRepeat => Projection.Sign.Raw > 0 && !IsExactReentry;
-
-    public bool IsNovel => Projection.Sign.Raw <= 0;
-
-    public static TraversalReentry Novel(TraversalSignature candidate) =>
-        new(candidate, null, Ratio.Zero(Measure.One), new Ratio(-Measure.One, Measure.One).Normalize(), Measure.Zero);
-}
-
-/// <summary>
-/// A remembered trail of traversal states. It keeps loop-sensitive state in Core4-native signatures so exact
-/// re-entry and projected repetition can be derived without topology-specific bookkeeping.
-/// </summary>
-public readonly record struct TraversalHistory(ImmutableArray<TraversalSignature> Signatures)
-{
-    public static TraversalHistory Start(TraversalSignature start) => new([start]);
-
-    public bool IsEmpty => Signatures.IsDefaultOrEmpty || Signatures.Length == 0;
-
-    public TraversalSignature Current => IsEmpty ? default : Signatures[^1];
-
-    public TraversalHistory Append(TraversalSignature signature) => new(
-        (Signatures.IsDefault ? ImmutableArray<TraversalSignature>.Empty : Signatures).Add(signature));
-
-    public TraversalHistory TrimLast() => IsEmpty
-        ? this
-        : new(Signatures.RemoveAt(Signatures.Length - 1));
-
-    public TraversalReentry Observe(TraversalSignature candidate)
-    {
-        if (IsEmpty)
-        {
-            return TraversalReentry.Novel(candidate);
-        }
-
-        TraversalSignature? projection = null;
-        var projectionIndex = -1;
-
-        for (var index = Signatures.Length - 1; index >= 0; index--)
-        {
-            var signature = Signatures[index];
-
-            if (candidate.Equivalent(signature))
-            {
-                return new TraversalReentry(
-                    candidate,
-                    signature,
-                    new Ratio(Measure.One, Measure.One),
-                    new Ratio(Measure.One, Measure.One),
-                    new Measure(Signatures.Length - 1 - index));
-            }
-
-            if (projectionIndex < 0 && candidate.SameProjection(signature))
-            {
-                projection = signature;
-                projectionIndex = index;
-            }
-        }
-
-        if (projectionIndex >= 0 && projection.HasValue)
-        {
-            return new TraversalReentry(
-                candidate,
-                projection,
-                new Ratio(Measure.One, Measure.One),
-                Ratio.Zero(Measure.One),
-                new Measure(Signatures.Length - 1 - projectionIndex));
-        }
-
-        return TraversalReentry.Novel(candidate);
-    }
 }
 
 /// <summary>
@@ -212,8 +149,7 @@ public readonly record struct TraversalContinuation(
     Carrier Carrier,
     TraversalSignature Source,
     TraversalSignature Target,
-    TraversalDisposition Disposition,
-    TraversalReentry Reentry)
+    TraversalDisposition Disposition)
 {
     public Measure Direction => Disposition.Direction;
 
@@ -234,25 +170,26 @@ public readonly record struct TraversalObservation(
     TraversalSignature Signature,
     ImmutableArray<TraversalContinuation> Continuations)
 {
-    public ImmutableArray<TraversalContinuation> ForwardContinuations
+    public ImmutableArray<TraversalContinuation> ForwardContinuations => ForwardContinuationsIn(Measure.One);
+
+    public ImmutableArray<TraversalContinuation> ForwardContinuationsIn(Measure observerPerspective)
     {
-        get
+        var indexes = ForwardIndexes(observerPerspective);
+        var forward = ImmutableArray.CreateBuilder<TraversalContinuation>(indexes.Length);
+
+        foreach (var index in indexes)
         {
-            var indexes = ForwardIndexes();
-            var forward = ImmutableArray.CreateBuilder<TraversalContinuation>(indexes.Length);
-
-            foreach (var index in indexes)
-            {
-                forward.Add(Continuations[index]);
-            }
-
-            return forward.ToImmutable();
+            forward.Add(Continuations[index]);
         }
+
+        return forward.ToImmutable();
     }
 
     public bool IsDecisionPoint => ForwardIndexes().Length > 1;
 
-    public ImmutableArray<int> ForwardIndexes()
+    public ImmutableArray<int> ForwardIndexes() => ForwardIndexes(Measure.One);
+
+    public ImmutableArray<int> ForwardIndexes(Measure observerPerspective)
     {
         var indexes = ImmutableArray.CreateBuilder<int>();
 
@@ -261,7 +198,7 @@ public readonly record struct TraversalObservation(
             var continuation = Continuations[index];
             var carrierContinues = HasOutgoingOnCarrier(continuation.Carrier);
 
-            if (continuation.Disposition.IsForward(carrierContinues))
+            if (continuation.Disposition.IsForward(observerPerspective, carrierContinues))
             {
                 indexes.Add(index);
             }
@@ -270,9 +207,11 @@ public readonly record struct TraversalObservation(
         return indexes.ToImmutable();
     }
 
-    public bool TryPreferredIndex(out int index)
+    public bool TryPreferredIndex(out int index) => TryPreferredIndex(Measure.One, out index);
+
+    public bool TryPreferredIndex(Measure observerPerspective, out int index)
     {
-        var forward = ForwardIndexes();
+        var forward = ForwardIndexes(observerPerspective);
 
         if (forward.Length == 0)
         {
@@ -293,7 +232,9 @@ public readonly record struct TraversalObservation(
         foreach (var candidateIndex in forward)
         {
             var continuation = Continuations[candidateIndex];
-            var preference = continuation.Disposition.ForwardPreference(HasOutgoingOnCarrier(continuation.Carrier));
+            var preference = continuation.Disposition.ForwardPreference(
+                observerPerspective,
+                HasOutgoingOnCarrier(continuation.Carrier));
             var comparison = Compare(preference, bestPreference);
 
             if (bestIndex < 0 || comparison > 0)
@@ -314,9 +255,11 @@ public readonly record struct TraversalObservation(
         return !ambiguous && bestIndex >= 0;
     }
 
-    public bool TryPreferred(out TraversalContinuation continuation)
+    public bool TryPreferred(out TraversalContinuation continuation) => TryPreferred(Measure.One, out continuation);
+
+    public bool TryPreferred(Measure observerPerspective, out TraversalContinuation continuation)
     {
-        if (TryPreferredIndex(out var index))
+        if (TryPreferredIndex(observerPerspective, out var index))
         {
             continuation = Continuations[index];
             return true;

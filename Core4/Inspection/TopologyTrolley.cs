@@ -16,21 +16,18 @@ public readonly record struct TopologyTrolley(
     Relation? Ingress,
     Measure Direction,
     ImmutableArray<Site> TrailSites,
-    ImmutableArray<Relation> TrailRelations,
-    TraversalHistory History)
+    ImmutableArray<Relation> TrailRelations)
 {
     public static TopologyTrolley Start(ConnectedSiteTopology topology, Site site)
     {
         var resolved = Canonicalize(topology, site);
-        var signature = SignatureOf(resolved, Measure.Zero, null);
         return new TopologyTrolley(
             topology,
             resolved,
             null,
             Measure.Zero,
             [resolved],
-            ImmutableArray<Relation>.Empty,
-            TraversalHistory.Start(signature));
+            ImmutableArray<Relation>.Empty);
     }
 
     public SiteConnector Connector => Topology.ConnectorAt(Site);
@@ -70,7 +67,6 @@ public readonly record struct TopologyTrolley(
                 disposition.Direction,
                 relation.Span.Normalize(),
                 TraversalSignature.ProvenanceFor(disposition.Direction, relation.Potential));
-            var reentry = History.Observe(targetSignature);
 
             continuations.Add(new TopologyTrolleyContinuation(
                 relation,
@@ -78,12 +74,13 @@ public readonly record struct TopologyTrolley(
                 resolvedTarget,
                 disposition,
                 sourceSignature,
-                targetSignature,
-                reentry));
+                targetSignature));
         }
 
         return new TopologyTrolleyObservation(this, continuations.ToImmutable());
     }
+
+    public TopologyTrolleyObservation Observe(Measure observerPerspective) => Observe();
 
     public TopologyTrolley Move(TopologyTrolleyContinuation continuation)
     {
@@ -94,15 +91,28 @@ public readonly record struct TopologyTrolley(
             continuation.Relation,
             continuation.Direction,
             TrailSites.Add(next),
-            TrailRelations.Add(continuation.Relation),
-            History.Append(continuation.TargetSignature));
+            TrailRelations.Add(continuation.Relation));
     }
 
     public bool TryContinuePreferred(out TopologyTrolley next)
     {
-        var observation = Observe();
+        var observation = Observe(Measure.One);
 
-        if (observation.TryPreferred(out var continuation))
+        if (observation.TryPreferred(Measure.One, out var continuation))
+        {
+            next = Move(continuation);
+            return true;
+        }
+
+        next = default;
+        return false;
+    }
+
+    public bool TryContinuePreferred(Measure observerPerspective, out TopologyTrolley next)
+    {
+        var observation = Observe(observerPerspective);
+
+        if (observation.TryPreferred(observerPerspective, out var continuation))
         {
             next = Move(continuation);
             return true;
@@ -114,7 +124,7 @@ public readonly record struct TopologyTrolley(
 
     public ImmutableArray<TopologyTrolley> ForkAll()
     {
-        var observation = Observe();
+        var observation = Observe(Measure.One);
         var forks = ImmutableArray.CreateBuilder<TopologyTrolley>(observation.ForwardContinuations.Length);
 
         foreach (var continuation in observation.ForwardContinuations)
@@ -125,33 +135,17 @@ public readonly record struct TopologyTrolley(
         return forks.ToImmutable();
     }
 
-    public bool TryReverse(out TopologyTrolley next)
+    public ImmutableArray<TopologyTrolley> ForkAll(Measure observerPerspective)
     {
-        if (TrailSites.Length >= 2 && TrailRelations.Length >= 1)
-        {
-            var previousSite = TrailSites[^2];
-            var previousIngress = TrailRelations.Length >= 2
-                ? TrailRelations[^2]
-                : (Relation?)null;
-            var previousDirection = previousIngress.HasValue
-                ? TrailRelations[^1] == previousIngress.Value
-                    ? Direction
-                    : -Direction
-                : Measure.Zero;
+        var observation = Observe(observerPerspective);
+        var forks = ImmutableArray.CreateBuilder<TopologyTrolley>(observation.ForwardContinuationsIn(observerPerspective).Length);
 
-            next = new TopologyTrolley(
-                Topology,
-                previousSite,
-                previousIngress,
-                previousDirection,
-                TrailSites.RemoveAt(TrailSites.Length - 1),
-                TrailRelations.RemoveAt(TrailRelations.Length - 1),
-                History.TrimLast());
-            return true;
+        foreach (var continuation in observation.ForwardContinuationsIn(observerPerspective))
+        {
+            forks.Add(Move(continuation));
         }
 
-        next = default;
-        return false;
+        return forks.ToImmutable();
     }
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
@@ -222,12 +216,11 @@ public readonly record struct TopologyTrolleyContinuation(
     Site To,
     TraversalDisposition Disposition,
     TraversalSignature SourceSignature,
-    TraversalSignature TargetSignature,
-    TraversalReentry Reentry)
+    TraversalSignature TargetSignature)
 {
     public Carrier Carrier => Relation.Carrier;
 
-    public TraversalContinuation Traversal => new(Carrier, SourceSignature, TargetSignature, Disposition, Reentry);
+    public TraversalContinuation Traversal => new(Carrier, SourceSignature, TargetSignature, Disposition);
 
     public Measure Potential => Relation.Potential;
 
@@ -269,27 +262,29 @@ public readonly record struct TopologyTrolleyObservation(
         }
     }
 
-    public ImmutableArray<TopologyTrolleyContinuation> ForwardContinuations
+    public ImmutableArray<TopologyTrolleyContinuation> ForwardContinuations => ForwardContinuationsIn(Measure.One);
+
+    public ImmutableArray<TopologyTrolleyContinuation> ForwardContinuationsIn(Measure observerPerspective)
     {
-        get
+        var forward = Traversal.ForwardIndexes(observerPerspective);
+        var continuations = ImmutableArray.CreateBuilder<TopologyTrolleyContinuation>(forward.Length);
+
+        foreach (var index in forward)
         {
-            var forward = Traversal.ForwardIndexes();
-            var continuations = ImmutableArray.CreateBuilder<TopologyTrolleyContinuation>(forward.Length);
-
-            foreach (var index in forward)
-            {
-                continuations.Add(Continuations[index]);
-            }
-
-            return continuations.ToImmutable();
+            continuations.Add(Continuations[index]);
         }
+
+        return continuations.ToImmutable();
     }
 
     public bool IsDecisionPoint => ForwardContinuations.Length > 1;
 
-    public bool TryPreferred(out TopologyTrolleyContinuation continuation)
+    public bool TryPreferred(out TopologyTrolleyContinuation continuation) =>
+        TryPreferred(Measure.One, out continuation);
+
+    public bool TryPreferred(Measure observerPerspective, out TopologyTrolleyContinuation continuation)
     {
-        if (Traversal.TryPreferredIndex(out var index))
+        if (Traversal.TryPreferredIndex(observerPerspective, out var index))
         {
             continuation = Continuations[index];
             return true;
