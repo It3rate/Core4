@@ -1,4 +1,5 @@
 using System.Linq;
+using Core4.Dynamics;
 using Core4.Inspection;
 using Core4.Numerics;
 using Core4.Structure;
@@ -77,6 +78,55 @@ public sealed class TopologyTrolleyTests
 
         Assert.True(reversed.TryContinuePreferred(-Measure.One, out var returned));
         Assert.True(SameNode(returned.Site, left));
+    }
+
+    [Fact]
+    public void TrolleyReflectsAtTerminalWhenExplicitPinnedBasisPreservesIngressDirection()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var right = Site.Open(x, new Measure(10))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(6)),
+                Ratio.Tension(new Measure(4)),
+                Provenance.Shared(new Measure(4)));
+
+        var trolley = TopologyTrolley.Start(
+            ConnectedSiteTopology.FromRelations(new Relation(left, right)),
+            left);
+        Assert.True(trolley.TryContinuePreferred(out trolley));
+        Assert.True(SameNode(trolley.Site, right));
+
+        var reflection = Assert.Single(trolley.Observe().ForwardContinuations);
+        Assert.True(reflection.ReturnsAlongIngress);
+        Assert.Contains(
+            reflection.BasisAgreements,
+            agreement => agreement.Encounter.IsExplicitPinnedBasis && agreement.PreservesDirection);
+        Assert.True(trolley.TryContinuePreferred(out var returned));
+        Assert.True(SameNode(returned.Site, left));
+    }
+
+    [Fact]
+    public void TrolleyDoesNotReflectWhenExplicitPinnedBasisOpposesIngressDirection()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var right = Site.Open(x, new Measure(10))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(14)),
+                Ratio.Tension(new Measure(4)),
+                Provenance.Shared(new Measure(4)));
+
+        var trolley = TopologyTrolley.Start(
+            ConnectedSiteTopology.FromRelations(new Relation(left, right)),
+            left);
+        Assert.True(trolley.TryContinuePreferred(out trolley));
+        Assert.True(SameNode(trolley.Site, right));
+
+        Assert.Empty(trolley.Observe().ForwardContinuations);
+        Assert.False(trolley.TryContinuePreferred(out _));
     }
 
     [Fact]

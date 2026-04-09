@@ -9,7 +9,7 @@ namespace Core4.Topology;
 /// local one-sided or bilateral calibration already implied by incident relations without yet deciding traversal
 /// policy from it.
 /// </summary>
-public readonly record struct SiteBasisEncounter(Site Site, Carrier Carrier, Basis Basis)
+public readonly record struct SiteBasisEncounter(Site Site, Carrier Carrier, Basis Basis, ISupport SourceSupport)
 {
     public Measure Grade => Basis.Grade;
 
@@ -22,6 +22,10 @@ public readonly record struct SiteBasisEncounter(Site Site, Carrier Carrier, Bas
     public bool IsAtomic => Basis.IsAtomic;
 
     public bool IsComposite => Basis.IsComposite;
+
+    public bool IsExplicitPinnedBasis => SourceSupport is Basis;
+
+    public bool IsRelationDerived => SourceSupport is Relation;
 
     public bool IsLocalToSite => HasSharedOriginAtSite();
 
@@ -52,10 +56,10 @@ public readonly record struct SiteBasisEncounter(Site Site, Carrier Carrier, Bas
     public ImmutableArray<Relation> LocalRelations => Basis.SelectRelations();
 
     internal static SiteBasisEncounter FromIncoming(Site site, Relation relation) =>
-        new(site, relation.Carrier, Basis.Freeze(relation.Flip()));
+        new(site, relation.Carrier, Basis.Freeze(relation.Flip()), relation);
 
     internal static SiteBasisEncounter FromOutgoing(Site site, Relation relation) =>
-        new(site, relation.Carrier, Basis.Freeze(relation));
+        new(site, relation.Carrier, Basis.Freeze(relation), relation);
 
     internal static SiteBasisEncounter FromPassThrough(Site site, Relation incoming, Relation outgoing) =>
         new(
@@ -63,7 +67,11 @@ public readonly record struct SiteBasisEncounter(Site Site, Carrier Carrier, Bas
             outgoing.Carrier,
             Basis.Fuse(
                 Basis.Freeze(incoming.Flip()),
-                Basis.Freeze(outgoing)));
+                Basis.Freeze(outgoing)),
+            outgoing);
+
+    internal static SiteBasisEncounter FromPinnedBasis(Site site, Carrier carrier, Basis basis) =>
+        new(site, carrier, basis, basis);
 
     private bool HasSharedOriginAtSite()
     {

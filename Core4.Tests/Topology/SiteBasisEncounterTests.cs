@@ -1,3 +1,4 @@
+using Core4.Dynamics;
 using Core4.Numerics;
 using Core4.Structure;
 using Core4.Topology;
@@ -63,5 +64,27 @@ public sealed class SiteBasisEncounterTests
         Assert.False(branch.SupportsDirection(-Measure.One));
 
         Assert.Contains(chainEncounters, encounter => encounter.IsBilateral);
+    }
+
+    [Fact]
+    public void ExplicitSameCarrierPinnedBasisIsSurfacedAtSite()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var right = Site.Open(x, new Measure(10))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(6)),
+                Ratio.Tension(new Measure(4)),
+                Provenance.Shared(new Measure(4)));
+
+        var encounters = ConnectedSiteTopology.FromRelations(new Relation(left, right))
+            .BasisEncountersAt(right, x);
+
+        var explicitBasis = Assert.Single(encounters, encounter => encounter.IsExplicitPinnedBasis);
+        Assert.True(explicitBasis.IsAtomic);
+        Assert.True(explicitBasis.IsLocalToSite);
+        Assert.True(explicitBasis.HasRecessiveCalibration);
+        Assert.False(explicitBasis.HasDominantCalibration);
     }
 }

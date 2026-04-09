@@ -315,6 +315,14 @@ public readonly record struct TopologyTrolleyObservation(
             continuations.Add(Continuations[index]);
         }
 
+        if (observerPerspective.Raw >= 0L && continuations.Count == 0)
+        {
+            foreach (var continuation in ReflectiveReturns())
+            {
+                continuations.Add(continuation);
+            }
+        }
+
         return continuations.ToImmutable();
     }
 
@@ -395,5 +403,37 @@ public readonly record struct TopologyTrolleyObservation(
         var leftScaled = checked(left.Recessive.Raw * right.Dominant.Raw);
         var rightScaled = checked(right.Recessive.Raw * left.Dominant.Raw);
         return leftScaled.CompareTo(rightScaled);
+    }
+
+    private ImmutableArray<TopologyTrolleyContinuation> ReflectiveReturns()
+    {
+        var continuations = ImmutableArray.CreateBuilder<TopologyTrolleyContinuation>();
+
+        foreach (var continuation in Continuations)
+        {
+            if (!continuation.ReturnsAlongIngress || !HasExplicitReflectiveBasis(continuation))
+            {
+                continue;
+            }
+
+            continuations.Add(continuation);
+        }
+
+        return continuations.ToImmutable();
+    }
+
+    private static bool HasExplicitReflectiveBasis(TopologyTrolleyContinuation continuation)
+    {
+        foreach (var agreement in continuation.BasisAgreements)
+        {
+            if (agreement.Encounter.IsExplicitPinnedBasis
+                && agreement.Encounter.IsLocalToSite
+                && agreement.PreservesDirection)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

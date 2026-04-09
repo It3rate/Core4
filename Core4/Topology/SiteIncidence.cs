@@ -78,6 +78,12 @@ public readonly record struct SiteIncidence(Site Site, ImmutableArray<Relation> 
 
         foreach (var leg in LegsOn(carrier))
         {
+            if (leg.Support is Basis basis && basis.PrimaryCarrier == carrier)
+            {
+                encounters.Add(SiteBasisEncounter.FromPinnedBasis(Site, carrier, basis));
+                continue;
+            }
+
             if (leg.Support is not Relation relation)
             {
                 continue;
