@@ -32,6 +32,8 @@ public readonly record struct TopologyTrolley(
 
     public SiteConnector Connector => Topology.ConnectorAt(Site);
 
+    public ImmutableArray<SiteBasisEncounter> BasisEncounters => Topology.BasisEncountersAt(Site);
+
     public TraversalSignature Signature => SignatureOf(Site, Direction, Ingress);
 
     public TopologyTrolleyObservation Observe()
@@ -246,6 +248,8 @@ public readonly record struct TopologyTrolleyObservation(
     public Site Site => Trolley.Site;
 
     public SiteConnector Connector => Trolley.Connector;
+
+    public ImmutableArray<SiteBasisEncounter> BasisEncounters => Trolley.BasisEncounters;
 
     public TraversalObservation Traversal
     {

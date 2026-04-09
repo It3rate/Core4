@@ -32,6 +32,11 @@ public readonly record struct ConnectedSiteTopology(ImmutableArray<Site> Sites, 
 
     public SiteConnector ConnectorAt(Site site) => new(this, Resolve(site));
 
+    public ImmutableArray<SiteBasisEncounter> BasisEncountersAt(Site site) => IncidenceAt(site).BasisEncounters();
+
+    public ImmutableArray<SiteBasisEncounter> BasisEncountersAt(Site site, Carrier carrier) =>
+        IncidenceAt(site).BasisEncountersOn(carrier);
+
     public ImmutableArray<SiteConnector> Connectors()
     {
         var connectors = ImmutableArray.CreateBuilder<SiteConnector>(Sites.Length);
