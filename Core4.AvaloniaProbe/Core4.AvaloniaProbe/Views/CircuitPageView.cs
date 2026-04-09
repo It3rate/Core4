@@ -159,7 +159,7 @@ public sealed class CircuitPageView : UserControl
             ColumnSpacing = 10
         };
         ProbeUi.AddInfoCard(infoCards, 0, "NODE POTENTIALS", _nodeText);
-        ProbeUi.AddInfoCard(infoCards, 1, "BRANCH RESPONSE", _branchText);
+        ProbeUi.AddInfoCard(infoCards, 1, "BRANCH RESPONSE (res, drop, current, heat)", _branchText);
         ProbeUi.AddInfoCard(infoCards, 2, "SOLVER", _solverText);
 
         var rightColumn = new StackPanel

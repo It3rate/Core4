@@ -229,7 +229,7 @@ public static class CircuitRenderer
         context.DrawLine(outlinePen, leftLead, rightLead);
         context.DrawLine(bodyPen, leftLead, rightLead);
 
-        var bandPositions = new[] { 0.43d, 0.50d, 0.57d };
+        var bandPositions = new[] { 0.39d, 0.50d, 0.61d };
         var bandBrushes = ResistanceBands(branch.Resistance);
 
         for (var index = 0; index < bandPositions.Length; index++)
