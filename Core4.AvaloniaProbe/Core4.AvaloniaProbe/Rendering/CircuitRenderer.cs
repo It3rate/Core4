@@ -27,7 +27,8 @@ public static class CircuitRenderer
         ResistiveCircuitState state,
         ImmutableDictionary<Placement, Point> normalizedPositions,
         Placement positiveNode,
-        Placement negativeNode)
+        Placement negativeNode,
+        bool core4View)
     {
         var content = new Rect(
             bounds.X + HorizontalPadding,
@@ -47,7 +48,7 @@ public static class CircuitRenderer
 
             var from = Resolve(content, fromNormalized);
             var to = Resolve(content, toNormalized);
-            DrawBranch(context, branch, state, from, to, content.Center);
+            DrawBranch(context, branch, state, from, to, content.Center, core4View);
         }
 
         foreach (var node in circuit.Nodes)
@@ -94,7 +95,8 @@ public static class CircuitRenderer
         ResistiveCircuitState state,
         Point from,
         Point to,
-        Point sceneCenter)
+        Point sceneCenter,
+        bool core4View)
     {
         var delta = to - from;
         var distance = Math.Sqrt((delta.X * delta.X) + (delta.Y * delta.Y));
@@ -113,20 +115,32 @@ public static class CircuitRenderer
         var dissipation = state.DissipationOn(branch);
         var leadPen = new Pen(ProbePalette.Hidden, 2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
 
-        DrawResistor(context, branch, start, end, leadPen);
+        if (core4View)
+        {
+            DrawCore4Branch(context, branch, current, start, end);
+        }
+        else
+        {
+            DrawResistor(context, branch, start, end, leadPen);
+        }
 
         var currentMagnitude = Math.Abs(current.Approximate);
         if (currentMagnitude > 0.0001d)
         {
             var arrowDirection = current.Approximate >= 0d ? unit : -unit;
-            var arrowPoint = midpoint + (arrowDirection * 16d);
+            var arrowBrush = current.Approximate >= 0d
+                ? ProbePalette.TensionPositive
+                : ProbePalette.TensionNegative;
+            var arrowPoint = current.Approximate >= 0d
+                ? end - (unit * 22d)
+                : start + (unit * 22d);
             ScenePrimitives.DrawDirectedTriangle(
                 context,
                 arrowPoint,
                 7.6d,
-                ProbePalette.TensionPositive,
+                arrowBrush,
                 arrowDirection,
-                new Pen(ProbePalette.TensionPositive, 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
+                new Pen(arrowBrush, 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
         }
 
         var calloutDirection = ChooseCalloutDirection(normal, midpoint, sceneCenter);
@@ -172,10 +186,10 @@ public static class CircuitRenderer
             context,
             $"V {Format(potential)}",
             center + new Vector(-22d, -32d),
-            10d,
+            9.2d,
             ProbePalette.Ink,
-            FontWeight.SemiBold,
-            ProbePalette.MonoFont);
+            FontWeight.Bold,
+            ProbePalette.UiFont);
         ScenePrimitives.DrawCenteredLabel(
             context,
             demo.NodeLabel(node),
@@ -202,8 +216,10 @@ public static class CircuitRenderer
 
         var unit = new Vector(delta.X / distance, delta.Y / distance);
         var normal = new Vector(-unit.Y, unit.X);
-        var leftLead = start + (unit * Math.Min(18d, distance * 0.22d));
-        var rightLead = end - (unit * Math.Min(18d, distance * 0.22d));
+        var bodyLength = Math.Min(46d, distance * 0.28d);
+        var center = Midpoint(start, end);
+        var leftLead = center - (unit * (bodyLength * 0.5d));
+        var rightLead = center + (unit * (bodyLength * 0.5d));
 
         context.DrawLine(leadPen, start, leftLead);
         context.DrawLine(leadPen, rightLead, end);
@@ -213,7 +229,7 @@ public static class CircuitRenderer
         context.DrawLine(outlinePen, leftLead, rightLead);
         context.DrawLine(bodyPen, leftLead, rightLead);
 
-        var bandPositions = new[] { 0.24d, 0.5d, 0.76d };
+        var bandPositions = new[] { 0.43d, 0.50d, 0.57d };
         var bandBrushes = ResistanceBands(branch.Resistance);
 
         for (var index = 0; index < bandPositions.Length; index++)
@@ -224,6 +240,27 @@ public static class CircuitRenderer
                 bandPen,
                 point - (normal * 6d),
                 point + (normal * 6d));
+        }
+    }
+
+    private static void DrawCore4Branch(
+        DrawingContext context,
+        ResolvedResistiveBranch branch,
+        Ratio current,
+        Point start,
+        Point end)
+    {
+        var pen = new Pen(CarrierBrush(branch.Relation.Carrier), 4.4d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+        context.DrawLine(pen, start, end);
+
+        if (current.Approximate < -0.0001d)
+        {
+            ScenePrimitives.DrawWave(
+                context,
+                start,
+                end,
+                4.2d,
+                new Pen(ProbePalette.TensionNegative, 2.2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
         }
     }
 
@@ -326,4 +363,13 @@ public static class CircuitRenderer
             ? normalized.Recessive.Raw.ToString()
             : $"{normalized.Recessive.Raw}/{normalized.Dominant.Raw}";
     }
+
+    private static IBrush CarrierBrush(Carrier carrier) => carrier.Id switch
+    {
+        1L => ProbePalette.Dominant,
+        2L => ProbePalette.Orthogonal,
+        3L => ProbePalette.OrthogonalInput,
+        4L => ProbePalette.Overlay,
+        _ => ProbePalette.Ink
+    };
 }

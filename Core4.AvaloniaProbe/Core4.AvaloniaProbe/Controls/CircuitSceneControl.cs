@@ -21,6 +21,7 @@ public sealed class CircuitSceneControl : Control
     private ImmutableDictionary<Placement, Point> _positions = ImmutableDictionary<Placement, Point>.Empty;
     private Placement _positiveNode;
     private Placement _negativeNode;
+    private bool _core4View;
 
     public CircuitSceneControl()
     {
@@ -89,9 +90,19 @@ public sealed class CircuitSceneControl : Control
         }
     }
 
+    public bool Core4View
+    {
+        get => _core4View;
+        set
+        {
+            _core4View = value;
+            InvalidateVisual();
+        }
+    }
+
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        CircuitRenderer.Render(context, Bounds, _demo, _circuit, _state, _positions, _positiveNode, _negativeNode);
+        CircuitRenderer.Render(context, Bounds, _demo, _circuit, _state, _positions, _positiveNode, _negativeNode, _core4View);
     }
 }

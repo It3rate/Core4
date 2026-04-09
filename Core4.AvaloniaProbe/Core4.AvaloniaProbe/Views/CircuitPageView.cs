@@ -14,13 +14,16 @@ namespace Core4.AvaloniaProbe.Views;
 
 /// <summary>
 /// First real-world topology exercise: a passive resistive circuit settled by repeated local relaxation instead of
-/// closed-form solving. The topology remains ordinary Core4 structure; the page only renders one schematic stance on it.
+/// closed-form solving. The topology remains ordinary Core4 structure, and the page can now flip between a familiar
+/// circuit schematic and a more explicitly Core4-native carrier view of the same settled network.
 /// </summary>
 public sealed class CircuitPageView : UserControl
 {
     private readonly CircuitSceneControl _scene;
     private readonly Button _balancedButton;
     private readonly Button _unevenButton;
+    private readonly Button _circuitViewButton;
+    private readonly Button _core4ViewButton;
     private readonly TextBlock _sceneDescriptionText;
     private readonly TextBlock _metaPresetText;
     private readonly TextBlock _metaIterationText;
@@ -31,6 +34,7 @@ public sealed class CircuitPageView : UserControl
 
     private CircuitDemoState _demo = CircuitDemoState.BalancedLoop;
     private bool _reversed;
+    private bool _core4View;
     private ResistiveCircuit _circuit;
     private ResistiveCircuitState _state;
     private Placement _positiveNode;
@@ -49,6 +53,12 @@ public sealed class CircuitPageView : UserControl
 
         _unevenButton = ProbeUi.PillButton("Uneven Loop");
         _unevenButton.Click += (_, _) => ApplyDemo(CircuitDemoState.UnevenLoop);
+
+        _circuitViewButton = ProbeUi.PillButton("Circuit", true);
+        _circuitViewButton.Click += (_, _) => ApplyView(core4View: false);
+
+        _core4ViewButton = ProbeUi.PillButton("Core4");
+        _core4ViewButton.Click += (_, _) => ApplyView(core4View: true);
 
         var relaxOneButton = ProbeUi.PillButton("Relax 1");
         relaxOneButton.Click += (_, _) => Relax(new Measure(1));
@@ -87,6 +97,16 @@ public sealed class CircuitPageView : UserControl
                         ProbeUi.Mono("CIRCUIT PRESETS", 10d, ProbePalette.Muted),
                         _balancedButton,
                         _unevenButton
+                    }
+                }, 20, new Thickness(12, 10)),
+                ProbeUi.Card(new StackPanel
+                {
+                    Spacing = 6,
+                    Children =
+                    {
+                        ProbeUi.Mono("VIEW", 10d, ProbePalette.Muted),
+                        _circuitViewButton,
+                        _core4ViewButton
                     }
                 }, 20, new Thickness(12, 10)),
                 ProbeUi.Card(new StackPanel
@@ -217,6 +237,13 @@ public sealed class CircuitPageView : UserControl
         RebuildCircuit(settled: true);
     }
 
+    private void ApplyView(bool core4View)
+    {
+        _core4View = core4View;
+        _scene.Core4View = core4View;
+        SyncUi();
+    }
+
     private void ResetGuess()
     {
         _circuit = _demo.CreateCircuit(_reversed);
@@ -260,15 +287,20 @@ public sealed class CircuitPageView : UserControl
         _scene.State = _state;
         _scene.PositiveNode = _positiveNode;
         _scene.NegativeNode = _negativeNode;
+        _scene.Core4View = _core4View;
     }
 
     private void SyncUi()
     {
         ProbeUi.ApplyPillStyle(_balancedButton, _demo.Label == CircuitDemoState.BalancedLoop.Label);
         ProbeUi.ApplyPillStyle(_unevenButton, _demo.Label == CircuitDemoState.UnevenLoop.Label);
+        ProbeUi.ApplyPillStyle(_circuitViewButton, !_core4View);
+        ProbeUi.ApplyPillStyle(_core4ViewButton, _core4View);
 
-        _sceneDescriptionText.Text = _demo.Description;
-        _metaPresetText.Text = _reversed ? $"{_demo.Label} · reversed" : _demo.Label;
+        _sceneDescriptionText.Text = _core4View
+            ? $"{_demo.Description} Core4 view shows the same settled network as carrier-colored relations with opposing current rendered as tension."
+            : _demo.Description;
+        _metaPresetText.Text = _reversed ? $"{_demo.Label} | reversed" : _demo.Label;
         _metaIterationText.Text = $"iteration {_state.Iteration.Raw}";
         _metaResidualText.Text = $"max residual {Format(_state.MaxResidual)}";
         _nodeText.Text = DescribeNodes();
@@ -304,23 +336,17 @@ public sealed class CircuitPageView : UserControl
     private string DescribeBranches()
     {
         var builder = new StringBuilder();
+        builder.Append("branch            R      d      i      h");
+        builder.Append('\n');
 
         foreach (var branch in _circuit.Branches)
         {
-            builder.Append(NodeLabel(branch.From));
-            builder.Append(" -> ");
-            builder.Append(NodeLabel(branch.To));
-            builder.Append('\n');
-            builder.Append("R                       ");
-            builder.Append(Format(branch.Resistance));
-            builder.Append('\n');
-            builder.Append("drop / current / heat   ");
-            builder.Append(Format(_state.DropOn(branch)));
-            builder.Append(" / ");
-            builder.Append(Format(_state.CurrentOn(branch)));
-            builder.Append(" / ");
+            AppendCell(builder, $"{NodeLabel(branch.From)}->{NodeLabel(branch.To)}", 18);
+            AppendCell(builder, Format(branch.Resistance), 7);
+            AppendCell(builder, Format(_state.DropOn(branch)), 7);
+            AppendCell(builder, Format(_state.CurrentOn(branch)), 7);
             builder.Append(Format(_state.DissipationOn(branch)));
-            builder.Append("\n\n");
+            builder.Append('\n');
         }
 
         return builder.ToString().TrimEnd();
@@ -387,5 +413,18 @@ public sealed class CircuitPageView : UserControl
         }
 
         return total;
+    }
+
+    private static void AppendCell(StringBuilder builder, string text, int width)
+    {
+        builder.Append(text);
+
+        if (text.Length >= width)
+        {
+            builder.Append(' ');
+            return;
+        }
+
+        builder.Append(' ', width - text.Length);
     }
 }
