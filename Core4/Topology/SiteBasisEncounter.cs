@@ -73,6 +73,20 @@ public readonly record struct SiteBasisEncounter(Site Site, Carrier Carrier, Bas
     internal static SiteBasisEncounter FromPinnedBasis(Site site, Carrier carrier, Basis basis) =>
         new(site, carrier, basis, basis);
 
+    internal bool TryGetExplicitRemap(out Site target, out Relation relation)
+    {
+        if (!IsExplicitPinnedBasis || !IsAtomic || !IsLocalToSite)
+        {
+            target = default;
+            relation = default;
+            return false;
+        }
+
+        relation = Basis.AtomicRelation;
+        target = relation.Anchor;
+        return !SameNode(Site, target);
+    }
+
     private bool HasSharedOriginAtSite()
     {
         var sitePosition = Site.On(Carrier).Normalize();
@@ -87,4 +101,6 @@ public readonly record struct SiteBasisEncounter(Site Site, Carrier Carrier, Bas
 
         return true;
     }
+
+    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
 }

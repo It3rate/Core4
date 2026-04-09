@@ -317,6 +317,14 @@ public readonly record struct TopologyTrolleyObservation(
 
         if (observerPerspective.Raw >= 0L && continuations.Count == 0)
         {
+            foreach (var continuation in ClosureContinuations(observerPerspective))
+            {
+                continuations.Add(continuation);
+            }
+        }
+
+        if (observerPerspective.Raw >= 0L && continuations.Count == 0)
+        {
             foreach (var continuation in ReflectiveReturns())
             {
                 continuations.Add(continuation);
@@ -422,12 +430,55 @@ public readonly record struct TopologyTrolleyObservation(
         return continuations.ToImmutable();
     }
 
-    private static bool HasExplicitReflectiveBasis(TopologyTrolleyContinuation continuation)
+    private ImmutableArray<TopologyTrolleyContinuation> ClosureContinuations(Measure observerPerspective)
+    {
+        var continuations = ImmutableArray.CreateBuilder<TopologyTrolleyContinuation>();
+        var preservedDirection = Trolley.Signature.EffectiveDirection.Raw != 0L
+            ? Trolley.Signature.EffectiveDirection.Sign
+            : observerPerspective.Sign;
+
+        foreach (var encounter in BasisEncounters)
+        {
+            if (!TryResolveClosureTarget(encounter, out var target))
+            {
+                continue;
+            }
+
+            var agreement = BasisEncounterAgreement.Create(Trolley.Signature, encounter, preservedDirection);
+
+            if (!agreement.InvertsDirection)
+            {
+                continue;
+            }
+
+            var relation = CanonicalRelation(Trolley.Site, target, encounter.Carrier);
+            var disposition = TraversalDisposition.Create(false, preservedDirection, false);
+            var targetSignature = TraversalSignature.FromSite(
+                target,
+                relation.Span.Normalize(),
+                TraversalModifier.FromDirection(preservedDirection),
+                TraversalSignature.ProvenanceFor(preservedDirection, relation.Potential));
+
+            continuations.Add(new TopologyTrolleyContinuation(
+                relation,
+                Trolley.Site,
+                target,
+                disposition,
+                Trolley.Signature,
+                targetSignature,
+                [agreement]));
+        }
+
+        return continuations.ToImmutable();
+    }
+
+    private bool HasExplicitReflectiveBasis(TopologyTrolleyContinuation continuation)
     {
         foreach (var agreement in continuation.BasisAgreements)
         {
             if (agreement.Encounter.IsExplicitPinnedBasis
                 && agreement.Encounter.IsLocalToSite
+                && !TryResolveClosureTarget(agreement.Encounter, out _)
                 && agreement.PreservesDirection)
             {
                 return true;
@@ -436,4 +487,36 @@ public readonly record struct TopologyTrolleyObservation(
 
         return false;
     }
+
+    private bool TryResolveClosureTarget(SiteBasisEncounter encounter, out Site target)
+    {
+        if (!encounter.TryGetExplicitRemap(out var remapTarget, out _))
+        {
+            target = default;
+            return false;
+        }
+
+        foreach (var site in Trolley.Topology.Sites)
+        {
+            if (SameNode(site, remapTarget))
+            {
+                target = Trolley.Topology.IncidenceAt(site).Site;
+                return true;
+            }
+        }
+
+        target = default;
+        return false;
+    }
+
+    private static Relation CanonicalRelation(Site left, Site right, Carrier carrier)
+    {
+        var leftPosition = left.On(carrier).Normalize();
+        var rightPosition = right.On(carrier).Normalize();
+        return Compare(leftPosition, rightPosition) <= 0
+            ? new Relation(carrier, left, right)
+            : new Relation(carrier, right, left);
+    }
+
+    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
 }

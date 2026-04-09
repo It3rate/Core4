@@ -130,6 +130,43 @@ public sealed class TopologyTrolleyTests
     }
 
     [Fact]
+    public void TrolleyWrapsToKnownClosureTargetInsteadOfReflectingAtTerminal()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var middle = Site.Open(x, new Measure(5));
+        var right = Site.Open(x, new Measure(10))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(0)),
+                Ratio.Tension(new Measure(10)),
+                Provenance.Shared(new Measure(10)));
+
+        var trolley = TopologyTrolley.Start(
+            ConnectedSiteTopology.Create(
+                [right],
+                new Relation(left, middle),
+                new Relation(middle, right)),
+            left);
+        Assert.True(trolley.TryContinuePreferred(out trolley));
+        Assert.True(SameNode(trolley.Site, middle));
+        Assert.True(trolley.TryContinuePreferred(out trolley));
+        Assert.True(SameNode(trolley.Site, right));
+
+        var closure = Assert.Single(trolley.Observe().ForwardContinuations);
+        Assert.False(closure.ReturnsAlongIngress);
+        Assert.True(SameNode(closure.To, left));
+        Assert.Contains(
+            closure.BasisAgreements,
+            agreement => agreement.Encounter.IsExplicitPinnedBasis && agreement.InvertsDirection);
+
+        Assert.True(trolley.TryContinuePreferred(out var wrapped));
+        Assert.True(SameNode(wrapped.Site, left));
+        Assert.True(wrapped.TryContinuePreferred(out var continued));
+        Assert.True(SameNode(continued.Site, middle));
+    }
+
+    [Fact]
     public void TrolleyContinuationCarriesBestLocalBasisAgreementOnPassThroughCarrier()
     {
         Carrier x = 1;
