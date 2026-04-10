@@ -130,6 +130,33 @@ public sealed class TopologyTrolleyTests
     }
 
     [Fact]
+    public void TrolleyCarriesAttenuatedCalibrationAfterPartialReflection()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var right = Site.Open(x, new Measure(10))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(6)),
+                new Ratio(new Measure(2), Measure.One),
+                Provenance.Shared(new Measure(2)));
+
+        var trolley = TopologyTrolley.Start(
+            ConnectedSiteTopology.FromRelations(new Relation(left, right)),
+            left);
+        Assert.True(trolley.TryContinuePreferred(out trolley));
+        Assert.True(SameNode(trolley.Site, right));
+
+        var reflection = Assert.Single(trolley.Observe().ForwardContinuations);
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), reflection.Transmission);
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), reflection.Retention);
+
+        Assert.True(trolley.TryContinuePreferred(out var returned));
+        Assert.True(SameNode(returned.Site, left));
+        Assert.Equal(new Ratio(new Measure(5), Measure.One), returned.Signature.Calibration);
+    }
+
+    [Fact]
     public void TrolleyWrapsToKnownClosureTargetInsteadOfReflectingAtTerminal()
     {
         Carrier x = 1;

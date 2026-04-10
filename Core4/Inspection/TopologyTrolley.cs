@@ -15,6 +15,7 @@ public readonly record struct TopologyTrolley(
     Site Site,
     Relation? Ingress,
     Measure Direction,
+    Ratio CarriedCalibration,
     ImmutableArray<Site> TrailSites,
     ImmutableArray<Relation> TrailRelations)
 {
@@ -26,6 +27,7 @@ public readonly record struct TopologyTrolley(
             resolved,
             null,
             Measure.Zero,
+            InitialCalibration(resolved),
             [resolved],
             ImmutableArray<Relation>.Empty);
     }
@@ -34,7 +36,7 @@ public readonly record struct TopologyTrolley(
 
     public ImmutableArray<SiteBasisEncounter> BasisEncounters => Topology.BasisEncountersAt(Site);
 
-    public TraversalSignature Signature => SignatureOf(Site, Direction, Ingress);
+    public TraversalSignature Signature => SignatureOf(Site, Direction, CarriedCalibration, Ingress);
 
     public TopologyTrolleyObservation Observe()
     {
@@ -101,6 +103,7 @@ public readonly record struct TopologyTrolley(
             next,
             continuation.Relation,
             continuation.Direction,
+            continuation.TargetSignature.Calibration.Multiply(continuation.Transmission).Canonicalize(),
             TrailSites.Add(next),
             TrailRelations.Add(continuation.Relation));
     }
@@ -161,26 +164,21 @@ public readonly record struct TopologyTrolley(
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
 
-    private static TraversalSignature SignatureOf(Site site, Measure direction, Relation? ingress) =>
+    private static TraversalSignature SignatureOf(Site site, Measure direction, Ratio calibration, Relation? ingress) =>
         TraversalSignature.FromSite(
             site,
             direction,
-            Carry(site, ingress),
+            calibration,
             TraversalSignature.ProvenanceFor(direction, ingress?.Potential ?? site.Potential));
 
-    private static Ratio Carry(Site site, Relation? ingress)
+    private static Ratio InitialCalibration(Site site)
     {
-        if (ingress.HasValue)
-        {
-            return ingress.Value.Span.Normalize();
-        }
-
         if (site.State.Potential != Measure.Zero || site.State.Dominant != Measure.Zero)
         {
-            return site.State.Normalize();
+            return site.State.Normalize().Canonicalize();
         }
 
-        return Ratio.Tension(site.Potential);
+        return Ratio.Tension(site.Potential).Canonicalize();
     }
 
     private static Site Canonicalize(ConnectedSiteTopology topology, Site site)
@@ -468,6 +466,11 @@ public readonly record struct TopologyTrolleyObservation(
                 continue;
             }
 
+            if (agreement.Commitment.Potential == Measure.Zero)
+            {
+                continue;
+            }
+
             continuations.Add(continuation with
             {
                 Transmission = agreement.Commitment.Canonicalize(),
@@ -494,7 +497,7 @@ public readonly record struct TopologyTrolleyObservation(
 
             var agreement = BasisEncounterAgreement.Create(Trolley.Signature, encounter, preservedDirection);
 
-            if (!agreement.InvertsDirection)
+            if (!agreement.InvertsDirection || agreement.Commitment.Potential == Measure.Zero)
             {
                 continue;
             }
