@@ -503,18 +503,29 @@ public readonly record struct TopologyTrolleyObservation(
 
             var agreement = BasisEncounterAgreement.Create(Trolley.Signature, encounter, preservedDirection);
 
-            if (!agreement.InvertsDirection || agreement.Commitment.Potential == Measure.Zero)
+            if (agreement.Commitment.Potential == Measure.Zero)
+            {
+                continue;
+            }
+
+            var continuationDirection = agreement.InvertsDirection
+                ? preservedDirection
+                : agreement.PreservesDirection
+                    ? -preservedDirection
+                    : Measure.Zero;
+
+            if (continuationDirection == Measure.Zero)
             {
                 continue;
             }
 
             var relation = CanonicalRelation(Trolley.Site, target, encounter.Carrier);
-            var disposition = TraversalDisposition.Create(false, preservedDirection, false);
+            var disposition = TraversalDisposition.Create(false, continuationDirection, false);
             var targetSignature = TraversalSignature.FromSite(
                 target,
                 relation.Span.Normalize(),
-                TraversalModifier.FromDirection(preservedDirection),
-                TraversalSignature.ProvenanceFor(preservedDirection, relation.Potential));
+                TraversalModifier.FromDirection(continuationDirection),
+                TraversalSignature.ProvenanceFor(continuationDirection, relation.Potential));
 
             continuations.Add(new TopologyTrolleyContinuation(
                 relation,

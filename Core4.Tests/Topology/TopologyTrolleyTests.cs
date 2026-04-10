@@ -197,6 +197,42 @@ public sealed class TopologyTrolleyTests
     }
 
     [Fact]
+    public void TrolleyCanCloseToKnownTargetWithInvertedPerspective()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var middle = Site.Open(x, new Measure(5));
+        var right = Site.Open(x, new Measure(10))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(14)),
+                Ratio.Tension(new Measure(4)),
+                Provenance.Shared(new Measure(4)));
+        var wrapTarget = Site.Open(x, new Measure(14));
+
+        var trolley = TopologyTrolley.Start(
+            ConnectedSiteTopology.Create(
+                [right, wrapTarget],
+                new Relation(left, middle),
+                new Relation(middle, right)),
+            left);
+        Assert.True(trolley.TryContinuePreferred(out trolley));
+        Assert.True(trolley.TryContinuePreferred(out trolley));
+        Assert.True(SameNode(trolley.Site, right));
+
+        var closure = Assert.Single(trolley.Observe().ForwardContinuations);
+        Assert.True(SameNode(closure.To, wrapTarget));
+        Assert.Equal(-Measure.One, closure.Direction);
+        Assert.True(closure.BestBasisAgreement.PreservesDirection);
+
+        Assert.True(trolley.TryContinuePreferred(out var wrapped));
+        Assert.True(SameNode(wrapped.Site, wrapTarget));
+        Assert.Equal(-Measure.One, wrapped.Direction);
+        Assert.Equal(-Measure.One, wrapped.Signature.Perspective);
+        Assert.Equal(-Measure.One, wrapped.Signature.EffectiveDirection);
+    }
+
+    [Fact]
     public void TrolleyPrefersMoreCommittedClosureWhenMultipleRemapsExist()
     {
         Carrier x = 1;
