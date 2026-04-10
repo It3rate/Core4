@@ -454,27 +454,37 @@ public readonly record struct CarrierChainDemoState(
         Carrier x = 1;
 
         var left = Site.Open(x, new Measure(0));
-        var middle = Site.Open(x, new Measure(5));
-        var right = Site.Open(x, new Measure(10))
+        var firstApex = Site.Open(x, new Measure(5));
+        var firstSeam = Site.Open(x, new Measure(10))
             .Exchange(
                 Basis.Freeze(x, new Measure(10), new Measure(14)),
                 Ratio.Tension(new Measure(4)),
                 Provenance.Shared(new Measure(4)));
-        var wrapTarget = Site.Open(x, new Measure(14));
+        var secondStart = Site.Open(x, new Measure(14));
+        var secondApex = Site.Open(x, new Measure(19));
+        var secondSeam = Site.Open(x, new Measure(24))
+            .Exchange(
+                Basis.Freeze(x, new Measure(24), new Measure(0)),
+                Ratio.Tension(new Measure(24)),
+                Provenance.Shared(new Measure(24)));
 
         return new CarrierChainDemoState(
             "Inverted Closure",
-            "The boundary remaps onto a known target whose local basis aligns with the current run, so closure still occurs but the trolley's own perspective is inverted at the seam.",
+            "One lobe closes through an inverted seam onto a second lobe, then a second seam returns to the first. The walk alternates between two loops instead of terminating at one remapped target.",
             ConnectedSiteTopology.Create(
-                [right, wrapTarget],
-                new Relation(left, middle),
-                new Relation(middle, right)),
-            right,
+                [firstSeam, secondSeam],
+                new Relation(left, firstApex),
+                new Relation(firstApex, firstSeam),
+                new Relation(secondSeam, secondApex),
+                new Relation(secondApex, secondStart)),
+            firstSeam,
             Seed(
-                (left, 0.18d, 0.74d),
-                (middle, 0.50d, 0.30d),
-                (right, 0.80d, 0.74d),
-                (wrapTarget, 0.24d, 0.18d)));
+                (left, 0.30d, 0.78d),
+                (firstApex, 0.12d, 0.50d),
+                (firstSeam, 0.30d, 0.22d),
+                (secondStart, 0.70d, 0.78d),
+                (secondApex, 0.84d, 0.50d),
+                (secondSeam, 0.70d, 0.22d)));
     }
 
     private static ImmutableDictionary<Site, Point> Seed(params (Site Site, double X, double Y)[] items)

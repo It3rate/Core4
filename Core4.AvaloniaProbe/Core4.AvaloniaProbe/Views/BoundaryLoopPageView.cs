@@ -3,7 +3,9 @@ using System.Collections.Immutable;
 using System.Text;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Core4.AvaloniaProbe.Controls;
 using Core4.AvaloniaProbe.Models;
@@ -256,7 +258,7 @@ public sealed class BoundaryLoopPageView : UserControl
 
         foreach (var frontier in _frontiers)
         {
-            if (frontier.TryContinuePreferred(out var moved))
+            if (TryContinueBoundaryPreferred(frontier, out var moved))
             {
                 next.Add(moved);
                 motions.Add(BoundaryMotion.Forward(frontier, moved));
@@ -394,7 +396,7 @@ public sealed class BoundaryLoopPageView : UserControl
         _scene.Overlay = BuildOverlay();
         _currentText.Text = DescribeCurrent();
         _encounterText.Text = DescribeEncounter();
-        _trailText.Text = DescribeTrail();
+        UpdateTrailText();
         RefreshMovementButtons();
     }
 
@@ -440,9 +442,7 @@ public sealed class BoundaryLoopPageView : UserControl
                 continue;
             }
 
-            var observation = frontier.Observe();
-
-            foreach (var continuation in observation.ForwardContinuations)
+            foreach (var continuation in BoundaryForwardContinuations(frontier))
             {
                 AddSite(candidateSites, continuation.To);
 
@@ -500,7 +500,7 @@ public sealed class BoundaryLoopPageView : UserControl
 
         foreach (var frontier in _frontiers)
         {
-            hasPreferred |= frontier.Observe().TryPreferred(out _);
+            hasPreferred |= TryPreferredBoundaryContinuation(frontier, out _);
         }
 
         _continueButton.IsEnabled = hasPreferred;
@@ -563,7 +563,7 @@ public sealed class BoundaryLoopPageView : UserControl
             builder.Append('\n');
             builder.Append("forward continuation      ");
 
-            if (!observation.TryPreferred(out var preferred))
+            if (!TryPreferredBoundaryContinuation(frontier, out var preferred))
             {
                 builder.Append("none");
                 continue;
@@ -593,48 +593,35 @@ public sealed class BoundaryLoopPageView : UserControl
         return builder.ToString();
     }
 
-    private string DescribeTrail()
+    private void UpdateTrailText()
     {
-        var builder = new StringBuilder();
+        _trailText.Inlines?.Clear();
 
         for (var index = 0; index < _frontiers.Length; index++)
         {
-            var frontier = _frontiers[index];
-
             if (index > 0)
             {
-                builder.Append("\n\n");
+                _trailText.Inlines?.Add(new LineBreak());
+                _trailText.Inlines?.Add(new LineBreak());
             }
 
-            builder.Append("frontier ");
-            builder.Append(index + 1);
-            builder.Append("               ");
-
-            for (var siteIndex = 0; siteIndex < frontier.TrailSites.Length; siteIndex++)
-            {
-                if (siteIndex > 0)
-                {
-                    builder.Append(" -> ");
-                }
-
-                builder.Append(SiteLabel(frontier.TrailSites[siteIndex]));
-            }
+            var frontier = _frontiers[index];
+            _trailText.Inlines?.Add(new Run($"frontier {index + 1}               "));
+            AddTrailRuns(frontier);
 
             if (frontier.ExactReentryPeriod != Core4.Numerics.Measure.Zero)
             {
-                builder.Append('\n');
-                builder.Append("exact re-entry            ");
-                builder.Append(frontier.ExactReentryPeriod);
+                _trailText.Inlines?.Add(new LineBreak());
+                _trailText.Inlines?.Add(new Run($"exact re-entry            {frontier.ExactReentryPeriod}"));
             }
         }
 
         if (_autoWave.IsPeriodic)
         {
-            builder.Append("\n\nperiodic                 ");
-            builder.Append(_autoWave.Period);
+            _trailText.Inlines?.Add(new LineBreak());
+            _trailText.Inlines?.Add(new LineBreak());
+            _trailText.Inlines?.Add(new Run($"periodic                 {_autoWave.Period}"));
         }
-
-        return builder.ToString();
     }
 
     private string DescribeFrontierStatus()
@@ -660,6 +647,90 @@ public sealed class BoundaryLoopPageView : UserControl
         }
 
         return label;
+    }
+
+    private void AddTrailRuns(TopologyTrolley frontier)
+    {
+        var displaySites = frontier.TrailSites;
+        var highlightIndex = displaySites.Length - 1;
+
+        if (TryBuildCycleDisplay(frontier, out var cycleSites, out var cycleHighlightIndex))
+        {
+            displaySites = cycleSites;
+            highlightIndex = cycleHighlightIndex;
+        }
+
+        for (var siteIndex = 0; siteIndex < displaySites.Length; siteIndex++)
+        {
+            if (siteIndex > 0)
+            {
+                _trailText.Inlines?.Add(new Run(" -> "));
+            }
+
+            var run = new Run(SiteLabel(displaySites[siteIndex]));
+
+            if (siteIndex == highlightIndex)
+            {
+                run.Foreground = ProbePalette.Origin;
+                run.FontWeight = FontWeight.SemiBold;
+            }
+
+            _trailText.Inlines?.Add(run);
+        }
+    }
+
+    private bool TryBuildCycleDisplay(
+        TopologyTrolley frontier,
+        out ImmutableArray<Site> displaySites,
+        out int highlightIndex)
+    {
+        displaySites = ImmutableArray<Site>.Empty;
+        highlightIndex = -1;
+
+        if (frontier.TrailSites.Length < 2)
+        {
+            return false;
+        }
+
+        var anchorIndex = FindCycleAnchor(frontier.TrailSites, _preset.StartSite);
+
+        if (anchorIndex < 0)
+        {
+            return false;
+        }
+
+        var nextAnchor = FindNextSameNode(frontier.TrailSites, anchorIndex + 1, _preset.StartSite);
+
+        if (nextAnchor < 0)
+        {
+            return false;
+        }
+
+        var currentIndex = frontier.TrailSites.Length - 1;
+        var cycleLength = nextAnchor - anchorIndex;
+
+        if (cycleLength <= 0)
+        {
+            return false;
+        }
+
+        var currentOffset = (currentIndex - anchorIndex) % cycleLength;
+
+        if (currentOffset < 0)
+        {
+            currentOffset += cycleLength;
+        }
+
+        var builder = ImmutableArray.CreateBuilder<Site>(cycleLength + 1);
+
+        for (var index = 0; index <= cycleLength; index++)
+        {
+            builder.Add(frontier.TrailSites[anchorIndex + index]);
+        }
+
+        displaySites = builder.ToImmutable();
+        highlightIndex = currentOffset;
+        return true;
     }
 
     private static string DescribeEncounter(SiteBasisEncounter encounter)
@@ -953,6 +1024,58 @@ public sealed class BoundaryLoopPageView : UserControl
         return mapped.ToImmutable();
     }
 
+    private bool TryContinueBoundaryPreferred(TopologyTrolley frontier, out TopologyTrolley moved)
+    {
+        if (TryPreferredBoundaryContinuation(frontier, out var continuation))
+        {
+            moved = frontier.Move(continuation);
+            return true;
+        }
+
+        moved = default;
+        return false;
+    }
+
+    private bool TryPreferredBoundaryContinuation(
+        TopologyTrolley frontier,
+        out TopologyTrolleyContinuation continuation)
+    {
+        var positiveObservation = frontier.Observe(Core4.Numerics.Measure.One);
+
+        if (positiveObservation.TryPreferred(Core4.Numerics.Measure.One, out var seamPreferred)
+            && HasExplicitPinnedBasis(seamPreferred))
+        {
+            continuation = seamPreferred;
+            return true;
+        }
+
+        var perspective = PreferredPerspective(frontier);
+        var observation = frontier.Observe(perspective);
+        return observation.TryPreferred(perspective, out continuation);
+    }
+
+    private ImmutableArray<TopologyTrolleyContinuation> BoundaryForwardContinuations(TopologyTrolley frontier)
+    {
+        var positive = frontier.Observe(Core4.Numerics.Measure.One).ForwardContinuationsIn(Core4.Numerics.Measure.One);
+        var explicitContinuations = ImmutableArray.CreateBuilder<TopologyTrolleyContinuation>();
+
+        foreach (var continuation in positive)
+        {
+            if (HasExplicitPinnedBasis(continuation))
+            {
+                explicitContinuations.Add(continuation);
+            }
+        }
+
+        if (explicitContinuations.Count != 0)
+        {
+            return explicitContinuations.ToImmutable();
+        }
+
+        var perspective = PreferredPerspective(frontier);
+        return frontier.Observe(perspective).ForwardContinuationsIn(perspective);
+    }
+
     private bool TryAdvanceContinuous(
         out ImmutableArray<BoundaryMotion> motions,
         out ImmutableArray<TopologyTrolley> nextFrontiers)
@@ -962,7 +1085,7 @@ public sealed class BoundaryLoopPageView : UserControl
 
         foreach (var frontier in _frontiers)
         {
-            if (frontier.TryContinuePreferred(out var moved))
+            if (TryContinueBoundaryPreferred(frontier, out var moved))
             {
                 next.Add(moved);
                 motionBuilder.Add(BoundaryMotion.Forward(frontier, moved));
@@ -1047,6 +1170,53 @@ public sealed class BoundaryLoopPageView : UserControl
         return false;
     }
 
+    private static Measure PreferredPerspective(TopologyTrolley frontier) =>
+        frontier.Signature.Perspective.Raw == 0L
+            ? Core4.Numerics.Measure.One
+            : frontier.Signature.Perspective;
+
+    private static bool HasExplicitPinnedBasis(TopologyTrolleyContinuation continuation)
+    {
+        foreach (var agreement in continuation.BasisAgreements)
+        {
+            if (agreement.Encounter.IsExplicitPinnedBasis)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static int FindCycleAnchor(ImmutableArray<Site> trailSites, Site anchor)
+    {
+        for (var index = 0; index < trailSites.Length; index++)
+        {
+            if (SameNode(trailSites[index], anchor))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private static int FindNextSameNode(ImmutableArray<Site> trailSites, int startIndex, Site anchor)
+    {
+        for (var index = startIndex; index < trailSites.Length; index++)
+        {
+            if (SameNode(trailSites[index], anchor))
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool SameNode(Site left, Site right) =>
+        left.Carrier == right.Carrier && left.Location == right.Location;
+
     private static string CarrierLabel(Carrier carrier) => carrier.Id switch
     {
         1L => "x",
@@ -1095,13 +1265,14 @@ public sealed class BoundaryLoopPageView : UserControl
 
         public static BoundaryPreset InvertedClosure => new(
             "Inverted Closure",
-            "Closure still remaps onto a known site, but the encountered basis aligns with the arriving run. The closure is real, yet the trolley's own perspective flips at the seam.",
+            "An inverted seam remaps the first lobe into a second lobe, then a second seam returns to the first. The walk alternates between two loops while the seam flips handedness at transfer.",
             CarrierChainDemoState.InvertedClosure,
             Site.Open(new Carrier(1), new Measure(0)),
             true,
             [
-                new BoundaryAnnotation(Site.Open(new Carrier(1), new Measure(10)), "wrap + invert", new Vector(18d, -30d)),
-                new BoundaryAnnotation(Site.Open(new Carrier(1), new Measure(14)), "target", new Vector(0d, -28d))
+                new BoundaryAnnotation(Site.Open(new Carrier(1), new Measure(10)), "invert ->", new Vector(18d, -30d)),
+                new BoundaryAnnotation(Site.Open(new Carrier(1), new Measure(14)), "second lobe", new Vector(8d, 28d)),
+                new BoundaryAnnotation(Site.Open(new Carrier(1), new Measure(24)), "<- return", new Vector(-18d, -30d))
             ]);
     }
 
