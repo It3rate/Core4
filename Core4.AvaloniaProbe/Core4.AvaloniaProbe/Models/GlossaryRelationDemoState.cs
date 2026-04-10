@@ -134,7 +134,6 @@ public readonly record struct GlossaryRelationCarrierState(
     ImmutableArray<GlossaryFrozenRelationState> Relations)
 {
     private const long TotalTicks = 100L;
-    private const long UnitTicks = 10L;
 
     public Point Start { get; init; } = SeedStart;
 
@@ -146,18 +145,20 @@ public readonly record struct GlossaryRelationCarrierState(
 
     public Measure CurrentMeasure => RawValueAt(SiteTicks);
 
-    public double CurrentRelation => HasOrigin
-        ? (SiteTicks.Raw - OriginTicks.Raw) / (double)UnitTicks
-        : 0d;
+    public Measure OriginMeasure => RawValueAt(OriginTicks);
+
+    public Measure CurrentRelation => HasOrigin
+        ? new Measure(CurrentMeasure.Raw - OriginMeasure.Raw)
+        : Measure.Zero;
 
     public string ActionLabel => HasOrigin ? "Freeze Relation" : "Pin Origin";
 
-    public double StartDisplayValue => HasOrigin
-        ? (0L - OriginTicks.Raw) / (double)UnitTicks
+    public long StartDisplayValue => HasOrigin
+        ? RawStartValue.Raw - OriginMeasure.Raw
         : RawStartValue.Raw;
 
-    public double EndDisplayValue => HasOrigin
-        ? (TotalTicks - OriginTicks.Raw) / (double)UnitTicks
+    public long EndDisplayValue => HasOrigin
+        ? RawEndValue.Raw - OriginMeasure.Raw
         : RawEndValue.Raw;
 
     public GlossaryRelationCarrierState WithEndpoint(bool updateStart, Point value)
@@ -193,7 +194,7 @@ public readonly record struct GlossaryRelationCarrierState(
         {
             Relations = Relations.Add(new GlossaryFrozenRelationState(
                 Site,
-                new Measure(SiteTicks.Raw - OriginTicks.Raw)))
+                CurrentRelation))
         };
     }
 
@@ -216,7 +217,4 @@ public readonly record struct GlossaryRelationCarrierState(
         Math.Clamp(point.Y, 0.08d, 0.92d));
 }
 
-public readonly record struct GlossaryFrozenRelationState(Placement Placement, Measure RelativeTicks)
-{
-    public double Units => RelativeTicks.Raw / 10d;
-}
+public readonly record struct GlossaryFrozenRelationState(Placement Placement, Measure RelativeValue);

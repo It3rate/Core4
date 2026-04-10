@@ -141,7 +141,7 @@ internal static class GlossaryRelationRenderer
         context.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(110, 107, 118, 128)), 1d), carrier.Origin, anchor);
         ScenePrimitives.DrawCenteredBadgeLabel(
             context,
-            "origin\n0.0",
+            "origin\n0",
             anchor,
             9d,
             ProbePalette.Ink,
@@ -165,7 +165,7 @@ internal static class GlossaryRelationRenderer
             context.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(110, 107, 118, 128)), 1d), point, anchor + new Vector(-3d, sign * 3d));
             ScenePrimitives.DrawBadgeLabel(
                 context,
-                $"relation\n{relation.Units:0.0}",
+                $"relation\n{relation.RelativeValue.Raw}",
                 anchor,
                 9d,
                 ProbePalette.Ink,
@@ -186,7 +186,7 @@ internal static class GlossaryRelationRenderer
 
         context.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(110, 107, 118, 128)), 1d), carrier.Site, anchor);
         var text = carrier.State.HasOrigin
-            ? $"site\nrelation: {carrier.State.CurrentRelation:0.0}"
+            ? $"site\nrelation: {carrier.State.CurrentRelation.Raw}"
             : $"site\nmeasure: {carrier.State.CurrentMeasure.Raw}";
         ScenePrimitives.DrawCenteredBadgeLabel(
             context,
@@ -204,25 +204,32 @@ internal static class GlossaryRelationRenderer
 
     private static Point SiteBadgeAnchor(Rect scene, Point site, Vector direction)
     {
-        Vector offset;
-        if (Math.Abs(direction.X) < Math.Abs(direction.Y) * 0.45d)
+        var length = Math.Sqrt((direction.X * direction.X) + (direction.Y * direction.Y));
+        if (length <= 0.001d)
         {
-            offset = new Vector(74d, 34d);
+            return ClampAnchor(scene, site + new Vector(70d, -28d));
         }
-        else if ((direction.X * direction.Y) < 0d)
+
+        Vector normal;
+        if (Math.Abs(direction.X) < Math.Abs(direction.Y) * 0.12d)
         {
-            offset = new Vector(72d, 28d);
+            normal = new Vector(1d, -0.42d);
         }
         else
         {
-            offset = new Vector(72d, -28d);
+            var a = new Vector(-direction.Y, direction.X);
+            var b = new Vector(direction.Y, -direction.X);
+            normal = a.Y <= b.Y ? a : b;
+            normal /= Math.Sqrt((normal.X * normal.X) + (normal.Y * normal.Y));
         }
 
-        var anchor = site + offset;
-        return new Point(
+        return ClampAnchor(scene, site + (normal * 72d));
+    }
+
+    private static Point ClampAnchor(Rect scene, Point anchor)
+        => new(
             Math.Clamp(anchor.X, scene.X + 84d, scene.Right - 84d),
             Math.Clamp(anchor.Y, scene.Y + 28d, scene.Bottom - 28d));
-    }
 
     private static void DrawHandles(DrawingContext context, GlossaryRelationCarrierLayout carrier)
     {
@@ -247,12 +254,8 @@ internal static class GlossaryRelationRenderer
     {
         var startPoint = carrier.Start + GlossaryClaimVisuals.EndpointLabelOffset(carrier.State.Carrier, true);
         var endPoint = carrier.End + GlossaryClaimVisuals.EndpointLabelOffset(carrier.State.Carrier, false);
-        var startText = carrier.State.HasOrigin
-            ? $"{carrier.State.StartDisplayValue:0.0}"
-            : carrier.State.StartDisplayValue.ToString("0");
-        var endText = carrier.State.HasOrigin
-            ? $"{carrier.State.EndDisplayValue:0.0}"
-            : carrier.State.EndDisplayValue.ToString("0");
+        var startText = carrier.State.StartDisplayValue.ToString();
+        var endText = carrier.State.EndDisplayValue.ToString();
 
         ScenePrimitives.DrawBadgeLabel(
             context,

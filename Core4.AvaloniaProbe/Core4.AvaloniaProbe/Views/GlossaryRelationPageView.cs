@@ -155,7 +155,7 @@ public sealed class GlossaryRelationPageView : UserControl
             {
                 ProbeUi.Mono("INTERACTIVE SCENE", 10d, ProbePalette.Muted),
                 ProbeUi.DisplayTitle("Pin Origin And Freeze Relation", 18d),
-                ProbeUi.Body("Each carrier can pin its own origin. After that, the same movable site is read as relation from that origin in tenths, and frozen relation markers accumulate against the same support.", 10d)
+                ProbeUi.Body("Each carrier can pin its own origin. After that, the same movable site is read in the carrier's own ticks with the chosen origin re-zeroed to 0, and frozen relation markers accumulate against that same support.", 10d)
             }
         };
 

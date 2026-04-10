@@ -142,25 +142,32 @@ internal static class GlossaryClaimRenderer
 
     private static Point SiteBadgeAnchor(Rect scene, Point site, Vector direction)
     {
-        Vector offset;
-        if (Math.Abs(direction.X) < Math.Abs(direction.Y) * 0.45d)
+        var length = Math.Sqrt((direction.X * direction.X) + (direction.Y * direction.Y));
+        if (length <= 0.001d)
         {
-            offset = new Vector(74d, 34d);
+            return ClampAnchor(scene, site + new Vector(70d, -28d));
         }
-        else if ((direction.X * direction.Y) < 0d)
+
+        Vector normal;
+        if (Math.Abs(direction.X) < Math.Abs(direction.Y) * 0.12d)
         {
-            offset = new Vector(72d, 28d);
+            normal = new Vector(1d, -0.42d);
         }
         else
         {
-            offset = new Vector(72d, -28d);
+            var a = new Vector(-direction.Y, direction.X);
+            var b = new Vector(direction.Y, -direction.X);
+            normal = a.Y <= b.Y ? a : b;
+            normal /= Math.Sqrt((normal.X * normal.X) + (normal.Y * normal.Y));
         }
 
-        var anchor = site + offset;
-        return new Point(
+        return ClampAnchor(scene, site + (normal * 72d));
+    }
+
+    private static Point ClampAnchor(Rect scene, Point anchor)
+        => new(
             Math.Clamp(anchor.X, scene.X + 84d, scene.Right - 84d),
             Math.Clamp(anchor.Y, scene.Y + 28d, scene.Bottom - 28d));
-    }
 
     private static void DrawPins(DrawingContext context, GlossaryClaimCarrierLayout carrier)
     {
