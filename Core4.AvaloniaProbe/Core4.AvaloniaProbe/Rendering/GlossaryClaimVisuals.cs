@@ -15,37 +15,6 @@ internal static class GlossaryClaimVisuals
         _ => $"Carrier {carrier.Id}"
     };
 
-    public static string Summary(Carrier carrier) => carrier.Id switch
-    {
-        1L => "Ordered warmth from cooler to warmer.",
-        2L => "Ordered elevation from lower to higher.",
-        3L => "Ordered density from sparse to dense.",
-        _ => "Ordered support."
-    };
-
-    public static string SiteCaption(Carrier carrier, double ratio) => carrier.Id switch
-    {
-        1L when ratio < 0.2d => "cool site",
-        1L when ratio < 0.45d => "tempered site",
-        1L when ratio < 0.75d => "warm site",
-        1L => "hot site",
-        2L when ratio < 0.25d => "low site",
-        2L when ratio < 0.6d => "middle site",
-        2L => "high site",
-        3L when ratio < 0.25d => "light site",
-        3L when ratio < 0.6d => "mixed site",
-        3L => "dense site",
-        _ => "site"
-    };
-
-    public static string MeasureLabel(Carrier carrier) => carrier.Id switch
-    {
-        1L => "heat",
-        2L => "height",
-        3L => "density",
-        _ => "measure"
-    };
-
     public static IBrush TrackBrush(Carrier carrier) => carrier.Id switch
     {
         1L => new LinearGradientBrush
@@ -141,6 +110,14 @@ internal static class GlossaryClaimVisuals
     }
 
     public static Pen HandlePen => new(new SolidColorBrush(Color.Parse("#c8bca8")), 1.2d);
+
+    public static Vector EndpointLabelOffset(Carrier carrier, bool start) => carrier.Id switch
+    {
+        2L when start => new Vector(10d, 10d),
+        2L => new Vector(10d, -20d),
+        _ when start => new Vector(-4d, 12d),
+        _ => new Vector(8d, 12d)
+    };
 
     private static void DrawHeightTicks(DrawingContext context, Point start, Point end)
     {

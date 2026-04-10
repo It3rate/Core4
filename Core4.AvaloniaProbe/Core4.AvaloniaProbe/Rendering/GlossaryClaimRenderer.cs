@@ -26,7 +26,7 @@ internal static class GlossaryClaimRenderer
             var measures = ImmutableArray.CreateBuilder<Point>(carrier.Measures.Length);
             foreach (var measure in carrier.Measures)
             {
-                measures.Add(Lerp(start, end, measure.Ratio.Approximate));
+                measures.Add(Lerp(start, end, measure.Placement.Ratio.Approximate));
             }
 
             carriers.Add(new GlossaryClaimCarrierLayout(index, start, end, site, measures.ToImmutable(), carrier));
@@ -101,30 +101,17 @@ internal static class GlossaryClaimRenderer
     private static void DrawLabels(DrawingContext context, GlossaryClaimCarrierLayout carrier)
     {
         var midpoint = Lerp(carrier.Start, carrier.End, 0.5d);
-        var direction = new Vector(carrier.End.X - carrier.Start.X, carrier.End.Y - carrier.Start.Y);
-        var length = Math.Sqrt((direction.X * direction.X) + (direction.Y * direction.Y));
-        var unit = length <= 0d ? new Vector(1d, 0d) : direction / length;
-        var normal = new Vector(-unit.Y, unit.X);
-        var labelPoint = midpoint + (normal * 28d);
-        var subPoint = labelPoint + new Vector(0d, 18d);
-
-        ScenePrimitives.DrawBadgeLabel(
+        var labelCenter = midpoint + new Vector(0d, 28d);
+        ScenePrimitives.DrawCenteredLabel(
             context,
             GlossaryClaimVisuals.Label(carrier.State.Carrier),
-            labelPoint,
+            labelCenter,
             11d,
             ProbePalette.Ink,
             FontWeight.SemiBold,
-            ProbePalette.UiFont,
-            ProbePalette.Surface,
-            new Pen(new SolidColorBrush(Color.FromArgb(86, 197, 182, 160)), 0.9d));
-        ScenePrimitives.DrawLabel(
-            context,
-            GlossaryClaimVisuals.Summary(carrier.State.Carrier),
-            subPoint,
-            10d,
-            ProbePalette.Muted,
-            fontFamily: ProbePalette.UiFont);
+            ProbePalette.UiFont);
+
+        DrawEndpointLabels(context, carrier);
     }
 
     private static void DrawSite(DrawingContext context, GlossaryClaimCarrierLayout carrier)
@@ -151,14 +138,14 @@ internal static class GlossaryClaimRenderer
             var point = carrier.Measures[index];
             var sign = index % 2 == 0 ? 1d : -1d;
             var anchor = point + new Vector(14d, sign * 16d);
-            GlossaryClaimVisuals.DrawMeasureGlyph(context, carrier.State.Carrier, point, carrier.State.Measures[index].Ratio.Approximate);
+            GlossaryClaimVisuals.DrawMeasureGlyph(context, carrier.State.Carrier, point, carrier.State.Measures[index].Placement.Ratio.Approximate);
             context.DrawLine(
                 new Pen(new SolidColorBrush(Color.FromArgb(110, 107, 118, 128)), 1d),
                 point,
                 anchor + new Vector(-4d, sign * 2d));
             ScenePrimitives.DrawBadgeLabel(
                 context,
-                GlossaryClaimVisuals.MeasureLabel(carrier.State.Carrier),
+                carrier.State.Measures[index].Value.Raw.ToString(),
                 anchor,
                 9d,
                 ProbePalette.Ink,
@@ -174,6 +161,34 @@ internal static class GlossaryClaimRenderer
     {
         ScenePrimitives.DrawCircle(context, carrier.Start, 6d, ProbePalette.Surface, GlossaryClaimVisuals.HandlePen);
         ScenePrimitives.DrawCircle(context, carrier.End, 6d, ProbePalette.Surface, GlossaryClaimVisuals.HandlePen);
+    }
+
+    private static void DrawEndpointLabels(DrawingContext context, GlossaryClaimCarrierLayout carrier)
+    {
+        var startPoint = carrier.Start + GlossaryClaimVisuals.EndpointLabelOffset(carrier.State.Carrier, true);
+        var endPoint = carrier.End + GlossaryClaimVisuals.EndpointLabelOffset(carrier.State.Carrier, false);
+        ScenePrimitives.DrawBadgeLabel(
+            context,
+            carrier.State.StartValue.Raw.ToString(),
+            startPoint,
+            9d,
+            ProbePalette.Ink,
+            fontFamily: ProbePalette.MonoFont,
+            background: ProbePalette.Surface,
+            stroke: new Pen(new SolidColorBrush(Color.FromArgb(90, 197, 182, 160)), 0.8d),
+            padding: new Thickness(5, 2, 5, 2),
+            cornerRadius: 8d);
+        ScenePrimitives.DrawBadgeLabel(
+            context,
+            carrier.State.EndValue.Raw.ToString(),
+            endPoint,
+            9d,
+            ProbePalette.Ink,
+            fontFamily: ProbePalette.MonoFont,
+            background: ProbePalette.Surface,
+            stroke: new Pen(new SolidColorBrush(Color.FromArgb(90, 197, 182, 160)), 0.8d),
+            padding: new Thickness(5, 2, 5, 2),
+            cornerRadius: 8d);
     }
 
     private static Point FromNormalized(Rect scene, Point point) => new(

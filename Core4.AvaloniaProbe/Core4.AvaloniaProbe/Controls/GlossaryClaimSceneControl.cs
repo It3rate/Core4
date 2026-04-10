@@ -16,7 +16,7 @@ public sealed class GlossaryClaimSceneControl : Control
 {
     private const double HandleRadius = 20d;
 
-    private GlossaryClaimDemoState _state = GlossaryClaimDemoState.Default;
+    private GlossaryClaimDemoState _state = GlossaryClaimDemoState.CreateDefault();
     private DragSession _activeDrag = DragSession.Default;
 
     public GlossaryClaimSceneControl()

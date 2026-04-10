@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Immutable;
-using System.Linq;
 using Avalonia;
 using Core4.Numerics;
 using Core4.Structure;
@@ -9,33 +8,19 @@ namespace Core4.AvaloniaProbe.Models;
 
 /// <summary>
 /// Scene state for the first glossary claim page. Carrier geometry is visual, while site and measure positions stay
-/// on real Core4 carriers as placements expressed by ratios.
+/// on real Core4 carriers as placements expressed by ratios. Endpoint values are intentionally ordered but
+/// uncalibrated.
 /// </summary>
 public readonly record struct GlossaryClaimDemoState(ImmutableArray<GlossaryClaimCarrierState> Carriers)
 {
     private static readonly Measure DefaultTicks = new(12);
 
-    public static GlossaryClaimDemoState Default { get; } =
-        new(
+    public static GlossaryClaimDemoState CreateDefault()
+        => new(
         [
-            new GlossaryClaimCarrierState(
-                new Carrier(1),
-                new Point(0.58d, 0.18d),
-                new Point(0.90d, 0.34d),
-                new Ratio(2, DefaultTicks),
-                ImmutableArray<Placement>.Empty),
-            new GlossaryClaimCarrierState(
-                new Carrier(2),
-                new Point(0.18d, 0.82d),
-                new Point(0.26d, 0.16d),
-                new Ratio(7, DefaultTicks),
-                ImmutableArray<Placement>.Empty),
-            new GlossaryClaimCarrierState(
-                new Carrier(3),
-                new Point(0.46d, 0.78d),
-                new Point(0.86d, 0.62d),
-                new Ratio(9, DefaultTicks),
-                ImmutableArray<Placement>.Empty)
+            CreateCarrier(new Carrier(1), new Point(0.58d, 0.18d), new Point(0.90d, 0.34d), new Ratio(2, DefaultTicks)),
+            CreateCarrier(new Carrier(2), new Point(0.22d, 0.82d), new Point(0.22d, 0.16d), new Ratio(7, DefaultTicks)),
+            CreateCarrier(new Carrier(3), new Point(0.46d, 0.78d), new Point(0.86d, 0.62d), new Ratio(9, DefaultTicks))
         ]);
 
     public GlossaryClaimCarrierState CarrierAt(int index) => Carriers[index];
@@ -50,10 +35,17 @@ public readonly record struct GlossaryClaimDemoState(ImmutableArray<GlossaryClai
         => UpdateCarrier(index, carrier => carrier.AddMeasure());
 
     public GlossaryClaimDemoState ClearMeasures()
-        => new(Carriers.Select(static carrier => carrier.ClearMeasures()).ToImmutableArray());
+    {
+        var builder = Carriers.ToBuilder();
+        for (var index = 0; index < builder.Count; index++)
+        {
+            builder[index] = builder[index].ClearMeasures();
+        }
 
-    public GlossaryClaimDemoState ResetLayout()
-        => new(Carriers.Select(static carrier => carrier.ResetLayout()).ToImmutableArray());
+        return new GlossaryClaimDemoState(builder.ToImmutable());
+    }
+
+    public GlossaryClaimDemoState ResetLayout() => CreateDefault();
 
     private GlossaryClaimDemoState UpdateCarrier(int index, Func<GlossaryClaimCarrierState, GlossaryClaimCarrierState> update)
     {
@@ -66,6 +58,39 @@ public readonly record struct GlossaryClaimDemoState(ImmutableArray<GlossaryClai
         builder[index] = update(builder[index]);
         return new GlossaryClaimDemoState(builder.ToImmutable());
     }
+
+    private static GlossaryClaimCarrierState CreateCarrier(Carrier carrier, Point seedStart, Point seedEnd, Ratio siteRatio)
+    {
+        var (startValue, endValue) = CreateOrderedRange();
+        return new GlossaryClaimCarrierState(
+            carrier,
+            seedStart,
+            seedEnd,
+            siteRatio,
+            startValue,
+            endValue,
+            ImmutableArray<GlossaryClaimMeasureState>.Empty);
+    }
+
+    private static (Measure StartValue, Measure EndValue) CreateOrderedRange()
+    {
+        while (true)
+        {
+            var lower = Random.Shared.NextInt64(10L, 9850L);
+            var maxSpan = Math.Min(4200L, 9999L - lower);
+            if (maxSpan < 50L)
+            {
+                continue;
+            }
+
+            var span = Random.Shared.NextInt64(50L, maxSpan + 1L);
+            var upper = lower + span;
+            var ascending = Random.Shared.Next(0, 2) == 0;
+            return ascending
+                ? (new Measure(lower), new Measure(upper))
+                : (new Measure(upper), new Measure(lower));
+        }
+    }
 }
 
 public readonly record struct GlossaryClaimCarrierState(
@@ -73,7 +98,9 @@ public readonly record struct GlossaryClaimCarrierState(
     Point SeedStart,
     Point SeedEnd,
     Ratio SiteRatio,
-    ImmutableArray<Placement> Measures)
+    Measure StartValue,
+    Measure EndValue,
+    ImmutableArray<GlossaryClaimMeasureState> Measures)
 {
     private static readonly Measure DefaultTicks = new(12);
 
@@ -82,6 +109,8 @@ public readonly record struct GlossaryClaimCarrierState(
     public Point End { get; init; } = SeedEnd;
 
     public Placement Site => Carrier.At(NormalizeRatio(SiteRatio));
+
+    public Measure CurrentValue => ValueAt(Site.Ratio);
 
     public GlossaryClaimCarrierState WithSite(Ratio ratio) => this with
     {
@@ -98,19 +127,21 @@ public readonly record struct GlossaryClaimCarrierState(
 
     public GlossaryClaimCarrierState AddMeasure() => this with
     {
-        Measures = Measures.Add(Site)
+        Measures = Measures.Add(new GlossaryClaimMeasureState(Site, CurrentValue))
     };
 
     public GlossaryClaimCarrierState ClearMeasures() => this with
     {
-        Measures = ImmutableArray<Placement>.Empty
+        Measures = ImmutableArray<GlossaryClaimMeasureState>.Empty
     };
 
-    public GlossaryClaimCarrierState ResetLayout() => this with
+    public Measure ValueAt(Ratio ratio)
     {
-        Start = SeedStart,
-        End = SeedEnd
-    };
+        var normalized = NormalizeRatio(ratio);
+        var span = EndValue.Raw - StartValue.Raw;
+        var offset = span * normalized.Recessive.Raw / Math.Max(1L, normalized.Dominant.Raw);
+        return new Measure(StartValue.Raw + offset);
+    }
 
     private static Ratio NormalizeRatio(Ratio ratio)
     {
@@ -123,3 +154,5 @@ public readonly record struct GlossaryClaimCarrierState(
         Math.Clamp(point.X, 0.06d, 0.94d),
         Math.Clamp(point.Y, 0.08d, 0.92d));
 }
+
+public readonly record struct GlossaryClaimMeasureState(Placement Placement, Measure Value);

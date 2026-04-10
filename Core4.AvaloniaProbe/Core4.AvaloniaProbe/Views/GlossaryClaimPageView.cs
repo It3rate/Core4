@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -13,11 +14,16 @@ namespace Core4.AvaloniaProbe.Views;
 /// </summary>
 public sealed class GlossaryClaimPageView : UserControl
 {
+    private static readonly ProbeGlossary.GlossarySection ClaimSection = FindSection("Claim / Creation");
+    private static readonly ProbeGlossary.GlossaryEntry CarrierEntry = FindEntry("Carrier");
+    private static readonly ProbeGlossary.GlossaryEntry SiteEntry = FindEntry("Site");
+    private static readonly ProbeGlossary.GlossaryEntry MeasureEntry = FindEntry("Measure");
+
     private readonly GlossaryClaimSceneControl _scene;
     private readonly TextBlock _metaCarrierText;
     private readonly TextBlock _metaMeasureText;
     private readonly CarrierCardControls[] _controls;
-    private GlossaryClaimDemoState _state = GlossaryClaimDemoState.Default;
+    private GlossaryClaimDemoState _state = GlossaryClaimDemoState.CreateDefault();
     private bool _syncing;
 
     public GlossaryClaimPageView()
@@ -59,29 +65,21 @@ public sealed class GlossaryClaimPageView : UserControl
 
         var leftColumn = new StackPanel
         {
-            Width = 224,
+            Width = 246,
             Spacing = 6,
             Children =
             {
+                SectionCard(),
+                EntryCard(CarrierEntry),
+                EntryCard(SiteEntry),
+                EntryCard(MeasureEntry),
                 ProbeUi.Card(new StackPanel
                 {
                     Spacing = 4,
                     Children =
                     {
-                        ProbeUi.Mono("GLOSSARY / CLAIM", 10d, ProbePalette.Muted),
-                        ProbeUi.DisplayTitle("Carrier / Site / Measure", 18d),
-                        ProbeUi.Body("Start with ordered support, then a place on that support, then a reading taken there. This page shows those three together before pinning or freezing anything.", 10d)
-                    }
-                }, 20d, new Thickness(12, 10)),
-                ProbeUi.Card(new StackPanel
-                {
-                    Spacing = 5,
-                    Children =
-                    {
-                        ProbeUi.Mono("READING ORDER", 10d, ProbePalette.Muted),
-                        GlossaryRow("Carrier", "ordered support"),
-                        GlossaryRow("Site", "place where relation may occur"),
-                        GlossaryRow("Measure", "reading of that site")
+                        ProbeUi.Mono("NOTES", 10d, ProbePalette.Muted),
+                        new Border { Height = 18d }
                     }
                 }, 20d, new Thickness(12, 10)),
                 ProbeUi.Card(new StackPanel
@@ -89,8 +87,7 @@ public sealed class GlossaryClaimPageView : UserControl
                     Spacing = 4,
                     Children =
                     {
-                        ProbeUi.Mono("TRY IT", 10d, ProbePalette.Muted),
-                        ProbeUi.Body("Drag carrier endpoints to reshape the ordered supports. Then move the site slider for each carrier and click Measure to leave a reading behind on the line.", 10d),
+                        ProbeUi.Mono("ACTIONS", 10d, ProbePalette.Muted),
                         new StackPanel
                         {
                             Orientation = Orientation.Horizontal,
@@ -156,7 +153,7 @@ public sealed class GlossaryClaimPageView : UserControl
             {
                 ProbeUi.Mono("INTERACTIVE SCENE", 10d, ProbePalette.Muted),
                 ProbeUi.DisplayTitle("Ordered Supports And Readings", 18d),
-                ProbeUi.Body("Each carrier suggests a different ordered attribute. The slider picks a site on that carrier, and each measure button leaves a reading at the chosen place.", 10d)
+                ProbeUi.Body("Each carrier suggests a different ordered attribute. The slider picks a site on that carrier, and each measure button leaves an uncalibrated reading at the chosen place.", 10d)
             }
         };
 
@@ -196,32 +193,27 @@ public sealed class GlossaryClaimPageView : UserControl
             }
         };
 
-        var caption = ProbeUi.Body(string.Empty, 10d);
-        var measureCount = ProbeUi.Mono(string.Empty, 10d, ProbePalette.Muted);
         var button = ProbeUi.PillButton("Measure");
         button.Click += (_, _) => ApplyState(_state.AddMeasure(index));
 
-        controls = new CarrierCardControls(slider, caption, measureCount);
+        controls = new CarrierCardControls(slider);
 
         return ProbeUi.Card(new StackPanel
         {
             Spacing = 7,
             Children =
             {
-                ProbeUi.Header(GlossaryClaimVisuals.Label(carrier), 12d),
-                ProbeUi.Body(GlossaryClaimVisuals.Summary(carrier), 10d),
-                slider,
-                caption,
                 new Grid
                 {
-                    ColumnDefinitions = new ColumnDefinitions("Auto,*"),
+                    ColumnDefinitions = new ColumnDefinitions("*,Auto"),
                     ColumnSpacing = 8,
                     Children =
                     {
-                        button,
-                        measureCount
+                        ProbeUi.Header(GlossaryClaimVisuals.Label(carrier), 12d),
+                        button
                     }
-                }
+                },
+                slider,
             }
         }, 20d, new Thickness(12, 10));
     }
@@ -244,10 +236,6 @@ public sealed class GlossaryClaimPageView : UserControl
             var ratio = carrier.Site.Ratio.Approximate;
             var ticks = (long)Math.Round(ratio * 12d, MidpointRounding.AwayFromZero);
             _controls[index].Slider.Value = ticks;
-            _controls[index].Caption.Text = GlossaryClaimVisuals.SiteCaption(carrier.Carrier, ratio);
-            _controls[index].MeasureCount.Text = carrier.Measures.Length == 0
-                ? "no measures yet"
-                : $"{carrier.Measures.Length} measure{(carrier.Measures.Length == 1 ? string.Empty : "s")}";
             totalMeasures += carrier.Measures.Length;
         }
 
@@ -258,23 +246,56 @@ public sealed class GlossaryClaimPageView : UserControl
         _syncing = false;
     }
 
-    private static Grid GlossaryRow(string term, string summary)
-    {
-        var grid = new Grid
+    private static Border SectionCard()
+        => ProbeUi.Card(new StackPanel
         {
-            ColumnDefinitions = new ColumnDefinitions("Auto,*"),
-            ColumnSpacing = 8
-        };
-        var termBlock = ProbeUi.Header(term, 11d);
-        var summaryBlock = ProbeUi.Mono(summary, 10d, ProbePalette.Muted);
-        grid.Children.Add(termBlock);
-        grid.Children.Add(summaryBlock);
-        Grid.SetColumn(summaryBlock, 1);
-        return grid;
+            Spacing = 4,
+            Children =
+            {
+                ProbeUi.Mono("GLOSSARY", 10d, ProbePalette.Muted),
+                ProbeUi.DisplayTitle(ClaimSection.Title, 18d),
+                ProbeUi.Body(ClaimSection.Blurb, 10d)
+            }
+        }, 20d, new Thickness(12, 10));
+
+    private static Border EntryCard(ProbeGlossary.GlossaryEntry entry)
+        => ProbeUi.Card(new StackPanel
+        {
+            Spacing = 4,
+            Children =
+            {
+                ProbeUi.Header(entry.Term, 12d),
+                ProbeUi.Mono(entry.Summary, 10d, ProbePalette.Muted),
+                ProbeUi.Body(entry.Description, 10d)
+            }
+        }, 20d, new Thickness(12, 10));
+
+    private static ProbeGlossary.GlossarySection FindSection(string title)
+    {
+        foreach (var section in ProbeGlossary.Sections)
+        {
+            if (string.Equals(section.Title, title, StringComparison.OrdinalIgnoreCase))
+            {
+                return section;
+            }
+        }
+
+        return ProbeGlossary.Sections[0];
     }
 
-    private readonly record struct CarrierCardControls(
-        GlossarySiteSliderControl Slider,
-        TextBlock Caption,
-        TextBlock MeasureCount);
+    private static ProbeGlossary.GlossaryEntry FindEntry(string term)
+    {
+        foreach (var section in ProbeGlossary.Sections)
+        {
+            var match = section.Entries.FirstOrDefault(entry => string.Equals(entry.Term, term, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(match.Term))
+            {
+                return match;
+            }
+        }
+
+        return ProbeGlossary.Sections[0].Entries[0];
+    }
+
+    private readonly record struct CarrierCardControls(GlossarySiteSliderControl Slider);
 }
