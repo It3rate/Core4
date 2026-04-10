@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace Core4.AvaloniaProbe.Services;
@@ -12,15 +14,11 @@ namespace Core4.AvaloniaProbe.Services;
 public static class WebPreviewLauncher
 {
     private static Process? _serverProcess;
-    private const string Url = "http://localhost:8080";
+    private static int _serverPort = 8080;
 
-    public static async Task LaunchAsync()
+    public static async Task LaunchAsync(string? route = null)
     {
-        if (_serverProcess is not null && !_serverProcess.HasExited)
-        {
-            OpenBrowser();
-            return;
-        }
+        StopServer();
 
         var root = FindRepoRoot();
         var browserProject = Path.Combine(root, "Core4.AvaloniaProbe", "Core4.AvaloniaProbe.Browser", "Core4.AvaloniaProbe.Browser.csproj");
@@ -32,8 +30,9 @@ public static class WebPreviewLauncher
             $"publish \"{browserProject}\" -c Release -o \"{publishDirectory}\" -p:UseSharedCompilation=false",
             root);
 
-        _serverProcess = TryStartServer(webRoot);
-        OpenBrowser();
+        _serverPort = FindAvailablePort();
+        _serverProcess = TryStartServer(webRoot, _serverPort);
+        OpenBrowser(route);
     }
 
     private static async Task RunAsync(string fileName, string arguments, string workingDirectory)
@@ -64,7 +63,7 @@ public static class WebPreviewLauncher
         }
     }
 
-    private static Process? TryStartServer(string workingDirectory)
+    private static Process? TryStartServer(string workingDirectory, int port)
     {
         foreach (var candidate in new[] { "python", "py", "python3" })
         {
@@ -73,7 +72,7 @@ public static class WebPreviewLauncher
                 var process = Process.Start(new ProcessStartInfo
                 {
                     FileName = candidate,
-                    Arguments = "-m http.server 8080",
+                    Arguments = $"-m http.server {port}",
                     WorkingDirectory = workingDirectory,
                     UseShellExecute = false,
                     CreateNoWindow = true
@@ -93,13 +92,58 @@ public static class WebPreviewLauncher
         return null;
     }
 
-    private static void OpenBrowser()
+    private static void OpenBrowser(string? route)
     {
         Process.Start(new ProcessStartInfo
         {
-            FileName = Url,
+            FileName = BuildUrl(route),
             UseShellExecute = true
         });
+    }
+
+    private static string BuildUrl(string? route)
+    {
+        var baseUrl = $"http://localhost:{_serverPort}";
+
+        if (string.IsNullOrWhiteSpace(route))
+        {
+            return baseUrl;
+        }
+
+        return $"{baseUrl}#page={Uri.EscapeDataString(route)}";
+    }
+
+    private static void StopServer()
+    {
+        if (_serverProcess is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (!_serverProcess.HasExited)
+            {
+                _serverProcess.Kill(entireProcessTree: true);
+                _serverProcess.WaitForExit(2000);
+            }
+        }
+        catch
+        {
+            // Best-effort only.
+        }
+        finally
+        {
+            _serverProcess.Dispose();
+            _serverProcess = null;
+        }
+    }
+
+    private static int FindAvailablePort()
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        return ((IPEndPoint)listener.LocalEndpoint).Port;
     }
 
     private static string FindRepoRoot()

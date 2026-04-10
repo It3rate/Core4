@@ -31,6 +31,7 @@ public sealed class ProbeView : UserControl
     private readonly ContentControl _pageHost;
     private readonly StackPanel _pageButtonRow;
     private readonly TextBlock _categoryBlurb;
+    private readonly Border _glossaryOverlay;
     private readonly Dictionary<ProbeCategory, Button> _categoryButtons = [];
     private readonly Dictionary<ProbePage, Button> _pageButtons = [];
     private readonly Dictionary<ProbeCategory, ProbePage> _pageSelections = new()
@@ -76,19 +77,21 @@ public sealed class ProbeView : UserControl
 
         _pages =
         [
-            new PageDefinition(ProbePage.DominantOnly, ProbeCategory.Primitives, "Dominant Only", _dominantOnlyPage),
-            new PageDefinition(ProbePage.InvertedPair, ProbeCategory.Primitives, "Inverted Pair", _invertedPairPage),
-            new PageDefinition(ProbePage.FrozenSegment, ProbeCategory.Primitives, "Frozen Segment", _frozenSegmentPage),
-            new PageDefinition(ProbePage.PrimitiveBases, ProbeCategory.Primitives, "Primitive Bases", _primitiveBasesPage),
-            new PageDefinition(ProbePage.LockedInvariants, ProbeCategory.Primitives, "Locked Invariants", _lockedInvariantPage),
-            new PageDefinition(ProbePage.OrthogonalOutput, ProbeCategory.Orthogonals, "Orthogonal Output", _orthogonalOutputPage),
-            new PageDefinition(ProbePage.OrthogonalInput, ProbeCategory.Orthogonals, "Orthogonal Input", _orthogonalInputPage),
-            new PageDefinition(ProbePage.MultipleInputs, ProbeCategory.Orthogonals, "Multiple Inputs", _multipleInputsPage),
-            new PageDefinition(ProbePage.CarrierChain, ProbeCategory.Topology, "Carrier Chain", _carrierChainPage),
-            new PageDefinition(ProbePage.TopologyTrolley, ProbeCategory.Topology, "Trolley", _topologyTrolleyPage),
-            new PageDefinition(ProbePage.BoundaryLoop, ProbeCategory.Topology, "Boundaries", _boundaryLoopPage),
-            new PageDefinition(ProbePage.Circuit, ProbeCategory.Topology, "Circuit", _circuitPage)
+            new PageDefinition(ProbePage.DominantOnly, ProbeCategory.Primitives, "Dominant Only", "dominant-only", _dominantOnlyPage),
+            new PageDefinition(ProbePage.InvertedPair, ProbeCategory.Primitives, "Inverted Pair", "inverted-pair", _invertedPairPage),
+            new PageDefinition(ProbePage.FrozenSegment, ProbeCategory.Primitives, "Frozen Segment", "frozen-segment", _frozenSegmentPage),
+            new PageDefinition(ProbePage.PrimitiveBases, ProbeCategory.Primitives, "Primitive Bases", "primitive-bases", _primitiveBasesPage),
+            new PageDefinition(ProbePage.LockedInvariants, ProbeCategory.Primitives, "Locked Invariants", "locked-invariants", _lockedInvariantPage),
+            new PageDefinition(ProbePage.OrthogonalOutput, ProbeCategory.Orthogonals, "Orthogonal Output", "orthogonal-output", _orthogonalOutputPage),
+            new PageDefinition(ProbePage.OrthogonalInput, ProbeCategory.Orthogonals, "Orthogonal Input", "orthogonal-input", _orthogonalInputPage),
+            new PageDefinition(ProbePage.MultipleInputs, ProbeCategory.Orthogonals, "Multiple Inputs", "multiple-inputs", _multipleInputsPage),
+            new PageDefinition(ProbePage.CarrierChain, ProbeCategory.Topology, "Carrier Chain", "carrier-chain", _carrierChainPage),
+            new PageDefinition(ProbePage.TopologyTrolley, ProbeCategory.Topology, "Trolley", "trolley", _topologyTrolleyPage),
+            new PageDefinition(ProbePage.BoundaryLoop, ProbeCategory.Topology, "Boundaries", "boundaries", _boundaryLoopPage),
+            new PageDefinition(ProbePage.Circuit, ProbeCategory.Topology, "Circuit", "circuit", _circuitPage)
         ];
+
+        RestoreStartupRoute();
 
         _categoryBlurb = ProbeUi.Body(string.Empty, 10d);
         _categoryBlurb.VerticalAlignment = VerticalAlignment.Center;
@@ -101,19 +104,27 @@ public sealed class ProbeView : UserControl
         };
 
         _pageHost = new ContentControl();
+        _glossaryOverlay = BuildGlossaryOverlay();
 
-        Content = new ScrollViewer
+        Content = new Grid
         {
-            Content = new StackPanel
+            Children =
             {
-                Spacing = 6,
-                Margin = new Thickness(6),
-                Children =
+                new ScrollViewer
                 {
-                    Header(),
-                    NavigationCard(),
-                    _pageHost
-                }
+                    Content = new StackPanel
+                    {
+                        Spacing = 6,
+                        Margin = new Thickness(6),
+                        Children =
+                        {
+                            Header(),
+                            NavigationCard(),
+                            _pageHost
+                        }
+                    }
+                },
+                _glossaryOverlay
             }
         };
 
@@ -224,6 +235,10 @@ public sealed class ProbeView : UserControl
             HorizontalAlignment = HorizontalAlignment.Right
         };
 
+        var glossaryButton = ProbeUi.PillButton("Glossary");
+        glossaryButton.Click += (_, _) => ToggleGlossary(true);
+        stack.Children.Add(glossaryButton);
+
         if (!OperatingSystem.IsBrowser())
         {
             var webButton = ProbeUi.PillButton("Web");
@@ -232,7 +247,7 @@ public sealed class ProbeView : UserControl
                 webButton.IsEnabled = false;
                 try
                 {
-                    await WebPreviewLauncher.LaunchAsync();
+                    await WebPreviewLauncher.LaunchAsync(PageFor(_activePage).Route);
                 }
                 catch (Exception ex)
                 {
@@ -299,6 +314,7 @@ public sealed class ProbeView : UserControl
         _activePage = page;
         _pageSelections[definition.Category] = page;
         _pageHost.Content = definition.View;
+        ProbePageState.RememberRoute(definition.Route);
         ApplyPageStyles();
     }
 
@@ -362,9 +378,149 @@ public sealed class ProbeView : UserControl
         return _pages[0];
     }
 
+    private void RestoreStartupRoute()
+    {
+        var route = ProbePageState.TryRestoreRoute();
+
+        if (string.IsNullOrWhiteSpace(route) || !TryPageForRoute(route, out var definition))
+        {
+            return;
+        }
+
+        _activeCategory = definition.Category;
+        _activePage = definition.Page;
+        _pageSelections[definition.Category] = definition.Page;
+    }
+
+    private bool TryPageForRoute(string route, out PageDefinition definition)
+    {
+        foreach (var page in _pages)
+        {
+            if (string.Equals(page.Route, route, StringComparison.OrdinalIgnoreCase))
+            {
+                definition = page;
+                return true;
+            }
+        }
+
+        definition = default;
+        return false;
+    }
+
+    private Border BuildGlossaryOverlay()
+    {
+        var closeButton = ProbeUi.PillButton("Close");
+        closeButton.Click += (_, _) => ToggleGlossary(false);
+
+        var sectionStack = new StackPanel
+        {
+            Spacing = 14
+        };
+
+        foreach (var section in ProbeGlossary.Sections)
+        {
+            var entryStack = new StackPanel
+            {
+                Spacing = 8
+            };
+
+            foreach (var entry in section.Entries)
+            {
+                entryStack.Children.Add(new StackPanel
+                {
+                    Spacing = 2,
+                    Children =
+                    {
+                        ProbeUi.Header(entry.Term, 11d),
+                        ProbeUi.Body(entry.Description, 10d)
+                    }
+                });
+            }
+
+            sectionStack.Children.Add(ProbeUi.Card(new StackPanel
+            {
+                Spacing = 8,
+                Children =
+                {
+                    ProbeUi.Mono(section.Title, 10d, ProbePalette.Muted),
+                    ProbeUi.Body(section.Blurb, 10d),
+                    entryStack
+                }
+            }, 22d, new Thickness(14, 12)));
+        }
+
+        var titleRow = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+            ColumnSpacing = 10,
+            Children =
+            {
+                new StackPanel
+                {
+                    Spacing = 2,
+                    Children =
+                    {
+                        ProbeUi.DisplayTitle("Glossary", 20d),
+                        ProbeUi.Body("Core4 terms grouped by how they are created, measured, transformed, and inspected.", 10d)
+                    }
+                },
+                closeButton
+            }
+        };
+        Grid.SetColumn(closeButton, 1);
+
+        var bodyScroll = new ScrollViewer
+        {
+            Content = sectionStack
+        };
+        Grid.SetRow(bodyScroll, 1);
+
+        var card = new Border
+        {
+            Width = 780,
+            MaxWidth = 780,
+            MaxHeight = 720,
+            Background = ProbePalette.Surface,
+            BorderBrush = new SolidColorBrush(Color.Parse("#ddd6ca")),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(26),
+            Padding = new Thickness(16, 14),
+            Child = new Grid
+            {
+                RowDefinitions = new RowDefinitions("Auto,*"),
+                RowSpacing = 12,
+                Children =
+                {
+                    titleRow,
+                    bodyScroll
+                }
+            }
+        };
+        card.PointerPressed += (_, args) => args.Handled = true;
+
+        var overlay = new Border
+        {
+            IsVisible = false,
+            Background = new SolidColorBrush(Color.FromArgb(150, 33, 26, 20)),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+            Child = new Grid
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(20),
+                Children = { card }
+            }
+        };
+        overlay.PointerPressed += (_, _) => ToggleGlossary(false);
+        return overlay;
+    }
+
+    private void ToggleGlossary(bool visible) => _glossaryOverlay.IsVisible = visible;
+
     private readonly record struct CategoryDefinition(ProbeCategory Category, string Label, string Blurb);
 
-    private readonly record struct PageDefinition(ProbePage Page, ProbeCategory Category, string Label, Control View);
+    private readonly record struct PageDefinition(ProbePage Page, ProbeCategory Category, string Label, string Route, Control View);
 
     private enum ProbeCategory
     {
