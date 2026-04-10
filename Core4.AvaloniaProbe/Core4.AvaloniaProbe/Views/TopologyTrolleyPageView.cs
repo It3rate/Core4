@@ -750,9 +750,10 @@ public sealed class TopologyTrolleyPageView : UserControl
         {
             if (frontier.Site.Carrier == site.Carrier && frontier.Site.Location == site.Location)
             {
-                return frontier.Multiplicity.Raw > 1L
-                    ? $" x{frontier.Multiplicity.Raw}"
-                    : string.Empty;
+                var intensity = frontier.Intensity.Canonicalize();
+                return intensity == new Ratio(Core4.Numerics.Measure.One, Core4.Numerics.Measure.One)
+                    ? string.Empty
+                    : $" x{intensity}";
             }
         }
 

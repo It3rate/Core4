@@ -83,7 +83,9 @@ public readonly record struct TopologyTrolley(
                 disposition,
                 sourceSignature,
                 targetSignature,
-                basisAgreements.ToImmutable()));
+                basisAgreements.ToImmutable(),
+                new Ratio(Measure.One, Measure.One),
+                Ratio.Zero(Measure.One)));
         }
 
         return new TopologyTrolleyObservation(this, continuations.ToImmutable());
@@ -226,7 +228,9 @@ public readonly record struct TopologyTrolleyContinuation(
     TraversalDisposition Disposition,
     TraversalSignature SourceSignature,
     TraversalSignature TargetSignature,
-    ImmutableArray<BasisEncounterAgreement> BasisAgreements)
+    ImmutableArray<BasisEncounterAgreement> BasisAgreements,
+    Ratio Transmission,
+    Ratio Retention)
 {
     public Carrier Carrier => Relation.Carrier;
 
@@ -243,6 +247,9 @@ public readonly record struct TopologyTrolleyContinuation(
     public bool IsIncoming => Disposition.IsIncoming;
 
     public bool IsOutgoing => Disposition.IsOutgoing;
+
+    public bool IsPartialTransfer => Transmission != new Ratio(Measure.One, Measure.One)
+        || Retention != Ratio.Zero(Measure.One);
 
     public bool HasBasisAgreement => BasisAgreements.Length != 0;
 
@@ -456,12 +463,16 @@ public readonly record struct TopologyTrolleyObservation(
 
         foreach (var continuation in Continuations)
         {
-            if (!continuation.ReturnsAlongIngress || !HasExplicitReflectiveBasis(continuation))
+            if (!continuation.ReturnsAlongIngress || !TryGetExplicitReflectiveAgreement(continuation, out var agreement))
             {
                 continue;
             }
 
-            continuations.Add(continuation);
+            continuations.Add(continuation with
+            {
+                Transmission = agreement.Commitment.Canonicalize(),
+                Retention = new Ratio(Measure.One, Measure.One).Subtract(agreement.Commitment).Canonicalize()
+            });
         }
 
         return continuations.ToImmutable();
@@ -503,14 +514,21 @@ public readonly record struct TopologyTrolleyObservation(
                 disposition,
                 Trolley.Signature,
                 targetSignature,
-                [agreement]));
+                [agreement],
+                agreement.Commitment.Canonicalize(),
+                new Ratio(Measure.One, Measure.One).Subtract(agreement.Commitment).Canonicalize()));
         }
 
         return continuations.ToImmutable();
     }
 
-    private bool HasExplicitReflectiveBasis(TopologyTrolleyContinuation continuation)
+    private bool TryGetExplicitReflectiveAgreement(
+        TopologyTrolleyContinuation continuation,
+        out BasisEncounterAgreement selected)
     {
+        var hasSelected = false;
+        selected = default;
+
         foreach (var agreement in continuation.BasisAgreements)
         {
             if (agreement.Encounter.IsExplicitPinnedBasis
@@ -518,11 +536,15 @@ public readonly record struct TopologyTrolleyObservation(
                 && !TryResolveClosureTarget(agreement.Encounter, out _)
                 && agreement.PreservesDirection)
             {
-                return true;
+                if (!hasSelected || Compare(agreement.Commitment, selected.Commitment) > 0)
+                {
+                    selected = agreement;
+                    hasSelected = true;
+                }
             }
         }
 
-        return false;
+        return hasSelected;
     }
 
     private bool TryResolveClosureTarget(SiteBasisEncounter encounter, out Site target)

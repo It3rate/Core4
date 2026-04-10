@@ -116,9 +116,23 @@ public readonly record struct PropagationWave(
 
             foreach (var continuation in forward)
             {
-                var moved = frontier.Move(continuation);
-                MergeFrontier(nextActive, moved);
-                moves.Add(new PropagationMove(frontier.Trolley, moved.Trolley, continuation.Relation, observerPerspective));
+                if (continuation.Transmission.Potential != Measure.Zero)
+                {
+                    var moved = frontier.Move(continuation);
+                    MergeFrontier(nextActive, moved);
+                    moves.Add(new PropagationMove(
+                        frontier.Trolley,
+                        moved.Trolley,
+                        continuation.Relation,
+                        observerPerspective,
+                        continuation.Transmission,
+                        continuation.Retention));
+                }
+
+                if (continuation.Retention.Potential != Measure.Zero)
+                {
+                    MergeFrontier(nextParked, frontier.Retain(continuation.Retention));
+                }
             }
         }
 
@@ -157,7 +171,8 @@ public readonly record struct PropagationWave(
 
             frontiers[index] = frontiers[index] with
             {
-                Histories = frontiers[index].Histories.AddRange(frontier.Histories)
+                Histories = frontiers[index].Histories.AddRange(frontier.Histories),
+                Weight = frontiers[index].Weight.Add(frontier.Weight).Canonicalize()
             };
             return;
         }
@@ -169,15 +184,18 @@ public readonly record struct PropagationWave(
 }
 
 public readonly record struct PropagationFrontier(
-    ImmutableArray<TopologyTrolley> Histories)
+    ImmutableArray<TopologyTrolley> Histories,
+    Ratio Weight)
 {
-    public PropagationFrontier(TopologyTrolley trolley) : this([trolley])
+    public PropagationFrontier(TopologyTrolley trolley) : this([trolley], new Ratio(Measure.One, Measure.One))
     {
     }
 
     public TopologyTrolley Trolley => Histories[0];
 
     public Measure Multiplicity => new(Histories.Length);
+
+    public Ratio Intensity => Weight.Canonicalize();
 
     public Site Site => Trolley.Site;
 
@@ -187,7 +205,9 @@ public readonly record struct PropagationFrontier(
         Signature.SameProjection(other.Signature)
         && Signature.Perspective.Sign == other.Signature.Perspective.Sign;
 
-    public PropagationFrontier Move(TopologyTrolleyContinuation continuation)
+    public PropagationFrontier Move(TopologyTrolleyContinuation continuation) => Move(continuation, continuation.Transmission);
+
+    public PropagationFrontier Move(TopologyTrolleyContinuation continuation, Ratio transmission)
     {
         var moved = ImmutableArray.CreateBuilder<TopologyTrolley>(Histories.Length);
 
@@ -196,15 +216,19 @@ public readonly record struct PropagationFrontier(
             moved.Add(history.Move(continuation));
         }
 
-        return new PropagationFrontier(moved.ToImmutable());
+        return new PropagationFrontier(moved.ToImmutable(), Weight.Multiply(transmission).Canonicalize());
     }
+
+    public PropagationFrontier Retain(Ratio retention) => new(Histories, Weight.Multiply(retention).Canonicalize());
 }
 
 public readonly record struct PropagationMove(
     TopologyTrolley Source,
     TopologyTrolley Target,
     Relation Relation,
-    Measure Perspective)
+    Measure Perspective,
+    Ratio Transmission,
+    Ratio Retention)
 {
     public bool IsReturning => Perspective.Raw < 0L;
 }

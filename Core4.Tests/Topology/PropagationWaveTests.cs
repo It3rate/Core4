@@ -1,3 +1,4 @@
+using Core4.Dynamics;
 using Core4.Inspection;
 using Core4.Numerics;
 using Core4.Structure;
@@ -131,6 +132,43 @@ public sealed class PropagationWaveTests
         Assert.Contains(split.After.Active, frontier => SameNode(frontier.Site, lowerApex));
         Assert.Contains(split.Moves, move => move.Relation.Carrier == y && SameNode(move.Target.Site, upperApex));
         Assert.Contains(split.Moves, move => move.Relation.Carrier == z && SameNode(move.Target.Site, lowerApex));
+    }
+
+    [Fact]
+    public void WavePartiallyReflectsAtExplicitBoundaryAndRetainsResidualWeight()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var right = Site.Open(x, new Measure(10))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(6)),
+                new Ratio(new Measure(2), Measure.One),
+                Provenance.Shared(new Measure(2)));
+
+        var wave = PropagationWave.Start(
+            ConnectedSiteTopology.FromRelations(new Relation(left, right)),
+            left);
+
+        var atBoundary = wave.Advance();
+        Assert.True(atBoundary.HasMotion);
+        var boundary = Assert.Single(atBoundary.After.Active);
+        Assert.True(SameNode(boundary.Site, right));
+        Assert.Equal(new Ratio(Measure.One, Measure.One), boundary.Intensity);
+
+        var split = atBoundary.After.Advance();
+        Assert.True(split.HasMotion);
+        var reflected = Assert.Single(split.After.Active);
+        Assert.True(SameNode(reflected.Site, left));
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), reflected.Intensity);
+
+        var retained = Assert.Single(split.After.Parked);
+        Assert.True(SameNode(retained.Site, right));
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), retained.Intensity);
+
+        var move = Assert.Single(split.Moves);
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), move.Transmission);
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), move.Retention);
     }
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
