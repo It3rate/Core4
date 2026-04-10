@@ -171,5 +171,51 @@ public sealed class PropagationWaveTests
         Assert.Equal(new Ratio(new Measure(1), new Measure(2)), move.Retention);
     }
 
+    [Fact]
+    public void WaveCompletesAsPeriodicAfterExactReentryOnSimpleClosureLoop()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var middle = Site.Open(x, new Measure(5));
+        var right = Site.Open(x, new Measure(10))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(0)),
+                Ratio.Tension(new Measure(10)),
+                Provenance.Shared(new Measure(10)));
+
+        var wave = PropagationWave.Start(
+            ConnectedSiteTopology.Create(
+                [right],
+                new Relation(left, middle),
+                new Relation(middle, right)),
+            left);
+
+        wave = wave.Advance().After;
+        Assert.True(wave.IsOutbound);
+        Assert.Single(wave.Active);
+        Assert.True(SameNode(wave.Active[0].Site, middle));
+
+        wave = wave.Advance().After;
+        Assert.True(wave.IsOutbound);
+        Assert.Single(wave.Active);
+        Assert.True(SameNode(wave.Active[0].Site, right));
+
+        wave = wave.Advance().After;
+        Assert.True(wave.IsOutbound);
+        Assert.Single(wave.Active);
+        Assert.True(SameNode(wave.Active[0].Site, left));
+        Assert.False(wave.IsPeriodic);
+
+        var periodic = wave.Advance();
+        Assert.True(periodic.HasMotion);
+        Assert.True(periodic.After.IsComplete);
+        Assert.True(periodic.After.IsPeriodic);
+        Assert.Equal(new Measure(3), periodic.After.Period);
+        var frontier = Assert.Single(periodic.After.Parked);
+        Assert.True(SameNode(frontier.Site, middle));
+        Assert.Equal(new Measure(3), frontier.ExactReentryPeriod);
+    }
+
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
 }

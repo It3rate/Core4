@@ -16,18 +16,22 @@ public readonly record struct TopologyTrolley(
     Relation? Ingress,
     Measure Direction,
     Ratio CarriedCalibration,
+    ImmutableArray<TraversalSignature> TrailSignatures,
     ImmutableArray<Site> TrailSites,
     ImmutableArray<Relation> TrailRelations)
 {
     public static TopologyTrolley Start(ConnectedSiteTopology topology, Site site)
     {
         var resolved = Canonicalize(topology, site);
+        var calibration = InitialCalibration(resolved);
+        var signature = SignatureOf(resolved, Measure.Zero, calibration, null);
         return new TopologyTrolley(
             topology,
             resolved,
             null,
             Measure.Zero,
-            InitialCalibration(resolved),
+            calibration,
+            [signature],
             [resolved],
             ImmutableArray<Relation>.Empty);
     }
@@ -37,6 +41,12 @@ public readonly record struct TopologyTrolley(
     public ImmutableArray<SiteBasisEncounter> BasisEncounters => Topology.BasisEncountersAt(Site);
 
     public TraversalSignature Signature => SignatureOf(Site, Direction, CarriedCalibration, Ingress);
+
+    public Measure ExactReentryPeriod => ReentryPeriod((prior, current) => prior.Equivalent(current));
+
+    public Measure ProjectedReentryPeriod => ReentryPeriod((prior, current) => prior.SameProjection(current));
+
+    public bool HasExactReentry => ExactReentryPeriod != Measure.Zero;
 
     public TopologyTrolleyObservation Observe()
     {
@@ -98,12 +108,15 @@ public readonly record struct TopologyTrolley(
     public TopologyTrolley Move(TopologyTrolleyContinuation continuation)
     {
         var next = Canonicalize(Topology, continuation.To);
+        var calibration = continuation.TargetSignature.Calibration.Multiply(continuation.Transmission).Canonicalize();
+        var nextSignature = SignatureOf(next, continuation.Direction, calibration, continuation.Relation);
         return new TopologyTrolley(
             Topology,
             next,
             continuation.Relation,
             continuation.Direction,
-            continuation.TargetSignature.Calibration.Multiply(continuation.Transmission).Canonicalize(),
+            calibration,
+            TrailSignatures.Add(nextSignature),
             TrailSites.Add(next),
             TrailRelations.Add(continuation.Relation));
     }
@@ -179,6 +192,26 @@ public readonly record struct TopologyTrolley(
         }
 
         return Ratio.Tension(site.Potential).Canonicalize();
+    }
+
+    private Measure ReentryPeriod(Func<TraversalSignature, TraversalSignature, bool> predicate)
+    {
+        if (TrailSignatures.Length < 2)
+        {
+            return Measure.Zero;
+        }
+
+        var current = TrailSignatures[^1];
+
+        for (var index = TrailSignatures.Length - 2; index >= 0; index--)
+        {
+            if (predicate(TrailSignatures[index], current))
+            {
+                return new Measure(TrailSignatures.Length - 1 - index);
+            }
+        }
+
+        return Measure.Zero;
     }
 
     private static Site Canonicalize(ConnectedSiteTopology topology, Site site)

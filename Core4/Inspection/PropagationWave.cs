@@ -13,12 +13,14 @@ namespace Core4.Inspection;
 /// </summary>
 public readonly record struct PropagationWave(
     Measure Perspective,
+    Measure Period,
     ImmutableArray<PropagationFrontier> Active,
     ImmutableArray<PropagationFrontier> Parked)
 {
     public static PropagationWave Start(ConnectedSiteTopology topology, Site site) =>
         new(
             Measure.One,
+            Measure.Zero,
             [new PropagationFrontier(TopologyTrolley.Start(topology, site))],
             ImmutableArray<PropagationFrontier>.Empty);
 
@@ -31,7 +33,7 @@ public readonly record struct PropagationWave(
             MergeFrontier(active, new PropagationFrontier(trolley));
         }
 
-        return new PropagationWave(perspective, active.ToImmutable(), ImmutableArray<PropagationFrontier>.Empty);
+        return new PropagationWave(perspective, Measure.Zero, active.ToImmutable(), ImmutableArray<PropagationFrontier>.Empty);
     }
 
     public bool IsOutbound => Perspective.Raw > 0L;
@@ -39,6 +41,8 @@ public readonly record struct PropagationWave(
     public bool IsReturning => Perspective.Raw < 0L;
 
     public bool IsComplete => Perspective.Raw == 0L;
+
+    public bool IsPeriodic => IsComplete && Period != Measure.Zero;
 
     public ImmutableArray<PropagationFrontier> VisibleFrontiers
     {
@@ -136,18 +140,30 @@ public readonly record struct PropagationWave(
             }
         }
 
+        if (observerPerspective.Raw > 0L && nextParked.Count == 0 && nextActive.Count != 0 && AllPeriodic(nextActive))
+        {
+            var completed = new PropagationWave(
+                Measure.Zero,
+                SharedPeriod(nextActive),
+                ImmutableArray<PropagationFrontier>.Empty,
+                nextActive.ToImmutable());
+            return new PropagationWaveStep(this, completed, moves.ToImmutable());
+        }
+
         if (nextActive.Count == 0)
         {
             if (observerPerspective.Raw > 0L)
             {
                 var returning = new PropagationWave(
                     nextParked.Count == 0 ? Measure.Zero : -Measure.One,
+                    Measure.Zero,
                     nextParked.ToImmutable(),
                     ImmutableArray<PropagationFrontier>.Empty);
                 return new PropagationWaveStep(this, returning, ImmutableArray<PropagationMove>.Empty);
             }
 
             var completed = new PropagationWave(
+                Measure.Zero,
                 Measure.Zero,
                 ImmutableArray<PropagationFrontier>.Empty,
                 nextParked.ToImmutable());
@@ -156,7 +172,7 @@ public readonly record struct PropagationWave(
 
         return new PropagationWaveStep(
             this,
-            new PropagationWave(observerPerspective.Sign, nextActive.ToImmutable(), nextParked.ToImmutable()),
+            new PropagationWave(observerPerspective.Sign, Measure.Zero, nextActive.ToImmutable(), nextParked.ToImmutable()),
             moves.ToImmutable());
     }
 
@@ -181,6 +197,34 @@ public readonly record struct PropagationWave(
     }
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
+
+    private static bool AllPeriodic(ImmutableArray<PropagationFrontier>.Builder frontiers)
+    {
+        foreach (var frontier in frontiers)
+        {
+            if (!frontier.HasExactReentry)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static Measure SharedPeriod(ImmutableArray<PropagationFrontier>.Builder frontiers)
+    {
+        var best = Measure.Zero;
+
+        foreach (var frontier in frontiers)
+        {
+            if (best == Measure.Zero || frontier.ExactReentryPeriod.Raw < best.Raw)
+            {
+                best = frontier.ExactReentryPeriod;
+            }
+        }
+
+        return best;
+    }
 }
 
 public readonly record struct PropagationFrontier(
@@ -196,6 +240,31 @@ public readonly record struct PropagationFrontier(
     public Measure Multiplicity => new(Histories.Length);
 
     public Ratio Intensity => Weight.Canonicalize();
+
+    public Measure ExactReentryPeriod
+    {
+        get
+        {
+            var best = Measure.Zero;
+
+            foreach (var history in Histories)
+            {
+                if (history.ExactReentryPeriod == Measure.Zero)
+                {
+                    return Measure.Zero;
+                }
+
+                if (best == Measure.Zero || history.ExactReentryPeriod.Raw < best.Raw)
+                {
+                    best = history.ExactReentryPeriod;
+                }
+            }
+
+            return best;
+        }
+    }
+
+    public bool HasExactReentry => ExactReentryPeriod != Measure.Zero;
 
     public Site Site => Trolley.Site;
 
