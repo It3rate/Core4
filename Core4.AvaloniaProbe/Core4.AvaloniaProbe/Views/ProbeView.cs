@@ -18,6 +18,7 @@ public sealed class ProbeView : UserControl
 {
     private readonly GlossaryClaimPageView _glossaryClaimPage = new();
     private readonly GlossaryRelationPageView _glossaryRelationPage = new();
+    private readonly GlossaryBasisPageView _glossaryBasisPage = new();
     private readonly DominantOnlyPageView _dominantOnlyPage = new();
     private readonly InvertedPairPageView _invertedPairPage = new();
     private readonly FrozenSegmentPageView _frozenSegmentPage = new();
@@ -86,6 +87,7 @@ public sealed class ProbeView : UserControl
         [
             new PageDefinition(ProbePage.GlossaryClaim, ProbeCategory.Glossary, "Carrier / Site / Measure", "glossary-claim", _glossaryClaimPage),
             new PageDefinition(ProbePage.GlossaryRelation, ProbeCategory.Glossary, "Pin / Origin / Relation", "glossary-relation", _glossaryRelationPage),
+            new PageDefinition(ProbePage.GlossaryBasis, ProbeCategory.Glossary, "Freeze / Basis / Attachment", "glossary-basis", _glossaryBasisPage),
             new PageDefinition(ProbePage.DominantOnly, ProbeCategory.Primitives, "Dominant Only", "dominant-only", _dominantOnlyPage),
             new PageDefinition(ProbePage.InvertedPair, ProbeCategory.Primitives, "Inverted Pair", "inverted-pair", _invertedPairPage),
             new PageDefinition(ProbePage.FrozenSegment, ProbeCategory.Primitives, "Frozen Segment", "frozen-segment", _frozenSegmentPage),
@@ -564,6 +566,7 @@ public sealed class ProbeView : UserControl
     {
         GlossaryClaim,
         GlossaryRelation,
+        GlossaryBasis,
         DominantOnly,
         InvertedPair,
         FrozenSegment,
