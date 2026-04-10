@@ -428,11 +428,11 @@ public sealed class ProbeView : UserControl
             {
                 entryStack.Children.Add(new StackPanel
                 {
-                    Spacing = 2,
+                    Spacing = 3,
                     Children =
                     {
                         ProbeUi.Header(entry.Term, 11d),
-                        ProbeUi.Body(entry.Description, 10d)
+                        ProbeUi.Body(entry.Description, 11d)
                     }
                 });
             }
@@ -443,7 +443,7 @@ public sealed class ProbeView : UserControl
                 Children =
                 {
                     ProbeUi.Mono(section.Title, 10d, ProbePalette.Muted),
-                    ProbeUi.Body(section.Blurb, 10d),
+                    ProbeUi.Body(section.Blurb, 11d),
                     entryStack
                 }
             }, 22d, new Thickness(14, 12)));
@@ -461,7 +461,7 @@ public sealed class ProbeView : UserControl
                     Children =
                     {
                         ProbeUi.DisplayTitle("Glossary", 20d),
-                        ProbeUi.Body("Core4 terms grouped by how they are created, measured, transformed, and inspected.", 10d)
+                        ProbeUi.Body("Core4 terms grouped by how they are created, measured, transformed, and inspected.", 11d)
                     }
                 },
                 closeButton

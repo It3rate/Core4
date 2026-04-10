@@ -11,10 +11,10 @@ internal static class ProbeGlossary
             "These are the first Core4 constructions: a reading, a place to pin it, and the live or frozen relations that follow.",
             [
                 new GlossaryEntry("Measure", "A measure is a single reading with no implied zero, scale, or extent. It is only a detected value."),
-                new GlossaryEntry("Origin", "An origin is a measure that has been pinned so later readings can be compared to it. It does not create a reusable unit by itself."),
+                new GlossaryEntry("Origin", "An origin is a measure or site held stable enough to serve as a reference for later relation. It is committed as a place, but not yet a frozen relation or reusable basis."),
                 new GlossaryEntry("Carrier", "A carrier is the support a value lives on or moves along. It is the line of possible relation, not the value itself."),
                 new GlossaryEntry("Site", "A site is a referencable place where relation may occur. It is a location together with its current openness, occupancy, or tension."),
-                new GlossaryEntry("Pin", "To pin is to choose a site as stable enough to reference. Pinning selects a place; it does not yet create a basis."),
+                new GlossaryEntry("Pin", "To pin is to hold a site stable enough to reference again later. Pinning selects and commits a place, but it does not yet freeze a relation into basis."),
                 new GlossaryEntry("Relation", "A relation is an ordered coupling between sites. It is the first live extent on a carrier."),
                 new GlossaryEntry("Freeze", "To freeze is to commit a live relation for reuse. It stabilizes what is already there instead of inventing new content."),
                 new GlossaryEntry("Basis", "A basis is a frozen relation, or a frozen fusion of relations. It is reusable calibration rather than a one-time observation.")
