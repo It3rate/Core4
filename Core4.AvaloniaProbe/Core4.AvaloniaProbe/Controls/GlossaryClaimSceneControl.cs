@@ -15,9 +15,12 @@ namespace Core4.AvaloniaProbe.Controls;
 public sealed class GlossaryClaimSceneControl : Control
 {
     private const double HandleRadius = 20d;
+    private const long SiteTicks = 12L;
 
     private GlossaryClaimDemoState _state = GlossaryClaimDemoState.CreateDefault();
     private DragSession _activeDrag = DragSession.Default;
+
+    public event EventHandler? LayoutChanged;
 
     public GlossaryClaimSceneControl()
     {
@@ -39,10 +42,13 @@ public sealed class GlossaryClaimSceneControl : Control
             _state = value;
             InvalidateVisual();
             StateChanged?.Invoke(this, _state);
+            LayoutChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
     public event EventHandler<GlossaryClaimDemoState>? StateChanged;
+
+    internal GlossaryClaimSceneLayout CurrentLayout => GlossaryClaimRenderer.Arrange(Bounds, _state);
 
     public override void Render(DrawingContext context)
     {
@@ -60,13 +66,19 @@ public sealed class GlossaryClaimSceneControl : Control
         {
             if (ScenePrimitives.Distance(point, carrier.Start) <= HandleRadius)
             {
-                BeginDrag(e, carrier.Index, true, point - carrier.Start);
+                BeginDrag(e, carrier.Index, DragTarget.Start, point - carrier.Start);
                 return;
             }
 
             if (ScenePrimitives.Distance(point, carrier.End) <= HandleRadius)
             {
-                BeginDrag(e, carrier.Index, false, point - carrier.End);
+                BeginDrag(e, carrier.Index, DragTarget.End, point - carrier.End);
+                return;
+            }
+
+            if (ScenePrimitives.Distance(point, carrier.Site) <= HandleRadius)
+            {
+                BeginDrag(e, carrier.Index, DragTarget.Site, point - carrier.Site);
                 return;
             }
         }
@@ -82,8 +94,16 @@ public sealed class GlossaryClaimSceneControl : Control
         }
 
         var point = e.GetPosition(this) - _activeDrag.Offset;
-        var normalized = GlossaryClaimRenderer.Normalize(Bounds, point);
-        State = _state.WithEndpoint(_activeDrag.Index, _activeDrag.UpdateStart, normalized);
+        var layout = GlossaryClaimRenderer.Arrange(Bounds, _state);
+        var carrier = layout.Carriers[_activeDrag.Index];
+
+        State = _activeDrag.Target switch
+        {
+            DragTarget.Start => _state.WithEndpoint(_activeDrag.Index, true, GlossaryClaimRenderer.Normalize(Bounds, point)),
+            DragTarget.End => _state.WithEndpoint(_activeDrag.Index, false, GlossaryClaimRenderer.Normalize(Bounds, point)),
+            DragTarget.Site => _state.WithSiteTicks(_activeDrag.Index, ProjectSiteTicks(carrier, point), SiteTicks),
+            _ => _state
+        };
         e.Handled = true;
     }
 
@@ -95,15 +115,44 @@ public sealed class GlossaryClaimSceneControl : Control
         e.Handled = true;
     }
 
-    private void BeginDrag(PointerPressedEventArgs e, int index, bool updateStart, Vector offset)
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
     {
-        _activeDrag = new DragSession(index, updateStart, offset);
+        base.OnSizeChanged(e);
+        LayoutChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void BeginDrag(PointerPressedEventArgs e, int index, DragTarget target, Vector offset)
+    {
+        _activeDrag = new DragSession(index, target, offset);
         e.Pointer.Capture(this);
         e.Handled = true;
     }
 
-    private readonly record struct DragSession(int Index, bool UpdateStart, Vector Offset)
+    private static long ProjectSiteTicks(GlossaryClaimCarrierLayout carrier, Point point)
     {
-        public static DragSession Default => new(-1, false, default);
+        var direction = carrier.End - carrier.Start;
+        var lengthSquared = (direction.X * direction.X) + (direction.Y * direction.Y);
+        if (lengthSquared <= 0d)
+        {
+            return 0L;
+        }
+
+        var fromStart = point - carrier.Start;
+        var t = ((fromStart.X * direction.X) + (fromStart.Y * direction.Y)) / lengthSquared;
+        var clamped = Math.Clamp(t, 0d, 1d);
+        return (long)Math.Round(clamped * SiteTicks, MidpointRounding.AwayFromZero);
+    }
+
+    private readonly record struct DragSession(int Index, DragTarget Target, Vector Offset)
+    {
+        public static DragSession Default => new(-1, DragTarget.None, default);
+    }
+
+    private enum DragTarget
+    {
+        None,
+        Start,
+        End,
+        Site
     }
 }

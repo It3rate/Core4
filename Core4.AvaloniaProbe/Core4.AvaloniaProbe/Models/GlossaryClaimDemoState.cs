@@ -31,15 +31,15 @@ public readonly record struct GlossaryClaimDemoState(ImmutableArray<GlossaryClai
     public GlossaryClaimDemoState WithSiteTicks(int index, long numerator, long denominator = 12L)
         => UpdateCarrier(index, carrier => carrier.WithSite(new Ratio(new Measure(numerator), new Measure(Math.Max(1L, denominator)))));
 
-    public GlossaryClaimDemoState AddMeasure(int index)
-        => UpdateCarrier(index, carrier => carrier.AddMeasure());
+    public GlossaryClaimDemoState AddPin(int index)
+        => UpdateCarrier(index, carrier => carrier.AddPin());
 
-    public GlossaryClaimDemoState ClearMeasures()
+    public GlossaryClaimDemoState ClearPins()
     {
         var builder = Carriers.ToBuilder();
         for (var index = 0; index < builder.Count; index++)
         {
-            builder[index] = builder[index].ClearMeasures();
+            builder[index] = builder[index].ClearPins();
         }
 
         return new GlossaryClaimDemoState(builder.ToImmutable());
@@ -69,7 +69,7 @@ public readonly record struct GlossaryClaimDemoState(ImmutableArray<GlossaryClai
             siteRatio,
             startValue,
             endValue,
-            ImmutableArray<GlossaryClaimMeasureState>.Empty);
+            ImmutableArray<GlossaryClaimPinState>.Empty);
     }
 
     private static (Measure StartValue, Measure EndValue) CreateOrderedRange()
@@ -100,7 +100,7 @@ public readonly record struct GlossaryClaimCarrierState(
     Ratio SiteRatio,
     Measure StartValue,
     Measure EndValue,
-    ImmutableArray<GlossaryClaimMeasureState> Measures)
+    ImmutableArray<GlossaryClaimPinState> Pins)
 {
     private static readonly Measure DefaultTicks = new(12);
 
@@ -125,14 +125,14 @@ public readonly record struct GlossaryClaimCarrierState(
             : this with { End = clamped };
     }
 
-    public GlossaryClaimCarrierState AddMeasure() => this with
+    public GlossaryClaimCarrierState AddPin() => this with
     {
-        Measures = Measures.Add(new GlossaryClaimMeasureState(Site, CurrentValue))
+        Pins = Pins.Add(new GlossaryClaimPinState(Site, CurrentValue))
     };
 
-    public GlossaryClaimCarrierState ClearMeasures() => this with
+    public GlossaryClaimCarrierState ClearPins() => this with
     {
-        Measures = ImmutableArray<GlossaryClaimMeasureState>.Empty
+        Pins = ImmutableArray<GlossaryClaimPinState>.Empty
     };
 
     public Measure ValueAt(Ratio ratio)
@@ -155,4 +155,4 @@ public readonly record struct GlossaryClaimCarrierState(
         Math.Clamp(point.Y, 0.08d, 0.92d));
 }
 
-public readonly record struct GlossaryClaimMeasureState(Placement Placement, Measure Value);
+public readonly record struct GlossaryClaimPinState(Placement Placement, Measure Value);

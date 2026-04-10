@@ -23,13 +23,17 @@ internal static class GlossaryClaimRenderer
             var start = FromNormalized(scene, carrier.Start);
             var end = FromNormalized(scene, carrier.End);
             var site = Lerp(start, end, carrier.Site.Ratio.Approximate);
-            var measures = ImmutableArray.CreateBuilder<Point>(carrier.Measures.Length);
-            foreach (var measure in carrier.Measures)
+            var titleCenter = new Point(
+                (start.X + end.X) * 0.5d,
+                Math.Min(scene.Bottom - 48d, Math.Max(start.Y, end.Y) + 26d));
+            var titleButtonCenter = new Point(titleCenter.X, Math.Min(scene.Bottom - 20d, titleCenter.Y + 24d));
+            var pins = ImmutableArray.CreateBuilder<Point>(carrier.Pins.Length);
+            foreach (var pin in carrier.Pins)
             {
-                measures.Add(Lerp(start, end, measure.Placement.Ratio.Approximate));
+                pins.Add(Lerp(start, end, pin.Placement.Ratio.Approximate));
             }
 
-            carriers.Add(new GlossaryClaimCarrierLayout(index, start, end, site, measures.ToImmutable(), carrier));
+            carriers.Add(new GlossaryClaimCarrierLayout(index, start, end, site, titleCenter, titleButtonCenter, pins.ToImmutable(), carrier));
         }
 
         return new GlossaryClaimSceneLayout(scene, carriers.ToImmutable());
@@ -47,7 +51,7 @@ internal static class GlossaryClaimRenderer
 
         foreach (var carrier in layout.Carriers)
         {
-            DrawMeasures(context, carrier);
+            DrawPins(context, carrier);
             DrawSite(context, carrier);
             DrawHandles(context, carrier);
             DrawLabels(context, carrier);
@@ -100,12 +104,10 @@ internal static class GlossaryClaimRenderer
 
     private static void DrawLabels(DrawingContext context, GlossaryClaimCarrierLayout carrier)
     {
-        var midpoint = Lerp(carrier.Start, carrier.End, 0.5d);
-        var labelCenter = midpoint + new Vector(0d, 28d);
         ScenePrimitives.DrawCenteredLabel(
             context,
-            GlossaryClaimVisuals.Label(carrier.State.Carrier),
-            labelCenter,
+            GlossaryClaimVisuals.GraphLabel(carrier.State.Carrier),
+            carrier.TitleCenter,
             11d,
             ProbePalette.Ink,
             FontWeight.SemiBold,
@@ -117,35 +119,51 @@ internal static class GlossaryClaimRenderer
     private static void DrawSite(DrawingContext context, GlossaryClaimCarrierLayout carrier)
     {
         GlossaryClaimVisuals.DrawSiteGlyph(context, carrier.State.Carrier, carrier.Site, carrier.State.Site.Ratio.Approximate);
-        ScenePrimitives.DrawBadgeLabel(
+        var direction = new Vector(carrier.End.X - carrier.Start.X, carrier.End.Y - carrier.Start.Y);
+        Point anchor;
+        if (Math.Abs(direction.X) < Math.Abs(direction.Y) * 0.5d)
+        {
+            anchor = carrier.Site + new Vector(0d, 38d);
+        }
+        else
+        {
+            var horizontalBias = Math.Sign(direction.X) * 12d;
+            anchor = carrier.Site + new Vector(horizontalBias, -42d);
+        }
+
+        context.DrawLine(
+            new Pen(new SolidColorBrush(Color.FromArgb(110, 107, 118, 128)), 1d),
+            carrier.Site,
+            anchor);
+        ScenePrimitives.DrawCenteredBadgeLabel(
             context,
-            "site",
-            carrier.Site + new Vector(13d, -24d),
+            $"site\nmeasure: {carrier.State.CurrentValue.Raw}",
+            anchor,
             9d,
             ProbePalette.Ink,
             FontWeight.SemiBold,
             ProbePalette.MonoFont,
             ProbePalette.Surface,
             new Pen(new SolidColorBrush(Color.FromArgb(90, 197, 182, 160)), 0.8d),
-            new Thickness(5, 2, 5, 2),
+            new Thickness(6, 3, 6, 3),
             8d);
     }
 
-    private static void DrawMeasures(DrawingContext context, GlossaryClaimCarrierLayout carrier)
+    private static void DrawPins(DrawingContext context, GlossaryClaimCarrierLayout carrier)
     {
-        for (var index = 0; index < carrier.Measures.Length; index++)
+        for (var index = 0; index < carrier.Pins.Length; index++)
         {
-            var point = carrier.Measures[index];
+            var point = carrier.Pins[index];
             var sign = index % 2 == 0 ? 1d : -1d;
             var anchor = point + new Vector(14d, sign * 16d);
-            GlossaryClaimVisuals.DrawMeasureGlyph(context, carrier.State.Carrier, point, carrier.State.Measures[index].Placement.Ratio.Approximate);
+            GlossaryClaimVisuals.DrawMeasureGlyph(context, carrier.State.Carrier, point, carrier.State.Pins[index].Placement.Ratio.Approximate);
             context.DrawLine(
                 new Pen(new SolidColorBrush(Color.FromArgb(110, 107, 118, 128)), 1d),
                 point,
                 anchor + new Vector(-4d, sign * 2d));
             ScenePrimitives.DrawBadgeLabel(
                 context,
-                carrier.State.Measures[index].Value.Raw.ToString(),
+                carrier.State.Pins[index].Value.Raw.ToString(),
                 anchor,
                 9d,
                 ProbePalette.Ink,
@@ -207,5 +225,7 @@ internal readonly record struct GlossaryClaimCarrierLayout(
     Point Start,
     Point End,
     Point Site,
-    ImmutableArray<Point> Measures,
+    Point TitleCenter,
+    Point TitleButtonCenter,
+    ImmutableArray<Point> Pins,
     GlossaryClaimCarrierState State);

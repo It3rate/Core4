@@ -3,6 +3,7 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Core4.AvaloniaProbe.Controls;
 using Core4.AvaloniaProbe.Models;
 using Core4.AvaloniaProbe.Rendering;
@@ -14,15 +15,17 @@ namespace Core4.AvaloniaProbe.Views;
 /// </summary>
 public sealed class GlossaryClaimPageView : UserControl
 {
-    private static readonly ProbeGlossary.GlossarySection ClaimSection = FindSection("Claim / Creation");
     private static readonly ProbeGlossary.GlossaryEntry CarrierEntry = FindEntry("Carrier");
     private static readonly ProbeGlossary.GlossaryEntry SiteEntry = FindEntry("Site");
     private static readonly ProbeGlossary.GlossaryEntry MeasureEntry = FindEntry("Measure");
+    private static readonly ProbeGlossary.GlossaryEntry PinEntry = FindEntry("Pin");
 
     private readonly GlossaryClaimSceneControl _scene;
+    private readonly Canvas _sceneOverlay;
     private readonly TextBlock _metaCarrierText;
-    private readonly TextBlock _metaMeasureText;
+    private readonly TextBlock _metaPinText;
     private readonly CarrierCardControls[] _controls;
+    private readonly Button[] _sceneMeasureButtons;
     private GlossaryClaimDemoState _state = GlossaryClaimDemoState.CreateDefault();
     private bool _syncing;
 
@@ -38,11 +41,15 @@ public sealed class GlossaryClaimPageView : UserControl
         {
             _state = state;
             SyncUi();
+            SyncSceneButtons();
         };
+        _scene.LayoutChanged += (_, _) => SyncSceneButtons();
+        _sceneOverlay = new Canvas();
 
         _metaCarrierText = ProbeUi.Mono(string.Empty, 11d, ProbePalette.Muted);
-        _metaMeasureText = ProbeUi.Mono(string.Empty, 11d, ProbePalette.Muted);
+        _metaPinText = ProbeUi.Mono(string.Empty, 11d, ProbePalette.Muted);
         _controls = new CarrierCardControls[_state.Carriers.Length];
+        _sceneMeasureButtons = new Button[_state.Carriers.Length];
 
         var controlGrid = new Grid
         {
@@ -60,34 +67,24 @@ public sealed class GlossaryClaimPageView : UserControl
         var resetLayout = ProbeUi.PillButton("Reset Layout");
         resetLayout.Click += (_, _) => ApplyState(_state.ResetLayout());
 
-        var clearMeasures = ProbeUi.PillButton("Clear Measures");
-        clearMeasures.Click += (_, _) => ApplyState(_state.ClearMeasures());
+        var clearPins = ProbeUi.PillButton("Clear Pins");
+        clearPins.Click += (_, _) => ApplyState(_state.ClearPins());
 
         var leftColumn = new StackPanel
         {
-            Width = 246,
+            Width = 232,
             Spacing = 6,
             Children =
             {
-                SectionCard(),
                 EntryCard(CarrierEntry),
                 EntryCard(SiteEntry),
                 EntryCard(MeasureEntry),
+                EntryCard(PinEntry),
                 ProbeUi.Card(new StackPanel
                 {
                     Spacing = 4,
                     Children =
                     {
-                        ProbeUi.Mono("NOTES", 10d, ProbePalette.Muted),
-                        new Border { Height = 18d }
-                    }
-                }, 20d, new Thickness(12, 10)),
-                ProbeUi.Card(new StackPanel
-                {
-                    Spacing = 4,
-                    Children =
-                    {
-                        ProbeUi.Mono("ACTIONS", 10d, ProbePalette.Muted),
                         new StackPanel
                         {
                             Orientation = Orientation.Horizontal,
@@ -95,7 +92,7 @@ public sealed class GlossaryClaimPageView : UserControl
                             Children =
                             {
                                 resetLayout,
-                                clearMeasures
+                                clearPins
                             }
                         }
                     }
@@ -109,7 +106,14 @@ public sealed class GlossaryClaimPageView : UserControl
             Children =
             {
                 SceneHeader(),
-                ProbeUi.PlotCard(_scene)
+                ProbeUi.PlotCard(new Grid
+                {
+                    Children =
+                    {
+                        _scene,
+                        _sceneOverlay
+                    }
+                })
             }
         }, 22d, new Thickness(12));
 
@@ -125,7 +129,7 @@ public sealed class GlossaryClaimPageView : UserControl
 
         var mainGrid = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("224,*"),
+            ColumnDefinitions = new ColumnDefinitions("232,*"),
             ColumnSpacing = 8,
             Children =
             {
@@ -136,7 +140,9 @@ public sealed class GlossaryClaimPageView : UserControl
         Grid.SetColumn(rightColumn, 1);
 
         Content = mainGrid;
+        BuildSceneButtons();
         SyncUi();
+        SyncSceneButtons();
     }
 
     private Grid SceneHeader()
@@ -153,7 +159,7 @@ public sealed class GlossaryClaimPageView : UserControl
             {
                 ProbeUi.Mono("INTERACTIVE SCENE", 10d, ProbePalette.Muted),
                 ProbeUi.DisplayTitle("Ordered Supports And Readings", 18d),
-                ProbeUi.Body("Each carrier suggests a different ordered attribute. The slider picks a site on that carrier, and each measure button leaves an uncalibrated reading at the chosen place.", 10d)
+                ProbeUi.Body("Each carrier suggests a different ordered attribute. The slider picks a site on that carrier, and each pin button leaves a pinned uncalibrated reading at the chosen place.", 10d)
             }
         };
 
@@ -164,7 +170,7 @@ public sealed class GlossaryClaimPageView : UserControl
             Children =
             {
                 _metaCarrierText,
-                _metaMeasureText
+                _metaPinText
             }
         };
 
@@ -193,10 +199,13 @@ public sealed class GlossaryClaimPageView : UserControl
             }
         };
 
-        var button = ProbeUi.PillButton("Measure");
-        button.Click += (_, _) => ApplyState(_state.AddMeasure(index));
+        var button = ProbeUi.PillButton("Pin");
+        button.Click += (_, _) => ApplyState(_state.AddPin(index));
 
         controls = new CarrierCardControls(slider);
+
+        var title = ProbeUi.Header(GlossaryClaimVisuals.CardLabel(carrier), 12d);
+        Grid.SetColumn(button, 1);
 
         return ProbeUi.Card(new StackPanel
         {
@@ -209,7 +218,7 @@ public sealed class GlossaryClaimPageView : UserControl
                     ColumnSpacing = 8,
                     Children =
                     {
-                        ProbeUi.Header(GlossaryClaimVisuals.Label(carrier), 12d),
+                        title,
                         button
                     }
                 },
@@ -228,7 +237,7 @@ public sealed class GlossaryClaimPageView : UserControl
     private void SyncUi()
     {
         _syncing = true;
-        var totalMeasures = 0;
+        var totalPins = 0;
 
         for (var index = 0; index < _controls.Length; index++)
         {
@@ -236,27 +245,15 @@ public sealed class GlossaryClaimPageView : UserControl
             var ratio = carrier.Site.Ratio.Approximate;
             var ticks = (long)Math.Round(ratio * 12d, MidpointRounding.AwayFromZero);
             _controls[index].Slider.Value = ticks;
-            totalMeasures += carrier.Measures.Length;
+            totalPins += carrier.Pins.Length;
         }
 
         _metaCarrierText.Text = $"{_state.Carriers.Length} carriers";
-        _metaMeasureText.Text = totalMeasures == 0
-            ? "no readings placed"
-            : $"{totalMeasures} readings placed";
+        _metaPinText.Text = totalPins == 0
+            ? "no pins placed"
+            : $"{totalPins} pins placed";
         _syncing = false;
     }
-
-    private static Border SectionCard()
-        => ProbeUi.Card(new StackPanel
-        {
-            Spacing = 4,
-            Children =
-            {
-                ProbeUi.Mono("GLOSSARY", 10d, ProbePalette.Muted),
-                ProbeUi.DisplayTitle(ClaimSection.Title, 18d),
-                ProbeUi.Body(ClaimSection.Blurb, 10d)
-            }
-        }, 20d, new Thickness(12, 10));
 
     private static Border EntryCard(ProbeGlossary.GlossaryEntry entry)
         => ProbeUi.Card(new StackPanel
@@ -270,19 +267,6 @@ public sealed class GlossaryClaimPageView : UserControl
             }
         }, 20d, new Thickness(12, 10));
 
-    private static ProbeGlossary.GlossarySection FindSection(string title)
-    {
-        foreach (var section in ProbeGlossary.Sections)
-        {
-            if (string.Equals(section.Title, title, StringComparison.OrdinalIgnoreCase))
-            {
-                return section;
-            }
-        }
-
-        return ProbeGlossary.Sections[0];
-    }
-
     private static ProbeGlossary.GlossaryEntry FindEntry(string term)
     {
         foreach (var section in ProbeGlossary.Sections)
@@ -295,6 +279,40 @@ public sealed class GlossaryClaimPageView : UserControl
         }
 
         return ProbeGlossary.Sections[0].Entries[0];
+    }
+
+    private void BuildSceneButtons()
+    {
+        _sceneOverlay.Children.Clear();
+        for (var index = 0; index < _sceneMeasureButtons.Length; index++)
+        {
+            var button = ProbeUi.PillButton("Pin");
+            button.FontSize = 10d;
+            button.Padding = new Thickness(10, 2);
+            var target = index;
+            button.Click += (_, _) => ApplyState(_state.AddPin(target));
+            _sceneMeasureButtons[index] = button;
+            _sceneOverlay.Children.Add(button);
+        }
+    }
+
+    private void SyncSceneButtons()
+    {
+        if (_scene.Bounds.Width <= 0d)
+        {
+            return;
+        }
+
+        var layout = _scene.CurrentLayout;
+        for (var index = 0; index < layout.Carriers.Length && index < _sceneMeasureButtons.Length; index++)
+        {
+            var button = _sceneMeasureButtons[index];
+            var center = layout.Carriers[index].TitleButtonCenter;
+            button.Measure(Size.Infinity);
+            var desired = button.DesiredSize;
+            Canvas.SetLeft(button, center.X - (desired.Width * 0.5d));
+            Canvas.SetTop(button, center.Y - (desired.Height * 0.5d));
+        }
     }
 
     private readonly record struct CarrierCardControls(GlossarySiteSliderControl Slider);

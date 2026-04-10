@@ -7,13 +7,15 @@ namespace Core4.AvaloniaProbe.Rendering;
 
 internal static class GlossaryClaimVisuals
 {
-    public static string Label(Carrier carrier) => carrier.Id switch
+    public static string CardLabel(Carrier carrier) => carrier.Id switch
     {
         1L => "Heat",
         2L => "Height",
         3L => "Density",
         _ => $"Carrier {carrier.Id}"
     };
+
+    public static string GraphLabel(Carrier carrier) => $"{CardLabel(carrier)} Carrier";
 
     public static IBrush TrackBrush(Carrier carrier) => carrier.Id switch
     {
