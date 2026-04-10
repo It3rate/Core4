@@ -241,28 +241,49 @@ public static class CarrierChainRenderer
 
         foreach (var relation in trailRelations)
         {
-            if (!TryFindEdge(layout, relation, out var edge))
+            if (TryFindEdge(layout, relation, out var edge))
+            {
+                DrawTraversalRails(context, edge, 0d, 1d, useTension: false, new SolidColorBrush(Color.Parse("#8a2ad6")));
+                continue;
+            }
+
+            if (!TryFindHub(layout, relation.Origin, out var fromHub)
+                || !TryFindHub(layout, relation.Anchor, out var toHub))
             {
                 continue;
             }
 
-            DrawTraversalRails(context, edge, 0d, 1d, useTension: false, new SolidColorBrush(Color.Parse("#8a2ad6")));
+            DrawDirectTraversalRails(
+                context,
+                fromHub.Point,
+                toHub.Point,
+                0d,
+                1d,
+                new SolidColorBrush(Color.Parse("#8a2ad6")));
         }
 
         foreach (var relation in candidateRelations)
         {
-            if (!TryFindEdge(layout, relation, out var edge))
-            {
-                continue;
-            }
-
             var pen = new Pen(
                 ProbePalette.TensionPositive,
                 1.8d,
                 dashStyle: new DashStyle([0.2d, 4.4d], 0d),
                 lineCap: PenLineCap.Round,
                 lineJoin: PenLineJoin.Round);
-            context.DrawLine(pen, edge.Start, edge.End);
+
+            if (TryFindEdge(layout, relation, out var edge))
+            {
+                context.DrawLine(pen, edge.Start, edge.End);
+                continue;
+            }
+
+            if (!TryFindHub(layout, relation.Origin, out var fromHub)
+                || !TryFindHub(layout, relation.Anchor, out var toHub))
+            {
+                continue;
+            }
+
+            context.DrawLine(pen, fromHub.Point, toHub.Point);
         }
 
         foreach (var site in candidateSites)
@@ -322,44 +343,47 @@ public static class CarrierChainRenderer
         {
             if (!TryFindHub(layout, motion.From, out var fromHub)
                 || !TryFindHub(layout, motion.To, out var toHub)
-                || !TryFindHub(layout, motion.TrailAnchor, out var trailHub)
-                || !TryFindEdge(layout, motion.Relation, out var edge))
+                || !TryFindHub(layout, motion.TrailAnchor, out _))
             {
                 continue;
             }
 
-            var fromOrigin = motion.TowardAnchor;
-            var edgeProgress = fromOrigin
-                ? motion.Progress
-                : 1d - motion.Progress;
-            var useTension = motion.UseTension;
-            var point = EdgePoint(edge, edgeProgress, useTension);
-            DrawTraversalRails(
+            if (TryFindEdge(layout, motion.Relation, out var edge))
+            {
+                var fromOrigin = motion.TowardAnchor;
+                var edgeProgress = fromOrigin
+                    ? motion.Progress
+                    : 1d - motion.Progress;
+                var useTension = motion.UseTension;
+                var point = EdgePoint(edge, edgeProgress, useTension);
+                DrawTraversalRails(
+                    context,
+                    edge,
+                    fromOrigin ? 0d : edgeProgress,
+                    fromOrigin ? edgeProgress : 1d,
+                    useTension,
+                    new SolidColorBrush(Color.Parse("#8a2ad6")));
+                DrawMotionPoint(context, point);
+                ScenePrimitives.DrawBadgeLabel(
+                    context,
+                    InspectionLabel(edge, motion),
+                    point + new Vector(-44d, -28d),
+                    10d,
+                    ProbePalette.Ink,
+                    FontWeight.SemiBold,
+                    ProbePalette.MonoFont);
+                continue;
+            }
+
+            var seamPoint = Interpolate(fromHub.Point, toHub.Point, motion.Progress);
+            DrawDirectTraversalRails(
                 context,
-                edge,
-                fromOrigin ? 0d : edgeProgress,
-                fromOrigin ? edgeProgress : 1d,
-                useTension,
+                fromHub.Point,
+                toHub.Point,
+                0d,
+                motion.Progress,
                 new SolidColorBrush(Color.Parse("#8a2ad6")));
-            ScenePrimitives.DrawCircle(
-                context,
-                point,
-                6d,
-                ProbePalette.Origin,
-                new Pen(Brushes.White, 1.6d, lineCap: PenLineCap.Round));
-            ScenePrimitives.DrawCircle(
-                context,
-                point,
-                2.4d,
-                Brushes.White);
-            ScenePrimitives.DrawBadgeLabel(
-                context,
-                InspectionLabel(edge, motion),
-                point + new Vector(-44d, -28d),
-                10d,
-                ProbePalette.Ink,
-                FontWeight.SemiBold,
-                ProbePalette.MonoFont);
+            DrawMotionPoint(context, seamPoint);
         }
     }
 
@@ -404,6 +428,40 @@ public static class CarrierChainRenderer
 
         DrawPolyline(context, left.ToImmutable(), pen);
         DrawPolyline(context, right.ToImmutable(), pen);
+    }
+
+    private static void DrawDirectTraversalRails(
+        DrawingContext context,
+        Point from,
+        Point to,
+        double fromProgress,
+        double toProgress,
+        IBrush brush)
+    {
+        var start = Interpolate(from, to, Math.Clamp(fromProgress, 0d, 1d));
+        var end = Interpolate(from, to, Math.Clamp(toProgress, 0d, 1d));
+        var pen = new Pen(
+            brush,
+            1.6d,
+            dashStyle: new DashStyle([0.2d, 3.8d], 0d),
+            lineCap: PenLineCap.Round,
+            lineJoin: PenLineJoin.Round);
+        context.DrawLine(pen, start, end);
+    }
+
+    private static void DrawMotionPoint(DrawingContext context, Point point)
+    {
+        ScenePrimitives.DrawCircle(
+            context,
+            point,
+            6d,
+            ProbePalette.Origin,
+            new Pen(Brushes.White, 1.6d, lineCap: PenLineCap.Round));
+        ScenePrimitives.DrawCircle(
+            context,
+            point,
+            2.4d,
+            Brushes.White);
     }
 
     private static ImmutableDictionary<Site, Point> DefaultPositions(ImmutableArray<CarrierChain> chains)

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Avalonia;
+using Core4.Dynamics;
 using Core4.Numerics;
 using Core4.Structure;
 using Core4.Topology;
@@ -41,6 +42,14 @@ public readonly record struct CarrierChainDemoState(
     public static CarrierChainDemoState Triangle => CreateTriangle();
 
     public static CarrierChainDemoState DiamondCross => CreateDiamondCross();
+
+    public static CarrierChainDemoState ClampInterval => CreateClampInterval();
+
+    public static CarrierChainDemoState ReflectiveInterval => CreateReflectiveInterval();
+
+    public static CarrierChainDemoState ClosureLoop => CreateClosureLoop();
+
+    public static CarrierChainDemoState InvertedClosure => CreateInvertedClosure();
 
     private static CarrierChainDemoState CreateTJunction()
     {
@@ -362,6 +371,110 @@ public readonly record struct CarrierChainDemoState(
         }
 
         return builder.ToImmutable();
+    }
+
+    private static CarrierChainDemoState CreateClampInterval()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var middle = Site.Open(x, new Measure(5));
+        var right = Site.Open(x, new Measure(10));
+
+        return new CarrierChainDemoState(
+            "Clamp Interval",
+            "A plain bounded span with no explicit pinned basis at the end. The trolley can reach the boundary, but the boundary itself does not authorize continuation.",
+            ConnectedSiteTopology.FromRelations(
+                new Relation(left, middle),
+                new Relation(middle, right)),
+            right,
+            Seed(
+                (left, 0.18d, 0.56d),
+                (middle, 0.50d, 0.56d),
+                (right, 0.82d, 0.56d)));
+    }
+
+    private static CarrierChainDemoState CreateReflectiveInterval()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0))
+            .Exchange(
+                Basis.Freeze(x, new Measure(0), new Measure(4)),
+                Ratio.Tension(new Measure(4)),
+                Provenance.Shared(new Measure(4)));
+        var middle = Site.Open(x, new Measure(5));
+        var right = Site.Open(x, new Measure(10))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(6)),
+                Ratio.Tension(new Measure(4)),
+                Provenance.Shared(new Measure(4)));
+
+        return new CarrierChainDemoState(
+            "Reflective Interval",
+            "Both ends expose inward local basis. Traversal can only keep moving by adopting the encountered local calibration, so the interval becomes a shuttle rather than a clamp.",
+            ConnectedSiteTopology.FromRelations(
+                new Relation(left, middle),
+                new Relation(middle, right)),
+            right,
+            Seed(
+                (left, 0.18d, 0.56d),
+                (middle, 0.50d, 0.56d),
+                (right, 0.82d, 0.56d)));
+    }
+
+    private static CarrierChainDemoState CreateClosureLoop()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var middle = Site.Open(x, new Measure(5));
+        var right = Site.Open(x, new Measure(10))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(0)),
+                Ratio.Tension(new Measure(10)),
+                Provenance.Shared(new Measure(10)));
+
+        return new CarrierChainDemoState(
+            "Closure Loop",
+            "The far boundary carries an explicit pinned basis that remaps back to the known start site. Preserved handedness turns the open span into a closed walk.",
+            ConnectedSiteTopology.Create(
+                [right],
+                new Relation(left, middle),
+                new Relation(middle, right)),
+            right,
+            Seed(
+                (left, 0.22d, 0.74d),
+                (middle, 0.50d, 0.28d),
+                (right, 0.78d, 0.74d)));
+    }
+
+    private static CarrierChainDemoState CreateInvertedClosure()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var middle = Site.Open(x, new Measure(5));
+        var right = Site.Open(x, new Measure(10))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(14)),
+                Ratio.Tension(new Measure(4)),
+                Provenance.Shared(new Measure(4)));
+        var wrapTarget = Site.Open(x, new Measure(14));
+
+        return new CarrierChainDemoState(
+            "Inverted Closure",
+            "The boundary remaps onto a known target whose local basis aligns with the current run, so closure still occurs but the trolley's own perspective is inverted at the seam.",
+            ConnectedSiteTopology.Create(
+                [right, wrapTarget],
+                new Relation(left, middle),
+                new Relation(middle, right)),
+            right,
+            Seed(
+                (left, 0.18d, 0.74d),
+                (middle, 0.50d, 0.30d),
+                (right, 0.80d, 0.74d),
+                (wrapTarget, 0.24d, 0.18d)));
     }
 
     private static ImmutableDictionary<Site, Point> Seed(params (Site Site, double X, double Y)[] items)

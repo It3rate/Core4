@@ -26,6 +26,7 @@ public sealed class ProbeView : UserControl
     private readonly MultipleInputsPageView _multipleInputsPage = new();
     private readonly CarrierChainPageView _carrierChainPage = new();
     private readonly TopologyTrolleyPageView _topologyTrolleyPage = new();
+    private readonly BoundaryLoopPageView _boundaryLoopPage = new();
     private readonly CircuitPageView _circuitPage = new();
     private readonly ContentControl _pageHost;
     private readonly StackPanel _pageButtonRow;
@@ -85,6 +86,7 @@ public sealed class ProbeView : UserControl
             new PageDefinition(ProbePage.MultipleInputs, ProbeCategory.Orthogonals, "Multiple Inputs", _multipleInputsPage),
             new PageDefinition(ProbePage.CarrierChain, ProbeCategory.Topology, "Carrier Chain", _carrierChainPage),
             new PageDefinition(ProbePage.TopologyTrolley, ProbeCategory.Topology, "Trolley", _topologyTrolleyPage),
+            new PageDefinition(ProbePage.BoundaryLoop, ProbeCategory.Topology, "Boundaries", _boundaryLoopPage),
             new PageDefinition(ProbePage.Circuit, ProbeCategory.Topology, "Circuit", _circuitPage)
         ];
 
@@ -383,6 +385,7 @@ public sealed class ProbeView : UserControl
         MultipleInputs,
         CarrierChain,
         TopologyTrolley,
+        BoundaryLoop,
         Circuit
     }
 }
