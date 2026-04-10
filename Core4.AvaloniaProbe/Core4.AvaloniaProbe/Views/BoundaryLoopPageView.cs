@@ -46,6 +46,8 @@ public sealed class BoundaryLoopPageView : UserControl
     private DateTime _animationStartedUtc;
     private TimeSpan _activeMotionDuration;
     private PropagationWave _autoWave;
+    private bool _autoRunning;
+    private bool _autoLooping;
 
     public BoundaryLoopPageView()
     {
@@ -282,6 +284,8 @@ public sealed class BoundaryLoopPageView : UserControl
             return;
         }
 
+        _autoRunning = true;
+        _autoLooping = false;
         _autoWave = PropagationWave.FromTrolleys(_frontiers, Core4.Numerics.Measure.One);
         _frontiers = _autoWave.VisibleTrolleys();
         SyncUi();
@@ -295,20 +299,62 @@ public sealed class BoundaryLoopPageView : UserControl
             return;
         }
 
+        if (_autoLooping)
+        {
+            if (TryAdvanceContinuous(out var loopingMotions, out var loopingFrontiers))
+            {
+                StartAnimation(loopingMotions, loopingFrontiers);
+                return;
+            }
+
+            StopAuto();
+            SyncUi();
+            return;
+        }
+
+        if (_autoWave.IsComplete)
+        {
+            if (_preset.ContinuousAuto && _autoWave.IsPeriodic)
+            {
+                _autoLooping = true;
+
+                if (TryAdvanceContinuous(out var periodicMotions, out var periodicFrontiers))
+                {
+                    StartAnimation(periodicMotions, periodicFrontiers);
+                    return;
+                }
+            }
+
+            StopAuto();
+            SyncUi();
+            return;
+        }
+
         var step = _autoWave.Advance();
         _autoWave = step.After;
         _frontiers = step.Before.VisibleTrolleys();
 
         if (!step.HasMotion && step.After.IsReturning)
         {
+            if (_preset.ContinuousAuto && step.After.Active.Length != 0)
+            {
+                _autoLooping = true;
+                _frontiers = step.After.VisibleTrolleys();
+                SyncUi();
+                Dispatcher.UIThread.Post(AdvanceAuto, DispatcherPriority.Background);
+                return;
+            }
+
             // This page is about local boundary law, not the general outward-then-return wave.
-            // If outbound motion has truly quiesced into a return phase, stop at the reached boundary.
+            // If outbound motion has truly quiesced into a return phase for a non-continuous preset, stop at the
+            // reached boundary instead of showing the broader wave return story here.
             _autoWave = new PropagationWave(
                 Core4.Numerics.Measure.Zero,
                 Core4.Numerics.Measure.Zero,
                 ImmutableArray<PropagationFrontier>.Empty,
                 step.After.Active);
             _frontiers = _autoWave.VisibleTrolleys();
+            StopAuto();
             SyncUi();
             return;
         }
@@ -709,7 +755,7 @@ public sealed class BoundaryLoopPageView : UserControl
 
     private bool HasActiveMotion => !_motions.IsDefaultOrEmpty && _motions.Length != 0;
 
-    private bool IsAutoRunning => !_autoWave.IsComplete;
+    private bool IsAutoRunning => _autoRunning;
 
     private int MotionFrontierCount() => _pendingFrontiers.IsDefaultOrEmpty ? _frontiers.Length : _pendingFrontiers.Length;
 
@@ -774,6 +820,8 @@ public sealed class BoundaryLoopPageView : UserControl
 
     private void StopAuto()
     {
+        _autoRunning = false;
+        _autoLooping = false;
         _autoWave = default;
     }
 
@@ -905,6 +953,31 @@ public sealed class BoundaryLoopPageView : UserControl
         return mapped.ToImmutable();
     }
 
+    private bool TryAdvanceContinuous(
+        out ImmutableArray<BoundaryMotion> motions,
+        out ImmutableArray<TopologyTrolley> nextFrontiers)
+    {
+        var next = ImmutableArray.CreateBuilder<TopologyTrolley>(_frontiers.Length);
+        var motionBuilder = ImmutableArray.CreateBuilder<BoundaryMotion>();
+
+        foreach (var frontier in _frontiers)
+        {
+            if (frontier.TryContinuePreferred(out var moved))
+            {
+                next.Add(moved);
+                motionBuilder.Add(BoundaryMotion.Forward(frontier, moved));
+            }
+            else
+            {
+                next.Add(frontier);
+            }
+        }
+
+        motions = motionBuilder.ToImmutable();
+        nextFrontiers = next.ToImmutable();
+        return motions.Length != 0;
+    }
+
     private static ImmutableArray<BoundaryMotion> FilterVisibleMotions(
         CarrierChainSceneLayout layout,
         ImmutableArray<BoundaryMotion> motions)
@@ -990,6 +1063,7 @@ public sealed class BoundaryLoopPageView : UserControl
         string Description,
         CarrierChainDemoState Scene,
         Site StartSite,
+        bool ContinuousAuto,
         ImmutableArray<BoundaryAnnotation> Annotations)
     {
         public static BoundaryPreset ClampInterval => new(
@@ -997,6 +1071,7 @@ public sealed class BoundaryLoopPageView : UserControl
             "One plain bounded span. The far end exposes no explicit pinned basis, so the trolley can arrive there but not continue through local basis encounter.",
             CarrierChainDemoState.ClampInterval,
             Site.Open(new Carrier(1), new Measure(0)),
+            false,
             [new BoundaryAnnotation(Site.Open(new Carrier(1), new Measure(10)), "open", new Vector(0d, -28d))]);
 
         public static BoundaryPreset ReflectiveInterval => new(
@@ -1004,6 +1079,7 @@ public sealed class BoundaryLoopPageView : UserControl
             "Both ends carry inward local basis. The encountered basis can replace or invert the trolley's local reading so the same span behaves like a football-field shuttle.",
             CarrierChainDemoState.ReflectiveInterval,
             Site.Open(new Carrier(1), new Measure(0)),
+            true,
             [
                 new BoundaryAnnotation(Site.Open(new Carrier(1), new Measure(0)), "basis ->", new Vector(-10d, -30d)),
                 new BoundaryAnnotation(Site.Open(new Carrier(1), new Measure(10)), "basis <-", new Vector(2d, -30d))
@@ -1014,6 +1090,7 @@ public sealed class BoundaryLoopPageView : UserControl
             "The far boundary carries a known remap target. Instead of stopping or reflecting, the trolley closes onto that site and the walk can complete as exact periodic re-entry.",
             CarrierChainDemoState.ClosureLoop,
             Site.Open(new Carrier(1), new Measure(0)),
+            true,
             [new BoundaryAnnotation(Site.Open(new Carrier(1), new Measure(10)), "wrap -> x0", new Vector(10d, -30d))]);
 
         public static BoundaryPreset InvertedClosure => new(
@@ -1021,6 +1098,7 @@ public sealed class BoundaryLoopPageView : UserControl
             "Closure still remaps onto a known site, but the encountered basis aligns with the arriving run. The closure is real, yet the trolley's own perspective flips at the seam.",
             CarrierChainDemoState.InvertedClosure,
             Site.Open(new Carrier(1), new Measure(0)),
+            true,
             [
                 new BoundaryAnnotation(Site.Open(new Carrier(1), new Measure(10)), "wrap + invert", new Vector(18d, -30d)),
                 new BoundaryAnnotation(Site.Open(new Carrier(1), new Measure(14)), "target", new Vector(0d, -28d))
