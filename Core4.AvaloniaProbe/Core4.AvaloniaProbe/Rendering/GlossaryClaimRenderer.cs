@@ -52,7 +52,7 @@ internal static class GlossaryClaimRenderer
         foreach (var carrier in layout.Carriers)
         {
             DrawPins(context, carrier);
-            DrawSite(context, carrier);
+            DrawSite(context, layout.Scene, carrier);
             DrawHandles(context, carrier);
             DrawLabels(context, carrier);
         }
@@ -116,20 +116,11 @@ internal static class GlossaryClaimRenderer
         DrawEndpointLabels(context, carrier);
     }
 
-    private static void DrawSite(DrawingContext context, GlossaryClaimCarrierLayout carrier)
+    private static void DrawSite(DrawingContext context, Rect scene, GlossaryClaimCarrierLayout carrier)
     {
         GlossaryClaimVisuals.DrawSiteGlyph(context, carrier.State.Carrier, carrier.Site, carrier.State.Site.Ratio.Approximate);
         var direction = new Vector(carrier.End.X - carrier.Start.X, carrier.End.Y - carrier.Start.Y);
-        Point anchor;
-        if (Math.Abs(direction.X) < Math.Abs(direction.Y) * 0.5d)
-        {
-            anchor = carrier.Site + new Vector(0d, 38d);
-        }
-        else
-        {
-            var horizontalBias = Math.Sign(direction.X) * 12d;
-            anchor = carrier.Site + new Vector(horizontalBias, -42d);
-        }
+        var anchor = SiteBadgeAnchor(scene, carrier.Site, direction);
 
         context.DrawLine(
             new Pen(new SolidColorBrush(Color.FromArgb(110, 107, 118, 128)), 1d),
@@ -147,6 +138,28 @@ internal static class GlossaryClaimRenderer
             new Pen(new SolidColorBrush(Color.FromArgb(90, 197, 182, 160)), 0.8d),
             new Thickness(6, 3, 6, 3),
             8d);
+    }
+
+    private static Point SiteBadgeAnchor(Rect scene, Point site, Vector direction)
+    {
+        Vector offset;
+        if (Math.Abs(direction.X) < Math.Abs(direction.Y) * 0.45d)
+        {
+            offset = new Vector(74d, 34d);
+        }
+        else if ((direction.X * direction.Y) < 0d)
+        {
+            offset = new Vector(72d, 28d);
+        }
+        else
+        {
+            offset = new Vector(72d, -28d);
+        }
+
+        var anchor = site + offset;
+        return new Point(
+            Math.Clamp(anchor.X, scene.X + 84d, scene.Right - 84d),
+            Math.Clamp(anchor.Y, scene.Y + 28d, scene.Bottom - 28d));
     }
 
     private static void DrawPins(DrawingContext context, GlossaryClaimCarrierLayout carrier)

@@ -9,7 +9,7 @@ using Core4.AvaloniaProbe.Rendering;
 namespace Core4.AvaloniaProbe.Views;
 
 /// <summary>
-/// Second glossary page: pin, origin, and relation.
+/// Second glossary page: pin, origin, and relation across the same three carriers.
 /// </summary>
 public sealed class GlossaryRelationPageView : UserControl
 {
@@ -19,11 +19,10 @@ public sealed class GlossaryRelationPageView : UserControl
 
     private readonly GlossaryRelationSceneControl _scene;
     private readonly Canvas _sceneOverlay;
-    private readonly GlossarySiteSliderControl _slider;
-    private readonly TextBlock _metaStateText;
+    private readonly TextBlock _metaOriginText;
     private readonly TextBlock _metaRelationText;
-    private readonly Button _cardActionButton;
-    private readonly Button _sceneActionButton;
+    private readonly CarrierControls[] _controls;
+    private readonly Button[] _sceneActionButtons;
     private GlossaryRelationDemoState _state = GlossaryRelationDemoState.CreateDefault();
     private bool _syncing;
 
@@ -39,41 +38,32 @@ public sealed class GlossaryRelationPageView : UserControl
         {
             _state = state;
             SyncUi();
-            SyncSceneButton();
+            SyncSceneButtons();
         };
-        _scene.LayoutChanged += (_, _) => SyncSceneButton();
+        _scene.LayoutChanged += (_, _) => SyncSceneButtons();
 
         _sceneOverlay = new Canvas();
-        _metaStateText = ProbeUi.Mono(string.Empty, 11d, ProbePalette.Muted);
+        _metaOriginText = ProbeUi.Mono(string.Empty, 11d, ProbePalette.Muted);
         _metaRelationText = ProbeUi.Mono(string.Empty, 11d, ProbePalette.Muted);
+        _controls = new CarrierControls[_state.Carriers.Length];
+        _sceneActionButtons = new Button[_state.Carriers.Length];
 
-        _slider = new GlossarySiteSliderControl
+        var controlGrid = new Grid
         {
-            Carrier = _state.Carrier,
-            Minimum = 0,
-            Maximum = 100,
-            Value = _state.SiteTicks.Raw,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch
-        };
-        _slider.ValueChanged += (_, value) =>
-        {
-            if (!_syncing)
-            {
-                ApplyState(_state.WithSiteTicks(value));
-            }
+            ColumnDefinitions = new ColumnDefinitions("*,*,*"),
+            ColumnSpacing = 10
         };
 
-        _cardActionButton = ProbeUi.PillButton(_state.ActionLabel);
-        _cardActionButton.Click += (_, _) => ApplyState(_state.StepAction());
-
-        _sceneActionButton = ProbeUi.PillButton(_state.ActionLabel);
-        _sceneActionButton.FontSize = 10d;
-        _sceneActionButton.Padding = new Thickness(10, 2);
-        _sceneActionButton.Click += (_, _) => ApplyState(_state.StepAction());
-        _sceneOverlay.Children.Add(_sceneActionButton);
+        for (var index = 0; index < _state.Carriers.Length; index++)
+        {
+            var card = BuildCarrierCard(index, out _controls[index]);
+            controlGrid.Children.Add(card);
+            Grid.SetColumn(card, index);
+        }
 
         var resetLayout = ProbeUi.PillButton("Reset Layout");
         resetLayout.Click += (_, _) => ApplyState(_state.ResetLayout());
+
         var clearFrozen = ProbeUi.PillButton("Clear Frozen");
         clearFrozen.Click += (_, _) => ApplyState(_state.ClearFrozen());
 
@@ -123,39 +113,19 @@ public sealed class GlossaryRelationPageView : UserControl
             }
         }, 22d, new Thickness(12));
 
-        var controlCard = ProbeUi.Card(new StackPanel
-        {
-            Spacing = 7,
-            Children =
-            {
-                new Grid
-                {
-                    ColumnDefinitions = new Avalonia.Controls.ColumnDefinitions("*,Auto"),
-                    ColumnSpacing = 8,
-                    Children =
-                    {
-                        ProbeUi.Header("Site", 12d),
-                        _cardActionButton
-                    }
-                },
-                _slider
-            }
-        }, 20d, new Thickness(12, 10));
-        Grid.SetColumn(_cardActionButton, 1);
-
         var rightColumn = new StackPanel
         {
             Spacing = 10,
             Children =
             {
                 sceneCard,
-                controlCard
+                controlGrid
             }
         };
 
         var mainGrid = new Grid
         {
-            ColumnDefinitions = new Avalonia.Controls.ColumnDefinitions("232,*"),
+            ColumnDefinitions = new ColumnDefinitions("232,*"),
             ColumnSpacing = 8,
             Children =
             {
@@ -166,15 +136,16 @@ public sealed class GlossaryRelationPageView : UserControl
         Grid.SetColumn(rightColumn, 1);
 
         Content = mainGrid;
+        BuildSceneButtons();
         SyncUi();
-        SyncSceneButton();
+        SyncSceneButtons();
     }
 
     private Grid SceneHeader()
     {
         var grid = new Grid
         {
-            ColumnDefinitions = new Avalonia.Controls.ColumnDefinitions("*,Auto")
+            ColumnDefinitions = new ColumnDefinitions("*,Auto")
         };
 
         var titleStack = new StackPanel
@@ -184,7 +155,7 @@ public sealed class GlossaryRelationPageView : UserControl
             {
                 ProbeUi.Mono("INTERACTIVE SCENE", 10d, ProbePalette.Muted),
                 ProbeUi.DisplayTitle("Pin Origin And Freeze Relation", 18d),
-                ProbeUi.Body("Pin one site as the reusable origin. After that, the same movable site is read as relation against that origin in tenths, and you can freeze relation markers along the carrier.", 10d)
+                ProbeUi.Body("Each carrier can pin its own origin. After that, the same movable site is read as relation from that origin in tenths, and frozen relation markers accumulate against the same support.", 10d)
             }
         };
 
@@ -194,7 +165,7 @@ public sealed class GlossaryRelationPageView : UserControl
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
             Children =
             {
-                _metaStateText,
+                _metaOriginText,
                 _metaRelationText
             }
         };
@@ -203,6 +174,52 @@ public sealed class GlossaryRelationPageView : UserControl
         grid.Children.Add(metaStack);
         Grid.SetColumn(metaStack, 1);
         return grid;
+    }
+
+    private Border BuildCarrierCard(int index, out CarrierControls controls)
+    {
+        var carrier = _state.CarrierAt(index);
+        var slider = new GlossarySiteSliderControl
+        {
+            Carrier = carrier.Carrier,
+            Minimum = 0,
+            Maximum = 100,
+            Value = carrier.SiteTicks.Raw,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch
+        };
+        slider.ValueChanged += (_, value) =>
+        {
+            if (!_syncing)
+            {
+                ApplyState(_state.WithSiteTicks(index, value));
+            }
+        };
+
+        var button = ProbeUi.PillButton(carrier.ActionLabel);
+        var target = index;
+        button.Click += (_, _) => ApplyState(_state.StepAction(target));
+
+        controls = new CarrierControls(slider, button);
+        Grid.SetColumn(button, 1);
+
+        return ProbeUi.Card(new StackPanel
+        {
+            Spacing = 7,
+            Children =
+            {
+                new Grid
+                {
+                    ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+                    ColumnSpacing = 8,
+                    Children =
+                    {
+                        ProbeUi.Header(GlossaryClaimVisuals.CardLabel(carrier.Carrier), 12d),
+                        button
+                    }
+                },
+                slider
+            }
+        }, 20d, new Thickness(12, 10));
     }
 
     private void ApplyState(GlossaryRelationDemoState state)
@@ -215,17 +232,37 @@ public sealed class GlossaryRelationPageView : UserControl
     private void SyncUi()
     {
         _syncing = true;
-        _slider.Value = _state.SiteTicks.Raw;
-        _cardActionButton.Content = _state.ActionLabel;
-        _sceneActionButton.Content = _state.ActionLabel;
-        _metaStateText.Text = _state.HasOrigin ? $"origin {_state.OriginTicks.Raw}/100" : "origin unset";
-        _metaRelationText.Text = _state.HasOrigin
-            ? $"live relation {_state.CurrentRelation:0.0}"
-            : $"measure {_state.CurrentMeasure.Raw}";
+        for (var index = 0; index < _controls.Length; index++)
+        {
+            var carrier = _state.CarrierAt(index);
+            _controls[index].Slider.Value = carrier.SiteTicks.Raw;
+            _controls[index].ActionButton.Content = carrier.ActionLabel;
+            _sceneActionButtons[index].Content = carrier.ActionLabel;
+        }
+
+        _metaOriginText.Text = $"{_state.OriginCount.Raw} origins pinned";
+        _metaRelationText.Text = _state.FrozenRelationCount.Raw == 0
+            ? "no relations frozen"
+            : $"{_state.FrozenRelationCount.Raw} relations frozen";
         _syncing = false;
     }
 
-    private void SyncSceneButton()
+    private void BuildSceneButtons()
+    {
+        _sceneOverlay.Children.Clear();
+        for (var index = 0; index < _sceneActionButtons.Length; index++)
+        {
+            var button = ProbeUi.PillButton(_state.CarrierAt(index).ActionLabel);
+            button.FontSize = 10d;
+            button.Padding = new Thickness(10, 2);
+            var target = index;
+            button.Click += (_, _) => ApplyState(_state.StepAction(target));
+            _sceneActionButtons[index] = button;
+            _sceneOverlay.Children.Add(button);
+        }
+    }
+
+    private void SyncSceneButtons()
     {
         if (_scene.Bounds.Width <= 0d)
         {
@@ -233,10 +270,15 @@ public sealed class GlossaryRelationPageView : UserControl
         }
 
         var layout = _scene.CurrentLayout;
-        _sceneActionButton.Measure(Size.Infinity);
-        var desired = _sceneActionButton.DesiredSize;
-        Canvas.SetLeft(_sceneActionButton, layout.TitleButtonCenter.X - (desired.Width * 0.5d));
-        Canvas.SetTop(_sceneActionButton, layout.TitleButtonCenter.Y - (desired.Height * 0.5d));
+        for (var index = 0; index < layout.Carriers.Length && index < _sceneActionButtons.Length; index++)
+        {
+            var button = _sceneActionButtons[index];
+            var center = layout.Carriers[index].TitleButtonCenter;
+            button.Measure(Size.Infinity);
+            var desired = button.DesiredSize;
+            Canvas.SetLeft(button, center.X - (desired.Width * 0.5d));
+            Canvas.SetTop(button, center.Y - (desired.Height * 0.5d));
+        }
     }
 
     private static Border EntryCard(ProbeGlossary.GlossaryEntry entry)
@@ -264,4 +306,6 @@ public sealed class GlossaryRelationPageView : UserControl
 
         return ProbeGlossary.Sections[0].Entries[0];
     }
+
+    private readonly record struct CarrierControls(GlossarySiteSliderControl Slider, Button ActionButton);
 }

@@ -16,37 +16,53 @@ internal static class GlossaryRelationRenderer
             bounds.Width - 52d,
             bounds.Height - 44d);
 
-        var start = FromNormalized(scene, state.Start);
-        var end = FromNormalized(scene, state.End);
-        var site = Lerp(start, end, state.Site.Ratio.Approximate);
-        var origin = Lerp(start, end, state.Origin.Ratio.Approximate);
-        var titleCenter = new Point((start.X + end.X) * 0.5d, Math.Min(scene.Bottom - 48d, Math.Max(start.Y, end.Y) + 28d));
-        var buttonCenter = new Point(titleCenter.X, Math.Min(scene.Bottom - 18d, titleCenter.Y + 25d));
-        var relations = ImmutableArray.CreateBuilder<Point>(state.Relations.Length);
-        foreach (var relation in state.Relations)
+        var carriers = ImmutableArray.CreateBuilder<GlossaryRelationCarrierLayout>(state.Carriers.Length);
+        for (var index = 0; index < state.Carriers.Length; index++)
         {
-            relations.Add(Lerp(start, end, relation.Placement.Ratio.Approximate));
+            var carrier = state.CarrierAt(index);
+            var start = FromNormalized(scene, carrier.Start);
+            var end = FromNormalized(scene, carrier.End);
+            var site = Lerp(start, end, carrier.Site.Ratio.Approximate);
+            var origin = Lerp(start, end, carrier.Origin.Ratio.Approximate);
+            var titleCenter = new Point(
+                (start.X + end.X) * 0.5d,
+                Math.Min(scene.Bottom - 48d, Math.Max(start.Y, end.Y) + 28d));
+            var titleButtonCenter = new Point(titleCenter.X, Math.Min(scene.Bottom - 18d, titleCenter.Y + 25d));
+            var relations = ImmutableArray.CreateBuilder<Point>(carrier.Relations.Length);
+            foreach (var relation in carrier.Relations)
+            {
+                relations.Add(Lerp(start, end, relation.Placement.Ratio.Approximate));
+            }
+
+            carriers.Add(new GlossaryRelationCarrierLayout(index, start, end, site, origin, titleCenter, titleButtonCenter, relations.ToImmutable(), carrier));
         }
 
-        return new GlossaryRelationSceneLayout(scene, start, end, site, origin, titleCenter, buttonCenter, relations.ToImmutable(), state);
+        return new GlossaryRelationSceneLayout(scene, carriers.ToImmutable());
     }
 
     public static void Render(DrawingContext context, Rect bounds, GlossaryRelationDemoState state)
     {
         var layout = Arrange(bounds, state);
         DrawBackdrop(context, layout.Scene);
-        GlossaryClaimVisuals.DrawCarrier(context, layout.State.Carrier, layout.Start, layout.End);
 
-        if (layout.State.HasOrigin)
+        foreach (var carrier in layout.Carriers)
         {
-            DrawResolutionTicks(context, layout);
-            DrawOrigin(context, layout);
+            GlossaryClaimVisuals.DrawCarrier(context, carrier.State.Carrier, carrier.Start, carrier.End);
         }
 
-        DrawRelations(context, layout);
-        DrawSite(context, layout);
-        DrawHandles(context, layout);
-        DrawLabels(context, layout);
+        foreach (var carrier in layout.Carriers)
+        {
+            if (carrier.State.HasOrigin)
+            {
+                DrawResolutionTicks(context, carrier);
+                DrawOrigin(context, carrier);
+            }
+
+            DrawRelations(context, carrier);
+            DrawSite(context, layout.Scene, carrier);
+            DrawHandles(context, carrier);
+            DrawLabels(context, carrier);
+        }
     }
 
     public static Point Normalize(Rect bounds, Point point)
@@ -93,9 +109,9 @@ internal static class GlossaryRelationRenderer
         }
     }
 
-    private static void DrawResolutionTicks(DrawingContext context, GlossaryRelationSceneLayout layout)
+    private static void DrawResolutionTicks(DrawingContext context, GlossaryRelationCarrierLayout carrier)
     {
-        var direction = layout.End - layout.Start;
+        var direction = carrier.End - carrier.Start;
         var length = Math.Sqrt((direction.X * direction.X) + (direction.Y * direction.Y));
         if (length <= 1d)
         {
@@ -107,23 +123,22 @@ internal static class GlossaryRelationRenderer
         var pen = new Pen(new SolidColorBrush(Color.FromArgb(120, 47, 106, 63)), 1d);
         for (var step = 0; step <= 10; step++)
         {
-            var t = step / 10d;
-            var point = Lerp(layout.Start, layout.End, t);
+            var point = Lerp(carrier.Start, carrier.End, step / 10d);
             var size = step % 5 == 0 ? 7d : 4d;
             context.DrawLine(pen, point - (normal * size), point + (normal * size));
         }
     }
 
-    private static void DrawOrigin(DrawingContext context, GlossaryRelationSceneLayout layout)
+    private static void DrawOrigin(DrawingContext context, GlossaryRelationCarrierLayout carrier)
     {
         ScenePrimitives.DrawCircle(
             context,
-            layout.Origin,
+            carrier.Origin,
             8d,
             ProbePalette.Surface,
             new Pen(new SolidColorBrush(Color.Parse("#243336")), 1.5d));
-        var anchor = layout.Origin + new Vector(0d, -36d);
-        context.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(110, 107, 118, 128)), 1d), layout.Origin, anchor);
+        var anchor = carrier.Origin + new Vector(0d, -36d);
+        context.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(110, 107, 118, 128)), 1d), carrier.Origin, anchor);
         ScenePrimitives.DrawCenteredBadgeLabel(
             context,
             "origin\n0.0",
@@ -138,15 +153,15 @@ internal static class GlossaryRelationRenderer
             8d);
     }
 
-    private static void DrawRelations(DrawingContext context, GlossaryRelationSceneLayout layout)
+    private static void DrawRelations(DrawingContext context, GlossaryRelationCarrierLayout carrier)
     {
-        for (var index = 0; index < layout.Relations.Length; index++)
+        for (var index = 0; index < carrier.Relations.Length; index++)
         {
-            var point = layout.Relations[index];
-            var relation = layout.State.Relations[index];
+            var point = carrier.Relations[index];
+            var relation = carrier.State.Relations[index];
             var sign = index % 2 == 0 ? 1d : -1d;
             var anchor = point + new Vector(16d, sign * 18d);
-            GlossaryClaimVisuals.DrawMeasureGlyph(context, layout.State.Carrier, point, relation.Placement.Ratio.Approximate);
+            GlossaryClaimVisuals.DrawMeasureGlyph(context, carrier.State.Carrier, point, relation.Placement.Ratio.Approximate);
             context.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(110, 107, 118, 128)), 1d), point, anchor + new Vector(-3d, sign * 3d));
             ScenePrimitives.DrawBadgeLabel(
                 context,
@@ -163,16 +178,16 @@ internal static class GlossaryRelationRenderer
         }
     }
 
-    private static void DrawSite(DrawingContext context, GlossaryRelationSceneLayout layout)
+    private static void DrawSite(DrawingContext context, Rect scene, GlossaryRelationCarrierLayout carrier)
     {
-        GlossaryClaimVisuals.DrawSiteGlyph(context, layout.State.Carrier, layout.Site, layout.State.Site.Ratio.Approximate);
-        var anchor = layout.State.HasOrigin
-            ? layout.Site + new Vector(18d, -38d)
-            : layout.Site + new Vector(18d, -38d);
-        context.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(110, 107, 118, 128)), 1d), layout.Site, anchor);
-        var text = layout.State.HasOrigin
-            ? $"site\nrelation: {layout.State.CurrentRelation:0.0}"
-            : $"site\nmeasure: {layout.State.CurrentMeasure.Raw}";
+        GlossaryClaimVisuals.DrawSiteGlyph(context, carrier.State.Carrier, carrier.Site, carrier.State.Site.Ratio.Approximate);
+        var direction = new Vector(carrier.End.X - carrier.Start.X, carrier.End.Y - carrier.Start.Y);
+        var anchor = SiteBadgeAnchor(scene, carrier.Site, direction);
+
+        context.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(110, 107, 118, 128)), 1d), carrier.Site, anchor);
+        var text = carrier.State.HasOrigin
+            ? $"site\nrelation: {carrier.State.CurrentRelation:0.0}"
+            : $"site\nmeasure: {carrier.State.CurrentMeasure.Raw}";
         ScenePrimitives.DrawCenteredBadgeLabel(
             context,
             text,
@@ -187,32 +202,61 @@ internal static class GlossaryRelationRenderer
             8d);
     }
 
-    private static void DrawHandles(DrawingContext context, GlossaryRelationSceneLayout layout)
+    private static Point SiteBadgeAnchor(Rect scene, Point site, Vector direction)
     {
-        ScenePrimitives.DrawCircle(context, layout.Start, 6d, ProbePalette.Surface, GlossaryClaimVisuals.HandlePen);
-        ScenePrimitives.DrawCircle(context, layout.End, 6d, ProbePalette.Surface, GlossaryClaimVisuals.HandlePen);
+        Vector offset;
+        if (Math.Abs(direction.X) < Math.Abs(direction.Y) * 0.45d)
+        {
+            offset = new Vector(74d, 34d);
+        }
+        else if ((direction.X * direction.Y) < 0d)
+        {
+            offset = new Vector(72d, 28d);
+        }
+        else
+        {
+            offset = new Vector(72d, -28d);
+        }
+
+        var anchor = site + offset;
+        return new Point(
+            Math.Clamp(anchor.X, scene.X + 84d, scene.Right - 84d),
+            Math.Clamp(anchor.Y, scene.Y + 28d, scene.Bottom - 28d));
     }
 
-    private static void DrawLabels(DrawingContext context, GlossaryRelationSceneLayout layout)
+    private static void DrawHandles(DrawingContext context, GlossaryRelationCarrierLayout carrier)
+    {
+        ScenePrimitives.DrawCircle(context, carrier.Start, 6d, ProbePalette.Surface, GlossaryClaimVisuals.HandlePen);
+        ScenePrimitives.DrawCircle(context, carrier.End, 6d, ProbePalette.Surface, GlossaryClaimVisuals.HandlePen);
+    }
+
+    private static void DrawLabels(DrawingContext context, GlossaryRelationCarrierLayout carrier)
     {
         ScenePrimitives.DrawCenteredLabel(
             context,
-            "Carrier",
-            layout.TitleCenter,
+            GlossaryClaimVisuals.GraphLabel(carrier.State.Carrier),
+            carrier.TitleCenter,
             11d,
             ProbePalette.Ink,
             FontWeight.SemiBold,
             ProbePalette.UiFont);
-        DrawEndpointLabels(context, layout);
+        DrawEndpointLabels(context, carrier);
     }
 
-    private static void DrawEndpointLabels(DrawingContext context, GlossaryRelationSceneLayout layout)
+    private static void DrawEndpointLabels(DrawingContext context, GlossaryRelationCarrierLayout carrier)
     {
-        var startPoint = layout.Start + GlossaryClaimVisuals.EndpointLabelOffset(layout.State.Carrier, true);
-        var endPoint = layout.End + GlossaryClaimVisuals.EndpointLabelOffset(layout.State.Carrier, false);
+        var startPoint = carrier.Start + GlossaryClaimVisuals.EndpointLabelOffset(carrier.State.Carrier, true);
+        var endPoint = carrier.End + GlossaryClaimVisuals.EndpointLabelOffset(carrier.State.Carrier, false);
+        var startText = carrier.State.HasOrigin
+            ? $"{carrier.State.StartDisplayValue:0.0}"
+            : carrier.State.StartDisplayValue.ToString("0");
+        var endText = carrier.State.HasOrigin
+            ? $"{carrier.State.EndDisplayValue:0.0}"
+            : carrier.State.EndDisplayValue.ToString("0");
+
         ScenePrimitives.DrawBadgeLabel(
             context,
-            layout.State.StartValue.Raw.ToString(),
+            startText,
             startPoint,
             9d,
             ProbePalette.Ink,
@@ -223,7 +267,7 @@ internal static class GlossaryRelationRenderer
             cornerRadius: 8d);
         ScenePrimitives.DrawBadgeLabel(
             context,
-            layout.State.EndValue.Raw.ToString(),
+            endText,
             endPoint,
             9d,
             ProbePalette.Ink,
@@ -243,8 +287,10 @@ internal static class GlossaryRelationRenderer
         start.Y + ((end.Y - start.Y) * t));
 }
 
-internal readonly record struct GlossaryRelationSceneLayout(
-    Rect Scene,
+internal readonly record struct GlossaryRelationSceneLayout(Rect Scene, ImmutableArray<GlossaryRelationCarrierLayout> Carriers);
+
+internal readonly record struct GlossaryRelationCarrierLayout(
+    int Index,
     Point Start,
     Point End,
     Point Site,
@@ -252,4 +298,4 @@ internal readonly record struct GlossaryRelationSceneLayout(
     Point TitleCenter,
     Point TitleButtonCenter,
     ImmutableArray<Point> Relations,
-    GlossaryRelationDemoState State);
+    GlossaryRelationCarrierState State);

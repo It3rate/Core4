@@ -7,109 +7,99 @@ using Core4.Structure;
 namespace Core4.AvaloniaProbe.Models;
 
 /// <summary>
-/// Second glossary page: one carrier is first pinned as origin, then later relations are frozen against it.
+/// Multi-carrier relation glossary state. Each carrier can pin its own origin and freeze later relations.
 /// </summary>
-public readonly record struct GlossaryRelationDemoState(
-    Carrier Carrier,
-    Point SeedStart,
-    Point SeedEnd,
-    Measure StartValue,
-    Measure EndValue,
-    Measure SiteTicks,
-    Measure OriginTicks,
-    bool HasOrigin,
-    ImmutableArray<GlossaryFrozenRelationState> Relations)
+public readonly record struct GlossaryRelationDemoState(ImmutableArray<GlossaryRelationCarrierState> Carriers)
 {
-    private const long TotalTicks = 100L;
-    private const long UnitTicks = 10L;
-
-    public Point Start { get; init; } = SeedStart;
-
-    public Point End { get; init; } = SeedEnd;
-
     public static GlossaryRelationDemoState CreateDefault()
+        => new(
+        [
+            CreateCarrier(new Carrier(1), new Point(0.56d, 0.20d), new Point(0.90d, 0.20d), 46L),
+            CreateCarrier(new Carrier(2), new Point(0.18d, 0.82d), new Point(0.18d, 0.18d), 42L),
+            CreateCarrier(new Carrier(3), new Point(0.56d, 0.78d), new Point(0.90d, 0.68d), 27L)
+        ]);
+
+    public GlossaryRelationCarrierState CarrierAt(int index) => Carriers[index];
+
+    public Measure OriginCount
+    {
+        get
+        {
+            long count = 0L;
+            foreach (var carrier in Carriers)
+            {
+                if (carrier.HasOrigin)
+                {
+                    count++;
+                }
+            }
+
+            return new Measure(count);
+        }
+    }
+
+    public Measure FrozenRelationCount
+    {
+        get
+        {
+            long count = 0L;
+            foreach (var carrier in Carriers)
+            {
+                count += carrier.Relations.Length;
+            }
+
+            return new Measure(count);
+        }
+    }
+
+    public GlossaryRelationDemoState WithEndpoint(int index, bool updateStart, Point value)
+        => Update(index, carrier => carrier.WithEndpoint(updateStart, value));
+
+    public GlossaryRelationDemoState WithSiteTicks(int index, long ticks)
+        => Update(index, carrier => carrier.WithSiteTicks(ticks));
+
+    public GlossaryRelationDemoState StepAction(int index)
+        => Update(index, carrier => carrier.StepAction());
+
+    public GlossaryRelationDemoState ClearFrozen()
+    {
+        var builder = Carriers.ToBuilder();
+        for (var index = 0; index < builder.Count; index++)
+        {
+            builder[index] = builder[index].ClearFrozen();
+        }
+
+        return new GlossaryRelationDemoState(builder.ToImmutable());
+    }
+
+    public GlossaryRelationDemoState ResetLayout() => CreateDefault();
+
+    private GlossaryRelationDemoState Update(int index, Func<GlossaryRelationCarrierState, GlossaryRelationCarrierState> update)
+    {
+        if ((uint)index >= (uint)Carriers.Length)
+        {
+            return this;
+        }
+
+        var builder = Carriers.ToBuilder();
+        builder[index] = update(builder[index]);
+        return new GlossaryRelationDemoState(builder.ToImmutable());
+    }
+
+    private static GlossaryRelationCarrierState CreateCarrier(Carrier carrier, Point seedStart, Point seedEnd, long siteTicks)
     {
         var (startValue, endValue) = CreateOrderedRange();
-        return new GlossaryRelationDemoState(
-            new Carrier(1),
-            new Point(0.16d, 0.66d),
-            new Point(0.86d, 0.28d),
+        return new GlossaryRelationCarrierState(
+            carrier,
+            seedStart,
+            seedEnd,
             startValue,
             endValue,
-            new Measure(42),
+            new Measure(siteTicks),
             Measure.Zero,
             false,
             ImmutableArray<GlossaryFrozenRelationState>.Empty);
     }
-
-    public Placement Site => Carrier.At(new Ratio(SiteTicks, new Measure(TotalTicks)));
-
-    public Placement Origin => Carrier.At(new Ratio(OriginTicks, new Measure(TotalTicks)));
-
-    public Measure CurrentMeasure => ValueAt(SiteTicks);
-
-    public double CurrentRelation => HasOrigin
-        ? (SiteTicks.Raw - OriginTicks.Raw) / (double)UnitTicks
-        : 0d;
-
-    public string ActionLabel => HasOrigin ? "Freeze Relation" : "Pin Origin";
-
-    public GlossaryRelationDemoState WithEndpoint(bool updateStart, Point value)
-    {
-        var clamped = ClampPoint(value);
-        return updateStart
-            ? this with { Start = clamped }
-            : this with { End = clamped };
-    }
-
-    public GlossaryRelationDemoState WithSiteTicks(long ticks) => this with
-    {
-        SiteTicks = new Measure(Math.Clamp(ticks, 0L, TotalTicks))
-    };
-
-    public GlossaryRelationDemoState StepAction() => HasOrigin ? FreezeRelation() : PinOrigin();
-
-    public GlossaryRelationDemoState PinOrigin() => this with
-    {
-        OriginTicks = SiteTicks,
-        HasOrigin = true,
-        Relations = ImmutableArray<GlossaryFrozenRelationState>.Empty
-    };
-
-    public GlossaryRelationDemoState FreezeRelation()
-    {
-        if (!HasOrigin)
-        {
-            return PinOrigin();
-        }
-
-        return this with
-        {
-            Relations = Relations.Add(new GlossaryFrozenRelationState(
-                Site,
-                new Measure(SiteTicks.Raw - OriginTicks.Raw)))
-        };
-    }
-
-    public GlossaryRelationDemoState ClearFrozen() => this with
-    {
-        HasOrigin = false,
-        OriginTicks = Measure.Zero,
-        Relations = ImmutableArray<GlossaryFrozenRelationState>.Empty
-    };
-
-    public GlossaryRelationDemoState ResetLayout() => CreateDefault();
-
-    public Measure ValueAt(Measure ticks)
-    {
-        var clamped = Math.Clamp(ticks.Raw, 0L, TotalTicks);
-        var span = EndValue.Raw - StartValue.Raw;
-        return new Measure(StartValue.Raw + ((span * clamped) / TotalTicks));
-    }
-
-    private static Point ClampPoint(Point point) => new(
-        Math.Clamp(point.X, 0.06d, 0.94d),
-        Math.Clamp(point.Y, 0.08d, 0.92d));
 
     private static (Measure StartValue, Measure EndValue) CreateOrderedRange()
     {
@@ -130,6 +120,100 @@ public readonly record struct GlossaryRelationDemoState(
                 : (new Measure(upper), new Measure(lower));
         }
     }
+}
+
+public readonly record struct GlossaryRelationCarrierState(
+    Carrier Carrier,
+    Point SeedStart,
+    Point SeedEnd,
+    Measure RawStartValue,
+    Measure RawEndValue,
+    Measure SiteTicks,
+    Measure OriginTicks,
+    bool HasOrigin,
+    ImmutableArray<GlossaryFrozenRelationState> Relations)
+{
+    private const long TotalTicks = 100L;
+    private const long UnitTicks = 10L;
+
+    public Point Start { get; init; } = SeedStart;
+
+    public Point End { get; init; } = SeedEnd;
+
+    public Placement Site => Carrier.At(new Ratio(SiteTicks, new Measure(TotalTicks)));
+
+    public Placement Origin => Carrier.At(new Ratio(OriginTicks, new Measure(TotalTicks)));
+
+    public Measure CurrentMeasure => RawValueAt(SiteTicks);
+
+    public double CurrentRelation => HasOrigin
+        ? (SiteTicks.Raw - OriginTicks.Raw) / (double)UnitTicks
+        : 0d;
+
+    public string ActionLabel => HasOrigin ? "Freeze Relation" : "Pin Origin";
+
+    public double StartDisplayValue => HasOrigin
+        ? (0L - OriginTicks.Raw) / (double)UnitTicks
+        : RawStartValue.Raw;
+
+    public double EndDisplayValue => HasOrigin
+        ? (TotalTicks - OriginTicks.Raw) / (double)UnitTicks
+        : RawEndValue.Raw;
+
+    public GlossaryRelationCarrierState WithEndpoint(bool updateStart, Point value)
+    {
+        var clamped = ClampPoint(value);
+        return updateStart
+            ? this with { Start = clamped }
+            : this with { End = clamped };
+    }
+
+    public GlossaryRelationCarrierState WithSiteTicks(long ticks) => this with
+    {
+        SiteTicks = new Measure(Math.Clamp(ticks, 0L, TotalTicks))
+    };
+
+    public GlossaryRelationCarrierState StepAction() => HasOrigin ? FreezeRelation() : PinOrigin();
+
+    public GlossaryRelationCarrierState PinOrigin() => this with
+    {
+        OriginTicks = SiteTicks,
+        HasOrigin = true,
+        Relations = ImmutableArray<GlossaryFrozenRelationState>.Empty
+    };
+
+    public GlossaryRelationCarrierState FreezeRelation()
+    {
+        if (!HasOrigin)
+        {
+            return PinOrigin();
+        }
+
+        return this with
+        {
+            Relations = Relations.Add(new GlossaryFrozenRelationState(
+                Site,
+                new Measure(SiteTicks.Raw - OriginTicks.Raw)))
+        };
+    }
+
+    public GlossaryRelationCarrierState ClearFrozen() => this with
+    {
+        HasOrigin = false,
+        OriginTicks = Measure.Zero,
+        Relations = ImmutableArray<GlossaryFrozenRelationState>.Empty
+    };
+
+    public Measure RawValueAt(Measure ticks)
+    {
+        var clamped = Math.Clamp(ticks.Raw, 0L, TotalTicks);
+        var span = RawEndValue.Raw - RawStartValue.Raw;
+        return new Measure(RawStartValue.Raw + ((span * clamped) / TotalTicks));
+    }
+
+    private static Point ClampPoint(Point point) => new(
+        Math.Clamp(point.X, 0.06d, 0.94d),
+        Math.Clamp(point.Y, 0.08d, 0.92d));
 }
 
 public readonly record struct GlossaryFrozenRelationState(Placement Placement, Measure RelativeTicks)
