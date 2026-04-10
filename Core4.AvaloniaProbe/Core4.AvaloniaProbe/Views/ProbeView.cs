@@ -16,6 +16,7 @@ namespace Core4.AvaloniaProbe.Views;
 /// </summary>
 public sealed class ProbeView : UserControl
 {
+    private readonly GlossaryClaimPageView _glossaryClaimPage = new();
     private readonly DominantOnlyPageView _dominantOnlyPage = new();
     private readonly InvertedPairPageView _invertedPairPage = new();
     private readonly FrozenSegmentPageView _frozenSegmentPage = new();
@@ -36,6 +37,7 @@ public sealed class ProbeView : UserControl
     private readonly Dictionary<ProbePage, Button> _pageButtons = [];
     private readonly Dictionary<ProbeCategory, ProbePage> _pageSelections = new()
     {
+        [ProbeCategory.Glossary] = ProbePage.GlossaryClaim,
         [ProbeCategory.Primitives] = ProbePage.DominantOnly,
         [ProbeCategory.Orthogonals] = ProbePage.OrthogonalOutput,
         [ProbeCategory.Topology] = ProbePage.CarrierChain
@@ -43,8 +45,8 @@ public sealed class ProbeView : UserControl
 
     private readonly CategoryDefinition[] _categories;
     private readonly PageDefinition[] _pages;
-    private ProbeCategory _activeCategory = ProbeCategory.Topology;
-    private ProbePage _activePage = ProbePage.CarrierChain;
+    private ProbeCategory _activeCategory = ProbeCategory.Glossary;
+    private ProbePage _activePage = ProbePage.GlossaryClaim;
 
     public ProbeView()
     {
@@ -62,6 +64,10 @@ public sealed class ProbeView : UserControl
         _categories =
         [
             new CategoryDefinition(
+                ProbeCategory.Glossary,
+                "Glossary",
+                "Foundational Core4 vocabulary shown as small interactive scenes, starting with ordered support, site, and measure."),
+            new CategoryDefinition(
                 ProbeCategory.Primitives,
                 "Primitives",
                 "Core4 units, inversion, freezing, and primitive supports."),
@@ -77,6 +83,7 @@ public sealed class ProbeView : UserControl
 
         _pages =
         [
+            new PageDefinition(ProbePage.GlossaryClaim, ProbeCategory.Glossary, "Carrier / Site / Measure", "glossary-claim", _glossaryClaimPage),
             new PageDefinition(ProbePage.DominantOnly, ProbeCategory.Primitives, "Dominant Only", "dominant-only", _dominantOnlyPage),
             new PageDefinition(ProbePage.InvertedPair, ProbeCategory.Primitives, "Inverted Pair", "inverted-pair", _invertedPairPage),
             new PageDefinition(ProbePage.FrozenSegment, ProbeCategory.Primitives, "Frozen Segment", "frozen-segment", _frozenSegmentPage),
@@ -545,6 +552,7 @@ public sealed class ProbeView : UserControl
 
     private enum ProbeCategory
     {
+        Glossary,
         Primitives,
         Orthogonals,
         Topology
@@ -552,6 +560,7 @@ public sealed class ProbeView : UserControl
 
     private enum ProbePage
     {
+        GlossaryClaim,
         DominantOnly,
         InvertedPair,
         FrozenSegment,
