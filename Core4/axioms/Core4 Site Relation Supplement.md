@@ -12,6 +12,48 @@ engine and the axioms:
 It does not replace the main axioms. It clarifies the construction order they
 already imply.
 
+## 0. Carrier And Measure
+
+Core4 should only reason over what is orderable.
+
+That means **carrier** is structurally prior:
+
+- a carrier is the ordered attribute or support on which relation may occur
+- it may exist before any actual reading has yet been taken
+
+A **measure** is then the first detected reading of some site on that carrier.
+
+So there are two useful primitive readings:
+
+- **structural**: carrier comes first, because it supplies the order
+- **epistemic**: measure comes first, because it is the first thing observed
+
+Both are valid, but for glossary and construction purposes it is often clearer
+to read support-first:
+
+- carrier
+- site
+- measure
+
+This also exposes two related triples:
+
+- pin
+- origin
+- relation
+
+and
+
+- freeze
+- basis
+- attachment
+
+The first triple is the primitive live case.
+
+The second triple is the richer reusable case.
+
+They should not be treated as unrelated ontologies. They are the same general
+pattern at different levels of commitment.
+
 ## 1. Site
 
 A **site** is a referencable place where relation may occur.

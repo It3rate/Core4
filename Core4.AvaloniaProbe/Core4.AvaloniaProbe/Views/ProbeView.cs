@@ -426,12 +426,33 @@ public sealed class ProbeView : UserControl
 
             foreach (var entry in section.Entries)
             {
+                if (entry.DividerBefore)
+                {
+                    entryStack.Children.Add(new Border
+                    {
+                        Height = 1,
+                        Margin = new Thickness(0, 3, 0, 1),
+                        Background = new SolidColorBrush(Color.Parse("#ddd4c7"))
+                    });
+                }
+
+                var heading = new Grid
+                {
+                    ColumnDefinitions = new ColumnDefinitions("Auto,*"),
+                    ColumnSpacing = 8
+                };
+                var term = ProbeUi.Header(entry.Term, 11d);
+                var summary = ProbeUi.Mono(entry.Summary, 10d, ProbePalette.Muted);
+                heading.Children.Add(term);
+                heading.Children.Add(summary);
+                Grid.SetColumn(summary, 1);
+
                 entryStack.Children.Add(new StackPanel
                 {
                     Spacing = 3,
                     Children =
                     {
-                        ProbeUi.Header(entry.Term, 11d),
+                        heading,
                         ProbeUi.Body(entry.Description, 11d)
                     }
                 });
