@@ -669,11 +669,28 @@ public sealed class TopologyTrolleyPageView : UserControl
             builder.Append(SiteLabel(frontier.Site));
             builder.Append(MultiplicityLabel(frontier.Site));
             builder.Append('\n');
+            builder.Append("carried calibration       ");
+            builder.Append(frontier.Signature.Calibration);
+            builder.Append('\n');
             builder.Append("forward exits             ");
             builder.Append(observation.ForwardContinuations.Length);
             builder.Append('\n');
             builder.Append("preferred                 ");
             builder.Append(observation.TryPreferred(out var preferred) ? ContinuationLabel(preferred) : "none");
+
+            if (observation.TryPreferred(out preferred))
+            {
+                builder.Append('\n');
+                builder.Append("preferred transfer        ");
+                builder.Append(preferred.TransmittedCalibration);
+
+                if (preferred.HasRetention)
+                {
+                    builder.Append('\n');
+                    builder.Append("retained local            ");
+                    builder.Append(preferred.RetainedCalibration);
+                }
+            }
         }
 
         return builder.ToString();
@@ -736,8 +753,22 @@ public sealed class TopologyTrolleyPageView : UserControl
         return label;
     }
 
-    private static string ContinuationLabel(TopologyTrolleyContinuation continuation) =>
-        $"{CarrierLabel(continuation.Carrier)}:{continuation.Potential.Raw} to {SiteLabel(continuation.To)}";
+    private static string ContinuationLabel(TopologyTrolleyContinuation continuation)
+    {
+        var label = $"{CarrierLabel(continuation.Carrier)}:{continuation.Potential.Raw} to {SiteLabel(continuation.To)}";
+
+        if (continuation.IsPartialTransfer)
+        {
+            label += $" · move {continuation.TransmittedCalibration}";
+
+            if (continuation.HasRetention)
+            {
+                label += $" keep {continuation.RetainedCalibration}";
+            }
+        }
+
+        return label;
+    }
 
     private string MultiplicityLabel(Site site)
     {

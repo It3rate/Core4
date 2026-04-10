@@ -246,6 +246,12 @@ public readonly record struct TopologyTrolleyContinuation(
 
     public bool IsOutgoing => Disposition.IsOutgoing;
 
+    public Ratio TransmittedCalibration => SourceSignature.Calibration.Multiply(Transmission).Canonicalize();
+
+    public Ratio RetainedCalibration => SourceSignature.Calibration.Multiply(Retention).Canonicalize();
+
+    public bool HasRetention => Retention.Potential != Measure.Zero;
+
     public bool IsPartialTransfer => Transmission != new Ratio(Measure.One, Measure.One)
         || Retention != Ratio.Zero(Measure.One);
 
