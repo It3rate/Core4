@@ -18,8 +18,8 @@ internal static class GlossaryTensionRenderer
     private static readonly Pen HandlePen = new(new SolidColorBrush(Color.Parse("#243336")), 1.5d);
     private static readonly Pen BucketPen = new(new SolidColorBrush(Color.Parse("#d7d0c4")), 1d);
     private static readonly IBrush BucketBrush = new SolidColorBrush(Color.FromArgb(94, 255, 255, 255));
-    private static readonly Pen OrthogonalGuidePen = new(new SolidColorBrush(Color.FromArgb(118, 121, 170, 150)), 2.2d, lineCap: PenLineCap.Round);
-    private static readonly Pen OrthogonalGuideTickPen = new(new SolidColorBrush(Color.FromArgb(120, 121, 170, 150)), 0.9d, lineCap: PenLineCap.Round);
+    private static readonly Pen OrthogonalGuidePen = new(new SolidColorBrush(Color.FromArgb(178, 141, 172, 220)), 2.8d, lineCap: PenLineCap.Round);
+    private static readonly Pen OrthogonalGuideTickPen = new(new SolidColorBrush(Color.FromArgb(164, 141, 172, 220)), 1.05d, lineCap: PenLineCap.Round);
 
     public static GlossaryTensionSceneLayout Arrange(Rect bounds, GlossaryTensionDemoState state)
     {
@@ -37,8 +37,8 @@ internal static class GlossaryTensionRenderer
             Math.Max(0d, scene.Width - bucketWidth - columnGap),
             scene.Height);
 
-        var maxPositiveUnits = MaxPositiveUnits(state.Values);
-        var maxNegativeUnits = MaxNegativeUnits(state.Values);
+        var maxPositiveUnits = MaxPositiveUnits(state);
+        var maxNegativeUnits = MaxNegativeUnits(state);
         var maxCarrierMagnitude = Math.Max(
             Math.Abs(GlossaryTensionDemoState.MinimumCarrierTicks),
             Math.Abs(GlossaryTensionDemoState.MaximumCarrierTicks));
@@ -55,14 +55,16 @@ internal static class GlossaryTensionRenderer
         var railStart = new Point(origin.X + (GlossaryTensionDemoState.MinimumCarrierTicks * pixelsPerCarrierTick), origin.Y);
         var railEnd = new Point(origin.X + (GlossaryTensionDemoState.MaximumCarrierTicks * pixelsPerCarrierTick), origin.Y);
         var handle = new Point(origin.X + (state.UnitCarrierTicks.Raw * pixelsPerCarrierTick), origin.Y);
+        var maxOrthogonalTicks = MaxOrthogonalTicks(state);
+        var orthogonalPixelsPerTick = ((railEnd.X - railStart.X) * 0.23d) / Math.Max(1d, maxOrthogonalTicks);
 
         var values = new List<GlossaryTensionValueLayout>(state.Values.Length);
         foreach (var value in state.Values)
         {
             values.Add(new GlossaryTensionValueLayout(
                 value.Id,
-                PointForValue(origin, pixelsPerCarrierTick, state, value),
-                value.Label,
+                PointForValue(origin, pixelsPerCarrierTick, orthogonalPixelsPerTick, state, value),
+                state.IsOrthogonal ? TickLabel(value.Value.Recessive.Raw) : value.Label,
                 AccentColor(value.Id)));
         }
 
@@ -84,6 +86,8 @@ internal static class GlossaryTensionRenderer
             origin,
             handle,
             pixelsPerCarrierTick,
+            orthogonalPixelsPerTick,
+            maxOrthogonalTicks,
             values.ToImmutableArray(),
             buckets);
     }
@@ -118,7 +122,9 @@ internal static class GlossaryTensionRenderer
         ScenePrimitives.DrawCenteredBadgeLabel(
             context,
             "origin 0",
-            layout.Origin + new Vector(0d, -34d),
+            state.IsOrthogonal
+                ? layout.Origin + new Vector(-44d, -18d)
+                : layout.Origin + new Vector(0d, -34d),
             9d,
             ProbePalette.Ink,
             FontWeight.SemiBold,
@@ -129,17 +135,35 @@ internal static class GlossaryTensionRenderer
             8d);
 
         ScenePrimitives.DrawCircle(context, layout.Origin, 7.6d, ProbePalette.Surface, HandlePen);
-        ScenePrimitives.DrawCircle(
-            context,
-            layout.Handle,
-            7d,
-            new SolidColorBrush(Color.Parse("#4d76df")),
-            new Pen(new SolidColorBrush(Color.FromArgb(190, 255, 255, 255)), 1.1d));
+        if (state.IsOrthogonal)
+        {
+            ScenePrimitives.DrawCircle(
+                context,
+                layout.Origin,
+                11d,
+                new SolidColorBrush(Color.FromArgb(90, 77, 118, 223)),
+                HandlePen);
+            ScenePrimitives.DrawCircle(context, layout.Origin, 5d, ProbePalette.Surface, HandlePen);
+        }
+        else
+        {
+            ScenePrimitives.DrawCircle(
+                context,
+                layout.Handle,
+                8.8d,
+                new SolidColorBrush(Color.Parse("#4d76df")),
+                HandlePen);
+            ScenePrimitives.DrawCircle(
+                context,
+                layout.Handle,
+                4.1d,
+                new SolidColorBrush(Color.FromArgb(86, 255, 255, 255)));
+        }
         ScenePrimitives.DrawCenteredBadgeLabel(
             context,
             state.IsOrthogonal ? "unit 0" : $"unit {state.UnitCarrierTicks.Raw}/{GlossaryTensionDemoState.UnitTickCount}",
             state.IsOrthogonal
-                ? layout.Origin + new Vector(0d, 30d)
+                ? layout.Origin + new Vector(42d, 30d)
                 : layout.Handle + new Vector(0d, -34d),
             9d,
             ProbePalette.Ink,
@@ -153,7 +177,7 @@ internal static class GlossaryTensionRenderer
         ScenePrimitives.DrawCenteredLabel(
             context,
             "Carrier",
-            new Point((layout.RailStart.X + layout.RailEnd.X) * 0.5d, layout.Origin.Y + 24d),
+            new Point((layout.RailStart.X + layout.RailEnd.X) * 0.5d, layout.Origin.Y + (state.IsOrthogonal ? 34d : 24d)),
             11d,
             ProbePalette.Ink,
             FontWeight.SemiBold,
@@ -162,16 +186,15 @@ internal static class GlossaryTensionRenderer
 
     private static void DrawOrthogonalGuide(DrawingContext context, GlossaryTensionSceneLayout layout, GlossaryTensionDemoState state)
     {
-        var unitLength = state.EffectiveMagnitudeTicks.Raw * layout.PixelsPerCarrierTick;
-        var guideTop = layout.Origin + new Vector(0d, -unitLength);
-        var guideBottom = layout.Origin + new Vector(0d, unitLength);
+        var guideExtent = layout.MaxOrthogonalTicks * layout.OrthogonalPixelsPerTick;
+        var guideTop = layout.Origin + new Vector(0d, -guideExtent);
+        var guideBottom = layout.Origin + new Vector(0d, guideExtent);
         context.DrawLine(OrthogonalGuidePen, guideTop, guideBottom);
 
-        for (var tick = -GlossaryTensionDemoState.UnitTickCount; tick <= GlossaryTensionDemoState.UnitTickCount; tick++)
+        for (var tick = -layout.MaxOrthogonalTicks; tick <= layout.MaxOrthogonalTicks; tick++)
         {
-            var t = tick / (double)GlossaryTensionDemoState.UnitTickCount;
-            var point = new Point(layout.Origin.X, layout.Origin.Y - (unitLength * t));
-            var major = tick is 0 or -GlossaryTensionDemoState.UnitTickCount or GlossaryTensionDemoState.UnitTickCount;
+            var point = new Point(layout.Origin.X, layout.Origin.Y - (tick * layout.OrthogonalPixelsPerTick));
+            var major = tick == 0 || Math.Abs(tick) == layout.MaxOrthogonalTicks || tick % 2 == 0;
             var halfWidth = major ? 7d : 4d;
             context.DrawLine(
                 OrthogonalGuideTickPen,
@@ -182,6 +205,11 @@ internal static class GlossaryTensionRenderer
 
     private static void DrawUnit(DrawingContext context, GlossaryTensionSceneLayout layout, GlossaryTensionDemoState state)
     {
+        if (state.IsOrthogonal)
+        {
+            return;
+        }
+
         var unitEnd = state.IsOrthogonal
             ? layout.Origin + new Vector(0d, -(state.EffectiveMagnitudeTicks.Raw * layout.PixelsPerCarrierTick))
             : layout.Handle;
@@ -214,14 +242,14 @@ internal static class GlossaryTensionRenderer
                 new Pen(new SolidColorBrush(Color.FromArgb(180, 255, 255, 255)), 1.1d));
 
             var offset = state.IsOrthogonal
-                ? new Vector(44d, value.Center.Y <= layout.Origin.Y ? -2d : -2d)
+                ? new Vector(56d, value.Center.Y <= layout.Origin.Y ? -6d : -6d)
                 : new Vector(0d, value.Center.Y <= layout.Origin.Y ? -40d : 28d);
             var labelCenter = value.Center + offset;
             context.DrawLine(
                 new Pen(new SolidColorBrush(Color.FromArgb(88, value.Accent.R, value.Accent.G, value.Accent.B)), 1d),
                 value.Center,
                 state.IsOrthogonal
-                    ? new Point(labelCenter.X - 18d, labelCenter.Y)
+                    ? new Point(labelCenter.X - 22d, labelCenter.Y)
                     : new Point(labelCenter.X, labelCenter.Y + (offset.Y < 0d ? 10d : -10d)));
             ScenePrimitives.DrawCenteredBadgeLabel(
                 context,
@@ -295,17 +323,17 @@ internal static class GlossaryTensionRenderer
 
             var axisPen = new Pen(new SolidColorBrush(accent), 2.4d, lineCap: PenLineCap.Round);
             var accentBrush = new SolidColorBrush(accent);
-            context.DrawLine(new Pen(new SolidColorBrush(Color.Parse("#3254bf")), 2.6d, lineCap: PenLineCap.Round), origin, stubEnd);
-            context.DrawLine(axisPen, stubEnd, tip);
-            ScenePrimitives.DrawVerticalTriangle(context, tip, 9d, accentBrush, pointsUp: upward);
-            ScenePrimitives.DrawCircle(context, origin, 4.2d, ProbePalette.Surface, new Pen(new SolidColorBrush(Color.Parse("#3254bf")), 1.8d));
+                context.DrawLine(new Pen(new SolidColorBrush(Color.Parse("#3254bf")), 2.6d, lineCap: PenLineCap.Round), origin, stubEnd);
+                context.DrawLine(axisPen, stubEnd, tip);
+                ScenePrimitives.DrawVerticalTriangle(context, tip, 9d, accentBrush, pointsUp: upward);
+                ScenePrimitives.DrawCircle(context, origin, 4.2d, ProbePalette.Surface, new Pen(new SolidColorBrush(Color.Parse("#3254bf")), 1.8d));
 
-            DrawRotatedLabel(
-                context,
-                MagnitudeLabel(item.Value.Value),
-                new Point(origin.X - 16d, bounds.Center.Y + (upward ? -2d : 2d)),
-                9.2d,
-                ProbePalette.Ink,
+                DrawRotatedLabel(
+                    context,
+                    TickLabel(item.Value.Value.Recessive.Raw),
+                    new Point(origin.X - 16d, bounds.Center.Y + (upward ? -2d : 2d)),
+                    9.2d,
+                    ProbePalette.Ink,
                 FontWeight.SemiBold);
         }
     }
@@ -425,39 +453,64 @@ internal static class GlossaryTensionRenderer
     private static Point PointForValue(
         Point origin,
         double pixelsPerCarrierTick,
+        double orthogonalPixelsPerTick,
         GlossaryTensionDemoState state,
         GlossaryTensionValueState value)
     {
-        var unitLength = state.EffectiveMagnitudeTicks.Raw * pixelsPerCarrierTick;
-        var valueUnits = value.Value.Approximate;
         if (state.IsOrthogonal)
         {
-            return new Point(origin.X, origin.Y - (valueUnits * unitLength));
+            return new Point(origin.X, origin.Y - (value.Value.Recessive.Raw * orthogonalPixelsPerTick));
         }
 
-        return new Point(origin.X + (valueUnits * state.UnitCarrierTicks.Raw * pixelsPerCarrierTick), origin.Y);
+        return new Point(origin.X + (value.Value.Approximate * state.UnitCarrierTicks.Raw * pixelsPerCarrierTick), origin.Y);
     }
 
-    private static double MaxPositiveUnits(ImmutableArray<GlossaryTensionValueState> values)
+    private static double MaxPositiveUnits(GlossaryTensionDemoState state)
     {
         var max = 0d;
-        foreach (var value in values)
+        foreach (var value in state.Values)
         {
             max = Math.Max(max, Math.Max(0d, value.Value.Approximate));
         }
 
+        foreach (var detached in state.Detached)
+        {
+            max = Math.Max(max, Math.Max(0d, detached.Value.Value.Approximate));
+        }
+
         return Math.Max(1d, max);
     }
 
-    private static double MaxNegativeUnits(ImmutableArray<GlossaryTensionValueState> values)
+    private static double MaxNegativeUnits(GlossaryTensionDemoState state)
     {
         var max = 0d;
-        foreach (var value in values)
+        foreach (var value in state.Values)
         {
             max = Math.Max(max, Math.Max(0d, -value.Value.Approximate));
         }
 
+        foreach (var detached in state.Detached)
+        {
+            max = Math.Max(max, Math.Max(0d, -detached.Value.Value.Approximate));
+        }
+
         return Math.Max(1d, max);
+    }
+
+    private static long MaxOrthogonalTicks(GlossaryTensionDemoState state)
+    {
+        var max = 1L;
+        foreach (var value in state.Values)
+        {
+            max = Math.Max(max, Math.Abs(value.Value.Recessive.Raw));
+        }
+
+        foreach (var detached in state.Detached)
+        {
+            max = Math.Max(max, Math.Abs(detached.Value.Value.Recessive.Raw));
+        }
+
+        return max;
     }
 
     private static string MagnitudeLabel(Ratio ratio)
@@ -471,6 +524,14 @@ internal static class GlossaryTensionRenderer
             : whole == 0L
                 ? $"{remainder}/{denominator}"
                 : $"{whole} {remainder}/{denominator}";
+    }
+
+    private static string TickLabel(long ticks)
+    {
+        var magnitude = Math.Abs(ticks);
+        return magnitude == 1L
+            ? "1 tick"
+            : $"{magnitude.ToString(CultureInfo.InvariantCulture)} ticks";
     }
 
     private static Color AccentColor(long id) => id switch
@@ -495,6 +556,8 @@ internal readonly record struct GlossaryTensionSceneLayout(
     Point Origin,
     Point Handle,
     double PixelsPerCarrierTick,
+    double OrthogonalPixelsPerTick,
+    long MaxOrthogonalTicks,
     ImmutableArray<GlossaryTensionValueLayout> Values,
     ImmutableArray<GlossaryTensionBucketLayout> Buckets);
 

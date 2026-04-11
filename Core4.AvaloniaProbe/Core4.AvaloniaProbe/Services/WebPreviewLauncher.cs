@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
@@ -32,6 +33,7 @@ public static class WebPreviewLauncher
 
         _serverPort = FindAvailablePort();
         _serverProcess = TryStartServer(webRoot, _serverPort);
+        await WaitForServerReadyAsync().ConfigureAwait(false);
         OpenBrowser(route);
     }
 
@@ -99,6 +101,47 @@ public static class WebPreviewLauncher
             FileName = BuildUrl(route),
             UseShellExecute = true
         });
+    }
+
+    private static async Task WaitForServerReadyAsync()
+    {
+        if (_serverProcess is null)
+        {
+            return;
+        }
+
+        using var client = new HttpClient
+        {
+            Timeout = TimeSpan.FromMilliseconds(500)
+        };
+
+        var url = BuildUrl(null);
+        var attempts = 30;
+        for (var attempt = 0; attempt < attempts; attempt++)
+        {
+            if (_serverProcess.HasExited)
+            {
+                throw new InvalidOperationException("The local web preview server exited before it became ready.");
+            }
+
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                using var response = await client.SendAsync(request).ConfigureAwait(false);
+                if ((int)response.StatusCode is >= 200 and < 500)
+                {
+                    return;
+                }
+            }
+            catch
+            {
+                // Server not ready yet; wait briefly and try again.
+            }
+
+            await Task.Delay(200).ConfigureAwait(false);
+        }
+
+        throw new InvalidOperationException("The local web preview server did not become ready in time.");
     }
 
     private static string BuildUrl(string? route)
