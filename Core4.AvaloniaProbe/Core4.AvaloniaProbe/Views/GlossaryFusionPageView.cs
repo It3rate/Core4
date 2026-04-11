@@ -19,8 +19,6 @@ public sealed class GlossaryFusionPageView : UserControl
     private static readonly ProbeGlossary.GlossaryEntry SelfPairEntry = FindEntry("Self Pair");
 
     private readonly GlossaryFusionSceneControl _scene;
-    private readonly TextBlock _metaPhaseText;
-    private readonly TextBlock _metaHintText;
     private readonly TextBlock _bodyText;
     private GlossaryFusionDemoState _state = GlossaryFusionDemoState.CreateDefault();
 
@@ -38,8 +36,6 @@ public sealed class GlossaryFusionPageView : UserControl
             SyncUi();
         };
 
-        _metaPhaseText = ProbeUi.Mono(string.Empty, 11d, ProbePalette.Muted);
-        _metaHintText = ProbeUi.Mono(string.Empty, 11d, ProbePalette.Muted);
         _bodyText = ProbeUi.Body(string.Empty, 10d);
 
         var resetButton = ProbeUi.PillButton("Reset Scene");
@@ -113,39 +109,22 @@ public sealed class GlossaryFusionPageView : UserControl
     }
 
     private Grid SceneHeader()
-    {
-        var grid = new Grid
+        => new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("*,Auto")
-        };
-
-        var titleStack = new StackPanel
-        {
-            Spacing = 2,
             Children =
             {
-                ProbeUi.Mono("INTERACTIVE SCENE", 10d, ProbePalette.Muted),
-                ProbeUi.DisplayTitle("Pair Two Elements And Fuse A Basis", 18d),
-                ProbeUi.Body("Pick any two of the four source elements on the right. They stage, negotiate, and then harden into a fused result: a self pair, a directed segment, an area, or a complex-style ray.", 10d)
+                new StackPanel
+                {
+                    Spacing = 2,
+                    Children =
+                    {
+                        ProbeUi.Mono("INTERACTIVE SCENE", 10d, ProbePalette.Muted),
+                        ProbeUi.DisplayTitle("Pair Two Elements And Fuse A Basis", 18d),
+                        ProbeUi.Body("Pick any two of the four source elements on the right. They stage, negotiate, and then harden into a fused result: a self pair, a directed segment, an area, or a complex-style ray.", 10d)
+                    }
+                }
             }
         };
-
-        var metaStack = new StackPanel
-        {
-            Spacing = 2,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-            Children =
-            {
-                _metaPhaseText,
-                _metaHintText
-            }
-        };
-
-        grid.Children.Add(titleStack);
-        grid.Children.Add(metaStack);
-        Grid.SetColumn(metaStack, 1);
-        return grid;
-    }
 
     private void ApplyState(GlossaryFusionDemoState state)
     {
@@ -156,9 +135,6 @@ public sealed class GlossaryFusionPageView : UserControl
 
     private void SyncUi()
     {
-        _metaPhaseText.Text = _state.PhaseText;
-        _metaHintText.Text = _state.HintText;
-
         if (_state.IsAnimating)
         {
             _bodyText.Text = "The first element stages, the second joins it, and the pair hardens into one carried result. Mixed aligned-plus-orthogonal pairs reuse the aligned unit ticks when the fused basis becomes inspectable.";

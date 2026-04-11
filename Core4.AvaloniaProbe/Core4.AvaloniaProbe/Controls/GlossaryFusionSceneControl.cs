@@ -74,7 +74,7 @@ public sealed class GlossaryFusionSceneControl : Control
         var point = e.GetPosition(this);
         foreach (var source in CurrentLayout.Sources)
         {
-            if (!source.ButtonRect.Contains(point))
+            if (!source.BoxRect.Contains(point))
             {
                 continue;
             }

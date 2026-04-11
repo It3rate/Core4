@@ -34,14 +34,12 @@ internal static class GlossaryFusionRenderer
         var selectorRows = new List<GlossaryFusionSourceLayout>(state.Sources.Length);
         var rowTop = scene.Y -10d;
         var rowStep = 88d;
-        var buttonWidth = 56d;
-        var boxWidth = selectorWidth - buttonWidth - 12d;
+        var selectorButtonWidth = 56d;
         foreach (var source in state.Sources)
         {
             var y = rowTop + ((source.Id - 1L) * rowStep);
-            var buttonRect = new Rect(selectorX, y + 16d, buttonWidth, 28d);
-            var boxRect = new Rect(selectorX + buttonWidth + 12d, y, boxWidth, 58d);
-            selectorRows.Add(new GlossaryFusionSourceLayout(source.Id, buttonRect, boxRect));
+            var boxRect = new Rect(selectorX + selectorButtonWidth + 12d, y, selectorWidth - selectorButtonWidth - 12d, 58d);
+            selectorRows.Add(new GlossaryFusionSourceLayout(source.Id, boxRect));
         }
 
         var stageY = scene.Y - 20d;
@@ -111,6 +109,18 @@ internal static class GlossaryFusionRenderer
 
     private static void DrawSelectors(DrawingContext context, GlossaryFusionSceneLayout layout, GlossaryFusionDemoState state)
     {
+        if (layout.Sources.Length > 0)
+        {
+            ScenePrimitives.DrawCenteredLabel(
+                context,
+                SelectorPrompt(state),
+                new Point(layout.Sources[0].BoxRect.Center.X, layout.Sources[0].BoxRect.Y - 18d),
+                9.6d,
+                ProbePalette.Muted,
+                FontWeight.SemiBold,
+                ProbePalette.MonoFont);
+        }
+
         foreach (var row in layout.Sources)
         {
             if (!state.TryFindSource(row.SourceId, out var source))
@@ -122,21 +132,10 @@ internal static class GlossaryFusionRenderer
             var boxStroke = selected
                 ? new Pen(new SolidColorBrush(Color.Parse("#87aaf3")), 1.2d)
                 : SourceBoxPen;
-            context.DrawRectangle(SourceBrush, boxStroke, row.BoxRect, 16d, 16d);
-
-            var buttonBrush = selected
-                ? new SolidColorBrush(Color.Parse("#eff4ff"))
-                : ProbePalette.Surface;
-            var buttonStroke = new Pen(new SolidColorBrush(selected ? Color.Parse("#87aaf3") : Color.FromArgb(96, 197, 182, 160)), 1d);
-            context.DrawRectangle(buttonBrush, buttonStroke, row.ButtonRect, 14d, 14d);
-            ScenePrimitives.DrawCenteredLabel(
-                context,
-                ButtonLabelFor(state, source.Id),
-                new Point(row.ButtonRect.Center.X, row.ButtonRect.Center.Y - 7d),
-                9.4d,
-                ProbePalette.Ink,
-                FontWeight.SemiBold,
-                ProbePalette.MonoFont);
+            var fill = selected
+                ? new SolidColorBrush(Color.FromArgb(98, 239, 244, 255))
+                : SourceBrush;
+            context.DrawRectangle(fill, boxStroke, row.BoxRect, 16d, 16d);
 
             DrawSourceGlyph(context, row.BoxRect.Center, source, showValue: true, compact: false);
             ScenePrimitives.DrawCenteredLabel(
@@ -182,7 +181,11 @@ internal static class GlossaryFusionRenderer
             }
             else
             {
-                DrawResultGlyph(context, cell.Bounds, result, 0.18d);
+                DrawResultGlyph(
+                    context,
+                    cell.Bounds,
+                    result,
+                    result.Kind is 3L or 7L ? 0.46d : 0.18d);
             }
         }
     }
@@ -249,7 +252,12 @@ internal static class GlossaryFusionRenderer
         if (source.IsOrthogonal)
         {
             var direction = source.IsDominant ? -1d : 1d;
-            var origin = center + new Vector(0d, compact ? 12d : 14d);
+            var originOffsetY = compact
+                ? 12d
+                : source.IsDominant
+                    ? 14d
+                    : -6d;
+            var origin = center + new Vector(0d, originOffsetY);
             var stub = origin + new Vector(0d, direction * (compact ? 9d : 12d));
             var tip = origin + new Vector(0d, direction * span);
             context.DrawLine(UnitPen, origin, stub);
@@ -304,8 +312,8 @@ internal static class GlossaryFusionRenderer
         var lineBlue = new Pen(new SolidColorBrush(Color.FromArgb(alpha, 50, 84, 191)), 2.6d, lineCap: PenLineCap.Round);
         var faintAxis = new Pen(new SolidColorBrush(Color.FromArgb((byte)(alpha * 0.45d), 120, 120, 120)), 0.9d, lineCap: PenLineCap.Round);
         var areaFill = result.Kind == 7L
-            ? new SolidColorBrush(Color.FromArgb((byte)(alpha * 0.28d), 205, 234, 201))
-            : new SolidColorBrush(Color.FromArgb((byte)(alpha * 0.28d), 232, 227, 213));
+            ? new SolidColorBrush(Color.FromArgb((byte)(alpha * 0.48d), 205, 234, 201))
+            : new SolidColorBrush(Color.FromArgb((byte)(alpha * 0.56d), 232, 227, 213));
 
         switch (result.Kind)
         {
@@ -371,25 +379,29 @@ internal static class GlossaryFusionRenderer
         IBrush blue)
     {
         var brush = blue;
-        var stroke = new Pen(brush, 2.2d, lineCap: PenLineCap.Round);
+        var unitPen = new Pen(brush, 2.4d, lineCap: PenLineCap.Round);
+        var accentPen = new Pen(brush, 2.6d, lineCap: PenLineCap.Round);
         if (horizontal)
         {
-            var start = new Point(center.X - (size * 0.5d), center.Y);
-            var end = new Point(center.X + (size * 0.5d), center.Y);
-            context.DrawLine(stroke, start, end);
-            ScenePrimitives.DrawCircle(context, start, 4.2d, ProbePalette.Surface, new Pen(brush, 1.6d));
-            ScenePrimitives.DrawCircle(context, end, 4.2d, ProbePalette.Surface, new Pen(brush, 1.6d));
-            context.DrawLine(new Pen(brush, 1.2d), new Point(center.X, center.Y - 8d), new Point(center.X, center.Y + 8d));
+            var direction = upwardsOrPositive ? 1d : -1d;
+            var origin = center + new Vector(direction > 0d ? -(size * 0.42d) : (size * 0.42d), 0d);
+            var stub = origin + new Vector(direction * 12d, 0d);
+            var tip = origin + new Vector(direction * (size * 0.86d), 0d);
+            context.DrawLine(unitPen, origin, stub);
+            context.DrawLine(accentPen, stub, tip);
+            ScenePrimitives.DrawCircle(context, origin, 4.2d, ProbePalette.Surface, new Pen(brush, 1.6d));
+            ScenePrimitives.DrawDirectedTriangle(context, tip, 8.6d, brush, new Vector(direction, 0d));
         }
         else
         {
-            var sign = upwardsOrPositive ? -1d : 1d;
-            var start = new Point(center.X, center.Y - (sign * size * 0.5d));
-            var end = new Point(center.X, center.Y + (sign * size * 0.5d));
-            context.DrawLine(stroke, start, end);
-            ScenePrimitives.DrawCircle(context, start, 4.2d, ProbePalette.Surface, new Pen(brush, 1.6d));
-            ScenePrimitives.DrawCircle(context, end, 4.2d, ProbePalette.Surface, new Pen(brush, 1.6d));
-            context.DrawLine(new Pen(brush, 1.2d), new Point(center.X - 8d, center.Y), new Point(center.X + 8d, center.Y));
+            var direction = upwardsOrPositive ? -1d : 1d;
+            var origin = center + new Vector(0d, -direction * (size * 0.42d));
+            var stub = origin + new Vector(0d, direction * 12d);
+            var tip = origin + new Vector(0d, direction * (size * 0.86d));
+            context.DrawLine(unitPen, origin, stub);
+            context.DrawLine(accentPen, stub, tip);
+            ScenePrimitives.DrawCircle(context, origin, 4.2d, ProbePalette.Surface, new Pen(brush, 1.6d));
+            ScenePrimitives.DrawVerticalTriangle(context, tip, 8.6d, brush, pointsUp: upwardsOrPositive);
         }
     }
 
@@ -512,20 +524,12 @@ internal static class GlossaryFusionRenderer
         }
     }
 
-    private static string ButtonLabelFor(GlossaryFusionDemoState state, long sourceId)
-    {
-        if (state.IsAnimating)
-        {
-            return "busy";
-        }
-
-        if (state.Selection.FirstSourceId == sourceId)
-        {
-            return "picked";
-        }
-
-        return state.HasFirstSelection ? "fuse" : "select";
-    }
+    private static string SelectorPrompt(GlossaryFusionDemoState state)
+        => state.IsAnimating
+            ? "Working"
+            : state.HasFirstSelection
+                ? "Fuse Second"
+                : "Select One";
 
     private static Point CenterForSource(GlossaryFusionSceneLayout layout, long sourceId)
     {
@@ -584,6 +588,6 @@ internal readonly record struct GlossaryFusionSceneLayout(
     Point StageResult,
     ImmutableArray<GlossaryFusionResultCellLayout> ResultCells);
 
-internal readonly record struct GlossaryFusionSourceLayout(long SourceId, Rect ButtonRect, Rect BoxRect);
+internal readonly record struct GlossaryFusionSourceLayout(long SourceId, Rect BoxRect);
 
 internal readonly record struct GlossaryFusionResultCellLayout(long ResultKey, Rect Bounds);

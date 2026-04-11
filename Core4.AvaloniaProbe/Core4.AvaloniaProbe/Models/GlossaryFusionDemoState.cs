@@ -252,14 +252,14 @@ public readonly record struct GlossaryFusionDemoState(
         [
             new GlossaryFusionResultState(101L, 1L, 1L, "SELF RIGHT", 1L, false),
             new GlossaryFusionResultState(102L, 1L, 2L, "SEGMENT H", 2L, false),
-            new GlossaryFusionResultState(103L, 1L, 3L, "AREA", 3L, false),
-            new GlossaryFusionResultState(104L, 1L, 4L, "COMPLEX", 4L, false),
             new GlossaryFusionResultState(105L, 2L, 2L, "SELF LEFT", 5L, false),
             new GlossaryFusionResultState(106L, 2L, 3L, "ANTI-COMPLEX", 6L, false),
-            new GlossaryFusionResultState(107L, 2L, 4L, "ANTI-AREA", 7L, false),
+            new GlossaryFusionResultState(103L, 1L, 3L, "AREA", 3L, false),
             new GlossaryFusionResultState(108L, 3L, 3L, "SELF UP", 8L, false),
             new GlossaryFusionResultState(109L, 3L, 4L, "SEGMENT V", 9L, false),
-            new GlossaryFusionResultState(110L, 4L, 4L, "SELF DOWN", 10L, false)
+            new GlossaryFusionResultState(110L, 4L, 4L, "SELF DOWN", 10L, false),
+            new GlossaryFusionResultState(107L, 2L, 4L, "ANTI-AREA", 7L, false),
+            new GlossaryFusionResultState(104L, 1L, 4L, "COMPLEX", 4L, false)
         ];
 }
 
