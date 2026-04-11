@@ -21,6 +21,7 @@ public sealed class ProbeView : UserControl
     private readonly GlossaryBasisPageView _glossaryBasisPage = new();
     private readonly GlossaryMeasurementPageView _glossaryMeasurementPage = new();
     private readonly GlossaryTensionPageView _glossaryTensionPage = new();
+    private readonly GlossaryFusionPageView _glossaryFusionPage = new();
     private readonly DominantOnlyPageView _dominantOnlyPage = new();
     private readonly InvertedPairPageView _invertedPairPage = new();
     private readonly FrozenSegmentPageView _frozenSegmentPage = new();
@@ -92,6 +93,7 @@ public sealed class ProbeView : UserControl
             new PageDefinition(ProbePage.GlossaryBasis, ProbeCategory.Glossary, "Freeze / Basis / Attachment", "glossary-basis", _glossaryBasisPage),
             new PageDefinition(ProbePage.GlossaryMeasurement, ProbeCategory.Glossary, "Unit / Ratio / Placement / Resolution", "glossary-measurement", _glossaryMeasurementPage),
             new PageDefinition(ProbePage.GlossaryTension, ProbeCategory.Glossary, "Tension / Fusion / Orthogonal", "glossary-tension", _glossaryTensionPage),
+            new PageDefinition(ProbePage.GlossaryFusion, ProbeCategory.Glossary, "Fuse Pairs Into Bases", "glossary-fusion", _glossaryFusionPage),
             new PageDefinition(ProbePage.DominantOnly, ProbeCategory.Primitives, "Dominant Only", "dominant-only", _dominantOnlyPage),
             new PageDefinition(ProbePage.InvertedPair, ProbeCategory.Primitives, "Inverted Pair", "inverted-pair", _invertedPairPage),
             new PageDefinition(ProbePage.FrozenSegment, ProbeCategory.Primitives, "Frozen Segment", "frozen-segment", _frozenSegmentPage),
@@ -573,6 +575,7 @@ public sealed class ProbeView : UserControl
         GlossaryBasis,
         GlossaryMeasurement,
         GlossaryTension,
+        GlossaryFusion,
         DominantOnly,
         InvertedPair,
         FrozenSegment,
