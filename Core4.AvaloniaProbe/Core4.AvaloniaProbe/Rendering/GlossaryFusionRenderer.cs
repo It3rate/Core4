@@ -32,7 +32,7 @@ internal static class GlossaryFusionRenderer
         var main = new Rect(scene.X, scene.Y, Math.Max(0d, selectorX - scene.X - 18d), scene.Height);
 
         var selectorRows = new List<GlossaryFusionSourceLayout>(state.Sources.Length);
-        var rowTop = scene.Y + 10d;
+        var rowTop = scene.Y -10d;
         var rowStep = 88d;
         var buttonWidth = 56d;
         var boxWidth = selectorWidth - buttonWidth - 12d;
@@ -44,16 +44,16 @@ internal static class GlossaryFusionRenderer
             selectorRows.Add(new GlossaryFusionSourceLayout(source.Id, buttonRect, boxRect));
         }
 
-        var stageY = scene.Y + 0d;
-        var stageLeft = new Point(main.X + 124d, stageY);
-        var stageRight = new Point(main.X + 246d, stageY);
+        var stageY = scene.Y - 20d;
+        var stageLeft = new Point(main.X + 204d, stageY);
+        var stageRight = new Point(main.X + 346d, stageY);
         var stageResult = new Point((stageLeft.X + stageRight.X) * 0.5d, stageY + 10d);
 
         const int columns = 5;
         var gap = 12d;
         var cellWidth = (main.Width - (gap * (columns - 1))) / columns;
         var cellHeight = 112d;
-        var cellTop = scene.Y + 60d;
+        var cellTop = scene.Y + 40d;
         var cellRows = ImmutableArray.CreateBuilder<GlossaryFusionResultCellLayout>(state.Results.Length);
         for (var index = 0; index < state.Results.Length; index++)
         {
