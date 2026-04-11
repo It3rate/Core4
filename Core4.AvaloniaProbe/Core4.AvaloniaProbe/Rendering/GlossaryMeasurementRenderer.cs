@@ -460,34 +460,16 @@ internal static class GlossaryMeasurementRenderer
         long denominator,
         Color color)
     {
-        var wholeCenter = center;
-        ScenePrimitives.DrawCircle(
-            context,
-            wholeCenter,
-            11d,
-            new SolidColorBrush(Color.FromArgb(215, 255, 255, 255)),
-            new Pen(new SolidColorBrush(Color.FromArgb(156, color.R, color.G, color.B)), 1.1d));
-        ScenePrimitives.DrawCenteredLabel(
-            context,
-            whole.ToString(),
-            new Point(wholeCenter.X, wholeCenter.Y - 7d),
-            9.4d,
-            ProbePalette.Ink,
-            FontWeight.Bold,
-            ProbePalette.MonoFont);
-
-        if (remainder == 0L)
-        {
-            return;
-        }
-
+        var text = remainder == 0L
+            ? whole.ToString()
+            : $"{whole} {remainder}/{denominator}";
         ScenePrimitives.DrawCenteredBadgeLabel(
             context,
-            $"{remainder}/{denominator}",
-            center + new Vector(38d, 0d),
-            8.6d,
+            text,
+            center,
+            8.8d,
             ProbePalette.Ink,
-            FontWeight.SemiBold,
+            FontWeight.Bold,
             ProbePalette.MonoFont,
             new SolidColorBrush(Color.FromArgb(214, 255, 255, 255)),
             new Pen(new SolidColorBrush(Color.FromArgb(156, color.R, color.G, color.B)), 1.1d),
