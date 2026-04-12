@@ -300,6 +300,128 @@ This is useful for the present engine pass, but it is not the final full
 topology of a site. Long-term the aligned pair remains fixed, while the
 orthogonal side must be numerically extensible.
 
+## 10A. Local Interpretation: Orthogonal Evidence Into Aligned Meaning
+
+One useful way to read a site is:
+
+- **orthogonal input**: incoming evidence or energy not yet characterized in the
+  local carrier's language
+- **aligned recessive**: the part locally retained, absorbed, or sunk into the
+  current structure
+- **aligned dominant**: the part locally asserted, published, or transmitted
+  onward on that carrier
+- **orthogonal output**: what remains real and influential but is still not
+  explained by the current carrier
+
+This should be treated as a strong local interpretation, not as the only legal
+meaning of recessive, dominant, and orthogonal.
+
+The point is not that orthogonal content is globally random or meaningless.
+
+The point is that it is not yet explained **here**, by **this** local carrier.
+
+So a site can often be read as a local conversion point:
+
+- orthogonal evidence arrives
+- some of it becomes aligned carrier meaning
+- some of it remains unresolved and continues onward as orthogonal remainder
+
+This is one of the main ways Core4 can express the transition from:
+
+- locally unordered or uncharacterized evidence
+
+to:
+
+- locally ordered or calibrated structure
+
+### Example 1. Body As Heat Interpreter
+
+Suppose energy arrives at a body and the body is being read through a heat
+carrier.
+
+Then one useful local reading is:
+
+- orthogonal input = incoming energy not yet characterized as heat
+- aligned recessive = heat absorbed into the body
+- aligned dominant = heat transmitted from the body into the surrounding space
+- orthogonal output = whatever remains real but still not explained by the heat
+  carrier, such as reflected light or some other exported non-heat effect
+
+In this reading:
+
+- if one wants to know about the body heating up, the recessive aligned value is
+  the important local read
+- if one wants to know about the body heating the surrounding space, the
+  dominant aligned value is the important local read
+
+This is a useful interpretation because it lets one local carrier separate:
+
+- retained ordered value
+- transmitted ordered value
+- leftover unexplained remainder
+
+without introducing a second ontology.
+
+### Example 2. Light Bulb With Coupled Light And Heat Sites
+
+Suppose electricity enters a bulb and the bulb is modeled with at least two
+local carrier readings:
+
+- a light site
+- a heat site
+
+Then one useful simple reading is:
+
+- electrical input arrives as orthogonal evidence to the light-generating site
+- the light site settles some of that into aligned light behavior
+- some light is retained or internally reflected
+- some light is transmitted outward into the room
+- some locally unexplained thermal remainder is exported orthogonally toward the
+  heat site
+
+Then the heat site receives:
+
+- orthogonal input coming from the light site
+
+and may settle that into:
+
+- aligned recessive heat warming the bulb itself
+- aligned dominant heat transmitted into the surrounding air
+
+In a simple model, there may be no leftover orthogonal tension after that local
+heat settlement. In a richer model, some unresolved remainder may persist and
+continue onward.
+
+### Why This Matters
+
+This is one good way to understand how conversion happens locally in Core4:
+
+- unknown or uncharacterized evidence arrives orthogonally
+- local carrier structure interprets what it can
+- the interpreted portion becomes aligned meaning
+- any unaccounted remainder stays as tension or orthogonal export
+
+The same general mechanism appears at several levels of abstraction:
+
+- physical transduction
+- local estimation
+- carrier-to-carrier conversion
+- basis encounter during traversal
+
+So this should not be treated as an isolated sensor story. It is a recurring
+Core4 pattern:
+
+- unresolved input
+- local interpretation
+- aligned settlement
+- residual remainder
+
+And importantly, unresolved tension inside the mechanism is not failure.
+
+It is expected and useful, because it preserves what has not yet been locally
+explained in a form that other carriers or later structure may still account
+for.
+
 ## 11. Data And Carrier Formation Use One Mechanism
 
 Data and carrier formation should not be treated as two unrelated mechanisms.
