@@ -531,6 +531,83 @@ This also clarifies orthogonal export:
 Another site may later interpret part of that remainder as one of its own
 aligned values.
 
+## 12C. Pressure, Transfer, And Stored Imbalance
+
+The current engine should probably treat carrier-to-carrier communication as a
+local tension-lowering process, but this mechanism is not yet finalized.
+
+One promising reading is to distinguish:
+
+- **pressure**: how strongly unexplained orthogonal content is being asserted or
+  offered outward
+- **transfer**: how much of that offered content other sites actually take up
+  this round
+- **stored imbalance**: the positive or negative remainder left after one round
+  of export and uptake has been accounted for
+
+This is not yet meant as a final circuit law. It is a candidate Core4-native
+communication model.
+
+Under this reading, a site may receive several orthogonal inputs at once. Each
+incoming contribution may have:
+
+- a raw unresolved amount
+- or a calibrated value from its source
+
+but locally the receiving site still treats all of them as orthogonal evidence
+until they are explained in its own carrier language.
+
+The receiving site may then assign local uptake weights to those inputs. Those
+weights say how much of each incoming pressure this site is currently willing or
+able to internalize. So one round may look like:
+
+- incoming pressures arrive
+- local uptake weights determine partial transfer from each input
+- the absorbed portion contributes to aligned settlement
+- the unabsorbed portion remains orthogonal remainder
+
+At the sending side, the same round may be read as:
+
+- some exported pressure was accounted for elsewhere
+- some remains unexplained
+- the difference becomes stored imbalance for the next round
+
+That stored imbalance should not be read too rigidly as simple one-way
+subtraction. A site may respond to being overdrawn or underdrawn in more than
+one way:
+
+- it may export less or more on the next round
+- it may also try to absorb more or less from its own upstream inputs
+- it may split the correction across both directions at once
+- it may try to account for some of the imbalance into its own value.
+
+So adjustment can propagate both upward and downward through the structure.
+
+This makes the model feel less like explicit two-way messaging and more like a
+shared field of explanatory pressure relaxing through local uptake and
+republication.
+
+In that provisional reading, a useful rough circuit analogy is:
+
+- pressure -> voltage-like
+- transfer -> current-like
+- explained work this round -> power-like
+- stored imbalance -> charge-like accumulation or overdraft
+- uptake weight -> conductance or coupling strength
+- frozen denominator strength -> stiffness or impedance
+
+This analogy is only partial.
+
+The important point is not to force Core4 into ordinary circuit equations too
+early. It is to preserve a promising distinction:
+
+- how much pressure is being offered
+- how much is actually taken up
+- what imbalance remains for later rounds
+
+That distinction may be one of the main bridges from local orthogonal tension
+into stable multi-site communication.
+
 ## 12A. Polarity And Provenance Are Distinct
 
 It is useful to distinguish:
