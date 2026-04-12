@@ -454,8 +454,9 @@ inbound explanation.
 
 One useful local reading is:
 
-- outbound = this basis explains what it can, but still exports unresolved
-  tension or resolved contribution outward
+- outbound = this basis may export either:
+  - resolved aligned contribution on its known carrier
+  - unresolved orthogonal remainder it still cannot explain locally
 - inbound = this basis is changing in a way it cannot fully explain, so it
   imports explanatory structure
 
@@ -471,6 +472,64 @@ So:
 
 This suggests dominant and recessive are not merely geometric labels. They are
 also local directional readings of explanatory flow.
+
+## 12B. Slot Read, Published Value, And Orthogonal Coupling
+
+It is useful to distinguish three nearby but different things:
+
+- a **slot read**
+- a **published aligned value**
+- an **orthogonal coupling flow**
+
+A site's aligned slots are first of all local state:
+
+- aligned recessive = retained or supporting local commitment
+- aligned dominant = current locally calibrated published state on that carrier
+
+So if one asks:
+
+- "what is this site's current emitted light level?"
+
+the cleanest read is the site's aligned dominant slot.
+
+That does **not** mean another site directly attaches its own carrier slot to
+that slot as though the slot were already an extending piece of topology.
+
+Instead, cross-site coupling should usually be read as:
+
+1. one site holds a local aligned value
+2. that site exports a flow carrying either:
+   - calibrated aligned contribution
+   - unresolved orthogonal remainder
+3. the receiving site accepts that as orthogonal input
+4. the receiving site locally settles some of it into its own aligned carrier
+
+So:
+
+- slot read = local inspection of present meaning
+- aligned dominant = locally calibrated published carrier value
+- orthogonal flow = how one site's output becomes another site's input
+
+This is important because it keeps changing value from being confused with
+changing topology.
+
+Turning a light on or off should usually change:
+
+- the current aligned value
+- the flow magnitudes exported from the site
+
+not:
+
+- the existence or geometry of the site's structural couplings
+
+This also clarifies orthogonal export:
+
+- orthogonal output is not the site's main calibrated signal
+- orthogonal output is what remains real and influential but still unresolved
+  in that site's local carrier language
+
+Another site may later interpret part of that remainder as one of its own
+aligned values.
 
 ## 12A. Polarity And Provenance Are Distinct
 
@@ -668,16 +727,17 @@ One useful reading is:
 - orthogonal recessive = incoming evidence, disturbance, or explanatory input
 - aligned recessive/dominant = the carrier's own negotiated value on its known
   polarity
-- orthogonal dominant = exported signal, published expectation, or outward
-  influence available to other structures
+- orthogonal dominant = exported residual, unresolved remainder, or outward
+  explanatory pressure not yet calibrated in this carrier's own language
 
 Under this reading:
 
 - a light **sensor** is a mostly one-way transducer supplying evidence
 - a light **estimator** gathers many orthogonal inputs, such as sensor data,
   switch state, time of day, prior expectation, and feedback from other systems
-- a light **generator** mainly sets or drives the aligned value and exports its
-  influence outward, while still potentially accepting feedback
+- a light **generator** mainly sets or drives the aligned value and exports that
+  calibrated value outward, while still potentially accepting feedback and also
+  shedding any unresolved remainder orthogonally
 
 For a simple sensor, listeners may disagree with the exported value, but that
 usually changes their commitment rather than the sensor's own value. In the
@@ -696,8 +756,10 @@ simultaneously:
 This supports a very physical reading of flow:
 
 - orthogonal input is what the carrier must account for
-- orthogonal output is what other structures can read, react to, and return
-  feedback against
+- aligned dominant is the site's current calibrated value available for local
+  read or outward publication
+- orthogonal output is whatever unresolved remainder other structures can still
+  read, react to, and return feedback against
 
 Disagreement is then natural rather than exceptional. If the switch says
 "light," the ambient detector says "dark," and collision feedback says
