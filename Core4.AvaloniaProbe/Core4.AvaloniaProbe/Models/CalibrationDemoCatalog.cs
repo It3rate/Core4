@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using Core4.Calibration;
 using Core4.Numerics;
 using Core4.Structure;
@@ -8,6 +9,14 @@ namespace Core4.AvaloniaProbe.Models;
 
 public static class CalibrationDemoCatalog
 {
+    private static readonly ImmutableArray<Measure> GearValues =
+    [
+        3000, 4000, 5000, 6000, 8000, 10000, 12000, 16000, 20000, 24000,
+        32000, 48000, 64000, 100, 200, 300, 400, 500, 600, 800,
+        1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 8000,
+        10000, 12000, 16000, 20000, 25000, 32000, 40000, 50000
+    ];
+
     public static ImmutableArray<CalibrationDataset> Datasets { get; } =
     [
         new(
@@ -18,11 +27,7 @@ public static class CalibrationDemoCatalog
             "https://en.wikipedia.org/wiki/Gear",
             "gear",
             new Carrier(4100),
-            ImmutableArray.Create<Measure>(
-                3000, 4000, 5000, 6000, 8000, 10000, 12000, 16000, 20000, 24000,
-                32000, 48000, 64000, 100, 200, 300, 400, 500, 600, 800,
-                1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 8000,
-                10000, 12000, 16000, 20000, 25000, 32000, 40000, 50000),
+            ShuffleDeterministically(GearValues, 4100),
             FormatGearScale),
         new(
             "winnipeg-april-2024",
@@ -91,6 +96,20 @@ public static class CalibrationDemoCatalog
     private static string FormatWeight(Measure value) => $"{value.Raw / 300d:0.#}lb";
 
     private static string FormatGdpMillions(Measure value) => $"${value.Raw / 1000d:0,0}B";
+
+    private static ImmutableArray<Measure> ShuffleDeterministically(ImmutableArray<Measure> values, int seed)
+    {
+        var copy = values.ToArray();
+        var random = new Random(seed);
+
+        for (var index = copy.Length - 1; index > 0; index--)
+        {
+            var swap = random.Next(index + 1);
+            (copy[index], copy[swap]) = (copy[swap], copy[index]);
+        }
+
+        return copy.ToImmutableArray();
+    }
 }
 
 public sealed record CalibrationDataset(

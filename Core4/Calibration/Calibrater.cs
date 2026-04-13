@@ -69,6 +69,39 @@ public sealed class Calibrater
                 value));
     }
 
+    public Calibrater InputShifted(Measure value, Ratio shift)
+    {
+        if (_samples.Length < 3 || shift.IsTension || shift.Dominant == Measure.Zero)
+        {
+            return Input(value);
+        }
+
+        var nextOrigin = Nudge(_samples[0], _samples[1], shift);
+        var nextUnit = Nudge(_samples[1], _samples[2], shift);
+
+        return new Calibrater(
+            Carrier,
+            ImmutableArray.Create(
+                nextOrigin,
+                nextUnit,
+                value));
+    }
+
+    public Calibrater WithValue(Measure value)
+    {
+        if (!HasUnit)
+        {
+            return Input(value);
+        }
+
+        return new Calibrater(
+            Carrier,
+            ImmutableArray.Create(
+                OriginMeasure,
+                UnitMeasure,
+                value));
+    }
+
     public bool TryGetUnitRelation(out Relation relation)
     {
         if (HasUnit)
@@ -79,5 +112,12 @@ public sealed class Calibrater
 
         relation = default;
         return false;
+    }
+
+    private static Measure Nudge(Measure from, Measure toward, Ratio shift)
+    {
+        var delta = toward.Raw - from.Raw;
+        var moved = delta * shift.Recessive.Raw / shift.Dominant.Raw;
+        return new Measure(from.Raw + moved);
     }
 }
