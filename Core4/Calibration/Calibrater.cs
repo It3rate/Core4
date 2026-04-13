@@ -69,15 +69,20 @@ public sealed class Calibrater
                 value));
     }
 
-    public Calibrater InputShifted(Measure value, Ratio shift)
+    public Calibrater InputShifted(Measure value, Ratio follow, Ratio pressure)
     {
-        if (_samples.Length < 3 || shift.IsTension || shift.Dominant == Measure.Zero)
+        if (_samples.Length < 3)
         {
             return Input(value);
         }
 
-        var nextOrigin = Nudge(_samples[0], _samples[1], shift);
-        var nextUnit = Nudge(_samples[1], _samples[2], shift);
+        var nextOrigin = CanApply(follow)
+            ? Nudge(_samples[0], _samples[1], follow)
+            : _samples[0];
+        var nextUnit = CanApply(follow)
+            ? Nudge(_samples[1], _samples[2], follow)
+            : _samples[1];
+        nextUnit = ApplyPressure(nextOrigin, nextUnit, value, pressure);
 
         return new Calibrater(
             Carrier,
@@ -120,4 +125,56 @@ public sealed class Calibrater
         var moved = delta * shift.Recessive.Raw / shift.Dominant.Raw;
         return new Measure(from.Raw + moved);
     }
+
+    private static Measure ApplyPressure(Measure origin, Measure unit, Measure value, Ratio pressure)
+    {
+        if (!CanApply(pressure))
+        {
+            return unit;
+        }
+
+        var span = unit.Raw - origin.Raw;
+        var magnitude = Math.Abs(span);
+        if (magnitude == 0)
+        {
+            return unit;
+        }
+
+        var projectedMagnitude = Math.Abs(value.Raw - origin.Raw) / (double)magnitude;
+        if (projectedMagnitude == 0d)
+        {
+            return ResizeUnit(origin, span, pressure, expand: false);
+        }
+
+        if (projectedMagnitude > (magnitude * 8d))
+        {
+            return ResizeUnit(origin, span, pressure, expand: true);
+        }
+
+        if (magnitude > (projectedMagnitude * 8d))
+        {
+            return ResizeUnit(origin, span, pressure, expand: false);
+        }
+
+        return unit;
+    }
+
+    private static Measure ResizeUnit(Measure origin, long signedSpan, Ratio pressure, bool expand)
+    {
+        var sign = Math.Sign(signedSpan);
+        if (sign == 0)
+        {
+            sign = 1;
+        }
+
+        var magnitude = Math.Abs(signedSpan);
+        var delta = Math.Max(1, magnitude * pressure.Recessive.Raw / pressure.Dominant.Raw);
+        var nextMagnitude = expand
+            ? magnitude + delta
+            : Math.Max(1, magnitude - delta);
+
+        return new Measure(origin.Raw + (sign * nextMagnitude));
+    }
+
+    private static bool CanApply(Ratio ratio) => !ratio.IsTension && ratio.Dominant != Measure.Zero;
 }

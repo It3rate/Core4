@@ -19,9 +19,11 @@ public sealed class CalibrationPageView : UserControl
     private readonly Button[] _datasetButtons;
     private readonly ComboBox _strategyBox;
     private readonly MeasureSliderControl _shiftSlider;
+    private readonly MeasureSliderControl _pressureSlider;
     private readonly TextBlock _finalUnitText;
     private CalibrationDataset _dataset = CalibrationDemoCatalog.Datasets[0];
     private long _shiftPercent = 10;
+    private long _pressurePercent = 10;
     private bool _sorted;
 
     public CalibrationPageView()
@@ -64,12 +66,21 @@ public sealed class CalibrationPageView : UserControl
         };
 
         _finalUnitText = ProbeUi.Mono(string.Empty, 10d, ProbePalette.Muted);
+        _finalUnitText.TextWrapping = TextWrapping.Wrap;
 
         _shiftSlider = ProbeUi.CreateSlider(1, 20, _shiftPercent, ProbePalette.Dominant, hollow: true);
         _shiftSlider.Width = 180d;
         _shiftSlider.ValueChanged += (_, value) =>
         {
             _shiftPercent = value;
+            RebuildFrames();
+        };
+
+        _pressureSlider = ProbeUi.CreateSlider(1, 20, _pressurePercent, ProbePalette.OrthogonalInput, hollow: true);
+        _pressureSlider.Width = 180d;
+        _pressureSlider.ValueChanged += (_, value) =>
+        {
+            _pressurePercent = value;
             RebuildFrames();
         };
 
@@ -87,20 +98,30 @@ public sealed class CalibrationPageView : UserControl
             RebuildFrames();
         };
 
+        var sliderBlock = new StackPanel
+        {
+            Spacing = 4d,
+            Children =
+            {
+                LabeledSlider("Follow", _shiftSlider),
+                LabeledSlider("Pressure", _pressureSlider)
+            }
+        };
+
         var strategyRow = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("Auto,180,Auto,*,Auto"),
+            ColumnDefinitions = new ColumnDefinitions("Auto,Auto,Auto,*,Auto"),
             ColumnSpacing = 8d,
             Children =
             {
                 _strategyBox,
-                _shiftSlider,
+                sliderBlock,
                 sortButton,
                 _finalUnitText,
                 resetButton
             }
         };
-        Grid.SetColumn(_shiftSlider, 1);
+        Grid.SetColumn(sliderBlock, 1);
         Grid.SetColumn(sortButton, 2);
         Grid.SetColumn(_finalUnitText, 3);
         Grid.SetColumn(resetButton, 4);
@@ -184,9 +205,7 @@ public sealed class CalibrationPageView : UserControl
     private Control FrameCard(CalibrationDisplayFrame frame)
     {
         var calibrater = frame.Calibrater;
-        var rawLabel = _sorted
-            ? SortedValueLabel(frame.Calibrater)
-            : _dataset.Format(frame.Sample);
+        var rawLabel = _dataset.Format(frame.Sample);
         var ratioLabel = calibrater.HasValue
             ? calibrater.ValueProjection.IsTension
                 ? "t"
@@ -287,14 +306,15 @@ public sealed class CalibrationPageView : UserControl
     {
         var calibrater = Calibrater.Start(_dataset.Carrier);
         var frames = new List<CalibrationProgressiveFrame>(_dataset.Values.Length);
-        var shift = new Ratio(new Measure(_shiftPercent), new Measure(100));
+        var follow = new Ratio(new Measure(_shiftPercent), new Measure(100));
+        var pressure = new Ratio(new Measure(_pressurePercent), new Measure(100));
 
         for (var index = 0; index < _dataset.Values.Length; index++)
         {
             var sample = _dataset.Values[index];
             calibrater = index < 3
                 ? calibrater.Input(sample)
-                : calibrater.InputShifted(sample, shift);
+                : calibrater.InputShifted(sample, follow, pressure);
             frames.Add(new CalibrationProgressiveFrame(index + 1, sample, calibrater, StageFor(calibrater)));
         }
 
@@ -333,18 +353,6 @@ public sealed class CalibrationPageView : UserControl
         return new SolidColorBrush(Color.FromArgb(alpha, 204, 88, 77));
     }
 
-    private static string SortedValueLabel(Calibrater calibrater)
-    {
-        if (!calibrater.HasValue)
-        {
-            return "--";
-        }
-
-        return calibrater.ValueProjection.IsTension
-            ? "tension"
-            : $"{calibrater.ValueProjection.Approximate:0.0}u";
-    }
-
     private string FinalSummary(Calibrater final, IReadOnlyList<CalibrationDisplayFrame> frames)
     {
         var unitText = final.HasUnit
@@ -369,7 +377,23 @@ public sealed class CalibrationPageView : UserControl
 
         var minimum = resolved[0];
         var maximum = resolved[^1];
-        return $"{unitText}   range {minimum:0.0} to {maximum:0.0}   span {(maximum - minimum):0.0}";
+        return $"{unitText}\nrange {minimum:0.0} to {maximum:0.0}   span {(maximum - minimum):0.0}";
+    }
+
+    private static Control LabeledSlider(string label, Control slider)
+    {
+        var grid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,Auto"),
+            ColumnSpacing = 8d,
+            Children =
+            {
+                ProbeUi.Mono(label, 10d, ProbePalette.Muted),
+                slider
+            }
+        };
+        Grid.SetColumn(slider, 1);
+        return grid;
     }
 
     private readonly record struct CalibrationDisplayFrame(

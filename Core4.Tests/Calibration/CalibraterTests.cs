@@ -47,4 +47,38 @@ public sealed class CalibraterTests
         Assert.True(calibrater.ValueProjection.IsTension);
         Assert.Equal(new Measure(5), calibrater.ValueProjection.Potential);
     }
+
+    [Fact]
+    public void CalibraterPressureRefinesUnitWhenSuccessiveValuesCollapseToZeroTicks()
+    {
+        var calibrater = Calibrater.Start(74)
+            .Input(100)
+            .Input(120)
+            .Input(140)
+            .InputShifted(
+                145,
+                new Ratio(new Measure(0), new Measure(100)),
+                new Ratio(new Measure(10), new Measure(100)));
+
+        Assert.Equal(new Measure(100), calibrater.OriginMeasure);
+        Assert.Equal(new Measure(118), calibrater.UnitMeasure);
+        Assert.Equal(new Measure(145), calibrater.ValueMeasure);
+    }
+
+    [Fact]
+    public void CalibraterPressureCoarsensUnitWhenSuccessiveValuesExceedEightTicks()
+    {
+        var calibrater = Calibrater.Start(75)
+            .Input(100)
+            .Input(110)
+            .Input(120)
+            .InputShifted(
+                1000,
+                new Ratio(new Measure(0), new Measure(100)),
+                new Ratio(new Measure(20), new Measure(100)));
+
+        Assert.Equal(new Measure(100), calibrater.OriginMeasure);
+        Assert.Equal(new Measure(112), calibrater.UnitMeasure);
+        Assert.Equal(new Measure(1000), calibrater.ValueMeasure);
+    }
 }
