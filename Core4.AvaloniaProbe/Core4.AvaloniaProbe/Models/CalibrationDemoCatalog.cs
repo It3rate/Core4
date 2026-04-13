@@ -71,6 +71,23 @@ public static class CalibrationDemoCatalog
             FormatGdpMillions)
     ];
 
+    public static ImmutableArray<CalibrationDataset> PatternDatasets { get; } =
+    [
+        new(
+            "gear-sizes-ordered",
+            "Gear Sizes",
+            "Ordered common imperial diametral-pitch values and metric module values, all scaled by 1000. On the pattern page this stays unshuffled so the page reads the stream as shape rather than as sort error.",
+            "Wikipedia gear standards: common diametral pitches and preferred standard metric modules",
+            "https://en.wikipedia.org/wiki/Gear",
+            "gear",
+            new Carrier(4200),
+            GearValues,
+            FormatGearScale),
+        Datasets[1],
+        Datasets[2],
+        Datasets[3]
+    ];
+
     public static ImmutableArray<CalibrationFrame> BuildFrames(CalibrationDataset dataset)
     {
         var calibrater = Calibrater.Start(dataset.Carrier);

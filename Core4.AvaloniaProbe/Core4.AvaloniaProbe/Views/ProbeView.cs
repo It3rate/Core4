@@ -31,6 +31,7 @@ public sealed class ProbeView : UserControl
     private readonly LockedInvariantPageView _lockedInvariantPage = new();
     private readonly MultipleInputsPageView _multipleInputsPage = new();
     private readonly CalibrationPageView _calibrationPage = new();
+    private readonly CalibrationPatternPageView _calibrationPatternPage = new();
     private readonly CarrierChainPageView _carrierChainPage = new();
     private readonly TopologyTrolleyPageView _topologyTrolleyPage = new();
     private readonly BoundaryLoopPageView _boundaryLoopPage = new();
@@ -109,6 +110,7 @@ public sealed class ProbeView : UserControl
             new PageDefinition(ProbePage.OrthogonalInput, ProbeCategory.Orthogonals, "Orthogonal Input", "orthogonal-input", _orthogonalInputPage),
             new PageDefinition(ProbePage.MultipleInputs, ProbeCategory.Orthogonals, "Multiple Inputs", "multiple-inputs", _multipleInputsPage),
             new PageDefinition(ProbePage.CalibrationRolling, ProbeCategory.Calibration, "Rolling Calibrater", "calibration-rolling", _calibrationPage),
+            new PageDefinition(ProbePage.CalibrationPattern, ProbeCategory.Calibration, "Pattern State", "calibration-pattern", _calibrationPatternPage),
             new PageDefinition(ProbePage.CarrierChain, ProbeCategory.Topology, "Carrier Chain", "carrier-chain", _carrierChainPage),
             new PageDefinition(ProbePage.TopologyTrolley, ProbeCategory.Topology, "Trolley", "trolley", _topologyTrolleyPage),
             new PageDefinition(ProbePage.BoundaryLoop, ProbeCategory.Topology, "Boundaries", "boundaries", _boundaryLoopPage),
@@ -596,6 +598,7 @@ public sealed class ProbeView : UserControl
         OrthogonalInput,
         MultipleInputs,
         CalibrationRolling,
+        CalibrationPattern,
         CarrierChain,
         TopologyTrolley,
         BoundaryLoop,
