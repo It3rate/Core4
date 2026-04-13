@@ -269,9 +269,12 @@ public sealed class ProbeView : UserControl
             webButton.Click += async (_, _) =>
             {
                 webButton.IsEnabled = false;
+                webButton.Content = "Deploying...";
+                ToolTip.SetTip(webButton, null);
                 try
                 {
                     await WebPreviewLauncher.LaunchAsync(PageFor(_activePage).Route);
+                    webButton.Content = "Web";
                 }
                 catch (Exception ex)
                 {
