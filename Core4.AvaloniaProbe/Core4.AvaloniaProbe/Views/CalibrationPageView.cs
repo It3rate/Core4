@@ -239,7 +239,8 @@ public sealed class CalibrationPageView : UserControl
                         ProbeUi.Mono(status, 8.2d, ProbePalette.Muted)
                     }
                 },
-                graph
+                graph,
+                ProbeUi.Mono(PatternSummary(frame.Pattern), 7.4d, ProbePalette.Muted)
             }
         }, 18d, new Thickness(6, 3));
 
@@ -260,7 +261,7 @@ public sealed class CalibrationPageView : UserControl
         if (!_sorted)
         {
             return progressive
-                .Select(frame => new CalibrationDisplayFrame(frame.Index, frame.Sample, frame.Calibrater, frame.Stage, 0))
+                .Select(frame => new CalibrationDisplayFrame(frame.Index, frame.Sample, frame.Calibrater, frame.Pattern, frame.Stage, 0))
                 .ToArray();
         }
 
@@ -277,7 +278,7 @@ public sealed class CalibrationPageView : UserControl
         {
             var sample = _dataset.Values[index];
             var projected = final.WithValue(sample);
-            sorted.Add(new CalibrationDisplayFrame(index + 1, sample, projected, string.Empty, 0));
+            sorted.Add(new CalibrationDisplayFrame(index + 1, sample, projected, progressive[index].Pattern, string.Empty, 0));
         }
 
         sorted = sorted
@@ -305,6 +306,7 @@ public sealed class CalibrationPageView : UserControl
     private IReadOnlyList<CalibrationProgressiveFrame> BuildProgressiveFrames()
     {
         var calibrater = Calibrater.Start(_dataset.Carrier);
+        var pattern = PatternState.Start(_dataset.Carrier);
         var frames = new List<CalibrationProgressiveFrame>(_dataset.Values.Length);
         var follow = new Ratio(new Measure(_shiftPercent), new Measure(100));
         var pressure = new Ratio(new Measure(_pressurePercent), new Measure(100));
@@ -315,7 +317,8 @@ public sealed class CalibrationPageView : UserControl
             calibrater = index < 3
                 ? calibrater.Input(sample)
                 : calibrater.InputShifted(sample, follow, pressure);
-            frames.Add(new CalibrationProgressiveFrame(index + 1, sample, calibrater, StageFor(calibrater)));
+            pattern = pattern.Input(sample);
+            frames.Add(new CalibrationProgressiveFrame(index + 1, sample, calibrater, pattern, StageFor(calibrater)));
         }
 
         return frames;
@@ -396,10 +399,26 @@ public sealed class CalibrationPageView : UserControl
         return grid;
     }
 
+    private static string PatternSummary(PatternState state)
+    {
+        if (!state.HasWindow)
+        {
+            return "a-- m-- r-- s0";
+        }
+
+        return $"a{state.AdditiveFitPressure.Raw} m{state.MultiplicativeFitPressure.Raw} r{state.ReversalStrength.Raw} s{Signed(state.DirectionStreak)}";
+    }
+
+    private static string Signed(Measure value)
+        => value.Raw > 0
+            ? $"+{value.Raw}"
+            : value.Raw.ToString();
+
     private readonly record struct CalibrationDisplayFrame(
         int Index,
         Measure Sample,
         Calibrater Calibrater,
+        PatternState Pattern,
         string Status,
         int SortDistance);
 
@@ -407,5 +426,6 @@ public sealed class CalibrationPageView : UserControl
         int Index,
         Measure Sample,
         Calibrater Calibrater,
+        PatternState Pattern,
         string Stage);
 }

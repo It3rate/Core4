@@ -21,6 +21,8 @@ public sealed class PatternStateTests
         Assert.Equal(new Measure(1), state.Momentum);
         Assert.Equal(new Measure(9), state.WindowRange);
         Assert.Equal(new Measure(13), state.RunningAverage);
+        Assert.Equal(Measure.Zero, state.AdditiveFitPressure);
+        Assert.Equal(Measure.Zero, state.MultiplicativeFitPressure);
     }
 
     [Fact]
@@ -76,18 +78,20 @@ public sealed class PatternStateTests
         Assert.Equal(Measure.Zero, state.ShockResidual);
         Assert.Equal(new Ratio(7, 3), state.FirstValueRatio);
         Assert.Equal(new Ratio(11, 7), state.SecondValueRatio);
+        Assert.True(state.AdditiveFitPressure.Raw <= state.MultiplicativeFitPressure.Raw);
     }
 
     [Fact]
     public void PatternStateCarriesGeometricResidualAsRatioDifference()
     {
         var state = PatternState.Start(86)
-            .Input(2)
-            .Input(4)
-            .Input(8);
+            .Input(10)
+            .Input(20)
+            .Input(40);
 
         Assert.Equal(new Ratio(2, 1), state.FirstValueRatio.Canonicalize());
         Assert.Equal(new Ratio(2, 1), state.SecondValueRatio.Canonicalize());
         Assert.Equal(new Ratio(0, 1), state.GeometricResidual.Canonicalize());
+        Assert.True(state.MultiplicativeFitPressure.Raw <= state.AdditiveFitPressure.Raw);
     }
 }

@@ -18,12 +18,16 @@ public sealed class PatternState
         Carrier carrier,
         ImmutableArray<Measure> samples,
         Measure runningAverage,
+        Measure additiveFitPressure,
+        Measure multiplicativeFitPressure,
         Measure directionStreak,
         Measure stepsSinceLastReversal)
     {
         Carrier = carrier;
         _samples = samples;
         RunningAverage = runningAverage;
+        AdditiveFitPressure = additiveFitPressure;
+        MultiplicativeFitPressure = multiplicativeFitPressure;
         DirectionStreak = directionStreak;
         StepsSinceLastReversal = stepsSinceLastReversal;
     }
@@ -33,6 +37,12 @@ public sealed class PatternState
     public ImmutableArray<Measure> Samples => _samples;
 
     public Measure RunningAverage { get; }
+
+    public Measure AdditiveFitPressure { get; }
+
+    public Measure MultiplicativeFitPressure { get; }
+
+    public Measure FitSkew => AdditiveFitPressure - MultiplicativeFitPressure;
 
     public Measure DirectionStreak { get; }
 
@@ -91,6 +101,8 @@ public sealed class PatternState
         ? SecondValueRatio.Subtract(FirstValueRatio).Normalize()
         : Ratio.Zero(Measure.Zero);
 
+    public Measure GeometricResidualPotential => GeometricResidual.Canonicalize().Potential;
+
     public Measure LinearResidual => Momentum.Absolute;
 
     public Measure FlatResidual => Max(FirstDelta.Absolute, SecondDelta.Absolute);
@@ -119,7 +131,7 @@ public sealed class PatternState
         : Measure.Zero;
 
     public static PatternState Start(Carrier carrier) =>
-        new(carrier, ImmutableArray<Measure>.Empty, Measure.Zero, Measure.Zero, Measure.Zero);
+        new(carrier, ImmutableArray<Measure>.Empty, Measure.Zero, Measure.Zero, Measure.Zero, Measure.Zero, Measure.Zero);
 
     public static PatternState Start(long carrier) => Start(new Carrier(carrier));
 
@@ -138,12 +150,32 @@ public sealed class PatternState
             : value;
 
         var priorSlope = LastSlope;
-        var provisional = new PatternState(Carrier, nextSamples, nextAverage, DirectionStreak, StepsSinceLastReversal);
+        var provisional = new PatternState(
+            Carrier,
+            nextSamples,
+            nextAverage,
+            AdditiveFitPressure,
+            MultiplicativeFitPressure,
+            DirectionStreak,
+            StepsSinceLastReversal);
         var nextSlope = provisional.LastSlope;
         var nextStreak = AdvanceStreak(DirectionStreak, nextSlope);
         var nextReversalAge = AdvanceReversalAge(StepsSinceLastReversal, priorSlope, nextSlope, provisional.HasWindow);
+        var nextAdditiveFit = provisional.HasWindow && CanApply(emaWeight)
+            ? Nudge(AdditiveFitPressure, provisional.LinearResidual, emaWeight)
+            : AdditiveFitPressure;
+        var nextMultiplicativeFit = provisional.HasWindow && CanApply(emaWeight)
+            ? Nudge(MultiplicativeFitPressure, provisional.GeometricResidualPotential, emaWeight)
+            : MultiplicativeFitPressure;
 
-        return new PatternState(Carrier, nextSamples, nextAverage, nextStreak, nextReversalAge);
+        return new PatternState(
+            Carrier,
+            nextSamples,
+            nextAverage,
+            nextAdditiveFit,
+            nextMultiplicativeFit,
+            nextStreak,
+            nextReversalAge);
     }
 
     private static Measure AdvanceStreak(Measure current, Measure slope)
