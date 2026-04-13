@@ -30,6 +30,7 @@ public sealed class ProbeView : UserControl
     private readonly PrimitiveBasesPageView _primitiveBasesPage = new();
     private readonly LockedInvariantPageView _lockedInvariantPage = new();
     private readonly MultipleInputsPageView _multipleInputsPage = new();
+    private readonly CalibrationPageView _calibrationPage = new();
     private readonly CarrierChainPageView _carrierChainPage = new();
     private readonly TopologyTrolleyPageView _topologyTrolleyPage = new();
     private readonly BoundaryLoopPageView _boundaryLoopPage = new();
@@ -45,6 +46,7 @@ public sealed class ProbeView : UserControl
         [ProbeCategory.Glossary] = ProbePage.GlossaryClaim,
         [ProbeCategory.Primitives] = ProbePage.DominantOnly,
         [ProbeCategory.Orthogonals] = ProbePage.OrthogonalOutput,
+        [ProbeCategory.Calibration] = ProbePage.CalibrationRolling,
         [ProbeCategory.Topology] = ProbePage.CarrierChain
     };
 
@@ -81,6 +83,10 @@ public sealed class ProbeView : UserControl
                 "Orthogonals",
                 "Orthogonal publication, input, and multi-branch settlement."),
             new CategoryDefinition(
+                ProbeCategory.Calibration,
+                "Calibration",
+                "Small rolling calibraters that turn repeated orthogonal input into a first local origin, unit, and projected value before richer tuning exists."),
+            new CategoryDefinition(
                 ProbeCategory.Topology,
                 "Topology",
                 "Connected sites, carrier chains, traversal, and first real-world relaxation scenes built from live Core4 relations.")
@@ -102,6 +108,7 @@ public sealed class ProbeView : UserControl
             new PageDefinition(ProbePage.OrthogonalOutput, ProbeCategory.Orthogonals, "Orthogonal Output", "orthogonal-output", _orthogonalOutputPage),
             new PageDefinition(ProbePage.OrthogonalInput, ProbeCategory.Orthogonals, "Orthogonal Input", "orthogonal-input", _orthogonalInputPage),
             new PageDefinition(ProbePage.MultipleInputs, ProbeCategory.Orthogonals, "Multiple Inputs", "multiple-inputs", _multipleInputsPage),
+            new PageDefinition(ProbePage.CalibrationRolling, ProbeCategory.Calibration, "Rolling Calibrater", "calibration-rolling", _calibrationPage),
             new PageDefinition(ProbePage.CarrierChain, ProbeCategory.Topology, "Carrier Chain", "carrier-chain", _carrierChainPage),
             new PageDefinition(ProbePage.TopologyTrolley, ProbeCategory.Topology, "Trolley", "trolley", _topologyTrolleyPage),
             new PageDefinition(ProbePage.BoundaryLoop, ProbeCategory.Topology, "Boundaries", "boundaries", _boundaryLoopPage),
@@ -565,6 +572,7 @@ public sealed class ProbeView : UserControl
         Glossary,
         Primitives,
         Orthogonals,
+        Calibration,
         Topology
     }
 
@@ -584,6 +592,7 @@ public sealed class ProbeView : UserControl
         OrthogonalOutput,
         OrthogonalInput,
         MultipleInputs,
+        CalibrationRolling,
         CarrierChain,
         TopologyTrolley,
         BoundaryLoop,
