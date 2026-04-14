@@ -1,9 +1,9 @@
 using Core4.Numerics;
 using Core4.Structure;
 using Core4.Topology;
-using Core4.Types;
+using Core4.Dynamics;
 
-namespace Core4.Tests.Types;
+namespace Core4.Tests.Dynamics;
 
 public sealed class CarrierCommunicationTests
 {

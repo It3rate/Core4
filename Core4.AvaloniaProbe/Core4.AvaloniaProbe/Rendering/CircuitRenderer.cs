@@ -3,9 +3,9 @@ using System.Collections.Immutable;
 using Avalonia;
 using Avalonia.Media;
 using Core4.AvaloniaProbe.Models;
+using Core4.Dynamics;
 using Core4.Numerics;
 using Core4.Structure;
-using Core4.Types;
 
 namespace Core4.AvaloniaProbe.Rendering;
 

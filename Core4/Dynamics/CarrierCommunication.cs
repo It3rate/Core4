@@ -1,10 +1,9 @@
 using System.Collections.Immutable;
-using Core4.Dynamics;
 using Core4.Numerics;
 using Core4.Structure;
 using Core4.Topology;
 
-namespace Core4.Types;
+namespace Core4.Dynamics;
 
 /// <summary>
 /// A locality-preserving carrier field. Sites remain purely local claim machines; this layer only lets carrier-backed

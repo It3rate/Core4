@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Core4.Numerics;
+using Core4.Structure;
 
 namespace Core4.Dynamics;
 
@@ -62,9 +63,15 @@ public readonly record struct OrthogonalReservoir(Ratio Residual, ImmutableArray
 
     public Ratio Incoming() => Aggregate(flow => flow.IsIncoming);
 
+    public Ratio LocalIncoming() => Aggregate(flow => flow.IsIncoming && flow.Support is not Carrier);
+
     public Ratio Outgoing() => Aggregate(flow => flow.IsOutgoing);
 
+    public Ratio LocalOutgoing() => Aggregate(flow => flow.IsOutgoing && flow.Support is not Carrier);
+
     public Ratio Oscillating() => Aggregate(flow => flow.IsOscillating);
+
+    public Ratio LocalOscillating() => Aggregate(flow => flow.IsOscillating && flow.Support is not Carrier);
 
     private Ratio Aggregate(Func<Flow, bool> predicate)
     {

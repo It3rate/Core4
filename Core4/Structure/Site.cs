@@ -73,7 +73,7 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
         var stiffness = Kernel.Stiffness.Normalize();
         var routingGain = Kernel.RoutingGain.Normalize();
         var dominantBias = Kernel.DominantBias.Normalize();
-        var incoming = Orthogonal.Incoming();
+        var incoming = Orthogonal.LocalIncoming();
 
         if (Orthogonal.Residual.Potential != Measure.Zero || Orthogonal.Residual.Dominant != Measure.Zero)
         {
@@ -82,7 +82,7 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
                 : incoming.Add(Orthogonal.Residual).Normalize();
         }
 
-        var feedback = Orthogonal.Outgoing().Add(Orthogonal.Oscillating()).Normalize();
+        var feedback = Orthogonal.LocalOutgoing().Add(Orthogonal.LocalOscillating()).Normalize();
         var available = incoming.Subtract(feedback).Normalize();
         var uptake = new Ratio(Measure.One, Measure.One).Subtract(stiffness).Normalize();
         var softened = available.ScaleBy(uptake).Normalize();

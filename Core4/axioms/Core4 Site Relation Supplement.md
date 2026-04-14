@@ -262,6 +262,13 @@ So the current local settlement shape is:
 5. split by `dominant bias`
 6. keep the remainder as orthogonal output
 
+For the current engine pass, this local settlement only reads **non-carrier**
+orthogonal supports directly.
+
+Bare carrier-backed flows are treated instead as communication ports and are
+handled by the carrier communication layer rather than by same-pass local
+settlement.
+
 This is not yet the full operation system, but it gives a real mechanical
 meaning to:
 

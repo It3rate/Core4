@@ -13,13 +13,16 @@ public static class SiteExamples
         var lightSensor = new Carrier(2);
         var switchState = new Carrier(3);
         var navigation = new Carrier(4);
+        var lightReading = new Relation(Site.Open(lightSensor, 0), Site.Open(lightSensor, 4));
+        var switchReading = new Relation(Site.Open(switchState, 0), Site.Open(switchState, 6));
+        var navigationAgreement = new Relation(Site.Open(navigation, 0), Site.Open(navigation, 2));
         var open = Site.Open(x, 0);
         var negotiating = open
             .Anchor(new Ratio(0, 1))
             .WithResidual(Ratio.Tension(3))
-            .Request(lightSensor, Ratio.Tension(4))
-            .Request(switchState, Ratio.Tension(6))
-            .Exchange(navigation, Ratio.Tension(2), Provenance.Shared(2));
+            .Request(lightReading, Ratio.Tension(4))
+            .Request(switchReading, Ratio.Tension(6))
+            .Exchange(navigationAgreement, Ratio.Tension(2), Provenance.Shared(2));
         var committed = negotiating.Resolve(new Ratio(10, 5));
 
         return

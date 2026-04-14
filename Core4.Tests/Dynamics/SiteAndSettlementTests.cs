@@ -62,14 +62,17 @@ public sealed class SiteAndSettlementTests
         Carrier lightSensor = 2;
         Carrier switchState = 3;
         Carrier navigation = 4;
+        var lightReading = new Relation(Site.Open(lightSensor, new Measure(0)), Site.Open(lightSensor, new Measure(4)));
+        var switchReading = new Relation(Site.Open(switchState, new Measure(0)), Site.Open(switchState, new Measure(6)));
+        var navigationAgreement = new Relation(Site.Open(navigation, new Measure(0)), Site.Open(navigation, new Measure(2)));
 
         var site = Site.Open(x, new Measure(0))
             .Anchor(new Ratio(0, 1))
             .Harden(new Ratio(3, 4))
             .WithResidual(Ratio.Tension(new Measure(3)))
-            .Request(lightSensor, Ratio.Tension(new Measure(4)))
-            .Request(switchState, Ratio.Tension(new Measure(6)))
-            .Exchange(navigation, Ratio.Tension(new Measure(2)), Provenance.Shared(new Measure(2)));
+            .Request(lightReading, Ratio.Tension(new Measure(4)))
+            .Request(switchReading, Ratio.Tension(new Measure(6)))
+            .Exchange(navigationAgreement, Ratio.Tension(new Measure(2)), Provenance.Shared(new Measure(2)));
 
         var settlement = site.Settle();
 
@@ -120,12 +123,13 @@ public sealed class SiteAndSettlementTests
     {
         Carrier x = 1;
         Carrier input = 2;
+        var inputReading = new Relation(Site.Open(input, new Measure(0)), Site.Open(input, new Measure(8)));
 
         var site = Site.Open(x, new Measure(0))
             .Anchor(new Ratio(0, 1))
             .Harden(new Ratio(1, 2))
             .Route(new Ratio(1, 2))
-            .Request(input, Ratio.Tension(new Measure(8)));
+            .Request(inputReading, Ratio.Tension(new Measure(8)));
 
         var settlement = site.Settle();
 
@@ -153,13 +157,14 @@ public sealed class SiteAndSettlementTests
     {
         Carrier x = 1;
         Carrier input = 2;
+        var inputReading = new Relation(Site.Open(input, new Measure(0)), Site.Open(input, new Measure(8)));
 
         var site = Site.Open(x, new Measure(0))
             .Anchor(new Ratio(0, 1))
             .Harden(new Ratio(1, 2))
             .Route(new Ratio(1, 1))
             .BiasToDominant(new Ratio(1, 4))
-            .Request(input, Ratio.Tension(new Measure(8)));
+            .Request(inputReading, Ratio.Tension(new Measure(8)));
 
         var settlement = site.Settle();
 
@@ -187,13 +192,14 @@ public sealed class SiteAndSettlementTests
     {
         Carrier x = 1;
         Carrier input = 2;
+        var inputReading = new Relation(Site.Open(input, new Measure(0)), Site.Open(input, new Measure(8)));
 
         var site = Site.Open(x, new Measure(0))
             .Anchor(new Ratio(0, 1))
             .Harden(new Ratio(1, 4))
             .Route(new Ratio(1, 1))
             .BiasToDominant(new Ratio(1, 2))
-            .Request(input, Ratio.Tension(new Measure(8)));
+            .Request(inputReading, Ratio.Tension(new Measure(8)));
 
         var settlement = site.Settle();
 
@@ -204,5 +210,26 @@ public sealed class SiteAndSettlementTests
         Assert.Equal(new Ratio(2, 0), settlement.Remainder);
         Assert.Equal(new Ratio(3, 0), settlement.Next.Kernel.Recessive);
         Assert.Equal(new Ratio(3, 0), settlement.Next.State);
+    }
+
+    [Fact]
+    public void BareCarrierFlowsActAsPortsAndNotSamePassLocalEvidence()
+    {
+        Carrier x = 1;
+        Carrier light = 2;
+
+        var site = Site.Open(x, new Measure(0))
+            .Anchor(new Ratio(0, 1))
+            .WithResidual(Ratio.Tension(new Measure(3)))
+            .Request(light, Ratio.Tension(new Measure(8)))
+            .Publish(light, Ratio.Tension(new Measure(5)));
+
+        var settlement = site.Settle();
+
+        Assert.Equal(new Ratio(3, 0), settlement.Incoming);
+        Assert.Equal(new Ratio(3, 0), settlement.Provisional);
+        Assert.Equal(new Ratio(3, 0), settlement.Published);
+        Assert.Equal(new Ratio(0, 0), settlement.Feedback);
+        Assert.Equal(new Ratio(0, 0), settlement.Remainder);
     }
 }
