@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using Core4.Numerics;
 using Core4.Structure;
 
-namespace Core4.Dynamics;
+namespace Core4.Topology;
 
 /// <summary>
 /// A trolley-local modifier applied through the carried calibration law. This is the mutable traversal state:

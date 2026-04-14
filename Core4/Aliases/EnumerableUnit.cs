@@ -1,8 +1,8 @@
 using System.Collections;
 using System.Collections.Immutable;
-using Core4.Dynamics;
 using Core4.Numerics;
 using Core4.Structure;
+using Core4.Topology;
 
 namespace Core4.Aliases;
 

@@ -75,7 +75,7 @@ public readonly record struct OrthogonalOutputDemoState(
         .WithResidual(TensionRatio)
         .Connect(OutputFlow);
 
-    public SiteSettlement Settlement => SourceSite.Settle();
+    public SiteSettlement Settlement => SiteDynamics.Settle(SourceSite);
 
     public OrthogonalReservoir Orthogonal => SourceSite.Orthogonal;
 

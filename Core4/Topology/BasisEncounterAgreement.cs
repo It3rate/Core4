@@ -1,4 +1,3 @@
-using Core4.Dynamics;
 using Core4.Numerics;
 
 namespace Core4.Topology;

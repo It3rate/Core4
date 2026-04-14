@@ -1,5 +1,5 @@
-using Core4.Dynamics;
 using Core4.Numerics;
+using Core4.Structure;
 
 namespace Core4.AvaloniaProbe.Models;
 

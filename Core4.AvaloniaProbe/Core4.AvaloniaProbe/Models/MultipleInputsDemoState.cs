@@ -69,7 +69,7 @@ public readonly record struct MultipleInputsDemoState(
         .Connect(BottomBranchA.Signal)
         .Connect(BottomBranchB.Signal);
 
-    public SiteSettlement Settlement => SourceSite.Settle();
+    public SiteSettlement Settlement => SiteDynamics.Settle(SourceSite);
 
     public OrthogonalReservoir Orthogonal => SourceSite.Orthogonal;
 

@@ -1,7 +1,5 @@
 using Core4.Numerics;
-using Core4.Structure;
-
-namespace Core4.Dynamics;
+namespace Core4.Structure;
 
 /// <summary>
 /// A live support-linked influence. The value says what is moving, while provenance says whether that pressure is

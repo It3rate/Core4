@@ -251,7 +251,7 @@ public static class NumericExplorerExamples
         var channels = Channels(preset);
         var source = CreateSourceSite(preset, channels);
         var resolved = source.Resolve(activeProjection.IsTension ? Ratio.Tension(activeProjection.Potential) : activeProjection);
-        var settlement = resolved.Settle();
+            var settlement = SiteDynamics.Settle(resolved);
 
         return new NumericExplorerSnapshot(
             preset,

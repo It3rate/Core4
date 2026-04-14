@@ -74,7 +74,7 @@ public sealed class SiteAndSettlementTests
             .Request(switchReading, Ratio.Tension(new Measure(6)))
             .Exchange(navigationAgreement, Ratio.Tension(new Measure(2)), Provenance.Shared(new Measure(2)));
 
-        var settlement = site.Settle();
+        var settlement = SiteDynamics.Settle(site);
 
         Assert.Equal(new Ratio(0, 1), settlement.Anchor);
         Assert.Equal(new Ratio(13, 0), settlement.Incoming);
@@ -131,7 +131,7 @@ public sealed class SiteAndSettlementTests
             .Route(new Ratio(1, 2))
             .Request(inputReading, Ratio.Tension(new Measure(8)));
 
-        var settlement = site.Settle();
+        var settlement = SiteDynamics.Settle(site);
 
         Assert.Equal(new Ratio(8, 0), settlement.Incoming);
         Assert.Equal(new Ratio(8, 0), settlement.Provisional);
@@ -166,7 +166,7 @@ public sealed class SiteAndSettlementTests
             .BiasToDominant(new Ratio(1, 4))
             .Request(inputReading, Ratio.Tension(new Measure(8)));
 
-        var settlement = site.Settle();
+        var settlement = SiteDynamics.Settle(site);
 
         Assert.Equal(new Ratio(8, 0), settlement.Incoming);
         Assert.Equal(new Ratio(8, 0), settlement.Provisional);
@@ -201,7 +201,7 @@ public sealed class SiteAndSettlementTests
             .BiasToDominant(new Ratio(1, 2))
             .Request(inputReading, Ratio.Tension(new Measure(8)));
 
-        var settlement = site.Settle();
+        var settlement = SiteDynamics.Settle(site);
 
         Assert.Equal(new Ratio(8, 0), settlement.Incoming);
         Assert.Equal(new Ratio(8, 0), settlement.Provisional);
@@ -224,7 +224,7 @@ public sealed class SiteAndSettlementTests
             .Request(light, Ratio.Tension(new Measure(8)))
             .Publish(light, Ratio.Tension(new Measure(5)));
 
-        var settlement = site.Settle();
+        var settlement = SiteDynamics.Settle(site);
 
         Assert.Equal(new Ratio(3, 0), settlement.Incoming);
         Assert.Equal(new Ratio(3, 0), settlement.Provisional);

@@ -1,4 +1,3 @@
-using Core4.Dynamics;
 using Core4.Numerics;
 
 namespace Core4.Structure;
@@ -65,40 +64,6 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
     public Site Request(ISupport support, Ratio value) => Connect(new Flow(support, value.Normalize(), Provenance.OtherDriven(value.Potential)));
 
     public Site Exchange(ISupport support, Ratio value, Provenance provenance) => Connect(new Flow(support, value.Normalize(), provenance));
-
-    public SiteSettlement Settle()
-    {
-        var anchor = Kernel.Recessive.Normalize();
-        var claim = Kernel.Dominant.Normalize();
-        var stiffness = Kernel.Stiffness.Normalize();
-        var routingGain = Kernel.RoutingGain.Normalize();
-        var dominantBias = Kernel.DominantBias.Normalize();
-        var incoming = Orthogonal.LocalIncoming();
-
-        if (Orthogonal.Residual.Potential != Measure.Zero || Orthogonal.Residual.Dominant != Measure.Zero)
-        {
-            incoming = incoming.Potential == Measure.Zero && incoming.Dominant == Measure.Zero
-                ? Orthogonal.Residual.Normalize()
-                : incoming.Add(Orthogonal.Residual).Normalize();
-        }
-
-        var feedback = Orthogonal.LocalOutgoing().Add(Orthogonal.LocalOscillating()).Normalize();
-        var available = incoming.Subtract(feedback).Normalize();
-        var uptake = new Ratio(Measure.One, Measure.One).Subtract(stiffness).Normalize();
-        var softened = available.ScaleBy(uptake).Normalize();
-        var routed = softened.ScaleBy(routingGain).Normalize();
-        var toDominant = routed.ScaleBy(dominantBias).Normalize();
-        var toRecessive = routed.Subtract(toDominant).Normalize();
-        var nextAnchor = anchor.Add(toRecessive).Normalize();
-        var nextClaim = claim.Add(toDominant).Normalize();
-        var provisional = anchor.Add(claim).Add(available).Normalize();
-        var published = nextAnchor.Add(nextClaim).Normalize();
-        var settled = published;
-        var remainder = available.Subtract(routed).Normalize();
-        var next = Anchor(nextAnchor).Resolve(nextClaim).WithResidual(remainder);
-
-        return new SiteSettlement(this, anchor, incoming, provisional, published, feedback, settled, remainder, next);
-    }
 
     public Relation Relate(Site anchor) => new(Carrier, this, anchor);
 

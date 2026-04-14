@@ -40,7 +40,7 @@ public static class SiteExamples
 
         foreach (var (name, site) in examples)
         {
-            var step = site.Settle();
+        var step = SiteDynamics.Settle(site);
             var phases = step.Phases;
             var terms = ImmutableArray.CreateBuilder<string>(phases.Samples.Length);
             phases.Reset();

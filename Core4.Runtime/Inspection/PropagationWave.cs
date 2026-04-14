@@ -268,7 +268,7 @@ public readonly record struct PropagationFrontier(
 
     public Site Site => Trolley.Site;
 
-    public Core4.Dynamics.TraversalSignature Signature => Trolley.Signature;
+    public Core4.Topology.TraversalSignature Signature => Trolley.Signature;
 
     public bool CanMergeWith(PropagationFrontier other) =>
         Signature.SameProjection(other.Signature)

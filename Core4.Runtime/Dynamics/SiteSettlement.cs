@@ -10,7 +10,7 @@ namespace Core4.Dynamics;
 /// inspector so multiple perspectives can inspect the same structure at once without storing cursor state here.
 /// It exposes the anchor, incoming evidence, publication, feedback, and carried remainder before producing the next
 /// site state, and it also yields explicitly numbered phases for inspection.
-/// Example: <c>var step = site.Settle(); var next = step.Next;</c>
+/// Example: <c>var step = SiteDynamics.Settle(site); var next = step.Next;</c>
 /// </summary>
 public readonly record struct SiteSettlement(
     Site Source,

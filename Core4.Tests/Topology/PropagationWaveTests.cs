@@ -1,4 +1,3 @@
-using Core4.Dynamics;
 using Core4.Inspection;
 using Core4.Numerics;
 using Core4.Structure;

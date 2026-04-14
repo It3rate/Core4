@@ -56,7 +56,7 @@ public readonly record struct OrthogonalInputDemoState(
         .Connect(TopBranch.Signal)
         .Connect(BottomBranch.Signal);
 
-    public SiteSettlement Settlement => SourceSite.Settle();
+    public SiteSettlement Settlement => SiteDynamics.Settle(SourceSite);
 
     public OrthogonalReservoir Orthogonal => SourceSite.Orthogonal;
 

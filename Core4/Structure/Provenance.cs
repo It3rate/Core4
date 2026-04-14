@@ -1,6 +1,6 @@
 using Core4.Numerics;
 
-namespace Core4.Dynamics;
+namespace Core4.Structure;
 
 /// <summary>
 /// Self/other weighting encoded on a provenance axis. Positive settled values are self-driven, negative settled

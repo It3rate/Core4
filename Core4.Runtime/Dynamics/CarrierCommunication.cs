@@ -94,7 +94,7 @@ public readonly record struct CarrierCommunicationState(
                 site.Placement,
                 site.Kernel,
                 new OrthogonalReservoir(site.Orthogonal.Residual, ports.LocalFlows));
-            var localSettlement = localSite.Settle();
+            var localSettlement = SiteDynamics.Settle(localSite);
             var nextSite = new Site(
                 localSettlement.Next.Placement,
                 localSettlement.Next.Kernel,
