@@ -181,4 +181,28 @@ public sealed class SiteAndSettlementTests
 
         Assert.Equal(new Ratio(900, 1000), site.DominantBias);
     }
+
+    [Fact]
+    public void SelfReturnIsProcessedInTheSameSettlementPass()
+    {
+        Carrier x = 1;
+        Carrier input = 2;
+
+        var site = Site.Open(x, new Measure(0))
+            .Anchor(new Ratio(0, 1))
+            .Harden(new Ratio(1, 4))
+            .Route(new Ratio(1, 1))
+            .BiasToDominant(new Ratio(1, 2))
+            .Request(input, Ratio.Tension(new Measure(8)));
+
+        var settlement = site.Settle();
+
+        Assert.Equal(new Ratio(8, 0), settlement.Incoming);
+        Assert.Equal(new Ratio(8, 0), settlement.Provisional);
+        Assert.Equal(new Ratio(6, 0), settlement.Published);
+        Assert.Equal(new Ratio(6, 0), settlement.Settled);
+        Assert.Equal(new Ratio(2, 0), settlement.Remainder);
+        Assert.Equal(new Ratio(3, 0), settlement.Next.Kernel.Recessive);
+        Assert.Equal(new Ratio(3, 0), settlement.Next.State);
+    }
 }

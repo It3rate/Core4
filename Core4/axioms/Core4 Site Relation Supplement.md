@@ -313,9 +313,9 @@ The current single-site settlement pass can now be read as:
    - `routing gain`
 5. partition the routed share by:
    - dominant bias
-6. add the recessive portion into aligned support
-7. add the dominant portion into aligned claim
-8. keep the un-routed remainder as orthogonal residual
+6. add the recessive returned portion into aligned support
+7. add the dominant returned portion into aligned claim
+8. keep the un-returned portion as orthogonal residual
 
 So the current engine pass is already beginning to separate:
 
@@ -326,6 +326,37 @@ So the current engine pass is already beginning to separate:
 
 This is still a local first pass. It is not yet the full final law for
 multi-site communication.
+
+### Locality Of Routing
+
+The current design direction should keep routing local.
+
+A site may know:
+
+- its own aligned claim
+- its own aligned support
+- the orthogonal carriers meeting it
+- the local tension magnitudes currently available there
+
+But a site should not need to hold direct knowledge of other target sites in
+order to decide how its own settlement proceeds.
+
+So:
+
+- local routing and return happen inside the site
+- other sites attach from the outside by reading or binding to orthogonal
+  carriers
+- cross-site coupling should therefore be expressed through shared supports and
+  later topology-level settlement, not by one site naming another site as its
+  destination
+
+The special case that is already useful locally is:
+
+- some portion of what would otherwise remain orthogonal output may be returned
+  into the site's own aligned structure on the same settlement pass
+
+That self-return should happen once per pass. It should not recursively keep
+triggering itself within the same local step.
 
 ### Freeze And Pin
 
@@ -370,8 +401,8 @@ Open questions remain:
 
 - should claims themselves be first-class supports
 - should routing split further into inbound and outbound versions
-- how should one residual be distributed among several destinations beyond the
-  current local support/claim split
+- when orthogonal carriers connect several live sites, how should the larger
+  network decide repeated settlement order and shared equilibrium
 - how should higher-grade fused structure expose its own claims and invariants
 
 So the current guidance is:
