@@ -14,12 +14,12 @@ namespace Core4.AvaloniaProbe.Rendering;
 /// </summary>
 public static class RoutingStiffnessRenderer
 {
-    private const double HorizontalPadding = 42d;
-    private const double VerticalPadding = 24d;
+    private const double HorizontalPadding = 30d;
+    private const double VerticalPadding = 12d;
     private const double SupportBaseLength = 40d;
     private const double SupportVariableLength = 84d;
     private const double SiteHalfSize = 18d;
-    private const double FeedDepth = 88d;
+    private const double FeedDepth = 72d;
     private const double FeedLaneOffset = 52d;
 
     public static void Render(DrawingContext context, Rect bounds, RoutingStiffnessDemoState state, bool showStructure)
@@ -41,13 +41,12 @@ public static class RoutingStiffnessRenderer
         DrawStageLabels(context, layout, state, showStructure);
         DrawSiteSkeleton(context, layout.Source, state.CurrentSourceSite.Kernel.Stiffness, "source x", showStructure);
         DrawSiteSkeleton(context, layout.Sink, state.CurrentSinkSite.Kernel.Stiffness, "listener y", showStructure);
-        DrawSupportState(
+        DrawSourceSupportState(
             context,
             layout.Source,
+            state.SourceClaimRatio,
             state.CurrentSourceSite,
             maxMagnitude,
-            ProbePalette.DominantSoft,
-            ProbePalette.Dominant,
             showStructure);
         DrawSupportState(
             context,
@@ -57,10 +56,13 @@ public static class RoutingStiffnessRenderer
             ProbePalette.DominantSoft,
             ProbePalette.Dominant,
             showStructure);
-        DrawBottomInput(context, layout.Source, state.SourceInput.Absolute.Raw, maxMagnitude, "raw input", showStructure);
+        DrawOrthogonalOut(context, layout.Source, state.CurrentSourceSite.Orthogonal.Residual, maxMagnitude);
+        DrawOrthogonalOut(context, layout.Sink, state.CurrentSinkSite.Orthogonal.Residual, maxMagnitude);
+        DrawBottomInput(context, layout.Source, state.SourceInput.Absolute.Raw, maxMagnitude, "inbound", showStructure);
         DrawSelfLoop(context, layout.Source, state.SourceAbsorbed, maxMagnitude, showStructure);
         DrawCarrierTransport(context, layout.Source, layout.Sink, field, maxMagnitude, showStructure);
         DrawListenerIngress(context, layout.Sink, state, field, maxMagnitude, showStructure);
+        DrawSelfLoop(context, layout.Sink, state.SinkAbsorbed, maxMagnitude, showStructure);
         DrawResidualBadge(context, layout.Source, state.CurrentSourceSite, showStructure);
         DrawResidualBadge(context, layout.Sink, state.CurrentSinkSite, showStructure);
         DrawSettledBadge(context, layout.Source, state.CurrentSourceSettlement, showStructure);
@@ -69,8 +71,8 @@ public static class RoutingStiffnessRenderer
 
     private static RoutingSceneLayout Arrange(Rect scene)
     {
-        var sourceCenter = new Point(scene.X + (scene.Width * 0.28d), scene.Y + (scene.Height * 0.58d));
-        var sinkCenter = new Point(scene.X + (scene.Width * 0.74d), scene.Y + (scene.Height * 0.58d));
+        var sourceCenter = new Point(scene.X + (scene.Width * 0.24d), scene.Y + (scene.Height * 0.48d));
+        var sinkCenter = new Point(scene.X + (scene.Width * 0.78d), scene.Y + (scene.Height * 0.48d));
         return new RoutingSceneLayout(
             scene,
             SitePorts.FromCenter(sourceCenter),
@@ -107,7 +109,7 @@ public static class RoutingStiffnessRenderer
         var topY = layout.Scene.Y + 6d;
         ScenePrimitives.DrawCenteredLabel(
             context,
-            showStructure ? "structure: local ports and carrier shape" : "runtime: one local pass",
+            "source site",
             new Point(layout.Source.Center.X, topY),
             9.6d,
             ProbePalette.Muted,
@@ -115,7 +117,7 @@ public static class RoutingStiffnessRenderer
             ProbePalette.MonoFont);
         ScenePrimitives.DrawCenteredLabel(
             context,
-            showStructure ? "shared orthogonal carrier" : "carrier publish / deliver",
+            "shared orthogonal carrier",
             new Point((layout.Source.Top.X + layout.Sink.Top.X) * 0.5d, topY),
             9.6d,
             ProbePalette.Muted,
@@ -123,7 +125,7 @@ public static class RoutingStiffnessRenderer
             ProbePalette.MonoFont);
         ScenePrimitives.DrawCenteredLabel(
             context,
-            showStructure ? "structure: listener ports" : "runtime: next-round uptake",
+            "listener site",
             new Point(layout.Sink.Center.X, topY),
             9.6d,
             ProbePalette.Muted,
@@ -151,7 +153,7 @@ public static class RoutingStiffnessRenderer
         context.DrawLine(supportGhostPen, site.Left, site.Left - new Vector(SupportBaseLength + 10d, 0d));
         context.DrawLine(supportGhostPen, site.Right, site.Right + new Vector(SupportBaseLength + 10d, 0d));
 
-        var orthGhostOut = new Pen(new SolidColorBrush(Color.FromArgb(136, 209, 13, 31)), 2.2d, lineCap: PenLineCap.Round);
+        var orthGhostOut = new Pen(new SolidColorBrush(Color.FromArgb(96, 209, 13, 31)), 1.8d, lineCap: PenLineCap.Round);
         var orthGhostIn = new Pen(new SolidColorBrush(Color.FromArgb(128, 255, 122, 0)), 2.2d, lineCap: PenLineCap.Round);
         context.DrawLine(orthGhostOut, site.Top, site.Top - new Vector(0d, 30d));
         context.DrawLine(orthGhostIn, site.Bottom + new Vector(0d, 30d), site.Bottom);
@@ -171,7 +173,7 @@ public static class RoutingStiffnessRenderer
         ScenePrimitives.DrawCenteredLabel(
             context,
             label,
-            new Point(site.Center.X, site.Center.Y + 62d),
+            new Point(site.Center.X, site.Center.Y + 72d),
             10d,
             ProbePalette.Ink,
             FontWeight.SemiBold,
@@ -227,14 +229,42 @@ public static class RoutingStiffnessRenderer
             -1d,
             current.Kernel.Recessive.Potential.Raw,
             maxMagnitude,
-            recessiveBrush);
+            recessiveBrush,
+            current.Kernel.Recessive);
         DrawSupportRay(
             context,
             site.Right,
             1d,
             current.Kernel.Dominant.Potential.Raw,
             maxMagnitude,
-            dominantBrush);
+            dominantBrush,
+            current.Kernel.Dominant);
+    }
+
+    private static void DrawSourceSupportState(
+        DrawingContext context,
+        SitePorts site,
+        Ratio seededClaim,
+        Site current,
+        double maxMagnitude,
+        bool showStructure)
+    {
+        DrawSupportRay(
+            context,
+            site.Left,
+            -1d,
+            current.Kernel.Recessive.Potential.Raw,
+            maxMagnitude,
+            ProbePalette.DominantSoft,
+            current.Kernel.Recessive);
+
+        DrawClaimAndFinalRay(
+            context,
+            site.Right,
+            seededClaim,
+            current.Kernel.Dominant,
+            maxMagnitude,
+            showStructure);
     }
 
     private static void DrawStiffnessLock(
@@ -274,24 +304,106 @@ public static class RoutingStiffnessRenderer
         double direction,
         long magnitude,
         double maxMagnitude,
-        IBrush brush)
+        IBrush brush,
+        Ratio value)
     {
-        if (magnitude <= 0L)
+        var ratio = Math.Clamp(magnitude / Math.Max(1d, maxMagnitude), 0d, 1d);
+        var length = SupportBaseLength + (SupportVariableLength * ratio);
+        var end = port + new Vector(direction * length, 0d);
+        if (magnitude > 0L)
         {
-            return;
+            var pen = DynamicPen(brush, magnitude, maxMagnitude, 2.2d, 7.2d);
+            context.DrawLine(pen, port, end);
+            ScenePrimitives.DrawDirectedTriangle(
+                context,
+                end,
+                8.4d,
+                DynamicBrush(brush, magnitude, maxMagnitude),
+                new Vector(direction, 0d),
+                new Pen(DynamicBrush(brush, magnitude, maxMagnitude), 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
         }
 
-        var length = SupportBaseLength + (SupportVariableLength * Math.Clamp(magnitude / Math.Max(1d, maxMagnitude), 0d, 1d));
-        var end = port + new Vector(direction * length, 0d);
-        var pen = DynamicPen(brush, magnitude, maxMagnitude, 2.2d, 7.2d);
-        context.DrawLine(pen, port, end);
-        ScenePrimitives.DrawDirectedTriangle(
+        ScenePrimitives.DrawCenteredBadgeLabel(
             context,
-            end,
-            8.4d,
-            DynamicBrush(brush, magnitude, maxMagnitude),
-            new Vector(direction, 0d),
-            new Pen(DynamicBrush(brush, magnitude, maxMagnitude), 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
+            Format(value),
+            new Point(((port.X + end.X) * 0.5d) + (direction * 8d), port.Y - 16d),
+            8.2d,
+            ProbePalette.Ink,
+            fontFamily: ProbePalette.MonoFont);
+    }
+
+    private static void DrawClaimAndFinalRay(
+        DrawingContext context,
+        Point port,
+        Ratio claim,
+        Ratio finalValue,
+        double maxMagnitude,
+        bool showStructure)
+    {
+        var claimLength = ClaimLength(claim.Potential.Raw, maxMagnitude);
+        var finalLength = ClaimLength(finalValue.Potential.Raw, maxMagnitude);
+        var claimEnd = port + new Vector(claimLength, 0d);
+        var finalEnd = port + new Vector(finalLength, 0d);
+        var claimPen = new Pen(ProbePalette.Dominant, 3.2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+        var finalPen = DynamicPen(ProbePalette.TensionPositive, finalValue.Potential.Raw, maxMagnitude, 2.8d, 7.2d);
+
+        if (claimLength >= finalLength)
+        {
+            if (claimLength > 0d)
+            {
+                context.DrawLine(claimPen, port, claimEnd);
+            }
+
+            if (finalLength > 0d)
+            {
+                context.DrawLine(finalPen, port, finalEnd);
+            }
+        }
+        else
+        {
+            if (finalLength > 0d)
+            {
+                context.DrawLine(finalPen, port, finalEnd);
+            }
+
+            if (claimLength > 0d)
+            {
+                context.DrawLine(claimPen, port, claimEnd);
+            }
+        }
+
+        var claimMarkerPen = new Pen(ProbePalette.Dominant, 2d, lineCap: PenLineCap.Round);
+        context.DrawLine(claimMarkerPen, claimEnd + new Vector(0d, -8d), claimEnd + new Vector(0d, 8d));
+
+        if (finalLength > 0d)
+        {
+            ScenePrimitives.DrawDirectedTriangle(
+                context,
+                finalEnd,
+                8.2d,
+                DynamicBrush(ProbePalette.TensionPositive, finalValue.Potential.Raw, maxMagnitude),
+                new Vector(1d, 0d),
+                new Pen(DynamicBrush(ProbePalette.TensionPositive, finalValue.Potential.Raw, maxMagnitude), 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
+        }
+
+        ScenePrimitives.DrawCenteredBadgeLabel(
+            context,
+            Format(finalValue),
+            new Point(((port.X + finalEnd.X) * 0.5d) + 8d, port.Y - 16d),
+            8.2d,
+            ProbePalette.Ink,
+            fontFamily: ProbePalette.MonoFont);
+
+        if (showStructure)
+        {
+            ScenePrimitives.DrawCenteredBadgeLabel(
+                context,
+                $"claim {Format(claim)}",
+                new Point(claimEnd.X, port.Y + 22d),
+                8.2d,
+                ProbePalette.Ink,
+                fontFamily: ProbePalette.MonoFont);
+        }
     }
 
     private static void DrawBottomInput(
@@ -307,16 +419,43 @@ public static class RoutingStiffnessRenderer
             return;
         }
 
-        var start = source.Bottom + new Vector(-FeedLaneOffset, FeedDepth);
+        var radius = InputCloudRadius(inputMagnitude, maxMagnitude);
+        var cloudCenter = source.Bottom + new Vector(-FeedLaneOffset, FeedDepth);
+        var start = cloudCenter + new Vector(0d, -radius);
+        DrawInputCloud(context, cloudCenter, inputMagnitude, maxMagnitude, label, showStructure);
         DrawFeedCurve(
             context,
             start,
             source.Bottom,
             inputMagnitude,
-            maxMagnitude,
+            RoutingStiffnessDemoState.MaxInput,
             ProbePalette.OrthogonalInput,
-            label,
-            showStructure);
+            string.Empty,
+            false);
+    }
+
+    private static void DrawOrthogonalOut(
+        DrawingContext context,
+        SitePorts site,
+        Ratio residual,
+        double maxMagnitude)
+    {
+        if (residual.Potential == Measure.Zero)
+        {
+            return;
+        }
+
+        var length = 16d + (36d * Math.Clamp(residual.Potential.Raw / Math.Max(1d, maxMagnitude), 0d, 1d));
+        var end = site.Top - new Vector(0d, length);
+        var pen = DynamicPen(ProbePalette.Orthogonal, residual.Potential.Raw, maxMagnitude, 2.2d, 7d);
+        context.DrawLine(pen, site.Top, end);
+        ScenePrimitives.DrawDirectedTriangle(
+            context,
+            end,
+            8d,
+            DynamicBrush(ProbePalette.Orthogonal, residual.Potential.Raw, maxMagnitude),
+            new Vector(0d, -1d),
+            new Pen(DynamicBrush(ProbePalette.Orthogonal, residual.Potential.Raw, maxMagnitude), 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
     }
 
     private static void DrawListenerIngress(
@@ -408,6 +547,7 @@ public static class RoutingStiffnessRenderer
         var delivered = field?.Delivered ?? Ratio.Zero(Measure.Zero);
 
         var handoff = new Point(sink.Bottom.X - 74d, sink.Bottom.Y + 26d);
+        var handoffTangent = new Vector(34d, 14d);
         ScenePrimitives.DrawCenteredLabel(
             context,
             "carrier p",
@@ -433,7 +573,7 @@ public static class RoutingStiffnessRenderer
             stream.BeginFigure(source.Top, false);
             stream.CubicBezierTo(
                 source.Top + new Vector(0d, -62d),
-                new Point(sink.Center.X - 154d, sink.Bottom.Y + 42d),
+                handoff - handoffTangent,
                 handoff);
             stream.EndFigure(false);
         }
@@ -443,7 +583,7 @@ public static class RoutingStiffnessRenderer
         {
             stream.BeginFigure(handoff, false);
             stream.CubicBezierTo(
-                new Point(sink.Bottom.X - 40d, sink.Bottom.Y + 40d),
+                handoff + handoffTangent,
                 new Point(sink.Bottom.X - 8d, sink.Bottom.Y + 22d),
                 sink.Bottom);
             stream.EndFigure(false);
@@ -497,7 +637,7 @@ public static class RoutingStiffnessRenderer
             stream.BeginFigure(start, false);
             stream.CubicBezierTo(
                 start + new Vector(0d, -62d),
-                new Point(end.X - 154d, end.Y + 42d),
+                handoff - new Vector(34d, 14d),
                 handoff);
             stream.EndFigure(false);
         }
@@ -507,7 +647,7 @@ public static class RoutingStiffnessRenderer
         {
             stream.BeginFigure(handoff, false);
             stream.CubicBezierTo(
-                new Point(end.X - 40d, end.Y + 40d),
+                handoff + new Vector(34d, 14d),
                 new Point(end.X - 8d, end.Y + 22d),
                 end);
             stream.EndFigure(false);
@@ -561,6 +701,36 @@ public static class RoutingStiffnessRenderer
         }
     }
 
+    private static void DrawInputCloud(
+        DrawingContext context,
+        Point center,
+        long magnitude,
+        double maxMagnitude,
+        string label,
+        bool showStructure)
+    {
+        var ratio = Math.Clamp(magnitude / Math.Max(1d, RoutingStiffnessDemoState.MaxInput), 0d, 1d);
+        var alpha = (byte)Math.Round(80d + (150d * ratio), MidpointRounding.AwayFromZero);
+        var strokeBrush = new SolidColorBrush(Color.FromArgb(alpha, 255, 122, 0));
+        var fillBrush = new SolidColorBrush(Color.FromArgb((byte)Math.Round(alpha * 0.22d), 255, 122, 0));
+        var radius = InputCloudRadius(magnitude, RoutingStiffnessDemoState.MaxInput);
+        var stroke = new Pen(strokeBrush, 1.4d + (2.4d * ratio), lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+
+        ScenePrimitives.DrawCircle(context, center, radius, fillBrush, stroke);
+
+        if (showStructure)
+        {
+            ScenePrimitives.DrawCenteredLabel(
+                context,
+                label,
+                new Point(center.X, center.Y + radius + 10d),
+                8.2d,
+                ProbePalette.Muted,
+                FontWeight.SemiBold,
+                ProbePalette.MonoFont);
+        }
+    }
+
     private static void DrawResidualBadge(DrawingContext context, SitePorts site, Site current, bool showStructure)
     {
         if (current.Orthogonal.Residual.Potential == Measure.Zero)
@@ -587,7 +757,7 @@ public static class RoutingStiffnessRenderer
         ScenePrimitives.DrawCenteredBadgeLabel(
             context,
             $"settled {Format(current.Settled)}",
-            new Point(site.Center.X, site.Center.Y + 82d),
+            new Point(site.Center.X, site.Center.Y + 96d),
             8.2d,
             showStructure ? ProbePalette.Muted : ProbePalette.Ink,
             fontFamily: ProbePalette.MonoFont);
@@ -609,7 +779,7 @@ public static class RoutingStiffnessRenderer
         var ratio = Math.Clamp(magnitude / Math.Max(1d, maxMagnitude), 0d, 1d);
         return new Pen(
             InputBrush(baseBrush, magnitude, maxMagnitude),
-            2.2d + (4.2d * ratio),
+            1.5d + (3.8d * ratio),
             lineCap: PenLineCap.Round,
             lineJoin: PenLineJoin.Round);
     }
@@ -635,10 +805,20 @@ public static class RoutingStiffnessRenderer
         }
 
         var ratio = Math.Clamp(magnitude / Math.Max(1d, maxMagnitude), 0d, 1d);
-        var alpha = (byte)Math.Round(128d + (36d * ratio), MidpointRounding.AwayFromZero);
+        var alpha = (byte)Math.Round(80d + (150d * ratio), MidpointRounding.AwayFromZero);
         var color = solid.Color;
         return new SolidColorBrush(Color.FromArgb(alpha, color.R, color.G, color.B));
     }
+
+    private static double InputCloudRadius(double magnitude, double maxMagnitude)
+    {
+        var ratio = Math.Clamp(magnitude / Math.Max(1d, maxMagnitude), 0d, 1d);
+        return 8d + (6d * ratio);
+    }
+
+    private static double ClaimLength(long magnitude, double maxMagnitude) => magnitude <= 0L
+        ? 0d
+        : SupportBaseLength + (SupportVariableLength * Math.Clamp(magnitude / Math.Max(1d, maxMagnitude), 0d, 1d));
 
     private static long MaxPotential(Site site) =>
         Math.Max(

@@ -17,7 +17,7 @@ public sealed class RoutingStiffnessSceneControl : Control
     public RoutingStiffnessSceneControl()
     {
         MinWidth = 700;
-        MinHeight = 320;
+        MinHeight = 360;
         ClipToBounds = true;
     }
 

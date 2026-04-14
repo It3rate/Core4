@@ -13,6 +13,7 @@ namespace Core4.AvaloniaProbe.Models;
 /// </summary>
 public readonly record struct RoutingStiffnessDemoState(
     Measure SourceInput,
+    Measure SourceClaim,
     Measure SourceStiffnessPercent,
     Measure SourceRoutingPercent,
     Measure SourceDominantPercent,
@@ -24,6 +25,7 @@ public readonly record struct RoutingStiffnessDemoState(
     public const long MaxPercent = 100L;
     public const long MaxRound = 4L;
     public const long MaxInput = 24L;
+    public const long MaxClaim = 4L;
 
     private static readonly Carrier SourceCarrier = new(1);
     private static readonly Carrier SharedCarrier = new(2);
@@ -31,14 +33,17 @@ public readonly record struct RoutingStiffnessDemoState(
     private static readonly Measure PortWeight = Measure.One;
 
     public static RoutingStiffnessDemoState Default => new(
-        new Measure(18),
+        new Measure(24),
+        Measure.Zero,
+        Measure.Zero,
         new Measure(25),
-        new Measure(75),
-        new Measure(85),
-        new Measure(45),
-        new Measure(70),
         new Measure(100),
-        new Measure(2));
+        Measure.Zero,
+        new Measure(100),
+        new Measure(100),
+        new Measure(1));
+
+    public Ratio SourceClaimRatio => new Ratio(Clamp(SourceClaim.Absolute, 0L, MaxClaim), Measure.One);
 
     public Ratio SourceStiffness => Percent(SourceStiffnessPercent);
 
@@ -56,7 +61,7 @@ public readonly record struct RoutingStiffnessDemoState(
 
     public Site SeedSourceSite => Site.Open(SourceCarrier, Measure.Zero)
         .Anchor(new Ratio(Measure.Zero, Measure.One))
-        .Resolve(new Ratio(Measure.Zero, Measure.One))
+        .Resolve(SourceClaimRatio)
         .WithResidual(Ratio.Tension(SourceInput.Absolute))
         .Harden(SourceStiffness)
         .Route(SourceRoutingGain)
@@ -123,6 +128,9 @@ public readonly record struct RoutingStiffnessDemoState(
 
     public RoutingStiffnessDemoState WithSourceInput(Measure sourceInput) =>
         this with { SourceInput = Clamp(sourceInput.Absolute, 0L, MaxInput) };
+
+    public RoutingStiffnessDemoState WithSourceClaim(Measure claim) =>
+        this with { SourceClaim = Clamp(claim.Absolute, 0L, MaxClaim) };
 
     public RoutingStiffnessDemoState WithSourceStiffnessPercent(Measure percent) =>
         this with { SourceStiffnessPercent = Clamp(percent.Absolute, 0L, MaxPercent) };
