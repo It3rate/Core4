@@ -53,7 +53,7 @@ public sealed class RoutingStiffnessPageView : UserControl
             State = _state,
             ShowStructure = true,
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch
+            VerticalAlignment = VerticalAlignment.Top
         };
 
         _roundSlider = ProbeUi.CreateSlider(0, RoutingStiffnessDemoState.MaxRound, _state.CurrentRound.Raw, ProbePalette.Overlay, true);
@@ -187,15 +187,20 @@ public sealed class RoutingStiffnessPageView : UserControl
             }
         };
 
-        var sceneCard = ProbeUi.Card(new StackPanel
+        var sceneCardBody = new Grid
         {
-            Spacing = 8,
+            RowDefinitions = new RowDefinitions("Auto,Auto"),
+            RowSpacing = 4,
             Children =
             {
                 SceneHeader(),
                 _scene
             }
-        }, 22, new Thickness(12));
+        };
+        Grid.SetRow(_scene, 1);
+
+        var sceneCard = ProbeUi.Card(sceneCardBody, 22, new Thickness(10, 6, 10, 10));
+        sceneCard.HorizontalAlignment = HorizontalAlignment.Stretch;
 
         var infoCards = new Grid
         {
@@ -207,15 +212,17 @@ public sealed class RoutingStiffnessPageView : UserControl
         ProbeUi.AddInfoCard(infoCards, 2, "LISTENER LOCAL", _sinkLocalText);
         ProbeUi.AddInfoCard(infoCards, 3, "TIMING", _timingText);
 
-        var rightColumn = new StackPanel
+        var rightColumn = new Grid
         {
-            Spacing = 10,
+            RowDefinitions = new RowDefinitions("Auto,Auto"),
+            RowSpacing = 10,
             Children =
             {
                 sceneCard,
                 infoCards
             }
         };
+        Grid.SetRow(infoCards, 1);
 
         var mainGrid = new Grid
         {

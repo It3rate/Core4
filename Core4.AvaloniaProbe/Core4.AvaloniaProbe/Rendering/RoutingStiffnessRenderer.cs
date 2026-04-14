@@ -15,12 +15,15 @@ namespace Core4.AvaloniaProbe.Rendering;
 public static class RoutingStiffnessRenderer
 {
     private const double HorizontalPadding = 30d;
-    private const double VerticalPadding = 12d;
+    private const double VerticalPadding = -40d;
     private const double SupportBaseLength = 40d;
     private const double SupportVariableLength = 84d;
     private const double SiteHalfSize = 18d;
     private const double FeedDepth = 72d;
     private const double FeedLaneOffset = 52d;
+    private const double PreferredCenterY = 166d;
+    private const double MinimumCenterY = 126d;
+    private const double BottomClearance = 126d;
 
     public static void Render(DrawingContext context, Rect bounds, RoutingStiffnessDemoState state, bool showStructure)
     {
@@ -71,8 +74,9 @@ public static class RoutingStiffnessRenderer
 
     private static RoutingSceneLayout Arrange(Rect scene)
     {
-        var sourceCenter = new Point(scene.X + (scene.Width * 0.24d), scene.Y + (scene.Height * 0.48d));
-        var sinkCenter = new Point(scene.X + (scene.Width * 0.78d), scene.Y + (scene.Height * 0.48d));
+        var centerY = scene.Y + AnchoredCenterY(scene.Height, PreferredCenterY, MinimumCenterY, BottomClearance);
+        var sourceCenter = new Point(scene.X + (scene.Width * 0.24d), centerY);
+        var sinkCenter = new Point(scene.X + (scene.Width * 0.78d), centerY);
         return new RoutingSceneLayout(
             scene,
             SitePorts.FromCenter(sourceCenter),
@@ -83,7 +87,13 @@ public static class RoutingStiffnessRenderer
         bounds.X + HorizontalPadding,
         bounds.Y + VerticalPadding,
         Math.Max(64d, bounds.Width - (HorizontalPadding * 2d)),
-        Math.Max(64d, bounds.Height - (VerticalPadding * 2d)));
+        Math.Max(64d, bounds.Height + (VerticalPadding + 20)));
+
+    private static double AnchoredCenterY(double height, double preferred, double minimum, double bottomClearance)
+    {
+        var maximum = Math.Max(minimum, height - bottomClearance);
+        return Math.Clamp(preferred, minimum, maximum);
+    }
 
     private static void DrawBackdrop(DrawingContext context, Rect rect)
     {

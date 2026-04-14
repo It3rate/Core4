@@ -19,6 +19,7 @@ public sealed class RoutingStiffnessSceneControl : Control
         MinWidth = 700;
         MinHeight = 360;
         ClipToBounds = true;
+        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top;
     }
 
     public RoutingStiffnessDemoState State

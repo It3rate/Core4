@@ -33,6 +33,7 @@ public sealed class ProbeView : UserControl
     private readonly CalibrationPageView _calibrationPage = new();
     private readonly CalibrationPatternPageView _calibrationPatternPage = new();
     private readonly CarrierChainPageView _carrierChainPage = new();
+    private readonly SiteAnatomyPageView _siteAnatomyPage = new();
     private readonly RoutingStiffnessPageView _routingStiffnessPage = new();
     private readonly TopologyTrolleyPageView _topologyTrolleyPage = new();
     private readonly BoundaryLoopPageView _boundaryLoopPage = new();
@@ -113,6 +114,7 @@ public sealed class ProbeView : UserControl
             new PageDefinition(ProbePage.CalibrationRolling, ProbeCategory.Calibration, "Rolling Calibrater", "calibration-rolling", _calibrationPage),
             new PageDefinition(ProbePage.CalibrationPattern, ProbeCategory.Calibration, "Pattern State", "calibration-pattern", _calibrationPatternPage),
             new PageDefinition(ProbePage.CarrierChain, ProbeCategory.Topology, "Carrier Chain", "carrier-chain", _carrierChainPage),
+            new PageDefinition(ProbePage.SiteAnatomy, ProbeCategory.Topology, "Single Site Anatomy", "site-anatomy", _siteAnatomyPage),
             new PageDefinition(ProbePage.RoutingStiffness, ProbeCategory.Topology, "Routing / Stiffness", "routing-stiffness", _routingStiffnessPage),
             new PageDefinition(ProbePage.TopologyTrolley, ProbeCategory.Topology, "Trolley", "trolley", _topologyTrolleyPage),
             new PageDefinition(ProbePage.BoundaryLoop, ProbeCategory.Topology, "Boundaries", "boundaries", _boundaryLoopPage),
@@ -602,6 +604,7 @@ public sealed class ProbeView : UserControl
         CalibrationRolling,
         CalibrationPattern,
         CarrierChain,
+        SiteAnatomy,
         RoutingStiffness,
         TopologyTrolley,
         BoundaryLoop,
