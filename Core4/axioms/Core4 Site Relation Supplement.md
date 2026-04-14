@@ -224,193 +224,116 @@ Over time:
 So structure is not a separate ontology layered on top of attachment. It is
 attachment potential that has stabilized enough to be frozen and reused.
 
-## 7A. Carrier-Local Stiffness And Routing Gain
+## 7A. Site-Local Hardness, Routing, and Bias
 
-The current engine now makes hardening more explicit.
+The current engine now treats aligned commitment as numerically tunable rather
+than purely declarative.
 
-At the site-local aligned level, a claim may carry:
+Each site-local aligned kernel carries three Core4 ratios:
 
-- a **stiffness**
-- a **routing gain**
-- a **dominant bias**
+- `stiffness`
+- `routing gain`
+- `dominant bias`
 
-Both are currently expressed as Core4 ratios.
-
-### Stiffness
-
-Stiffness says how strongly the current aligned claim resists change.
-
-Useful base cases are:
-
-- `0/1` = fully open, fully pliable
-- `1/1` = fully pinned for the current engine pass
-- intermediate values = partially hardened
-
-This should be read as a local mechanical preference, not merely as a tag.
-
-### Routing Gain
-
-Routing gain says how much of the softened share is currently routed back into
-the aligned claim rather than left as unresolved orthogonal remainder.
-
-Useful base cases are:
-
-- `1/1` = route the whole softened share into the aligned claim
-- `0/1` = route none of the softened share into the aligned claim
-- intermediate values = partial routing
-
-So stiffness and routing gain are related but different:
-
-- stiffness answers: how much incoming pressure is allowed to move this claim
-- routing gain answers: of the movable share, how much is routed into this
-  claim
-
-### Dominant Bias
-
-Dominant bias says how the routed share is currently partitioned between:
-
-- aligned recessive support
-- aligned dominant claim
-
-Useful base cases are:
-
-- `1/1` = route the whole routed share into the dominant aligned claim
-- `0/1` = route the whole routed share into the recessive aligned support
-- intermediate values = split the routed share across both aligned sides
-
-So the current local aligned structure now has three distinct numeric controls:
-
-- stiffness
-- routing gain
-- dominant bias
-
-### Why These Remain Ratios
-
-These values should generally not be reduced away automatically.
-
-For example:
+These are all preserved as non-reduced ratios so that:
 
 - `9/10`
+- `90/100`
 - `900/1000`
 
-may express the same coarse proportion, but they do not necessarily express the
-same confidence scale, negotiation hardness, or update granularity.
+can agree in coarse proportion while still retaining different confidence or
+granularity.
 
-So for stiffness-like and routing-like values, denominator may carry real
-structural meaning rather than being disposable arithmetic clutter.
+Their current roles are:
 
-### Current Settlement Reading
+- `stiffness` says how much incoming orthogonal tension resists changing the
+  aligned claim
+- `routing gain` says how much of the softened share is actually routed back
+  into aligned state
+- `dominant bias` says how the routed share is partitioned between aligned
+  recessive support and aligned dominant claim
 
-The current single-site settlement pass can now be read as:
+So the current local settlement shape is:
 
-1. gather anchor, aligned claim, incoming orthogonal evidence, and local
-   orthogonal feedback
-2. form **available** tension as:
-   - incoming minus feedback
-3. soften that available tension by:
-   - `1 - stiffness`
-4. route the softened share by:
-   - `routing gain`
-5. partition the routed share by:
-   - dominant bias
-6. add the recessive returned portion into aligned support
-7. add the dominant returned portion into aligned claim
-8. keep the un-returned portion as orthogonal residual
+1. gather incoming orthogonal tension
+2. subtract local feedback
+3. soften by `1 - stiffness`
+4. route by `routing gain`
+5. split by `dominant bias`
+6. keep the remainder as orthogonal output
 
-So the current engine pass is already beginning to separate:
+This is not yet the full operation system, but it gives a real mechanical
+meaning to:
 
-- resistance to change
-- degree of uptake into aligned structure
-- partition of aligned uptake between support and claim
-- residual tension that remains available for later rounds
+- pinning
+- partial freezing
+- partial uptake
+- local self-return
 
-This is still a local first pass. It is not yet the full final law for
-multi-site communication.
+## 7B. Claims As Small Tension Machines
 
-### Locality Of Routing
+The engine direction is no longer "call an arithmetic operator and store the
+result".
 
-The current design direction should keep routing local.
+Instead, the working picture is:
 
-A site may know:
+- make a primitive claim
+- let mismatch appear as tension
+- route some of that tension into local aligned state
+- leave the rest unresolved or exported
 
-- its own aligned claim
-- its own aligned support
-- the orthogonal carriers meeting it
-- the local tension magnitudes currently available there
+This means simple operations should eventually be describable as tiny claim
+networks.
 
-But a site should not need to hold direct knowledge of other target sites in
-order to decide how its own settlement proceeds.
+Examples:
 
-So:
+- `delta`
+  a claim that two values are equal; the residual mismatch is the delta
+- `follow`
+  the same equality claim, but some of the mismatch is routed back into one of
+  the values
+- `max`
+  a one-sided claim that a new value is less than or equal to the current max;
+  only the violating share updates the max
 
-- local routing and return happen inside the site
-- other sites attach from the outside by reading or binding to orthogonal
-  carriers
-- cross-site coupling should therefore be expressed through shared supports and
-  later topology-level settlement, not by one site naming another site as its
-  destination
+We are confident in the claim-and-residual direction here, but the full
+operator graph and repeated routing law are still incomplete.
 
-The special case that is already useful locally is:
+## 7C. Carrier Communication Stays Non-Local To Topology, Not To Sites
 
-- some portion of what would otherwise remain orthogonal output may be returned
-  into the site's own aligned structure on the same settlement pass
+Cross-site exchange should not be implemented by a site naming other sites as
+direct targets.
 
-That self-return should happen once per pass. It should not recursively keep
-triggering itself within the same local step.
+A site remains local. It may only express:
 
-### Freeze And Pin
+- aligned state
+- orthogonal residual
+- orthogonal port carriers
 
-For the current engine pass:
+The transport of residual between sites happens one level up, in topology or
+carrier communication.
 
-- open aligned state starts with zero stiffness
-- explicit pinning or freezing hardens structure by assigning nonzero stiffness
-- freezing a relation currently hardens both ends to full stiffness by default
+The current direction is:
 
-This is already enough to make "freeze" more mechanical than before, even
-though later passes may refine exactly how frozen commitment participates in
-ongoing settlement.
+1. a site settles locally
+2. any carrier-backed orthogonal output acts as a port, not as same-pass local
+   evidence
+3. the resulting orthogonal remainder is partitioned onto those carriers
+4. other sites listening on the same carriers receive that share as next-round
+   orthogonal input
+5. a site does not externally feed itself through those carrier ports in the
+   same communication pass
 
-## 7B. Operations As Claim Networks (Direction Only)
+This preserves locality:
 
-This next part is not yet finalized, but the current stiffness work points
-toward a useful operational reading.
+- sites do not store references to other sites
+- sites do not decide explicit non-local destinations
+- topology mediates shared-carrier transport
 
-A promising rule is:
+It also matches the intended distinction between:
 
-- an operation is a primitive **claim**
-- mismatch against that claim appears as tension
-- stiffness says how hard the claim holds
-- routing gain says how much movable mismatch settles into aligned structure
-- dominant bias says whether that aligned settlement strengthens support,
-  strengthens claim, or both
-
-Under that reading:
-
-- **delta** can be read as failed equality:
-  - claim `p0 = p1`
-  - residual mismatch is the delta
-- **follow** can be read as the same equality claim, but with residual routed
-  into one participant so it moves toward the other
-- **max** can be read as a one-sided claim:
-  - claim `sample <= max`
-  - only violating mismatch updates the max claim
-
-This is not yet the full operation engine.
-
-Open questions remain:
-
-- should claims themselves be first-class supports
-- should routing split further into inbound and outbound versions
-- when orthogonal carriers connect several live sites, how should the larger
-  network decide repeated settlement order and shared equilibrium
-- how should higher-grade fused structure expose its own claims and invariants
-
-So the current guidance is:
-
-- treat operations as emerging from small claim-and-relax structures
-- keep stiffness, routing gain, and dominant bias as reusable numeric
-  mechanisms
-- do not freeze the full operator vocabulary too early
+- local self-return, which may happen in the same site-local settlement pass
+- cross-site communication, which should arrive on the next round
 
 ## 8. Current Engine Direction
 
