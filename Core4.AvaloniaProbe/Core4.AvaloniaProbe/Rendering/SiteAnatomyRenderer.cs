@@ -17,8 +17,8 @@ public static class SiteAnatomyRenderer
     private const double SiteHalfSize = 20d;
     private const double SupportLength = 122d;
     private const double InputMaxCircle = 14d;
-    private const double PublishOffsetX = 74d;
-    private const double ListenOffsetX = 68d;
+    private const double PublishOffsetX = 56d;
+    private const double ListenOffsetX = 52d;
 
     public static void Render(DrawingContext context, Rect bounds, SiteAnatomyDemoState state, SiteAnatomyFocus focus)
     {
@@ -53,14 +53,6 @@ public static class SiteAnatomyRenderer
             context,
             "carrier publish ports",
             new Point(center.X, rect.Y + 6d),
-            10d,
-            ProbePalette.Muted,
-            FontWeight.SemiBold,
-            ProbePalette.MonoFont);
-        ScenePrimitives.DrawCenteredLabel(
-            context,
-            "site state",
-            new Point(center.X, center.Y - 82d),
             10d,
             ProbePalette.Muted,
             FontWeight.SemiBold,
@@ -177,7 +169,7 @@ public static class SiteAnatomyRenderer
     private static void DrawResidualOut(DrawingContext context, SitePorts site, SiteAnatomyDemoState state, SiteAnatomyFocus focus)
     {
         var outgoingFocused = IsFocused(focus, SiteAnatomyFocus.OrthogonalOut);
-        var tip = site.Top - new Vector(0d, 68d);
+        var tip = site.Top - new Vector(0d, 84d);
         var geometry = CurvedOut(site.Top, tip, 0d);
         DrawArrowGeometry(context, geometry, tip, new Vector(0d, -1d), PresentedBrush(ProbePalette.Orthogonal, focus, SiteAnatomyFocus.OrthogonalOut), 3.8d, outgoingFocused, 174);
     }
@@ -280,7 +272,7 @@ public static class SiteAnatomyRenderer
         var leftPublish = new Point(site.Center.X - PublishOffsetX, site.Top.Y - 88d);
         var rightPublish = new Point(site.Center.X + PublishOffsetX, site.Top.Y - 88d);
         var residualIn = site.Bottom + new Vector(0d, 98d);
-        var residualOut = site.Top - new Vector(0d, 68d);
+        var residualOut = site.Top - new Vector(0d, 84d);
 
         DrawCallout(
             context,
@@ -320,42 +312,42 @@ public static class SiteAnatomyRenderer
         DrawCallout(
             context,
             $"orth residual out {Format(state.Residual)}",
-            new Point(site.Center.X, site.Center.Y - 150d),
+            new Point(site.Center.X, site.Center.Y - 156d),
             residualOut,
             ProbePalette.Orthogonal,
             IsFocused(focus, SiteAnatomyFocus.OrthogonalOut));
         DrawCallout(
             context,
             $"publish p {Format(state.PublishPorts[0].Value)}",
-            new Point(site.Center.X - 214d, site.Center.Y - 134d),
+            new Point(site.Center.X - 188d, site.Center.Y - 130d),
             leftPublish,
             ProbePalette.Orthogonal,
             IsFocused(focus, SiteAnatomyFocus.Ports) || IsFocused(focus, SiteAnatomyFocus.OrthogonalOut));
         DrawCallout(
             context,
             $"publish q {Format(state.PublishPorts[1].Value)}",
-            new Point(site.Center.X + 214d, site.Center.Y - 134d),
+            new Point(site.Center.X + 188d, site.Center.Y - 130d),
             rightPublish,
             ProbePalette.Orthogonal,
             IsFocused(focus, SiteAnatomyFocus.Ports) || IsFocused(focus, SiteAnatomyFocus.OrthogonalOut));
         DrawCallout(
             context,
             $"listen p {Format(state.ListenPorts[0].Value)}",
-            new Point(site.Center.X - 210d, site.Center.Y + 146d),
+            new Point(site.Center.X - 146d, site.Center.Y + 106d),
             leftListen,
             ProbePalette.OrthogonalInput,
             IsFocused(focus, SiteAnatomyFocus.Ports) || IsFocused(focus, SiteAnatomyFocus.OrthogonalIn));
         DrawCallout(
             context,
             $"listen q {Format(state.ListenPorts[1].Value)}",
-            new Point(site.Center.X + 210d, site.Center.Y + 146d),
+            new Point(site.Center.X + 154d, site.Center.Y + 126d),
             rightListen,
             ProbePalette.OrthogonalInput,
             IsFocused(focus, SiteAnatomyFocus.Ports) || IsFocused(focus, SiteAnatomyFocus.OrthogonalIn));
         DrawCallout(
             context,
             $"residual in {Format(state.Residual)}",
-            new Point(site.Center.X, site.Center.Y + 174d),
+            new Point(site.Center.X - 142d, site.Center.Y + 142d),
             residualIn,
             ProbePalette.OrthogonalInput,
             IsFocused(focus, SiteAnatomyFocus.OrthogonalIn));
@@ -430,8 +422,8 @@ public static class SiteAnatomyRenderer
     {
         var direction = tip - start;
         var unit = Normalize(direction);
-        var arrowTip = tip;
-        var lineEnd = tip - (unit * 4.2d);
+        var arrowTip = tip - (unit * 0.8d);
+        var lineEnd = tip - (unit * 1.8d);
         var pen = new Pen(brush, width, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
         if (highlighted)
         {
@@ -459,6 +451,7 @@ public static class SiteAnatomyRenderer
         byte alpha)
     {
         var shaded = BrushWithAlpha(BrushColor(brush), alpha);
+        var arrowTip = tip - (Normalize(direction) * 0.8d);
         var pen = new Pen(shaded, width, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
         if (highlighted)
         {
@@ -466,7 +459,7 @@ public static class SiteAnatomyRenderer
         }
 
         context.DrawGeometry(null, pen, geometry);
-        DrawArrowHead(context, tip, direction, shaded, width, highlighted);
+        DrawArrowHead(context, arrowTip, direction, shaded, width, highlighted);
     }
 
     private static void DrawArrowHead(DrawingContext context, Point tip, Vector direction, IBrush brush, double width, bool highlighted)

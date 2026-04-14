@@ -16,7 +16,7 @@ public sealed class SiteAnatomySceneControl : Control
 
     public SiteAnatomySceneControl()
     {
-        MinWidth = 760;
+        MinWidth = 560;
         MinHeight = 380;
         ClipToBounds = true;
         VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top;
