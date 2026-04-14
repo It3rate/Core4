@@ -232,6 +232,7 @@ At the site-local aligned level, a claim may carry:
 
 - a **stiffness**
 - a **routing gain**
+- a **dominant bias**
 
 Both are currently expressed as Core4 ratios.
 
@@ -264,6 +265,25 @@ So stiffness and routing gain are related but different:
 - routing gain answers: of the movable share, how much is routed into this
   claim
 
+### Dominant Bias
+
+Dominant bias says how the routed share is currently partitioned between:
+
+- aligned recessive support
+- aligned dominant claim
+
+Useful base cases are:
+
+- `1/1` = route the whole routed share into the dominant aligned claim
+- `0/1` = route the whole routed share into the recessive aligned support
+- intermediate values = split the routed share across both aligned sides
+
+So the current local aligned structure now has three distinct numeric controls:
+
+- stiffness
+- routing gain
+- dominant bias
+
 ### Why These Remain Ratios
 
 These values should generally not be reduced away automatically.
@@ -291,13 +311,17 @@ The current single-site settlement pass can now be read as:
    - `1 - stiffness`
 4. route the softened share by:
    - `routing gain`
-5. add the routed share into the aligned claim
-6. keep the un-routed remainder as orthogonal residual
+5. partition the routed share by:
+   - dominant bias
+6. add the recessive portion into aligned support
+7. add the dominant portion into aligned claim
+8. keep the un-routed remainder as orthogonal residual
 
 So the current engine pass is already beginning to separate:
 
 - resistance to change
-- degree of uptake
+- degree of uptake into aligned structure
+- partition of aligned uptake between support and claim
 - residual tension that remains available for later rounds
 
 This is still a local first pass. It is not yet the full final law for
@@ -325,7 +349,9 @@ A promising rule is:
 - an operation is a primitive **claim**
 - mismatch against that claim appears as tension
 - stiffness says how hard the claim holds
-- routing gain says where the movable mismatch settles
+- routing gain says how much movable mismatch settles into aligned structure
+- dominant bias says whether that aligned settlement strengthens support,
+  strengthens claim, or both
 
 Under that reading:
 
@@ -343,14 +369,16 @@ This is not yet the full operation engine.
 Open questions remain:
 
 - should claims themselves be first-class supports
-- should routing split into inbound and outbound versions
-- how should one residual be distributed among several destinations
+- should routing split further into inbound and outbound versions
+- how should one residual be distributed among several destinations beyond the
+  current local support/claim split
 - how should higher-grade fused structure expose its own claims and invariants
 
 So the current guidance is:
 
 - treat operations as emerging from small claim-and-relax structures
-- keep stiffness and routing gain as reusable numeric mechanisms
+- keep stiffness, routing gain, and dominant bias as reusable numeric
+  mechanisms
 - do not freeze the full operator vocabulary too early
 
 ## 8. Current Engine Direction

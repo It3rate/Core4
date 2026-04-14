@@ -18,6 +18,7 @@ public sealed class SiteAndSettlementTests
         Assert.Equal(new Ratio(0, 0), site.State);
         Assert.Equal(new Ratio(0, 1), site.Stiffness);
         Assert.Equal(new Ratio(1, 1), site.RoutingGain);
+        Assert.Equal(new Ratio(1, 1), site.DominantBias);
         Assert.Equal(Measure.Zero, site.Potential);
     }
 
@@ -135,6 +136,7 @@ public sealed class SiteAndSettlementTests
         Assert.Equal(new Ratio(6, 0), settlement.Remainder);
         Assert.Equal(new Ratio(1, 2), settlement.Next.Stiffness);
         Assert.Equal(new Ratio(1, 2), settlement.Next.RoutingGain);
+        Assert.Equal(new Ratio(1, 1), settlement.Next.DominantBias);
     }
 
     [Fact]
@@ -144,5 +146,39 @@ public sealed class SiteAndSettlementTests
         var site = Site.Open(x, new Measure(0)).Route(new Ratio(900, 1000));
 
         Assert.Equal(new Ratio(900, 1000), site.RoutingGain);
+    }
+
+    [Fact]
+    public void DominantBiasPartitionsRoutedShareBetweenSupportAndClaim()
+    {
+        Carrier x = 1;
+        Carrier input = 2;
+
+        var site = Site.Open(x, new Measure(0))
+            .Anchor(new Ratio(0, 1))
+            .Harden(new Ratio(1, 2))
+            .Route(new Ratio(1, 1))
+            .BiasToDominant(new Ratio(1, 4))
+            .Request(input, Ratio.Tension(new Measure(8)));
+
+        var settlement = site.Settle();
+
+        Assert.Equal(new Ratio(8, 0), settlement.Incoming);
+        Assert.Equal(new Ratio(8, 0), settlement.Provisional);
+        Assert.Equal(new Ratio(4, 0), settlement.Published);
+        Assert.Equal(new Ratio(4, 0), settlement.Settled);
+        Assert.Equal(new Ratio(4, 0), settlement.Remainder);
+        Assert.Equal(new Ratio(3, 0), settlement.Next.Kernel.Recessive);
+        Assert.Equal(new Ratio(1, 0), settlement.Next.State);
+        Assert.Equal(new Ratio(1, 4), settlement.Next.DominantBias);
+    }
+
+    [Fact]
+    public void DominantBiasPreservesNonReducedConfidenceScale()
+    {
+        Carrier x = 1;
+        var site = Site.Open(x, new Measure(0)).BiasToDominant(new Ratio(900, 1000));
+
+        Assert.Equal(new Ratio(900, 1000), site.DominantBias);
     }
 }

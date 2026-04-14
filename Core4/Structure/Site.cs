@@ -26,6 +26,8 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
 
     public Ratio RoutingGain => Kernel.RoutingGain;
 
+    public Ratio DominantBias => Kernel.DominantBias;
+
     public Measure Potential => Kernel.Potential + Orthogonal.Potential;
 
     public bool IsOpen => Kernel.IsOpen && Orthogonal.OccupiedCount == Measure.Zero;
@@ -48,6 +50,8 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
 
     public Site Route(Ratio gain) => new(Placement, Kernel.Route(gain), Orthogonal);
 
+    public Site BiasToDominant(Ratio bias) => new(Placement, Kernel.BiasToDominant(bias), Orthogonal);
+
     public Site Pin() => Harden(new Ratio(Measure.One, Measure.One));
 
     public Site Pin(Ratio stiffness) => Harden(stiffness);
@@ -68,6 +72,7 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
         var claim = Kernel.Dominant.Normalize();
         var stiffness = Kernel.Stiffness.Normalize();
         var routingGain = Kernel.RoutingGain.Normalize();
+        var dominantBias = Kernel.DominantBias.Normalize();
         var incoming = Orthogonal.Incoming();
 
         if (Orthogonal.Residual.Potential != Measure.Zero || Orthogonal.Residual.Dominant != Measure.Zero)
@@ -81,12 +86,16 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
         var available = incoming.Subtract(feedback).Normalize();
         var uptake = new Ratio(Measure.One, Measure.One).Subtract(stiffness).Normalize();
         var softened = available.ScaleBy(uptake).Normalize();
-        var absorbed = softened.ScaleBy(routingGain).Normalize();
+        var routed = softened.ScaleBy(routingGain).Normalize();
+        var toDominant = routed.ScaleBy(dominantBias).Normalize();
+        var toRecessive = routed.Subtract(toDominant).Normalize();
+        var nextAnchor = anchor.Add(toRecessive).Normalize();
+        var nextClaim = claim.Add(toDominant).Normalize();
         var provisional = anchor.Add(claim).Add(available).Normalize();
-        var published = anchor.Add(claim).Add(absorbed).Normalize();
+        var published = nextAnchor.Add(nextClaim).Normalize();
         var settled = published;
-        var remainder = available.Subtract(absorbed).Normalize();
-        var next = Resolve(settled).WithResidual(remainder);
+        var remainder = available.Subtract(routed).Normalize();
+        var next = Anchor(nextAnchor).Resolve(nextClaim).WithResidual(remainder);
 
         return new SiteSettlement(this, anchor, incoming, provisional, published, feedback, settled, remainder, next);
     }
