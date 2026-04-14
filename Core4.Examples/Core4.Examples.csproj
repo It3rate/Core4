@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Core4\Core4.csproj" />
+    <ProjectReference Include="..\Core4.Runtime\Core4.Runtime.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
