@@ -33,7 +33,7 @@ public sealed class SiteAnatomyPageView : UserControl
         _focusBlurbBody = ProbeUi.Body(string.Empty, 10d);
 
         var leftColumn = new StackPanel
-        {
+        {   
             Width = 222,
             Spacing = 6,
             Children =
@@ -91,34 +91,38 @@ public sealed class SiteAnatomyPageView : UserControl
             10d,
             ProbePalette.Ink);
 
-        var sceneCardBody = new Grid
+        var sceneCardBody = new StackPanel
         {
-            RowDefinitions = new RowDefinitions("Auto,Auto"),
-            ColumnDefinitions = new ColumnDefinitions("92,*"),
-            ColumnSpacing = 8,
-            RowSpacing = 4,
+            Spacing = 4,
             Children =
             {
                 SceneHeader(_state),
-                new StackPanel
+                new Grid
                 {
-                    Spacing = 5,
-                    Margin = new Thickness(6, 8, 0, 0),
+                    ClipToBounds = false,
                     Children =
-                    {
-                        _focusBlurbTitle,
-                        _focusBlurbBody
+                    { 
+                        _scene,
+                        new StackPanel
+                        {
+                            Width = 216,
+                            Spacing = 5,
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            VerticalAlignment = VerticalAlignment.Top,
+                            Margin = new Thickness(10, 14, 0, 0),
+                            Children =
+                            {
+                                _focusBlurbTitle,
+                                _focusBlurbBody
+                            }
+                        }
                     }
-                },
-                _scene
+                }
             }
         };
-        Grid.SetColumnSpan(sceneCardBody.Children[0], 2);
-        Grid.SetRow(sceneCardBody.Children[1], 1);
-        Grid.SetColumn(_scene, 1);
-        Grid.SetRow(_scene, 1);
 
-        var sceneCard = ProbeUi.Card(sceneCardBody, 22, new Thickness(10, 6, 10, 10));
+
+        var sceneCard = ProbeUi.Card(sceneCardBody, 22, new Thickness(10, 8, 10, 10));
         sceneCard.HorizontalAlignment = HorizontalAlignment.Stretch;
 
         var infoCards = new Grid

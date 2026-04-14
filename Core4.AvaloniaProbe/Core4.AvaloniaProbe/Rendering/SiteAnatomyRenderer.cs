@@ -183,8 +183,8 @@ public static class SiteAnatomyRenderer
 
         var leftGeometry = CurvedOut(site.Top + new Vector(-3d, -6d), leftTip, -46d);
         var rightGeometry = CurvedOut(site.Top + new Vector(3d, -6d), rightTip, 46d);
-        DrawArrowGeometry(context, leftGeometry, leftTip, new Vector(-1d, -0.35d), brush, 3d, outgoingFocused, 150);
-        DrawArrowGeometry(context, rightGeometry, rightTip, new Vector(1d, -0.35d), brush, 3d, outgoingFocused, 150);
+        DrawArrowGeometry(context, leftGeometry, leftTip, new Vector(-18.4d, -26d), brush, 3d, outgoingFocused, 150);
+        DrawArrowGeometry(context, rightGeometry, rightTip, new Vector(18.4d, -26d), brush, 3d, outgoingFocused, 150);
     }
 
     private static void DrawSite(DrawingContext context, SitePorts site, SiteAnatomyDemoState state, SiteAnatomyFocus focus)
@@ -259,7 +259,7 @@ public static class SiteAnatomyRenderer
             stream.EndFigure(false);
         }
 
-        DrawArrowGeometry(context, geometry, site.Right + new Vector(2d, 0d), new Vector(-1d, 0d), PresentedBrush(ProbePalette.TensionPositive, focus, SiteAnatomyFocus.SelfRoute), 4.4d, selfFocused, 200);
+        DrawArrowGeometry(context, geometry, site.Right + new Vector(2d, 0d), new Vector(-50d, 28d), PresentedBrush(ProbePalette.TensionPositive, focus, SiteAnatomyFocus.SelfRoute), 4.4d, selfFocused, 200);
     }
 
     private static void DrawCallouts(DrawingContext context, SitePorts site, SiteAnatomyDemoState state, SiteAnatomyFocus focus)
@@ -422,8 +422,8 @@ public static class SiteAnatomyRenderer
     {
         var direction = tip - start;
         var unit = Normalize(direction);
-        var arrowTip = tip - (unit * 0.8d);
-        var lineEnd = tip - (unit * 1.8d);
+        var arrowTip = tip;
+        var lineEnd = tip - (unit * 0.25d);
         var pen = new Pen(brush, width, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
         if (highlighted)
         {
@@ -451,7 +451,7 @@ public static class SiteAnatomyRenderer
         byte alpha)
     {
         var shaded = BrushWithAlpha(BrushColor(brush), alpha);
-        var arrowTip = tip - (Normalize(direction) * 0.8d);
+        var arrowTip = tip;
         var pen = new Pen(shaded, width, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
         if (highlighted)
         {
@@ -464,24 +464,13 @@ public static class SiteAnatomyRenderer
 
     private static void DrawArrowHead(DrawingContext context, Point tip, Vector direction, IBrush brush, double width, bool highlighted)
     {
-        if (highlighted)
-        {
-            ScenePrimitives.DrawDirectedTriangle(
-                context,
-                tip,
-                9.2d,
-                BrushWithAlpha(BrushColor(ProbePalette.Surface), 240),
-                direction,
-                new Pen(BrushWithAlpha(BrushColor(ProbePalette.Surface), 240), width + 3d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
-        }
-
         ScenePrimitives.DrawDirectedTriangle(
             context,
             tip,
-            8.4d,
+            highlighted ? 8.8d : 8.4d,
             brush,
             direction,
-            new Pen(brush, Math.Max(1d, width * 0.28d), lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
+            null);
     }
 
     private static StreamGeometry CurvedOut(Point start, Point tip, double horizontalDrift)
