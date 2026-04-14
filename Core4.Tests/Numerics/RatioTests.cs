@@ -85,4 +85,13 @@ public sealed class RatioTests
         Assert.Equal(weaker, weaker.Weaker(stronger));
         Assert.Equal(stronger, weaker.Stronger(stronger));
     }
+
+    [Fact]
+    public void ScaleByCanPartitionUnresolvedTensionWithResolvedShare()
+    {
+        var tension = Ratio.Tension(new Measure(11));
+        var uptake = new Ratio(1, 4);
+
+        Assert.Equal(new Ratio(2, 0), tension.ScaleBy(uptake));
+    }
 }

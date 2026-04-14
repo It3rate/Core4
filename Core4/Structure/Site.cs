@@ -61,6 +61,8 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
     public SiteSettlement Settle()
     {
         var anchor = Kernel.Recessive.Normalize();
+        var claim = Kernel.Dominant.Normalize();
+        var stiffness = Kernel.Stiffness.Normalize();
         var incoming = Orthogonal.Incoming();
 
         if (Orthogonal.Residual.Potential != Measure.Zero || Orthogonal.Residual.Dominant != Measure.Zero)
@@ -70,11 +72,14 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
                 : incoming.Add(Orthogonal.Residual).Normalize();
         }
 
-        var provisional = anchor.Add(incoming).Normalize();
-        var published = provisional.Add(Kernel.Dominant).Normalize();
         var feedback = Orthogonal.Outgoing().Add(Orthogonal.Oscillating()).Normalize();
-        var settled = published.Subtract(feedback).Normalize();
-        var remainder = incoming.Subtract(feedback).Normalize();
+        var available = incoming.Subtract(feedback).Normalize();
+        var uptake = new Ratio(Measure.One, Measure.One).Subtract(stiffness).Normalize();
+        var absorbed = available.ScaleBy(uptake).Normalize();
+        var provisional = anchor.Add(claim).Add(available).Normalize();
+        var published = anchor.Add(claim).Add(absorbed).Normalize();
+        var settled = published;
+        var remainder = available.Subtract(absorbed).Normalize();
         var next = Resolve(settled).WithResidual(remainder);
 
         return new SiteSettlement(this, anchor, incoming, provisional, published, feedback, settled, remainder, next);

@@ -27,7 +27,7 @@ public readonly record struct AlignedKernel(Ratio Recessive, Ratio Dominant, Rat
 
     public AlignedKernel Focus(Measure energy) => Assert(Ratio.Tension(energy));
 
-    public AlignedKernel Harden(Ratio stiffness) => new(Recessive, Dominant, stiffness.Canonicalize());
+    public AlignedKernel Harden(Ratio stiffness) => new(Recessive, Dominant, stiffness.Normalize());
 
     private static Measure Count(Ratio state) => state.Potential != Measure.Zero || state.Dominant != Measure.Zero
         ? Measure.One

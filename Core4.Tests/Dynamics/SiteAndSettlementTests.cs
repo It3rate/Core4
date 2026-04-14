@@ -73,21 +73,21 @@ public sealed class SiteAndSettlementTests
 
         Assert.Equal(new Ratio(0, 1), settlement.Anchor);
         Assert.Equal(new Ratio(13, 0), settlement.Incoming);
-        Assert.Equal(new Ratio(13, 0), settlement.Provisional);
-        Assert.Equal(new Ratio(13, 0), settlement.Published);
+        Assert.Equal(new Ratio(11, 0), settlement.Provisional);
+        Assert.Equal(new Ratio(2, 0), settlement.Published);
         Assert.Equal(new Ratio(2, 0), settlement.Feedback);
-        Assert.Equal(new Ratio(11, 0), settlement.Settled);
-        Assert.Equal(new Ratio(11, 0), settlement.Remainder);
-        Assert.Equal(new Ratio(13, 0), settlement.At(SettlementPhase.Provisional));
-        Assert.Equal(new Ratio(11, 0), settlement.At(SettlementPhase.Settled));
+        Assert.Equal(new Ratio(2, 0), settlement.Settled);
+        Assert.Equal(new Ratio(9, 0), settlement.Remainder);
+        Assert.Equal(new Ratio(11, 0), settlement.At(SettlementPhase.Provisional));
+        Assert.Equal(new Ratio(2, 0), settlement.At(SettlementPhase.Settled));
         Assert.Equal(new Ratio(0, 0), settlement.At(SettlementPhase.None));
         Assert.True(settlement.Phases.MoveTo(SettlementPhase.Settled));
         Assert.Equal(new Measure(6), settlement.Phases.CurrentIndex);
-        Assert.Equal(new Ratio(11, 0), settlement.Current);
+        Assert.Equal(new Ratio(2, 0), settlement.Current);
         Assert.Equal(new Measure(3), settlement.Phases.Relate(SettlementPhase.Provisional, SettlementPhase.Settled).Potential);
-        Assert.Equal(new Ratio(11, 0), settlement.Next.State);
+        Assert.Equal(new Ratio(2, 0), settlement.Next.State);
         Assert.Equal(new Ratio(3, 4), settlement.Next.Stiffness);
-        Assert.Equal(new Ratio(11, 0), settlement.Next.Orthogonal.Residual);
+        Assert.Equal(new Ratio(9, 0), settlement.Next.Orthogonal.Residual);
     }
 
     [Fact]
@@ -102,5 +102,14 @@ public sealed class SiteAndSettlementTests
         Assert.Equal(new Ratio(0, 1), site.Kernel.Recessive);
         Assert.Equal(new Ratio(5, 10), site.State);
         Assert.Equal(new Ratio(3, 4), site.Stiffness);
+    }
+
+    [Fact]
+    public void HardeningPreservesNonReducedConfidenceScale()
+    {
+        Carrier x = 1;
+        var site = Site.Open(x, new Measure(0)).Harden(new Ratio(900, 1000));
+
+        Assert.Equal(new Ratio(900, 1000), site.Stiffness);
     }
 }

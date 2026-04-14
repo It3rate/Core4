@@ -56,12 +56,29 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant)
     }
 
     public Ratio Weaker(Ratio other) => CompareMagnitude(other) <= 0
-        ? Canonicalize()
-        : other.Canonicalize();
+        ? Normalize()
+        : other.Normalize();
 
     public Ratio Stronger(Ratio other) => CompareMagnitude(other) >= 0
-        ? Canonicalize()
-        : other.Canonicalize();
+        ? Normalize()
+        : other.Normalize();
+
+    public Ratio ScaleBy(Ratio factor)
+    {
+        var normalizedFactor = factor.Normalize();
+
+        if (normalizedFactor.IsTension)
+        {
+            return Tension(Potential);
+        }
+
+        if (IsTension)
+        {
+            return Tension(ToMeasure((new BigInteger(Recessive.Raw) * normalizedFactor.Recessive.Raw) / normalizedFactor.Dominant.Raw));
+        }
+
+        return Multiply(normalizedFactor).Normalize();
+    }
 
     public Ratio Add(Ratio other)
     {
