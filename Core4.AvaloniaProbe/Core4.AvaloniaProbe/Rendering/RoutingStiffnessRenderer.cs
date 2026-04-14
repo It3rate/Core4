@@ -9,18 +9,20 @@ using Core4.Structure;
 namespace Core4.AvaloniaProbe.Rendering;
 
 /// <summary>
-/// Schematic renderer for the routing/stiffness transport page. It separates one same-round local self-return from
-/// one shared-carrier publish/deliver field so the runtime transport law is visible at a glance.
+/// Schematic renderer for the routing/stiffness transport page. Structure mode emphasizes the four-site ports and
+/// their roles; runtime mode keeps the same geometry but strips labels back so the current round reads more clearly.
 /// </summary>
 public static class RoutingStiffnessRenderer
 {
     private const double HorizontalPadding = 42d;
     private const double VerticalPadding = 24d;
-    private const double AxisHalfLength = 88d;
-    private const double PortHeight = 96d;
-    private const double BarHalfLength = 74d;
+    private const double SupportBaseLength = 40d;
+    private const double SupportVariableLength = 84d;
+    private const double SiteHalfSize = 18d;
+    private const double FeedDepth = 88d;
+    private const double FeedLaneOffset = 52d;
 
-    public static void Render(DrawingContext context, Rect bounds, RoutingStiffnessDemoState state)
+    public static void Render(DrawingContext context, Rect bounds, RoutingStiffnessDemoState state, bool showStructure)
     {
         var scene = SceneRect(bounds);
         var layout = Arrange(scene);
@@ -28,50 +30,51 @@ public static class RoutingStiffnessRenderer
         var maxMagnitude = Math.Max(
             1d,
             Math.Max(
-                Math.Max(state.SourceInput.Raw, MaxPotential(state.CurrentSourceSite)),
+                state.SourceInput.Raw,
                 Math.Max(
-                    Math.Max(MaxPotential(state.CurrentSinkSite), field?.Published.Potential.Raw ?? 0L),
-                    Math.Max(field?.Delivered.Potential.Raw ?? 0L, field?.Retained.Potential.Raw ?? 0L))));
+                    Math.Max(MaxPotential(state.CurrentSourceSite), MaxPotential(state.CurrentSinkSite)),
+                    Math.Max(
+                        Math.Max(field?.Published.Potential.Raw ?? 0L, field?.Delivered.Potential.Raw ?? 0L),
+                        Math.Max(field?.Retained.Potential.Raw ?? 0L, Math.Max(state.SourceAbsorbed.Potential.Raw, state.SinkAbsorbed.Potential.Raw))))));
 
         DrawBackdrop(context, scene);
-        DrawStageLabels(context, layout, state);
-        DrawSharedCarrier(context, layout, state, field);
-        DrawSiteMachine(
+        DrawStageLabels(context, layout, state, showStructure);
+        DrawSiteSkeleton(context, layout.Source, state.CurrentSourceSite.Kernel.Stiffness, "source x", showStructure);
+        DrawSiteSkeleton(context, layout.Sink, state.CurrentSinkSite.Kernel.Stiffness, "listener y", showStructure);
+        DrawSupportState(
             context,
-            layout.SourceSite,
-            layout.SourcePort,
-            "source x",
+            layout.Source,
             state.CurrentSourceSite,
-            state.CurrentSourceSettlement,
-            state.SourceAbsorbed,
             maxMagnitude,
-            ProbePalette.Dominant,
             ProbePalette.DominantSoft,
-            true);
-        DrawSiteMachine(
+            ProbePalette.Dominant,
+            showStructure);
+        DrawSupportState(
             context,
-            layout.SinkSite,
-            layout.SinkPort,
-            "listener y",
+            layout.Sink,
             state.CurrentSinkSite,
-            state.CurrentSinkSettlement,
-            state.SinkAbsorbed,
             maxMagnitude,
-            ProbePalette.Orthogonal,
-            ProbePalette.Overlay,
-            false);
+            ProbePalette.DominantSoft,
+            ProbePalette.Dominant,
+            showStructure);
+        DrawBottomInput(context, layout.Source, state.SourceInput.Absolute.Raw, maxMagnitude, "raw input", showStructure);
+        DrawSelfLoop(context, layout.Source, state.SourceAbsorbed, maxMagnitude, showStructure);
+        DrawCarrierTransport(context, layout.Source, layout.Sink, field, maxMagnitude, showStructure);
+        DrawListenerIngress(context, layout.Sink, state, field, maxMagnitude, showStructure);
+        DrawResidualBadge(context, layout.Source, state.CurrentSourceSite, showStructure);
+        DrawResidualBadge(context, layout.Sink, state.CurrentSinkSite, showStructure);
+        DrawSettledBadge(context, layout.Source, state.CurrentSourceSettlement, showStructure);
+        DrawSettledBadge(context, layout.Sink, state.CurrentSinkSettlement, showStructure);
     }
 
     private static RoutingSceneLayout Arrange(Rect scene)
     {
-        var sourceSite = new Point(scene.X + (scene.Width * 0.26d), scene.Y + (scene.Height * 0.68d));
-        var sinkSite = new Point(scene.X + (scene.Width * 0.74d), scene.Y + (scene.Height * 0.68d));
+        var sourceCenter = new Point(scene.X + (scene.Width * 0.28d), scene.Y + (scene.Height * 0.58d));
+        var sinkCenter = new Point(scene.X + (scene.Width * 0.74d), scene.Y + (scene.Height * 0.58d));
         return new RoutingSceneLayout(
             scene,
-            sourceSite,
-            sinkSite,
-            new Point(sourceSite.X, sourceSite.Y - PortHeight),
-            new Point(sinkSite.X, sinkSite.Y - PortHeight));
+            SitePorts.FromCenter(sourceCenter),
+            SitePorts.FromCenter(sinkCenter));
     }
 
     private static Rect SceneRect(Rect bounds) => new(
@@ -99,29 +102,30 @@ public static class RoutingStiffnessRenderer
             new Point(rect.Right - 8d, rect.Y + horizontalHalf));
     }
 
-    private static void DrawStageLabels(DrawingContext context, RoutingSceneLayout layout, RoutingStiffnessDemoState state)
+    private static void DrawStageLabels(DrawingContext context, RoutingSceneLayout layout, RoutingStiffnessDemoState state, bool showStructure)
     {
+        var topY = layout.Scene.Y + 6d;
         ScenePrimitives.DrawCenteredLabel(
             context,
-            "same-round local self-return",
-            new Point(layout.SourceSite.X, layout.Scene.Y + 6d),
-            10d,
+            showStructure ? "structure: local ports and carrier shape" : "runtime: one local pass",
+            new Point(layout.Source.Center.X, topY),
+            9.6d,
             ProbePalette.Muted,
             FontWeight.SemiBold,
             ProbePalette.MonoFont);
         ScenePrimitives.DrawCenteredLabel(
             context,
-            "shared carrier p",
-            new Point((layout.SourcePort.X + layout.SinkPort.X) * 0.5d, layout.Scene.Y + 6d),
-            10d,
+            showStructure ? "shared orthogonal carrier" : "carrier publish / deliver",
+            new Point((layout.Source.Top.X + layout.Sink.Top.X) * 0.5d, topY),
+            9.6d,
             ProbePalette.Muted,
             FontWeight.SemiBold,
             ProbePalette.MonoFont);
         ScenePrimitives.DrawCenteredLabel(
             context,
-            "next-round listener settlement",
-            new Point(layout.SinkSite.X, layout.Scene.Y + 6d),
-            10d,
+            showStructure ? "structure: listener ports" : "runtime: next-round uptake",
+            new Point(layout.Sink.Center.X, topY),
+            9.6d,
             ProbePalette.Muted,
             FontWeight.SemiBold,
             ProbePalette.MonoFont);
@@ -136,239 +140,504 @@ public static class RoutingStiffnessRenderer
             ProbePalette.MonoFont);
     }
 
-    private static void DrawSharedCarrier(
+    private static void DrawSiteSkeleton(
         DrawingContext context,
-        RoutingSceneLayout layout,
-        RoutingStiffnessDemoState state,
-        CarrierFieldState? field)
-    {
-        context.DrawLine(ProbePalette.AxisPen, layout.SourcePort, layout.SinkPort);
-        context.DrawLine(ProbePalette.AxisPen, layout.SourceSite, layout.SourcePort);
-        context.DrawLine(ProbePalette.AxisPen, layout.SinkSite, layout.SinkPort);
-
-        ScenePrimitives.DrawCenteredLabel(
-            context,
-            "p",
-            new Point((layout.SourcePort.X + layout.SinkPort.X) * 0.5d, layout.SourcePort.Y - 16d),
-            11d,
-            ProbePalette.Ink,
-            FontWeight.Bold,
-            ProbePalette.MonoFont);
-
-        if (field is not { } currentField || currentField.Published.Potential == Measure.Zero)
-        {
-            ScenePrimitives.DrawCenteredBadgeLabel(
-                context,
-                "no field publish",
-                new Point((layout.SourcePort.X + layout.SinkPort.X) * 0.5d, layout.SourcePort.Y + 2d),
-                9.5d,
-                ProbePalette.Muted,
-                fontFamily: ProbePalette.MonoFont);
-            return;
-        }
-
-        var publishedPen = new Pen(ProbePalette.Orthogonal, 4.2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
-        var deliveredPen = new Pen(ProbePalette.OrthogonalInput, 2.4d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
-        context.DrawLine(publishedPen, layout.SourcePort, layout.SinkPort);
-        ScenePrimitives.DrawDirectedTriangle(
-            context,
-            layout.SinkPort,
-            8.8d,
-            ProbePalette.Orthogonal,
-            layout.SinkPort - layout.SourcePort,
-            new Pen(ProbePalette.Orthogonal, 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
-
-        if (currentField.Delivered.Potential != Measure.Zero)
-        {
-            var insetStart = new Point(layout.SourcePort.X + 18d, layout.SourcePort.Y);
-            var insetEnd = new Point(layout.SinkPort.X - 18d, layout.SinkPort.Y);
-            context.DrawLine(deliveredPen, insetStart, insetEnd);
-        }
-
-        ScenePrimitives.DrawCenteredBadgeLabel(
-            context,
-            $"pub {Format(currentField.Published)}  del {Format(currentField.Delivered)}",
-            new Point((layout.SourcePort.X + layout.SinkPort.X) * 0.5d, layout.SourcePort.Y - 2d),
-            9.2d,
-            ProbePalette.Ink,
-            FontWeight.SemiBold,
-            ProbePalette.MonoFont);
-
-        if (currentField.Retained.Potential != Measure.Zero)
-        {
-            ScenePrimitives.DrawCenteredBadgeLabel(
-                context,
-                $"ret {Format(currentField.Retained)}",
-                new Point((layout.SourcePort.X + layout.SinkPort.X) * 0.5d, layout.SourcePort.Y + 26d),
-                8.8d,
-                ProbePalette.Muted,
-                fontFamily: ProbePalette.MonoFont);
-        }
-    }
-
-    private static void DrawSiteMachine(
-        DrawingContext context,
-        Point sitePoint,
-        Point portPoint,
+        SitePorts site,
+        Ratio stiffness,
         string label,
-        Site site,
-        SiteSettlement? settlement,
-        Ratio absorbed,
-        double maxMagnitude,
-        IBrush dominantBrush,
-        IBrush recessiveBrush,
-        bool sourceSide)
+        bool showStructure)
     {
-        var axisStart = new Point(sitePoint.X - AxisHalfLength, sitePoint.Y);
-        var axisEnd = new Point(sitePoint.X + AxisHalfLength, sitePoint.Y);
-        context.DrawLine(ProbePalette.AxisPen, axisStart, axisEnd);
+        var supportGhostPen = new Pen(new SolidColorBrush(Color.Parse("#d4e2fb")), 2.4d, lineCap: PenLineCap.Round);
+        context.DrawLine(supportGhostPen, site.Left, site.Left - new Vector(SupportBaseLength + 10d, 0d));
+        context.DrawLine(supportGhostPen, site.Right, site.Right + new Vector(SupportBaseLength + 10d, 0d));
 
-        DrawAlignedBar(
-            context,
-            sitePoint,
-            -1d,
-            MagnitudeLength(site.Kernel.Recessive, maxMagnitude),
-            recessiveBrush,
-            sourceSide ? "support" : "anchor");
-        DrawAlignedBar(
-            context,
-            sitePoint,
-            1d,
-            MagnitudeLength(site.Kernel.Dominant, maxMagnitude),
-            dominantBrush,
-            sourceSide ? "claim" : "claim");
+        var orthGhostOut = new Pen(new SolidColorBrush(Color.FromArgb(136, 209, 13, 31)), 2.2d, lineCap: PenLineCap.Round);
+        var orthGhostIn = new Pen(new SolidColorBrush(Color.FromArgb(128, 255, 122, 0)), 2.2d, lineCap: PenLineCap.Round);
+        context.DrawLine(orthGhostOut, site.Top, site.Top - new Vector(0d, 30d));
+        context.DrawLine(orthGhostIn, site.Bottom + new Vector(0d, 30d), site.Bottom);
 
-        if (site.Orthogonal.Residual.Potential != Measure.Zero)
-        {
-            ScenePrimitives.DrawCircle(
-                context,
-                sitePoint,
-                16d,
-                Brushes.Transparent,
-                new Pen(ProbePalette.TensionPositive, 2.1d, dashStyle: new DashStyle([0.2d, 4d], 0d), lineCap: PenLineCap.Round));
-            ScenePrimitives.DrawBadgeLabel(
-                context,
-                $"res {Format(site.Orthogonal.Residual)}",
-                sitePoint + new Vector(-26d, 18d),
-                8.8d,
-                ProbePalette.Ink,
-                fontFamily: ProbePalette.MonoFont);
-        }
+        var outerPen = new Pen(ProbePalette.Dominant, 2.2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+        var innerPen = new Pen(ProbePalette.OrthogonalInput, 1.2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+        context.DrawRectangle(Brushes.White, outerPen, site.OuterRect, 4d, 4d);
+        context.DrawRectangle(Brushes.Transparent, innerPen, site.InnerRect, 3d, 3d);
 
-        ScenePrimitives.DrawCircle(context, sitePoint, 12d, Brushes.White, new Pen(ProbePalette.Ink, 2.2d, lineCap: PenLineCap.Round));
-        ScenePrimitives.DrawCircle(context, sitePoint, 4.2d, sourceSide ? ProbePalette.Origin : ProbePalette.OrthogonalInput);
+        ScenePrimitives.DrawSquare(context, site.Left, 3.8d, Brushes.White, new Pen(ProbePalette.DominantSoft, 1.6d, lineCap: PenLineCap.Round));
+        ScenePrimitives.DrawSquare(context, site.Right, 3.8d, Brushes.White, new Pen(ProbePalette.Dominant, 1.6d, lineCap: PenLineCap.Round));
+        ScenePrimitives.DrawSquare(context, site.Top, 3.8d, Brushes.White, new Pen(ProbePalette.Orthogonal, 1.6d, lineCap: PenLineCap.Round));
+        ScenePrimitives.DrawSquare(context, site.Bottom, 3.8d, Brushes.White, new Pen(ProbePalette.OrthogonalInput, 1.6d, lineCap: PenLineCap.Round));
+
+        DrawStiffnessLock(context, site, stiffness);
 
         ScenePrimitives.DrawCenteredLabel(
             context,
             label,
-            new Point(sitePoint.X, sitePoint.Y + 16d),
+            new Point(site.Center.X, site.Center.Y + 62d),
             10d,
             ProbePalette.Ink,
             FontWeight.SemiBold,
             ProbePalette.MonoFont);
 
-        if (settlement is { } currentSettlement && absorbed.Potential != Measure.Zero)
-        {
-            DrawReturnLoop(context, sitePoint, absorbed, sourceSide ? ProbePalette.TensionPositive : ProbePalette.OrthogonalInput);
-            ScenePrimitives.DrawCenteredBadgeLabel(
-                context,
-                $"local {Format(absorbed)}",
-                new Point(sitePoint.X, sitePoint.Y - 50d),
-                8.8d,
-                ProbePalette.Ink,
-                fontFamily: ProbePalette.MonoFont);
-
-            ScenePrimitives.DrawBadgeLabel(
-                context,
-                $"in {Format(currentSettlement.Incoming)}",
-                sitePoint + new Vector(-30d, -2d),
-                8.6d,
-                ProbePalette.Muted,
-                fontFamily: ProbePalette.MonoFont);
-        }
-
-        var portBrush = sourceSide ? ProbePalette.Orthogonal : ProbePalette.OrthogonalInput;
-        var portPen = new Pen(portBrush, 2.6d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
-        context.DrawLine(portPen, sitePoint + new Vector(0d, -12d), portPoint);
-        ScenePrimitives.DrawCircle(context, portPoint, 5d, Brushes.White, new Pen(portBrush, 1.8d, lineCap: PenLineCap.Round));
-    }
-
-    private static void DrawAlignedBar(
-        DrawingContext context,
-        Point center,
-        double direction,
-        double length,
-        IBrush brush,
-        string label)
-    {
-        if (length <= 0.01d)
+        if (!showStructure)
         {
             return;
         }
 
-        var end = center + new Vector(direction * length, 0d);
-        var pen = new Pen(brush, 4.2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
-        context.DrawLine(pen, center, end);
-
-        if (direction > 0d)
-        {
-            ScenePrimitives.DrawDirectedTriangle(
-                context,
-                end,
-                8.2d,
-                brush,
-                new Vector(1d, 0d),
-                new Pen(brush, 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
-        }
-        else
-        {
-            ScenePrimitives.DrawDirectedTriangle(
-                context,
-                end,
-                8.2d,
-                brush,
-                new Vector(-1d, 0d),
-                new Pen(brush, 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
-        }
-
         ScenePrimitives.DrawCenteredLabel(
             context,
-            label,
-            new Point((center.X + end.X) * 0.5d, center.Y + 10d),
+            "orth out",
+            new Point(site.Top.X, site.Top.Y - 46d),
             8.4d,
-            ProbePalette.Muted,
+            ProbePalette.Orthogonal,
+            fontFamily: ProbePalette.MonoFont);
+        ScenePrimitives.DrawCenteredLabel(
+            context,
+            "orth in",
+            new Point(site.Bottom.X, site.Bottom.Y + 30d),
+            8.4d,
+            ProbePalette.OrthogonalInput,
+            fontFamily: ProbePalette.MonoFont);
+        ScenePrimitives.DrawCenteredLabel(
+            context,
+            "recessive",
+            new Point(site.Left.X - 56d, site.Left.Y + 8d),
+            8.4d,
+            ProbePalette.DominantSoft,
+            fontFamily: ProbePalette.MonoFont);
+        ScenePrimitives.DrawCenteredLabel(
+            context,
+            "dominant",
+            new Point(site.Right.X + 56d, site.Right.Y + 8d),
+            8.4d,
+            ProbePalette.Dominant,
             fontFamily: ProbePalette.MonoFont);
     }
 
-    private static void DrawReturnLoop(DrawingContext context, Point sitePoint, Ratio absorbed, IBrush brush)
+    private static void DrawSupportState(
+        DrawingContext context,
+        SitePorts site,
+        Site current,
+        double maxMagnitude,
+        IBrush recessiveBrush,
+        IBrush dominantBrush,
+        bool showStructure)
     {
-        var start = sitePoint + new Vector(-22d, -8d);
-        var end = sitePoint + new Vector(0d, -8d);
-        var controlLeft = sitePoint + new Vector(-26d, -46d);
-        var controlRight = sitePoint + new Vector(24d, -46d);
+        DrawSupportRay(
+            context,
+            site.Left,
+            -1d,
+            current.Kernel.Recessive.Potential.Raw,
+            maxMagnitude,
+            recessiveBrush);
+        DrawSupportRay(
+            context,
+            site.Right,
+            1d,
+            current.Kernel.Dominant.Potential.Raw,
+            maxMagnitude,
+            dominantBrush);
+    }
+
+    private static void DrawStiffnessLock(
+        DrawingContext context,
+        SitePorts site,
+        Ratio stiffness)
+    {
+        var ratio = Math.Clamp(stiffness.Approximate, 0d, 1d);
+        if (ratio <= 0d)
+        {
+            return;
+        }
+
+        var alpha = (byte)Math.Round(255d * ratio, MidpointRounding.AwayFromZero);
+        var brush = new SolidColorBrush(Color.FromArgb(alpha, 176, 15, 179));
+        var stroke = new Pen(brush, 1.2d + (1.2d * ratio), lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
+        var shackleTop = new Point(site.Center.X, site.Center.Y - 3d);
+        var bodyRect = new Rect(site.Center.X - 5d, site.Center.Y + 1d, 10d, 8d);
+        var shackle = new StreamGeometry();
+        using (var stream = shackle.Open())
+        {
+            stream.BeginFigure(new Point(site.Center.X - 4d, site.Center.Y + 2d), false);
+            stream.CubicBezierTo(
+                new Point(site.Center.X - 4d, shackleTop.Y),
+                new Point(site.Center.X + 4d, shackleTop.Y),
+                new Point(site.Center.X + 4d, site.Center.Y + 2d));
+            stream.EndFigure(false);
+        }
+
+        context.DrawGeometry(null, stroke, shackle);
+        context.DrawRectangle(new SolidColorBrush(Color.FromArgb((byte)Math.Round(alpha * 0.22d), 176, 15, 179)), stroke, bodyRect, 2d, 2d);
+    }
+
+    private static void DrawSupportRay(
+        DrawingContext context,
+        Point port,
+        double direction,
+        long magnitude,
+        double maxMagnitude,
+        IBrush brush)
+    {
+        if (magnitude <= 0L)
+        {
+            return;
+        }
+
+        var length = SupportBaseLength + (SupportVariableLength * Math.Clamp(magnitude / Math.Max(1d, maxMagnitude), 0d, 1d));
+        var end = port + new Vector(direction * length, 0d);
+        var pen = DynamicPen(brush, magnitude, maxMagnitude, 2.2d, 7.2d);
+        context.DrawLine(pen, port, end);
+        ScenePrimitives.DrawDirectedTriangle(
+            context,
+            end,
+            8.4d,
+            DynamicBrush(brush, magnitude, maxMagnitude),
+            new Vector(direction, 0d),
+            new Pen(DynamicBrush(brush, magnitude, maxMagnitude), 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
+    }
+
+    private static void DrawBottomInput(
+        DrawingContext context,
+        SitePorts source,
+        long inputMagnitude,
+        double maxMagnitude,
+        string label,
+        bool showStructure)
+    {
+        if (inputMagnitude <= 0L)
+        {
+            return;
+        }
+
+        var start = source.Bottom + new Vector(-FeedLaneOffset, FeedDepth);
+        DrawFeedCurve(
+            context,
+            start,
+            source.Bottom,
+            inputMagnitude,
+            maxMagnitude,
+            ProbePalette.OrthogonalInput,
+            label,
+            showStructure);
+    }
+
+    private static void DrawListenerIngress(
+        DrawingContext context,
+        SitePorts sink,
+        RoutingStiffnessDemoState state,
+        CarrierFieldState? field,
+        double maxMagnitude,
+        bool showStructure)
+    {
+        var pending = field?.Delivered ?? Ratio.Zero(Measure.Zero);
+        var currentIncoming = state.CurrentSinkSettlement?.Incoming ?? Ratio.Zero(Measure.Zero);
+        var shown = currentIncoming.Potential != Measure.Zero ? currentIncoming : pending;
+
+        if (shown.Potential == Measure.Zero)
+        {
+            return;
+        }
+
+        var start = sink.Bottom + new Vector(FeedLaneOffset, FeedDepth);
+        DrawFeedCurve(
+            context,
+            start,
+            sink.Bottom,
+            shown.Potential.Raw,
+            maxMagnitude,
+            ProbePalette.OrthogonalInput,
+            currentIncoming.Potential != Measure.Zero ? "listener in" : "pending",
+            showStructure);
+    }
+
+    private static void DrawSelfLoop(
+        DrawingContext context,
+        SitePorts site,
+        Ratio absorbed,
+        double maxMagnitude,
+        bool showStructure)
+    {
+        if (absorbed.Potential == Measure.Zero)
+        {
+            return;
+        }
+
+        var start = site.Top;
+        var end = site.Right;
         var geometry = new StreamGeometry();
 
         using (var stream = geometry.Open())
         {
             stream.BeginFigure(start, false);
-            stream.CubicBezierTo(controlLeft, controlRight, end);
+            stream.CubicBezierTo(
+                start + new Vector(0d, -46d),
+                end + new Vector(42d, -28d),
+                end);
             stream.EndFigure(false);
         }
 
-        context.DrawGeometry(null, new Pen(brush, 2d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round), geometry);
+        var pen = DynamicPen(ProbePalette.TensionPositive, absorbed.Potential.Raw, maxMagnitude, 2.4d, 8d);
+        context.DrawGeometry(null, pen, geometry);
         ScenePrimitives.DrawDirectedTriangle(
             context,
-            end + new Vector(0d, 6d),
-            7.4d,
-            brush,
-            new Vector(0d, 1d),
-            new Pen(brush, 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
+            end,
+            8.2d,
+            DynamicBrush(ProbePalette.TensionPositive, absorbed.Potential.Raw, maxMagnitude),
+            new Vector(-1d, 0d),
+            new Pen(DynamicBrush(ProbePalette.TensionPositive, absorbed.Potential.Raw, maxMagnitude), 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
+
+        if (showStructure)
+        {
+            ScenePrimitives.DrawCenteredBadgeLabel(
+                context,
+                $"route {Format(absorbed)}",
+                new Point(site.Center.X + 44d, site.Top.Y - 54d),
+                8.2d,
+                ProbePalette.Ink,
+                fontFamily: ProbePalette.MonoFont);
+        }
     }
 
-    private static double MagnitudeLength(Ratio value, double maxMagnitude)
+    private static void DrawCarrierTransport(
+        DrawingContext context,
+        SitePorts source,
+        SitePorts sink,
+        CarrierFieldState? field,
+        double maxMagnitude,
+        bool showStructure)
     {
-        var magnitude = Math.Max(0d, value.Potential.Raw);
-        return BarHalfLength * (magnitude / maxMagnitude);
+        var published = field?.Published ?? Ratio.Zero(Measure.Zero);
+        var delivered = field?.Delivered ?? Ratio.Zero(Measure.Zero);
+
+        var handoff = new Point(sink.Bottom.X - 74d, sink.Bottom.Y + 26d);
+        ScenePrimitives.DrawCenteredLabel(
+            context,
+            "carrier p",
+            new Point((source.Top.X + sink.Bottom.X) * 0.5d, source.Top.Y - 54d),
+            8.8d,
+            ProbePalette.Muted,
+            FontWeight.SemiBold,
+            ProbePalette.MonoFont);
+
+        if (published.Potential == Measure.Zero)
+        {
+            if (showStructure)
+            {
+                DrawGhostTransport(context, source.Top, handoff, sink.Bottom);
+            }
+
+            return;
+        }
+
+        var firstHalf = new StreamGeometry();
+        using (var stream = firstHalf.Open())
+        {
+            stream.BeginFigure(source.Top, false);
+            stream.CubicBezierTo(
+                source.Top + new Vector(0d, -62d),
+                new Point(sink.Center.X - 154d, sink.Bottom.Y + 42d),
+                handoff);
+            stream.EndFigure(false);
+        }
+
+        var secondHalf = new StreamGeometry();
+        using (var stream = secondHalf.Open())
+        {
+            stream.BeginFigure(handoff, false);
+            stream.CubicBezierTo(
+                new Point(sink.Bottom.X - 40d, sink.Bottom.Y + 40d),
+                new Point(sink.Bottom.X - 8d, sink.Bottom.Y + 22d),
+                sink.Bottom);
+            stream.EndFigure(false);
+        }
+
+        context.DrawGeometry(null, DynamicPen(ProbePalette.Orthogonal, published.Potential.Raw, maxMagnitude, 2.6d, 8.4d), firstHalf);
+        context.DrawGeometry(null, DynamicPen(ProbePalette.OrthogonalInput, delivered.Potential.Raw == 0 ? published.Potential.Raw : delivered.Potential.Raw, maxMagnitude, 2.6d, 8.4d), secondHalf);
+
+        ScenePrimitives.DrawDirectedTriangle(
+            context,
+            handoff,
+            8.2d,
+            DynamicBrush(ProbePalette.Orthogonal, published.Potential.Raw, maxMagnitude),
+            handoff - source.Top,
+            new Pen(DynamicBrush(ProbePalette.Orthogonal, published.Potential.Raw, maxMagnitude), 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
+        ScenePrimitives.DrawDirectedTriangle(
+            context,
+            sink.Bottom,
+            8.2d,
+            DynamicBrush(ProbePalette.OrthogonalInput, delivered.Potential.Raw == 0 ? published.Potential.Raw : delivered.Potential.Raw, maxMagnitude),
+            sink.Bottom - handoff,
+            new Pen(DynamicBrush(ProbePalette.OrthogonalInput, delivered.Potential.Raw == 0 ? published.Potential.Raw : delivered.Potential.Raw, maxMagnitude), 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
+
+        ScenePrimitives.DrawCenteredBadgeLabel(
+            context,
+            $"pub {Format(published)}",
+            new Point((source.Top.X + handoff.X) * 0.5d, source.Top.Y - 22d),
+            8.6d,
+            ProbePalette.Ink,
+            fontFamily: ProbePalette.MonoFont);
+
+        if (delivered.Potential != Measure.Zero)
+        {
+            ScenePrimitives.DrawCenteredBadgeLabel(
+                context,
+                $"del {Format(delivered)}",
+                new Point((handoff.X + sink.Bottom.X) * 0.5d, sink.Bottom.Y + 18d),
+                8.6d,
+                ProbePalette.Ink,
+                fontFamily: ProbePalette.MonoFont);
+        }
+    }
+
+    private static void DrawGhostTransport(DrawingContext context, Point start, Point handoff, Point end)
+    {
+        var ghostRedPen = new Pen(new SolidColorBrush(Color.FromArgb(112, 209, 13, 31)), 2d, lineCap: PenLineCap.Round);
+        var ghostOrangePen = new Pen(new SolidColorBrush(Color.FromArgb(96, 255, 122, 0)), 2d, lineCap: PenLineCap.Round);
+        var first = new StreamGeometry();
+        using (var stream = first.Open())
+        {
+            stream.BeginFigure(start, false);
+            stream.CubicBezierTo(
+                start + new Vector(0d, -62d),
+                new Point(end.X - 154d, end.Y + 42d),
+                handoff);
+            stream.EndFigure(false);
+        }
+
+        var second = new StreamGeometry();
+        using (var stream = second.Open())
+        {
+            stream.BeginFigure(handoff, false);
+            stream.CubicBezierTo(
+                new Point(end.X - 40d, end.Y + 40d),
+                new Point(end.X - 8d, end.Y + 22d),
+                end);
+            stream.EndFigure(false);
+        }
+
+        context.DrawGeometry(null, ghostRedPen, first);
+        context.DrawGeometry(null, ghostOrangePen, second);
+    }
+
+    private static void DrawFeedCurve(
+        DrawingContext context,
+        Point start,
+        Point end,
+        long magnitude,
+        double maxMagnitude,
+        IBrush brush,
+        string label,
+        bool showStructure)
+    {
+        var geometry = new StreamGeometry();
+
+        using (var stream = geometry.Open())
+        {
+            stream.BeginFigure(start, false);
+            stream.CubicBezierTo(
+                new Point(start.X, start.Y - 42d),
+                new Point(end.X - ((start.X < end.X) ? 18d : -18d), end.Y + 36d),
+                end);
+            stream.EndFigure(false);
+        }
+
+        var pen = InputPen(brush, magnitude, maxMagnitude);
+        context.DrawGeometry(null, pen, geometry);
+        ScenePrimitives.DrawDirectedTriangle(
+            context,
+            end,
+            8.2d,
+            InputBrush(brush, magnitude, maxMagnitude),
+            new Vector(0d, -1d),
+            new Pen(InputBrush(brush, magnitude, maxMagnitude), 1d, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round));
+
+        if (showStructure)
+        {
+            ScenePrimitives.DrawCenteredBadgeLabel(
+                context,
+                label,
+                new Point(start.X, start.Y + 8d),
+                8.2d,
+                ProbePalette.Ink,
+                fontFamily: ProbePalette.MonoFont);
+        }
+    }
+
+    private static void DrawResidualBadge(DrawingContext context, SitePorts site, Site current, bool showStructure)
+    {
+        if (current.Orthogonal.Residual.Potential == Measure.Zero)
+        {
+            return;
+        }
+
+        ScenePrimitives.DrawCenteredBadgeLabel(
+            context,
+            $"res {Format(current.Orthogonal.Residual)}",
+            new Point(site.Center.X, site.Center.Y - 72d),
+            8.2d,
+            showStructure ? ProbePalette.Ink : ProbePalette.Muted,
+            fontFamily: ProbePalette.MonoFont);
+    }
+
+    private static void DrawSettledBadge(DrawingContext context, SitePorts site, SiteSettlement? settlement, bool showStructure)
+    {
+        if (settlement is not { } current)
+        {
+            return;
+        }
+
+        ScenePrimitives.DrawCenteredBadgeLabel(
+            context,
+            $"settled {Format(current.Settled)}",
+            new Point(site.Center.X, site.Center.Y + 82d),
+            8.2d,
+            showStructure ? ProbePalette.Muted : ProbePalette.Ink,
+            fontFamily: ProbePalette.MonoFont);
+    }
+
+    private static Pen DynamicPen(IBrush baseBrush, double magnitude, double maxMagnitude, double minimumWidth, double maximumWidth, bool dashed = false)
+    {
+        var ratio = Math.Clamp(magnitude / Math.Max(1d, maxMagnitude), 0d, 1d);
+        return new Pen(
+            DynamicBrush(baseBrush, magnitude, maxMagnitude),
+            minimumWidth + ((maximumWidth - minimumWidth) * ratio),
+            dashStyle: dashed ? new DashStyle([0.4d, 5.2d], 0d) : null,
+            lineCap: PenLineCap.Round,
+            lineJoin: PenLineJoin.Round);
+    }
+
+    private static Pen InputPen(IBrush baseBrush, double magnitude, double maxMagnitude)
+    {
+        var ratio = Math.Clamp(magnitude / Math.Max(1d, maxMagnitude), 0d, 1d);
+        return new Pen(
+            InputBrush(baseBrush, magnitude, maxMagnitude),
+            2.2d + (4.2d * ratio),
+            lineCap: PenLineCap.Round,
+            lineJoin: PenLineJoin.Round);
+    }
+
+    private static IBrush DynamicBrush(IBrush baseBrush, double magnitude, double maxMagnitude)
+    {
+        if (baseBrush is not ISolidColorBrush solid)
+        {
+            return baseBrush;
+        }
+
+        var ratio = Math.Clamp(magnitude / Math.Max(1d, maxMagnitude), 0d, 1d);
+        var alpha = (byte)Math.Round(128d + (127d * ratio), MidpointRounding.AwayFromZero);
+        var color = solid.Color;
+        return new SolidColorBrush(Color.FromArgb(alpha, color.R, color.G, color.B));
+    }
+
+    private static IBrush InputBrush(IBrush baseBrush, double magnitude, double maxMagnitude)
+    {
+        if (baseBrush is not ISolidColorBrush solid)
+        {
+            return baseBrush;
+        }
+
+        var ratio = Math.Clamp(magnitude / Math.Max(1d, maxMagnitude), 0d, 1d);
+        var alpha = (byte)Math.Round(128d + (36d * ratio), MidpointRounding.AwayFromZero);
+        var color = solid.Color;
+        return new SolidColorBrush(Color.FromArgb(alpha, color.R, color.G, color.B));
     }
 
     private static long MaxPotential(Site site) =>
@@ -378,10 +647,29 @@ public static class RoutingStiffnessRenderer
 
     private static string Format(Ratio value) => value.Normalize().ToString();
 
-    private readonly record struct RoutingSceneLayout(
-        Rect Scene,
-        Point SourceSite,
-        Point SinkSite,
-        Point SourcePort,
-        Point SinkPort);
+    private readonly record struct RoutingSceneLayout(Rect Scene, SitePorts Source, SitePorts Sink);
+
+    private readonly record struct SitePorts(
+        Point Center,
+        Point Left,
+        Point Right,
+        Point Top,
+        Point Bottom,
+        Rect OuterRect,
+        Rect InnerRect)
+    {
+        public static SitePorts FromCenter(Point center)
+        {
+            var outer = new Rect(center.X - SiteHalfSize, center.Y - SiteHalfSize, SiteHalfSize * 2d, SiteHalfSize * 2d);
+            var inner = new Rect(center.X - (SiteHalfSize - 5d), center.Y - (SiteHalfSize - 5d), (SiteHalfSize - 5d) * 2d, (SiteHalfSize - 5d) * 2d);
+            return new SitePorts(
+                center,
+                new Point(center.X - SiteHalfSize, center.Y),
+                new Point(center.X + SiteHalfSize, center.Y),
+                new Point(center.X, center.Y - SiteHalfSize),
+                new Point(center.X, center.Y + SiteHalfSize),
+                outer,
+                inner);
+        }
+    }
 }

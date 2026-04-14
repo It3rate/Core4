@@ -40,7 +40,10 @@ public sealed class RoutingStiffnessPageView : UserControl
     private readonly TextBlock _carrierFieldText;
     private readonly TextBlock _sinkLocalText;
     private readonly TextBlock _timingText;
+    private readonly Button _structureModeButton;
+    private readonly Button _runtimeModeButton;
     private RoutingStiffnessDemoState _state = RoutingStiffnessDemoState.Default;
+    private bool _showStructure = true;
     private bool _syncing;
 
     public RoutingStiffnessPageView()
@@ -96,12 +99,24 @@ public sealed class RoutingStiffnessPageView : UserControl
         _sinkLocalText = ProbeUi.Mono(string.Empty, 10d, ProbePalette.Ink);
         _timingText = ProbeUi.Mono(string.Empty, 10d, ProbePalette.Ink);
 
+        _structureModeButton = ProbeUi.PillButton("Structure", true);
+        _structureModeButton.Click += (_, _) => SetMode(true);
+
+        _runtimeModeButton = ProbeUi.PillButton("Runtime");
+        _runtimeModeButton.Click += (_, _) => SetMode(false);
+
+        var previousRoundButton = ProbeUi.PillButton("Prev");
+        previousRoundButton.Click += (_, _) => ApplyState(_state.WithRound(new Measure(Math.Max(0L, _state.CurrentRound.Raw - 1L))));
+
+        var nextRoundButton = ProbeUi.PillButton("Next");
+        nextRoundButton.Click += (_, _) => ApplyState(_state.WithRound(new Measure(Math.Min(RoutingStiffnessDemoState.MaxRound, _state.CurrentRound.Raw + 1L))));
+
         var resetButton = ProbeUi.PillButton("Reset Demo");
         resetButton.Click += (_, _) => ApplyState(RoutingStiffnessDemoState.Default);
 
         var leftColumn = new StackPanel
         {
-            Width = 212,
+            Width = 240,
             Spacing = 6,
             Children =
             {
@@ -110,9 +125,37 @@ public sealed class RoutingStiffnessPageView : UserControl
                     Spacing = 6,
                     Children =
                     {
-                        ProbeUi.Mono("ROUND CONTROL", 10d, ProbePalette.Muted),
+                        ProbeUi.Mono("VIEW MODE", 9.5d, ProbePalette.Muted),
+                        new StackPanel
+                        {
+                            Orientation = Orientation.Horizontal,
+                            Spacing = 6,
+                            Children =
+                            {
+                                _structureModeButton,
+                                _runtimeModeButton
+                            }
+                        }
+                    }
+                }, 20, new Thickness(12, 10)),
+                ProbeUi.Card(new StackPanel
+                {
+                    Spacing = 6,
+                    Children =
+                    {
+                        ProbeUi.Mono("ROUND CONTROL", 9.5d, ProbePalette.Muted),
                         ProbeUi.Body("Round 0 is the seed. Round 1 shows same-round source settling plus carrier publish. Round 2 is where the listener first absorbs what the field delivered.", 9.5d),
                         SliderRow("Round", _roundSlider, _roundBox),
+                        new StackPanel
+                        {
+                            Orientation = Orientation.Horizontal,
+                            Spacing = 6,
+                            Children =
+                            {
+                                previousRoundButton,
+                                nextRoundButton
+                            }
+                        },
                         resetButton
                     }
                 }, 20, new Thickness(12, 10)),
@@ -121,12 +164,12 @@ public sealed class RoutingStiffnessPageView : UserControl
                     Spacing = 6,
                     Children =
                     {
-                        ProbeUi.Mono("SOURCE SITE", 10d, ProbePalette.Muted),
+                        ProbeUi.Mono("SOURCE SITE", 9.5d, ProbePalette.Muted),
                         ProbeUi.Body("The source starts with raw orthogonal residual and can self-return part of it before publishing the remainder onto the shared carrier.", 9.5d),
                         SliderRow("Input", _sourceInputSlider, _sourceInputBox),
                         SliderRow("Stiff", _sourceStiffnessSlider, _sourceStiffnessBox),
                         SliderRow("Route", _sourceRoutingSlider, _sourceRoutingBox),
-                        SliderRow("To claim", _sourceDominantSlider, _sourceDominantBox)
+                        SliderRow("Bias", _sourceDominantSlider, _sourceDominantBox)
                     }
                 }, 20, new Thickness(12, 10)),
                 ProbeUi.Card(new StackPanel
@@ -134,11 +177,11 @@ public sealed class RoutingStiffnessPageView : UserControl
                     Spacing = 6,
                     Children =
                     {
-                        ProbeUi.Mono("LISTENER SITE", 10d, ProbePalette.Muted),
+                        ProbeUi.Mono("LISTENER SITE", 9.5d, ProbePalette.Muted),
                         ProbeUi.Body("The listener knows only its own claim machine and a shared-carrier port. It does not receive direct carrier-state writes from the source.", 9.5d),
                         SliderRow("Stiff", _sinkStiffnessSlider, _sinkStiffnessBox),
                         SliderRow("Route", _sinkRoutingSlider, _sinkRoutingBox),
-                        SliderRow("To claim", _sinkDominantSlider, _sinkDominantBox)
+                        SliderRow("Bias", _sinkDominantSlider, _sinkDominantBox)
                     }
                 }, 20, new Thickness(12, 10))
             }
@@ -176,7 +219,7 @@ public sealed class RoutingStiffnessPageView : UserControl
 
         var mainGrid = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("212,*"),
+            ColumnDefinitions = new ColumnDefinitions("240,*"),
             ColumnSpacing = 8,
             Children =
             {
@@ -202,9 +245,9 @@ public sealed class RoutingStiffnessPageView : UserControl
             Spacing = 2,
             Children =
             {
-                ProbeUi.Mono("RUNTIME SCENE", 10d, ProbePalette.Muted),
+                ProbeUi.Mono("STRUCTURE / RUNTIME", 10d, ProbePalette.Muted),
                 ProbeUi.DisplayTitle("Routing / Stiffness", 18d),
-                ProbeUi.Body("One site self-returns tension locally, then the shared carrier transports only the orthogonal remainder for next-round absorption elsewhere.", 10d)
+                ProbeUi.Body("Structure mode labels the square site, its blue support carrier, and the orange/red orthogonal flow. Runtime mode keeps the same geometry but emphasizes what this round is actually doing.", 10d)
             }
         };
 
@@ -243,6 +286,15 @@ public sealed class RoutingStiffnessPageView : UserControl
         SyncUiFromState();
     }
 
+    private void SetMode(bool showStructure)
+    {
+        _showStructure = showStructure;
+        _scene.ShowStructure = showStructure;
+        ProbeUi.ApplyPillStyle(_structureModeButton, showStructure);
+        ProbeUi.ApplyPillStyle(_runtimeModeButton, !showStructure);
+        SyncUiFromState();
+    }
+
     private void SyncUiFromState()
     {
         _syncing = true;
@@ -266,9 +318,7 @@ public sealed class RoutingStiffnessPageView : UserControl
 
         var field = _state.CurrentField;
         _metaRoundText.Text = $"round {_state.CurrentRound.Raw}";
-        _metaFieldText.Text = field is { } currentField
-            ? $"field pub {currentField.Published.Normalize()}"
-            : "field pub 0/1";
+        _metaFieldText.Text = _showStructure ? "view structure" : "view runtime";
         _metaTransferText.Text = $"max transfer {_state.CurrentState.MaxTransfer.Normalize()}";
 
         _sourceLocalText.Text = DescribeLocal(
@@ -290,6 +340,7 @@ public sealed class RoutingStiffnessPageView : UserControl
             _state.SinkAbsorbed);
         _timingText.Text =
             $"round                    {_state.CurrentRound.Raw}\n" +
+            $"view                     {(_showStructure ? "structure" : "runtime")}\n" +
             "law                      local -> carrier -> next local\n" +
             $"source residual          {_state.CurrentSourceSite.Orthogonal.Residual.Normalize()}\n" +
             $"listener residual        {_state.CurrentSinkSite.Orthogonal.Residual.Normalize()}\n" +
@@ -354,11 +405,11 @@ public sealed class RoutingStiffnessPageView : UserControl
     {
         var grid = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("58,*,52"),
-            ColumnSpacing = 6,
+            ColumnDefinitions = new ColumnDefinitions("42,*,56"),
+            ColumnSpacing = 12,
             Children =
             {
-                ProbeUi.Mono(label, 10d, ProbePalette.Ink),
+                ProbeUi.Mono(label, 8.6d, ProbePalette.Ink),
                 slider,
                 ProbeUi.InputHost(inputBox)
             }

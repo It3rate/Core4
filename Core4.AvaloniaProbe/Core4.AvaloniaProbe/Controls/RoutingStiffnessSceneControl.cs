@@ -12,6 +12,7 @@ namespace Core4.AvaloniaProbe.Controls;
 public sealed class RoutingStiffnessSceneControl : Control
 {
     private RoutingStiffnessDemoState _state = RoutingStiffnessDemoState.Default;
+    private bool _showStructure = true;
 
     public RoutingStiffnessSceneControl()
     {
@@ -35,9 +36,24 @@ public sealed class RoutingStiffnessSceneControl : Control
         }
     }
 
+    public bool ShowStructure
+    {
+        get => _showStructure;
+        set
+        {
+            if (_showStructure == value)
+            {
+                return;
+            }
+
+            _showStructure = value;
+            InvalidateVisual();
+        }
+    }
+
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        RoutingStiffnessRenderer.Render(context, Bounds, _state);
+        RoutingStiffnessRenderer.Render(context, Bounds, _state, _showStructure);
     }
 }

@@ -12,9 +12,9 @@ namespace Core4.AvaloniaProbe.Controls;
 /// </summary>
 public sealed class MeasureSliderControl : Control
 {
-    private const double TrackInset = 10d;
+    private const double TrackInset = 14d;
     private const double TrackHeight = 3.8d;
-    private const double ThumbRadius = 5.5d;
+    private const double ThumbRadius = 4.8d;
 
     private long _minimum;
     private long _maximum = 1;
@@ -23,7 +23,7 @@ public sealed class MeasureSliderControl : Control
 
     public MeasureSliderControl()
     {
-        Height = 14;
+        Height = 16;
         MinWidth = 96;
         ClipToBounds = true;
     }
