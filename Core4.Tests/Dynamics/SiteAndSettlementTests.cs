@@ -17,6 +17,7 @@ public sealed class SiteAndSettlementTests
         Assert.False(site.IsTension);
         Assert.Equal(new Ratio(0, 0), site.State);
         Assert.Equal(new Ratio(0, 1), site.Stiffness);
+        Assert.Equal(new Ratio(1, 1), site.RoutingGain);
         Assert.Equal(Measure.Zero, site.Potential);
     }
 
@@ -111,5 +112,37 @@ public sealed class SiteAndSettlementTests
         var site = Site.Open(x, new Measure(0)).Harden(new Ratio(900, 1000));
 
         Assert.Equal(new Ratio(900, 1000), site.Stiffness);
+    }
+
+    [Fact]
+    public void RoutingGainPartitionsSoftenedShareBeforeAlignedAbsorption()
+    {
+        Carrier x = 1;
+        Carrier input = 2;
+
+        var site = Site.Open(x, new Measure(0))
+            .Anchor(new Ratio(0, 1))
+            .Harden(new Ratio(1, 2))
+            .Route(new Ratio(1, 2))
+            .Request(input, Ratio.Tension(new Measure(8)));
+
+        var settlement = site.Settle();
+
+        Assert.Equal(new Ratio(8, 0), settlement.Incoming);
+        Assert.Equal(new Ratio(8, 0), settlement.Provisional);
+        Assert.Equal(new Ratio(2, 0), settlement.Published);
+        Assert.Equal(new Ratio(2, 0), settlement.Settled);
+        Assert.Equal(new Ratio(6, 0), settlement.Remainder);
+        Assert.Equal(new Ratio(1, 2), settlement.Next.Stiffness);
+        Assert.Equal(new Ratio(1, 2), settlement.Next.RoutingGain);
+    }
+
+    [Fact]
+    public void RoutingPreservesNonReducedConfidenceScale()
+    {
+        Carrier x = 1;
+        var site = Site.Open(x, new Measure(0)).Route(new Ratio(900, 1000));
+
+        Assert.Equal(new Ratio(900, 1000), site.RoutingGain);
     }
 }

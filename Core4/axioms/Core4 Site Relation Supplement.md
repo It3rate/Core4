@@ -224,6 +224,135 @@ Over time:
 So structure is not a separate ontology layered on top of attachment. It is
 attachment potential that has stabilized enough to be frozen and reused.
 
+## 7A. Carrier-Local Stiffness And Routing Gain
+
+The current engine now makes hardening more explicit.
+
+At the site-local aligned level, a claim may carry:
+
+- a **stiffness**
+- a **routing gain**
+
+Both are currently expressed as Core4 ratios.
+
+### Stiffness
+
+Stiffness says how strongly the current aligned claim resists change.
+
+Useful base cases are:
+
+- `0/1` = fully open, fully pliable
+- `1/1` = fully pinned for the current engine pass
+- intermediate values = partially hardened
+
+This should be read as a local mechanical preference, not merely as a tag.
+
+### Routing Gain
+
+Routing gain says how much of the softened share is currently routed back into
+the aligned claim rather than left as unresolved orthogonal remainder.
+
+Useful base cases are:
+
+- `1/1` = route the whole softened share into the aligned claim
+- `0/1` = route none of the softened share into the aligned claim
+- intermediate values = partial routing
+
+So stiffness and routing gain are related but different:
+
+- stiffness answers: how much incoming pressure is allowed to move this claim
+- routing gain answers: of the movable share, how much is routed into this
+  claim
+
+### Why These Remain Ratios
+
+These values should generally not be reduced away automatically.
+
+For example:
+
+- `9/10`
+- `900/1000`
+
+may express the same coarse proportion, but they do not necessarily express the
+same confidence scale, negotiation hardness, or update granularity.
+
+So for stiffness-like and routing-like values, denominator may carry real
+structural meaning rather than being disposable arithmetic clutter.
+
+### Current Settlement Reading
+
+The current single-site settlement pass can now be read as:
+
+1. gather anchor, aligned claim, incoming orthogonal evidence, and local
+   orthogonal feedback
+2. form **available** tension as:
+   - incoming minus feedback
+3. soften that available tension by:
+   - `1 - stiffness`
+4. route the softened share by:
+   - `routing gain`
+5. add the routed share into the aligned claim
+6. keep the un-routed remainder as orthogonal residual
+
+So the current engine pass is already beginning to separate:
+
+- resistance to change
+- degree of uptake
+- residual tension that remains available for later rounds
+
+This is still a local first pass. It is not yet the full final law for
+multi-site communication.
+
+### Freeze And Pin
+
+For the current engine pass:
+
+- open aligned state starts with zero stiffness
+- explicit pinning or freezing hardens structure by assigning nonzero stiffness
+- freezing a relation currently hardens both ends to full stiffness by default
+
+This is already enough to make "freeze" more mechanical than before, even
+though later passes may refine exactly how frozen commitment participates in
+ongoing settlement.
+
+## 7B. Operations As Claim Networks (Direction Only)
+
+This next part is not yet finalized, but the current stiffness work points
+toward a useful operational reading.
+
+A promising rule is:
+
+- an operation is a primitive **claim**
+- mismatch against that claim appears as tension
+- stiffness says how hard the claim holds
+- routing gain says where the movable mismatch settles
+
+Under that reading:
+
+- **delta** can be read as failed equality:
+  - claim `p0 = p1`
+  - residual mismatch is the delta
+- **follow** can be read as the same equality claim, but with residual routed
+  into one participant so it moves toward the other
+- **max** can be read as a one-sided claim:
+  - claim `sample <= max`
+  - only violating mismatch updates the max claim
+
+This is not yet the full operation engine.
+
+Open questions remain:
+
+- should claims themselves be first-class supports
+- should routing split into inbound and outbound versions
+- how should one residual be distributed among several destinations
+- how should higher-grade fused structure expose its own claims and invariants
+
+So the current guidance is:
+
+- treat operations as emerging from small claim-and-relax structures
+- keep stiffness and routing gain as reusable numeric mechanisms
+- do not freeze the full operator vocabulary too early
+
 ## 8. Current Engine Direction
 
 The current coding direction should therefore be:

@@ -24,6 +24,8 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
 
     public Ratio Stiffness => Kernel.Stiffness;
 
+    public Ratio RoutingGain => Kernel.RoutingGain;
+
     public Measure Potential => Kernel.Potential + Orthogonal.Potential;
 
     public bool IsOpen => Kernel.IsOpen && Orthogonal.OccupiedCount == Measure.Zero;
@@ -44,6 +46,8 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
 
     public Site Harden(Ratio stiffness) => new(Placement, Kernel.Harden(stiffness), Orthogonal);
 
+    public Site Route(Ratio gain) => new(Placement, Kernel.Route(gain), Orthogonal);
+
     public Site Pin() => Harden(new Ratio(Measure.One, Measure.One));
 
     public Site Pin(Ratio stiffness) => Harden(stiffness);
@@ -63,6 +67,7 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
         var anchor = Kernel.Recessive.Normalize();
         var claim = Kernel.Dominant.Normalize();
         var stiffness = Kernel.Stiffness.Normalize();
+        var routingGain = Kernel.RoutingGain.Normalize();
         var incoming = Orthogonal.Incoming();
 
         if (Orthogonal.Residual.Potential != Measure.Zero || Orthogonal.Residual.Dominant != Measure.Zero)
@@ -75,7 +80,8 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
         var feedback = Orthogonal.Outgoing().Add(Orthogonal.Oscillating()).Normalize();
         var available = incoming.Subtract(feedback).Normalize();
         var uptake = new Ratio(Measure.One, Measure.One).Subtract(stiffness).Normalize();
-        var absorbed = available.ScaleBy(uptake).Normalize();
+        var softened = available.ScaleBy(uptake).Normalize();
+        var absorbed = softened.ScaleBy(routingGain).Normalize();
         var provisional = anchor.Add(claim).Add(available).Normalize();
         var published = anchor.Add(claim).Add(absorbed).Normalize();
         var settled = published;
