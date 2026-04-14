@@ -26,10 +26,18 @@ public sealed class CarrierCommunicationTests
         var afterOne = communication.Seed().Relax();
 
         Assert.Single(afterOne.Transfers);
+        Assert.Single(afterOne.Fields);
         Assert.Equal(light, afterOne.Transfers[0].Carrier);
         Assert.Equal(source.Placement, afterOne.Transfers[0].Source);
         Assert.Equal(receiver.Placement, afterOne.Transfers[0].Target);
         Assert.Equal(new Ratio(4, 0), afterOne.Transfers[0].Value);
+        Assert.Equal(light, afterOne.Fields[0].Carrier);
+        Assert.Equal(new Ratio(4, 0), afterOne.Fields[0].Published);
+        Assert.Equal(new Ratio(4, 0), afterOne.Fields[0].Delivered);
+        Assert.Equal(new Ratio(0, 0), afterOne.Fields[0].Retained);
+        Assert.Equal(new Measure(4), afterOne.Fields[0].EmitterWeight);
+        Assert.Equal(new Measure(4), afterOne.Fields[0].ListenerWeight);
+        Assert.Equal(Measure.One, afterOne.Fields[0].TransferCount);
         Assert.Equal(new Ratio(4, 0), afterOne.At(receiver).Orthogonal.Residual);
         Assert.Equal(new Ratio(4, 0), afterOne.At(source).State);
         Assert.Equal(new Ratio(0, 0), afterOne.At(source).Orthogonal.Residual);
@@ -57,6 +65,10 @@ public sealed class CarrierCommunicationTests
         var next = communication.Seed().Relax();
 
         Assert.Empty(next.Transfers);
+        Assert.Single(next.Fields);
+        Assert.Equal(new Ratio(4, 0), next.Fields[0].Published);
+        Assert.Equal(new Ratio(0, 0), next.Fields[0].Delivered);
+        Assert.Equal(new Ratio(4, 0), next.Fields[0].Retained);
         Assert.Equal(new Ratio(4, 0), next.At(site).State);
         Assert.Equal(new Ratio(4, 0), next.At(site).Orthogonal.Residual);
     }
@@ -74,6 +86,9 @@ public sealed class CarrierCommunicationTests
         var communication = CarrierCommunication.Create(ConnectedSiteTopology.Create([source]));
         var next = communication.Seed().Relax();
 
+        Assert.Single(next.Fields);
+        Assert.Equal(new Ratio(0, 0), next.Fields[0].Published);
+        Assert.Equal(new Measure(7), next.Fields[0].EmitterWeight);
         Assert.Equal(new Ratio(0, 0), next.At(source).State);
         Assert.Equal(new Ratio(0, 0), next.At(source).Orthogonal.Residual);
         Assert.Empty(next.Transfers);
