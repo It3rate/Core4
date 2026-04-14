@@ -5,11 +5,13 @@ namespace Core4.Structure;
 /// <summary>
 /// The fixed aligned pair for one carrier-local reading. Recessive retains anchor or memory, and dominant carries
 /// the current asserted state for that carrier.
-/// Example: <c>var kernel = AlignedKernel.Open.Anchor(new Ratio(0, 1)).Assert(new Ratio(5, 10));</c>
+/// Stiffness carries how hard the aligned claim currently holds, with <c>0/1</c> fully open and <c>1/1</c> fully
+/// pinned for the current engine pass.
+/// Example: <c>var kernel = AlignedKernel.Open.Anchor(new Ratio(0, 1)).Assert(new Ratio(5, 10)).Harden(new Ratio(1, 1));</c>
 /// </summary>
-public readonly record struct AlignedKernel(Ratio Recessive, Ratio Dominant)
+public readonly record struct AlignedKernel(Ratio Recessive, Ratio Dominant, Ratio Stiffness)
 {
-    public static AlignedKernel Open => new(Ratio.Zero(Measure.Zero), Ratio.Zero(Measure.Zero));
+    public static AlignedKernel Open => new(Ratio.Zero(Measure.Zero), Ratio.Zero(Measure.Zero), Ratio.Zero(Measure.One));
 
     public Measure Potential => Recessive.Potential + Dominant.Potential;
 
@@ -19,11 +21,13 @@ public readonly record struct AlignedKernel(Ratio Recessive, Ratio Dominant)
 
     public bool IsOpen => OccupiedCount == Measure.Zero;
 
-    public AlignedKernel Anchor(Ratio state) => new(state.Normalize(), Dominant);
+    public AlignedKernel Anchor(Ratio state) => new(state.Normalize(), Dominant, Stiffness);
 
-    public AlignedKernel Assert(Ratio state) => new(Recessive, state.Normalize());
+    public AlignedKernel Assert(Ratio state) => new(Recessive, state.Normalize(), Stiffness);
 
     public AlignedKernel Focus(Measure energy) => Assert(Ratio.Tension(energy));
+
+    public AlignedKernel Harden(Ratio stiffness) => new(Recessive, Dominant, stiffness.Canonicalize());
 
     private static Measure Count(Ratio state) => state.Potential != Measure.Zero || state.Dominant != Measure.Zero
         ? Measure.One

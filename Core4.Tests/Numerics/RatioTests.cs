@@ -73,4 +73,16 @@ public sealed class RatioTests
         Assert.True(sum.IsTension);
         Assert.True(difference.IsTension);
     }
+
+    [Fact]
+    public void CompareMagnitudeCanSelectWeakerAndStrongerResolvedRatios()
+    {
+        var weaker = new Ratio(1, 2);
+        var stronger = new Ratio(3, 4);
+
+        Assert.True(weaker.CompareMagnitude(stronger) < 0);
+        Assert.True(stronger.CompareMagnitude(weaker) > 0);
+        Assert.Equal(weaker, weaker.Weaker(stronger));
+        Assert.Equal(stronger, weaker.Stronger(stronger));
+    }
 }

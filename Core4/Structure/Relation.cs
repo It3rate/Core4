@@ -29,7 +29,11 @@ public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor
 
     public Measure Potential => Span.Potential;
 
+    public Ratio Stiffness => Origin.Stiffness.Weaker(Anchor.Stiffness);
+
     public Relation Flip() => new(Carrier, Anchor, Origin);
+
+    public Relation Harden(Ratio stiffness) => new(Carrier, Origin.Harden(stiffness), Anchor.Harden(stiffness));
 
     public Ratio Project(Site site)
     {

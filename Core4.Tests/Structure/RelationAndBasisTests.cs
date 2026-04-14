@@ -35,6 +35,9 @@ public sealed class RelationAndBasisTests
         Assert.Equal(new Measure(10), basis.Potential);
         Assert.Equal(new Ratio(10, 0), basis.Ratio);
         Assert.Equal(Measure.One, basis.Orientation);
+        Assert.Equal(new Ratio(1, 1), basis.Stiffness);
+        Assert.Equal(new Ratio(1, 1), basis.Relations[0].Origin.Stiffness);
+        Assert.Equal(new Ratio(1, 1), basis.Relations[0].Anchor.Stiffness);
     }
 
     [Fact]
@@ -120,5 +123,28 @@ public sealed class RelationAndBasisTests
         var fused = Basis.Fuse(left, right);
 
         Assert.Equal(new Measure(expectedCode), fused.KernelCode());
+    }
+
+    [Fact]
+    public void RelationStiffnessTracksTheWeakerPinnedSide()
+    {
+        Carrier x = 1;
+        var relation = new Relation(
+            Site.Open(x, new Measure(0)).Harden(new Ratio(3, 4)),
+            Site.Open(x, new Measure(10)).Harden(new Ratio(1, 2)));
+
+        Assert.Equal(new Ratio(1, 2), relation.Stiffness);
+    }
+
+    [Fact]
+    public void BasisFreezeCanCarryPartialStiffnessWithoutChangingItsSpan()
+    {
+        Carrier x = 1;
+        var basis = Basis.Freeze(x, new Measure(0), new Measure(10), new Ratio(3, 4));
+
+        Assert.Equal(new Measure(10), basis.Potential);
+        Assert.Equal(new Ratio(3, 4), basis.Stiffness);
+        Assert.Equal(new Ratio(3, 4), basis.Relations[0].Origin.Stiffness);
+        Assert.Equal(new Ratio(3, 4), basis.Relations[0].Anchor.Stiffness);
     }
 }

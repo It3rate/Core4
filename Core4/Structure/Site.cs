@@ -22,6 +22,8 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
 
     public Ratio State => Kernel.Dominant;
 
+    public Ratio Stiffness => Kernel.Stiffness;
+
     public Measure Potential => Kernel.Potential + Orthogonal.Potential;
 
     public bool IsOpen => Kernel.IsOpen && Orthogonal.OccupiedCount == Measure.Zero;
@@ -39,6 +41,12 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
     public Site Focus(Measure energy) => new(Placement, Kernel.Focus(energy), Orthogonal);
 
     public Site Resolve(Ratio state) => new(Placement, Kernel.Assert(state), Orthogonal);
+
+    public Site Harden(Ratio stiffness) => new(Placement, Kernel.Harden(stiffness), Orthogonal);
+
+    public Site Pin() => Harden(new Ratio(Measure.One, Measure.One));
+
+    public Site Pin(Ratio stiffness) => Harden(stiffness);
 
     public Site WithResidual(Ratio residual) => new(Placement, Kernel, Orthogonal.Resolve(residual));
 

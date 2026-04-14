@@ -67,22 +67,39 @@ public sealed class Basis : ISupport
 
     public Measure Orientation => IsAtomic ? AtomicRelation.Orientation : Measure.Zero;
 
+    public Ratio Stiffness => IsAtomic
+        ? AtomicRelation.Stiffness
+        : Recessive.Stiffness.Weaker(Dominant.Stiffness);
+
     public bool IsRecessive => IsAtomic && Orientation.Raw < 0;
 
     public bool IsDominant => IsAtomic && Orientation.Raw > 0;
 
     internal Relation AtomicRelation => _relations[0];
 
-    public static Basis Freeze(Relation relation) => new(relation);
+    public static Basis Freeze(Relation relation) => Freeze(relation, new Ratio(Measure.One, Measure.One));
 
-    public static Basis Freeze(Carrier carrier, Measure origin, Measure anchor) => new(new Relation(
-        carrier,
-        Site.Open(carrier, origin),
-        Site.Open(carrier, anchor)));
+    public static Basis Freeze(Relation relation, Ratio stiffness) => new(relation.Harden(stiffness));
 
-    public static Basis Freeze(Site origin, Site anchor) => new(new Relation(origin, anchor));
+    public static Basis Freeze(Carrier carrier, Measure origin, Measure anchor) =>
+        Freeze(carrier, origin, anchor, new Ratio(Measure.One, Measure.One));
 
-    public static Basis Freeze(Carrier carrier, Site origin, Site anchor) => new(new Relation(carrier, origin, anchor));
+    public static Basis Freeze(Carrier carrier, Measure origin, Measure anchor, Ratio stiffness) => Freeze(
+        new Relation(
+            carrier,
+            Site.Open(carrier, origin),
+            Site.Open(carrier, anchor)),
+        stiffness);
+
+    public static Basis Freeze(Site origin, Site anchor) => Freeze(origin, anchor, new Ratio(Measure.One, Measure.One));
+
+    public static Basis Freeze(Site origin, Site anchor, Ratio stiffness) => Freeze(new Relation(origin, anchor), stiffness);
+
+    public static Basis Freeze(Carrier carrier, Site origin, Site anchor) =>
+        Freeze(carrier, origin, anchor, new Ratio(Measure.One, Measure.One));
+
+    public static Basis Freeze(Carrier carrier, Site origin, Site anchor, Ratio stiffness) =>
+        Freeze(new Relation(carrier, origin, anchor), stiffness);
 
     public static Basis Fuse(Relation recessive, Relation dominant, params Relation[] remaining)
     {

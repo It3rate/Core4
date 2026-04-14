@@ -43,6 +43,26 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant)
 
     public double Approximate => IsResolved ? (double)Recessive.Raw / Dominant.Raw : 0d;
 
+    public int CompareMagnitude(Ratio other)
+    {
+        if (IsResolved && other.IsResolved)
+        {
+            var leftScaled = BigInteger.Abs(new BigInteger(Recessive.Raw) * other.Dominant.Raw);
+            var rightScaled = BigInteger.Abs(new BigInteger(other.Recessive.Raw) * Dominant.Raw);
+            return leftScaled.CompareTo(rightScaled);
+        }
+
+        return Potential.Raw.CompareTo(other.Potential.Raw);
+    }
+
+    public Ratio Weaker(Ratio other) => CompareMagnitude(other) <= 0
+        ? Canonicalize()
+        : other.Canonicalize();
+
+    public Ratio Stronger(Ratio other) => CompareMagnitude(other) >= 0
+        ? Canonicalize()
+        : other.Canonicalize();
+
     public Ratio Add(Ratio other)
     {
         if (IsTension || other.IsTension)

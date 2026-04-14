@@ -16,6 +16,7 @@ public sealed class SiteAndSettlementTests
         Assert.True(site.IsOpen);
         Assert.False(site.IsTension);
         Assert.Equal(new Ratio(0, 0), site.State);
+        Assert.Equal(new Ratio(0, 1), site.Stiffness);
         Assert.Equal(Measure.Zero, site.Potential);
     }
 
@@ -62,6 +63,7 @@ public sealed class SiteAndSettlementTests
 
         var site = Site.Open(x, new Measure(0))
             .Anchor(new Ratio(0, 1))
+            .Harden(new Ratio(3, 4))
             .WithResidual(Ratio.Tension(new Measure(3)))
             .Request(lightSensor, Ratio.Tension(new Measure(4)))
             .Request(switchState, Ratio.Tension(new Measure(6)))
@@ -84,6 +86,21 @@ public sealed class SiteAndSettlementTests
         Assert.Equal(new Ratio(11, 0), settlement.Current);
         Assert.Equal(new Measure(3), settlement.Phases.Relate(SettlementPhase.Provisional, SettlementPhase.Settled).Potential);
         Assert.Equal(new Ratio(11, 0), settlement.Next.State);
+        Assert.Equal(new Ratio(3, 4), settlement.Next.Stiffness);
         Assert.Equal(new Ratio(11, 0), settlement.Next.Orthogonal.Residual);
+    }
+
+    [Fact]
+    public void HardeningSitePinsAlignedClaimWithoutChangingState()
+    {
+        Carrier x = 1;
+        var site = Site.Open(x, new Measure(0))
+            .Anchor(new Ratio(0, 1))
+            .Resolve(new Ratio(5, 10))
+            .Harden(new Ratio(3, 4));
+
+        Assert.Equal(new Ratio(0, 1), site.Kernel.Recessive);
+        Assert.Equal(new Ratio(5, 10), site.State);
+        Assert.Equal(new Ratio(3, 4), site.Stiffness);
     }
 }
