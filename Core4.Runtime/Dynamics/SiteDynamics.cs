@@ -22,22 +22,22 @@ public static class SiteDynamics
         {
             incoming = incoming.Potential == Measure.Zero && incoming.Dominant == Measure.Zero
                 ? site.Orthogonal.Residual.Normalize()
-                : incoming.Add(site.Orthogonal.Residual).Normalize();
+                : AddOnSupport(incoming, site.Orthogonal.Residual);
         }
 
         var feedback = ComposeFeedback(site);
-        var available = incoming.Subtract(feedback).Normalize();
+        var available = SubtractOnSupport(incoming, feedback);
         var uptake = new Ratio(Measure.One, Measure.One).Subtract(stiffness).Normalize();
         var softened = available.ScaleBy(uptake).Normalize();
         var routed = softened.ScaleBy(routingGain).Normalize();
         var toDominant = routed.ScaleBy(dominantBias).Normalize();
-        var toRecessive = routed.Subtract(toDominant).Normalize();
-        var nextAnchor = anchor.Add(toRecessive).Normalize();
-        var nextClaim = claim.Add(toDominant).Normalize();
-        var provisional = anchor.Add(claim).Add(available).Normalize();
-        var published = nextAnchor.Add(nextClaim).Normalize();
+        var toRecessive = SubtractOnSupport(routed, toDominant);
+        var nextAnchor = AddOnSupport(anchor, toRecessive);
+        var nextClaim = AddOnSupport(claim, toDominant);
+        var provisional = AddOnSupport(AddOnSupport(anchor, claim), available);
+        var published = AddOnSupport(nextAnchor, nextClaim);
         var settled = published;
-        var remainder = available.Subtract(routed).Normalize();
+        var remainder = CollapseZeroResidual(SubtractOnSupport(available, routed));
         var next = site.Anchor(nextAnchor).Resolve(nextClaim).WithResidual(remainder);
 
         return new SiteSettlement(site, anchor, incoming, provisional, published, feedback, settled, remainder, next);
@@ -63,10 +63,48 @@ public static class SiteDynamics
                 ? group.Value.Normalize()
                 : Ratio.Tension(group.Value.Potential);
 
-            total = hasAny ? total.Add(projected).Normalize() : projected;
+            total = hasAny ? AddOnSupport(total, projected) : projected;
             hasAny = true;
         }
 
         return hasAny ? total.Normalize() : Ratio.Zero(Measure.Zero);
     }
+
+    private static Ratio AddOnSupport(Ratio left, Ratio right)
+    {
+        var leftForMath = NeutralizeAbsence(left, right);
+        var rightForMath = NeutralizeAbsence(right, left);
+
+        if (IsAbsent(leftForMath) && IsAbsent(rightForMath))
+        {
+            return Ratio.Zero(Measure.Zero);
+        }
+
+        return leftForMath.Add(rightForMath).Normalize();
+    }
+
+    private static Ratio SubtractOnSupport(Ratio left, Ratio right)
+    {
+        var leftForMath = NeutralizeAbsence(left, right);
+        var rightForMath = NeutralizeAbsence(right, left);
+
+        if (IsAbsent(leftForMath) && IsAbsent(rightForMath))
+        {
+            return Ratio.Zero(Measure.Zero);
+        }
+
+        return leftForMath.Subtract(rightForMath).Normalize();
+    }
+
+    private static Ratio NeutralizeAbsence(Ratio candidate, Ratio reference) =>
+        IsAbsent(candidate) && reference.IsResolved
+            ? Ratio.Zero(reference.Dominant)
+            : candidate.Normalize();
+
+    private static Ratio CollapseZeroResidual(Ratio ratio) =>
+        ratio.Potential == Measure.Zero
+            ? Ratio.Zero(Measure.Zero)
+            : ratio.Normalize();
+
+    private static bool IsAbsent(Ratio ratio) => ratio.Potential == Measure.Zero && ratio.Dominant == Measure.Zero;
 }

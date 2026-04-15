@@ -280,12 +280,13 @@ public sealed class SiteAndSettlementTests
         Assert.Equal(heat, groups[0].Carrier);
         Assert.Equal(new Ratio(0, 1), groups[0].Value);
         Assert.Equal(new Ratio(0, 0), settlement.Incoming);
-        Assert.Equal(new Ratio(0, 0), settlement.Published);
+        Assert.Equal(new Ratio(0, 1), settlement.Published);
         Assert.Equal(new Ratio(0, 0), settlement.Next.State);
+        Assert.Equal(new Ratio(0, 0), settlement.Remainder);
     }
 
     [Fact]
-    public void SameCarrierRelationInputsStayResolvedUntilZeroTensionFeedbackComposition()
+    public void SameCarrierRelationInputsRemainResolvedThroughSettlementWhenFeedbackIsAbsent()
     {
         Carrier x = 1;
         var left = Site.Open(x, new Measure(0));
@@ -304,8 +305,29 @@ public sealed class SiteAndSettlementTests
         Assert.Equal(x, groups[0].Carrier);
         Assert.Equal(new Ratio(3, 2), groups[0].Value);
         Assert.Equal(new Ratio(3, 2), settlement.Incoming);
-        Assert.Equal(new Ratio(3, 0), settlement.Published);
-        Assert.Equal(new Ratio(3, 0), settlement.Next.State);
+        Assert.Equal(new Ratio(3, 2), settlement.Published);
+        Assert.Equal(new Ratio(3, 2), settlement.Next.State);
         Assert.Equal(new Ratio(0, 0), settlement.Remainder);
+    }
+
+    [Fact]
+    public void AbsentFeedbackActsAsNeutralZeroOnResolvedSupport()
+    {
+        Carrier x = 1;
+        var left = Site.Open(x, new Measure(0));
+        var right = Site.Open(x, new Measure(8));
+        var support = new Relation(left, right);
+
+        var site = Site.Open(x, new Measure(4))
+            .Anchor(new Ratio(0, 1))
+            .Resolve(new Ratio(0, 1))
+            .Request(support, new Ratio(5, 2));
+
+        var settlement = SiteDynamics.Settle(site);
+
+        Assert.Equal(new Ratio(0, 0), settlement.Feedback);
+        Assert.Equal(new Ratio(5, 2), settlement.Incoming);
+        Assert.Equal(new Ratio(5, 2), settlement.Published);
+        Assert.Equal(new Ratio(5, 2), settlement.Next.State);
     }
 }
