@@ -4,6 +4,8 @@ namespace Core4.Structure;
 
 /// <summary>
 /// The unresolved orthogonal remainder around a site plus any articulated child flows that have attached to it.
+/// The current engine stores these flows in one reservoir, but the intended interpretation is that foreign
+/// publication and responsive tension are distinct directions sharing this frontier rather than one amorphous blob.
 /// Example: <c>var reservoir = OrthogonalReservoir.Open.Resolve(Ratio.Tension(10)).Add(flow);</c>
 /// </summary>
 public readonly record struct OrthogonalReservoir(Ratio Residual, ImmutableArray<Flow> Flows)

@@ -4,7 +4,9 @@ namespace Core4.Structure;
 
 /// <summary>
 /// A local place where connection can happen. A site has a placement, a fixed aligned kernel, and an orthogonal
-/// reservoir that can hold unresolved remainder plus articulated child flows.
+/// reservoir that can hold unresolved remainder plus articulated child flows. Aligned state is same-support local
+/// meaning; orthogonal state is foreign or not-yet-translated structure at this site, even if that structure is
+/// already well-formed elsewhere.
 /// Example: <c>var site = Site.Open(x, 0).WithResidual(Ratio.Tension(10));</c>
 /// </summary>
 public readonly record struct Site(Placement Placement, AlignedKernel Kernel, OrthogonalReservoir Orthogonal)

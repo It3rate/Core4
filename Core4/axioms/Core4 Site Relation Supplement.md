@@ -726,6 +726,54 @@ early. It is to preserve a promising distinction:
 That distinction may be one of the main bridges from local orthogonal tension
 into stable multi-site communication.
 
+## 12D. Dual-Lane Orthogonal Reading
+
+Another promising refinement is to read orthogonal exchange as a **dual-lane**
+relation rather than as one undifferentiated pipe.
+
+The local directional picture is:
+
+- information or publication tends to flow from orthogonal recessive toward
+  orthogonal dominant
+- tension, disagreement, or dissatisfaction tends to flow in the opposite
+  direction
+
+So a useful provisional reading is:
+
+- **orthogonal recessive side**
+  - receives foreign publication or foreign structured input
+  - that input should usually be treated as readable but not locally editable
+  - if the receiving site cannot use it cleanly, it should generate responsive
+    tension rather than rewrite the incoming publication
+- **orthogonal dominant side**
+  - exports the site's own outward publication or unresolved outward drive
+  - also receives counter-pressure, disagreement, or unresolved drive from
+    elsewhere
+
+This suggests a simple visual rule:
+
+- information tends to flow bottom-to-top
+- tension tends to flow top-to-bottom
+
+This is not yet a completed engine law.
+
+The current engine still stores orthogonal flows in one reservoir and does not
+yet expose separate first-class publication and tension lanes. So this section
+should be read as directional guidance rather than as a claim that the runtime
+already enforces the full split.
+
+The important commitments are:
+
+- foreign publication may preserve full structure even when the receiving site
+  does not understand its carrier language
+- the receiving site should generally not mutate that foreign publication in
+  place
+- site-generated tension should usually arise from mismatch, unresolved drive,
+  or local error, not from arbitrary symbolic protest
+- if relay is desired, it should likely be expressed by an explicit listening
+  and republishing structure rather than by every receiving site casually
+  forwarding what it does not understand
+
 ## 12A. Polarity And Provenance Are Distinct
 
 It is useful to distinguish:
