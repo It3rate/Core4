@@ -61,11 +61,19 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
 
     public Site Connect(Flow flow) => new(Placement, Kernel, Orthogonal.Add(flow));
 
+    public Site Connect(OrthogonalPublication publication) => new(Placement, Kernel, Orthogonal.Add(publication));
+
     public Site Publish(ISupport support, Ratio value) => Connect(new Flow(support, value.Normalize(), Provenance.SelfDriven(value.Potential)));
 
     public Site Request(ISupport support, Ratio value) => Connect(new Flow(support, value.Normalize(), Provenance.OtherDriven(value.Potential)));
 
     public Site Exchange(ISupport support, Ratio value, Provenance provenance) => Connect(new Flow(support, value.Normalize(), provenance));
+
+    public Site PublishReference(ISupport support) => PublishReference(support, this, State);
+
+    public Site PublishReference(ISupport support, Site site) => PublishReference(support, site, site.State);
+
+    public Site PublishReference(ISupport support, Site site, Ratio value) => Connect(OrthogonalPublication.Publish(support, site, value));
 
     public Relation Relate(Site anchor) => new(Carrier, this, anchor);
 

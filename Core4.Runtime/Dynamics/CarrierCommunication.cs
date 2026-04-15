@@ -6,8 +6,9 @@ using Core4.Topology;
 namespace Core4.Dynamics;
 
 /// <summary>
-/// A locality-preserving carrier field. Sites remain purely local claim machines; this layer only lets carrier-backed
-/// orthogonal residual leave one site and arrive as next-round orthogonal input at other listening sites.
+/// A locality-preserving carrier field. Sites remain purely local claim machines; this layer transports resolved
+/// carrier-backed publication between listening sites while leaving unresolved orthogonal residual local unless some
+/// later law explicitly republishes it. Read-only orthogonal site publications ride the same listener ports.
 /// </summary>
 public readonly record struct CarrierCommunication(ImmutableArray<Site> Sites, ImmutableArray<Relation> Relations)
 {
@@ -19,17 +20,28 @@ public readonly record struct CarrierCommunication(ImmutableArray<Site> Sites, I
         ImmutableArray<SiteSettlement>.Empty,
         ImmutableArray<CarrierFieldState>.Empty,
         ImmutableArray<CarrierTransfer>.Empty,
+        ImmutableArray<CarrierPublicationFieldState>.Empty,
+        ImmutableArray<CarrierPublicationTransfer>.Empty,
         Measure.Zero,
         Ratio.Zero(Measure.One));
 }
 
 /// <summary>
-/// One carrier-level transfer produced by a single relaxation step.
+/// One carrier-level resolved publication transfer produced by a single communication step.
 /// </summary>
 public readonly record struct CarrierTransfer(Carrier Carrier, Placement Source, Placement Target, Ratio Value);
 
 /// <summary>
-/// One aggregate carrier field state for a single communication round.
+/// One carrier-level read-only publication transfer produced by a single communication step.
+/// </summary>
+public readonly record struct CarrierPublicationTransfer(
+    Carrier Carrier,
+    Placement Source,
+    Placement Target,
+    OrthogonalPublication Publication);
+
+/// <summary>
+/// One aggregate resolved publication field state for a single communication round.
 /// </summary>
 public readonly record struct CarrierFieldState(
     Carrier Carrier,
@@ -46,9 +58,19 @@ public readonly record struct CarrierFieldState(
 }
 
 /// <summary>
+/// One aggregate publication field state for a single communication round.
+/// </summary>
+public readonly record struct CarrierPublicationFieldState(
+    Carrier Carrier,
+    Measure PublishedCount,
+    Measure DeliveredCount,
+    Measure ListenerCount,
+    Measure TransferCount);
+
+/// <summary>
 /// One repeated carrier communication field over locally settling sites. Carrier-backed flows act as ports here:
-/// they do not feed the site's same-pass local settlement, but they do publish and receive orthogonal residual
-/// between rounds.
+/// they do not feed the site's same-pass local settlement, but resolved outgoing values can publish across them
+/// between rounds. Carrier-backed publication payloads are also delivered here as read-only site references.
 /// </summary>
 public readonly record struct CarrierCommunicationState(
     CarrierCommunication Communication,
@@ -56,6 +78,8 @@ public readonly record struct CarrierCommunicationState(
     ImmutableArray<SiteSettlement> Settlements,
     ImmutableArray<CarrierFieldState> Fields,
     ImmutableArray<CarrierTransfer> Transfers,
+    ImmutableArray<CarrierPublicationFieldState> PublicationFields,
+    ImmutableArray<CarrierPublicationTransfer> PublicationTransfers,
     Measure Iteration,
     Ratio MaxTransfer)
 {
@@ -78,36 +102,38 @@ public readonly record struct CarrierCommunicationState(
     {
         var settlements = ImmutableArray.CreateBuilder<SiteSettlement>(Sites.Length);
         var nextSites = ImmutableArray.CreateBuilder<Site>(Sites.Length);
-        var emissionsByCarrier = new Dictionary<Carrier, List<CarrierEmission>>();
+        var emissionsByCarrier = new Dictionary<Carrier, List<CarrierValueEmission>>();
+        var publicationByCarrier = new Dictionary<Carrier, List<CarrierPublicationEmission>>();
         var listenersByCarrier = new Dictionary<Carrier, List<CarrierListener>>();
         var fieldAccumulators = new Dictionary<Carrier, FieldAccumulator>();
-        var hasEmitters = new bool[Sites.Length];
-        var receipts = new RatioAccumulator[Sites.Length];
-        var retained = new RatioAccumulator[Sites.Length];
+        var publicationFieldAccumulators = new Dictionary<Carrier, PublicationFieldAccumulator>();
+        var publicationReceipts = new ImmutableArray<OrthogonalPublication>.Builder[Sites.Length];
         var transfers = ImmutableArray.CreateBuilder<CarrierTransfer>();
+        var publicationTransfers = ImmutableArray.CreateBuilder<CarrierPublicationTransfer>();
 
         for (var index = 0; index < Sites.Length; index++)
         {
             var site = Sites[index];
-            var ports = CarrierPorts(site.Orthogonal.Flows);
+            publicationReceipts[index] = ImmutableArray.CreateBuilder<OrthogonalPublication>();
+            var ports = CarrierPorts(site.Orthogonal.Flows, site.Orthogonal.Publications);
             var localSite = new Site(
                 site.Placement,
                 site.Kernel,
-                new OrthogonalReservoir(site.Orthogonal.Residual, ports.LocalFlows));
+                new OrthogonalReservoir(site.Orthogonal.Residual, ports.LocalFlows, site.Orthogonal.OwnedPublications()));
             var localSettlement = SiteDynamics.Settle(localSite);
             var nextSite = new Site(
                 localSettlement.Next.Placement,
                 localSettlement.Next.Kernel,
-                new OrthogonalReservoir(localSettlement.Next.Orthogonal.Residual, site.Orthogonal.Flows));
+                new OrthogonalReservoir(localSettlement.Next.Orthogonal.Residual, site.Orthogonal.Flows, site.Orthogonal.OwnedPublications()));
             var settlement = localSettlement with { Source = site, Next = nextSite };
 
             settlements.Add(settlement);
             nextSites.Add(nextSite);
-            hasEmitters[index] = ports.Emitters.Length != 0;
 
             foreach (var listener in ports.Listeners)
             {
                 AccumulateField(fieldAccumulators, listener.Carrier).ListenerWeight += listener.Weight;
+                AccumulatePublicationField(publicationFieldAccumulators, listener.Carrier).ListenerCount += Measure.One;
 
                 if (!listenersByCarrier.TryGetValue(listener.Carrier, out var listeners))
                 {
@@ -118,34 +144,11 @@ public readonly record struct CarrierCommunicationState(
                 listeners.Add(new CarrierListener(index, listener.Weight));
             }
 
-            foreach (var emitter in ports.Emitters)
+            foreach (var emitter in ports.ValueEmitters)
             {
-                AccumulateField(fieldAccumulators, emitter.Carrier).EmitterWeight += emitter.Weight;
-            }
-
-            if (settlement.Remainder.Potential == Measure.Zero || ports.Emitters.Length == 0)
-            {
-                retained[index].Add(settlement.Remainder);
-                continue;
-            }
-
-            var totalWeight = Measure.Zero;
-
-            foreach (var emitter in ports.Emitters)
-            {
-                totalWeight += emitter.Weight;
-            }
-
-            if (totalWeight == Measure.Zero)
-            {
-                retained[index].Add(settlement.Remainder);
-                continue;
-            }
-
-            foreach (var emitter in ports.Emitters)
-            {
-                var share = settlement.Remainder.ScaleBy(new Ratio(emitter.Weight, totalWeight)).Normalize();
-                AccumulateField(fieldAccumulators, emitter.Carrier).Published.Add(share);
+                var field = AccumulateField(fieldAccumulators, emitter.Carrier);
+                field.EmitterWeight += emitter.Weight;
+                field.Published.Add(emitter.Value);
 
                 if (!emissionsByCarrier.TryGetValue(emitter.Carrier, out var emissions))
                 {
@@ -153,7 +156,38 @@ public readonly record struct CarrierCommunicationState(
                     emissionsByCarrier[emitter.Carrier] = emissions;
                 }
 
-                emissions.Add(new CarrierEmission(index, share));
+                emissions.Add(new CarrierValueEmission(index, emitter.Carrier, emitter.Value.Normalize()));
+
+                var publicationField = AccumulatePublicationField(publicationFieldAccumulators, emitter.Carrier);
+                publicationField.PublishedCount += Measure.One;
+
+                if (!publicationByCarrier.TryGetValue(emitter.Carrier, out var publications))
+                {
+                    publications = [];
+                    publicationByCarrier[emitter.Carrier] = publications;
+                }
+
+                publications.Add(new CarrierPublicationEmission(
+                    index,
+                    OrthogonalPublication.Publish(emitter.Carrier, site, emitter.Value)));
+            }
+
+            foreach (var publication in ports.PublicationEmitters)
+            {
+                var field = AccumulateField(fieldAccumulators, publication.Carrier);
+                field.EmitterWeight += publication.Potential;
+                field.Published.Add(publication.Value);
+
+                var publicationField = AccumulatePublicationField(publicationFieldAccumulators, publication.Carrier);
+                publicationField.PublishedCount += Measure.One;
+
+                if (!publicationByCarrier.TryGetValue(publication.Carrier, out var publications))
+                {
+                    publications = [];
+                    publicationByCarrier[publication.Carrier] = publications;
+                }
+
+                publications.Add(new CarrierPublicationEmission(index, publication));
             }
         }
 
@@ -161,9 +195,11 @@ public readonly record struct CarrierCommunicationState(
         {
             if (!listenersByCarrier.TryGetValue(carrier, out var listeners))
             {
+                var field = AccumulateField(fieldAccumulators, carrier);
+
                 foreach (var emission in emissions)
                 {
-                    retained[emission.SiteIndex].Add(emission.Value);
+                    field.Retained.Add(emission.Value);
                 }
 
                 continue;
@@ -171,24 +207,50 @@ public readonly record struct CarrierCommunicationState(
 
             foreach (var emission in emissions)
             {
-                var totalListenerWeight = Measure.Zero;
+                var delivered = false;
 
                 foreach (var listener in listeners)
                 {
-                    if (listener.SiteIndex != emission.SiteIndex)
+                    if (listener.SiteIndex == emission.SourceIndex)
                     {
-                        totalListenerWeight += listener.Weight;
+                        continue;
                     }
+
+                    delivered = true;
+                    var field = AccumulateField(fieldAccumulators, carrier);
+                    field.TransferCount += Measure.One;
+                    transfers.Add(new CarrierTransfer(
+                        carrier,
+                        Sites[emission.SourceIndex].Placement,
+                        Sites[listener.SiteIndex].Placement,
+                        emission.Value));
                 }
 
-                if (totalListenerWeight == Measure.Zero)
+                var aggregate = AccumulateField(fieldAccumulators, carrier);
+
+                if (delivered)
                 {
-                    retained[emission.SiteIndex].Add(emission.Value);
-                    AccumulateField(fieldAccumulators, carrier).Retained.Add(emission.Value);
-                    continue;
+                    aggregate.Delivered.Add(emission.Value);
                 }
+                else
+                {
+                    aggregate.Retained.Add(emission.Value);
+                }
+            }
+        }
 
-                var delivered = new RatioAccumulator();
+        foreach (var (carrier, publications) in publicationByCarrier)
+        {
+            if (!listenersByCarrier.TryGetValue(carrier, out var listeners))
+            {
+                var field = AccumulatePublicationField(publicationFieldAccumulators, carrier);
+                field.TransferCount += Measure.Zero;
+                continue;
+            }
+
+            foreach (var emission in publications)
+            {
+                var delivered = false;
 
                 foreach (var listener in listeners)
                 {
@@ -197,33 +259,32 @@ public readonly record struct CarrierCommunicationState(
                         continue;
                     }
 
-                    var share = emission.Value.ScaleBy(new Ratio(listener.Weight, totalListenerWeight)).Normalize();
-
-                    if (share.Potential == Measure.Zero)
-                    {
-                        continue;
-                    }
-
-                    receipts[listener.SiteIndex].Add(share);
-                    delivered.Add(share);
-                    var field = AccumulateField(fieldAccumulators, carrier);
-                    field.Delivered.Add(share);
+                    delivered = true;
+                    var deliveredPublication = OrthogonalPublication.Receive(
+                        carrier,
+                        emission.Publication.Site,
+                        emission.Publication.Value);
+                    publicationReceipts[listener.SiteIndex].Add(deliveredPublication);
+                    var field = AccumulatePublicationField(publicationFieldAccumulators, carrier);
+                    field.DeliveredCount += Measure.One;
                     field.TransferCount += Measure.One;
-                    transfers.Add(new CarrierTransfer(
+                    publicationTransfers.Add(new CarrierPublicationTransfer(
                         carrier,
                         Sites[emission.SiteIndex].Placement,
                         Sites[listener.SiteIndex].Placement,
-                        share));
+                        deliveredPublication));
                 }
 
-                var remainder = emission.Value.Subtract(delivered.ValueOrZero()).Normalize();
-                retained[emission.SiteIndex].Add(remainder);
-                AccumulateField(fieldAccumulators, carrier).Retained.Add(remainder);
+                if (!delivered)
+                {
+                    AccumulatePublicationField(publicationFieldAccumulators, carrier).TransferCount += Measure.Zero;
+                }
             }
         }
 
         var finalized = ImmutableArray.CreateBuilder<Site>(Sites.Length);
         var fields = ImmutableArray.CreateBuilder<CarrierFieldState>(fieldAccumulators.Count);
+        var publicationFields = ImmutableArray.CreateBuilder<CarrierPublicationFieldState>(publicationFieldAccumulators.Count);
         var maxTransfer = Ratio.Zero(Measure.One);
 
         foreach (var transfer in transfers)
@@ -245,22 +306,27 @@ public readonly record struct CarrierCommunicationState(
                 field.Value.TransferCount));
         }
 
+        foreach (var field in publicationFieldAccumulators.OrderBy(pair => pair.Key.Id))
+        {
+            publicationFields.Add(new CarrierPublicationFieldState(
+                field.Key,
+                field.Value.PublishedCount,
+                field.Value.DeliveredCount,
+                field.Value.ListenerCount,
+                field.Value.TransferCount));
+        }
+
         for (var index = 0; index < nextSites.Count; index++)
         {
             var nextSite = nextSites[index];
-            var residual = new RatioAccumulator();
-
-            if (!hasEmitters[index])
-            {
-                residual.Add(nextSite.Orthogonal.Residual);
-            }
-            else
-            {
-                residual.Add(retained[index].ValueOrZero());
-            }
-
-            residual.Add(receipts[index].ValueOrZero());
-            finalized.Add(nextSite.WithResidual(residual.ValueOrZero()));
+            finalized.Add(new Site(
+                nextSite.Placement,
+                nextSite.Kernel,
+                nextSite.Orthogonal
+                    .Resolve(nextSite.Orthogonal.Residual)
+                    .WithPublications(
+                        nextSite.Orthogonal.OwnedPublications()
+                            .AddRange(publicationReceipts[index].ToImmutable()))));
         }
 
         return new CarrierCommunicationState(
@@ -269,6 +335,8 @@ public readonly record struct CarrierCommunicationState(
             settlements.ToImmutable(),
             fields.ToImmutable(),
             transfers.ToImmutable(),
+            publicationFields.ToImmutable(),
+            publicationTransfers.ToImmutable(),
             Iteration + Measure.One,
             maxTransfer);
     }
@@ -302,11 +370,14 @@ public readonly record struct CarrierCommunicationState(
         return state;
     }
 
-    private static CarrierPortSet CarrierPorts(ImmutableArray<Flow> flows)
+    private static CarrierPortSet CarrierPorts(
+        ImmutableArray<Flow> flows,
+        ImmutableArray<OrthogonalPublication> publications)
     {
         var localFlows = ImmutableArray.CreateBuilder<Flow>();
-        var emitters = new Dictionary<Carrier, Measure>();
+        var valueEmitters = ImmutableArray.CreateBuilder<CarrierValueEmitter>();
         var listeners = new Dictionary<Carrier, Measure>();
+        var publicationEmitters = ImmutableArray.CreateBuilder<OrthogonalPublication>();
 
         foreach (var flow in flows)
         {
@@ -316,11 +387,9 @@ public readonly record struct CarrierCommunicationState(
                 continue;
             }
 
-            if ((flow.IsOutgoing || flow.IsOscillating) && flow.Potential != Measure.Zero)
+            if ((flow.IsOutgoing || flow.IsOscillating) && flow.Potential != Measure.Zero && flow.Value.IsResolved)
             {
-                emitters[carrier] = emitters.TryGetValue(carrier, out var current)
-                    ? current + flow.Potential
-                    : flow.Potential;
+                valueEmitters.Add(new CarrierValueEmitter(carrier, flow.Value.Normalize(), flow.Potential));
             }
 
             if ((flow.IsIncoming || flow.IsOscillating) && flow.Potential != Measure.Zero)
@@ -331,10 +400,24 @@ public readonly record struct CarrierCommunicationState(
             }
         }
 
+        foreach (var publication in publications)
+        {
+            if (publication.Support is not Carrier)
+            {
+                continue;
+            }
+
+            if ((publication.IsOutgoing || publication.IsOscillating) && publication.Value.IsResolved)
+            {
+                publicationEmitters.Add(publication);
+            }
+        }
+
         return new CarrierPortSet(
             localFlows.ToImmutable(),
-            [.. emitters.Select(pair => new CarrierWeight(pair.Key, pair.Value))],
-            [.. listeners.Select(pair => new CarrierWeight(pair.Key, pair.Value))]);
+            valueEmitters.ToImmutable(),
+            [.. listeners.Select(pair => new CarrierWeight(pair.Key, pair.Value))],
+            publicationEmitters.ToImmutable());
     }
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
@@ -354,12 +437,17 @@ public readonly record struct CarrierCommunicationState(
 
     private readonly record struct CarrierPortSet(
         ImmutableArray<Flow> LocalFlows,
-        ImmutableArray<CarrierWeight> Emitters,
-        ImmutableArray<CarrierWeight> Listeners);
+        ImmutableArray<CarrierValueEmitter> ValueEmitters,
+        ImmutableArray<CarrierWeight> Listeners,
+        ImmutableArray<OrthogonalPublication> PublicationEmitters);
 
     private readonly record struct CarrierWeight(Carrier Carrier, Measure Weight);
 
-    private readonly record struct CarrierEmission(int SiteIndex, Ratio Value);
+    private readonly record struct CarrierValueEmitter(Carrier Carrier, Ratio Value, Measure Weight);
+
+    private readonly record struct CarrierPublicationEmission(int SiteIndex, OrthogonalPublication Publication);
+
+    private readonly record struct CarrierValueEmission(int SourceIndex, Carrier Carrier, Ratio Value);
 
     private readonly record struct CarrierListener(int SiteIndex, Measure Weight);
 
@@ -374,6 +462,17 @@ public readonly record struct CarrierCommunicationState(
         public Measure EmitterWeight;
 
         public Measure ListenerWeight;
+
+        public Measure TransferCount;
+    }
+
+    private sealed class PublicationFieldAccumulator
+    {
+        public Measure PublishedCount;
+
+        public Measure DeliveredCount;
+
+        public Measure ListenerCount;
 
         public Measure TransferCount;
     }
@@ -395,5 +494,18 @@ public readonly record struct CarrierCommunicationState(
         }
 
         public Ratio ValueOrZero() => _hasValue ? _value.Normalize() : Ratio.Zero(Measure.Zero);
+    }
+
+    private static PublicationFieldAccumulator AccumulatePublicationField(
+        Dictionary<Carrier, PublicationFieldAccumulator> fields,
+        Carrier carrier)
+    {
+        if (!fields.TryGetValue(carrier, out var field))
+        {
+            field = new PublicationFieldAccumulator();
+            fields[carrier] = field;
+        }
+
+        return field;
     }
 }
