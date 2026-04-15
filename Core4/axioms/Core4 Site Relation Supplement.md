@@ -1348,3 +1348,80 @@ So later pathfinding should likely depend on:
 - explicit frozen constraints
 
 rather than on hard-coded branch behavior alone.
+
+## 21. Resolved Publication And Resolved Feedback
+
+Carrier communication is now best read as three distinct layers:
+
+- **local unresolved tension**
+- **resolved publication**
+- **resolved feedback**
+
+These should not be collapsed into one undifferentiated signal.
+
+### 21A. Local Unresolved Tension
+
+`m/0` remains the useful form for local unresolved mismatch.
+
+This is still the right reading for:
+
+- a site-local remainder after settlement
+- a pre-bootstrap site that does not yet have a usable denominator
+- a local explanatory failure that has not yet become a stable outward claim
+
+This tension may later harden into structure or be republished under a later
+ law, but it is not the default form for inter-site communication once a site
+ can publish in a resolved way.
+
+### 21B. Resolved Publication
+
+Once a site has a usable denominator, outward carrier communication should
+prefer resolved publication:
+
+- `m/u`
+
+This outward publication carries both:
+
+- the claimed value
+- the chosen resolution or denominator
+
+It may also carry a read-only reference to the publishing site or structure.
+
+The receiving site does not automatically consume or mutate that publication.
+It may inspect it, compare against it, project from it, or ignore it.
+
+### 21C. Resolved Feedback
+
+Feedback should travel back on the same carrier in the opposite direction as a
+resolved desired publication, not merely as "the portion used."
+
+So if one site publishes:
+
+- `4/1`
+
+and a listening site would prefer:
+
+- `51/10`
+
+then the feedback should preserve both:
+
+- the preferred next value
+- the preferred next denominator or resolution
+
+This means feedback is not just a resource remainder. It is a read-only report
+of what the listener would have preferred the publication to be.
+
+### 21D. Sender-Side Aggregation
+
+When multiple feedback values return to one published site, they should not be
+collapsed too early into anonymous tension.
+
+At minimum the sender should remain able to inspect:
+
+- the current published value
+- the preferred returned value
+- the preferred denominator or resolution
+- the spread or disagreement between returned values
+
+The current engine now carries this as a first runtime aggregate rather than as
+an immediate local settlement.

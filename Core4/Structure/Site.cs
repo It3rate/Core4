@@ -67,6 +67,8 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
 
     public Site Request(ISupport support, Ratio value) => Connect(new Flow(support, value.Normalize(), Provenance.OtherDriven(value.Potential)));
 
+    public Site Feedback(ISupport support, Ratio desired) => Request(support, desired);
+
     public Site Exchange(ISupport support, Ratio value, Provenance provenance) => Connect(new Flow(support, value.Normalize(), provenance));
 
     public Site PublishReference(ISupport support) => PublishReference(support, this, State);

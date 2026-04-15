@@ -11,17 +11,23 @@ namespace Core4.Structure;
 public readonly record struct OrthogonalReservoir(
     Ratio Residual,
     ImmutableArray<Flow> Flows,
-    ImmutableArray<OrthogonalPublication> Publications)
+    ImmutableArray<OrthogonalPublication> Publications,
+    ImmutableArray<OrthogonalFeedback> Feedback)
 {
     public OrthogonalReservoir(Ratio residual, ImmutableArray<Flow> flows)
-        : this(residual, flows, ImmutableArray<OrthogonalPublication>.Empty)
+        : this(
+            residual,
+            flows,
+            ImmutableArray<OrthogonalPublication>.Empty,
+            ImmutableArray<OrthogonalFeedback>.Empty)
     {
     }
 
     public static OrthogonalReservoir Open => new(
         Ratio.Zero(Measure.Zero),
         ImmutableArray<Flow>.Empty,
-        ImmutableArray<OrthogonalPublication>.Empty);
+        ImmutableArray<OrthogonalPublication>.Empty,
+        ImmutableArray<OrthogonalFeedback>.Empty);
 
     public Measure Potential
     {
@@ -42,6 +48,8 @@ public readonly record struct OrthogonalReservoir(
 
     public Measure PublicationCount => new(Publications.Length);
 
+    public Measure FeedbackCount => new(Feedback.Length);
+
     public Measure OccupiedCount
     {
         get
@@ -49,6 +57,7 @@ public readonly record struct OrthogonalReservoir(
             var total = Residual.Potential != Measure.Zero || Residual.Dominant != Measure.Zero ? 1L : 0L;
             total += Flows.Length;
             total += Publications.Length;
+            total += Feedback.Length;
             return new Measure(total);
         }
     }
@@ -68,18 +77,25 @@ public readonly record struct OrthogonalReservoir(
             }
 
             total += Publications.Length;
+            total += Feedback.Length;
 
             return new Measure(total);
         }
     }
 
-    public OrthogonalReservoir Resolve(Ratio residual) => new(residual.Normalize(), Flows, Publications);
+    public OrthogonalReservoir Resolve(Ratio residual) => new(residual.Normalize(), Flows, Publications, Feedback);
 
-    public OrthogonalReservoir Add(Flow flow) => new(Residual, Flows.Add(flow), Publications);
+    public OrthogonalReservoir Add(Flow flow) => new(Residual, Flows.Add(flow), Publications, Feedback);
 
-    public OrthogonalReservoir Add(OrthogonalPublication publication) => new(Residual, Flows, Publications.Add(publication));
+    public OrthogonalReservoir Add(OrthogonalPublication publication) => new(Residual, Flows, Publications.Add(publication), Feedback);
 
-    public OrthogonalReservoir WithPublications(ImmutableArray<OrthogonalPublication> publications) => new(Residual, Flows, publications);
+    public OrthogonalReservoir Add(OrthogonalFeedback feedback) => new(Residual, Flows, Publications, Feedback.Add(feedback));
+
+    public OrthogonalReservoir WithPublications(ImmutableArray<OrthogonalPublication> publications) =>
+        new(Residual, Flows, publications, Feedback);
+
+    public OrthogonalReservoir WithFeedback(ImmutableArray<OrthogonalFeedback> feedback) =>
+        new(Residual, Flows, Publications, feedback);
 
     public Ratio Incoming() => Aggregate(flow => flow.IsIncoming);
 
@@ -101,6 +117,9 @@ public readonly record struct OrthogonalReservoir(
 
     public ImmutableArray<OrthogonalPublication> OwnedPublications() =>
         [.. Publications.Where(publication => !publication.IsIncoming)];
+
+    public ImmutableArray<OrthogonalFeedback> IncomingFeedback() =>
+        [.. Feedback.Where(feedback => feedback.IsIncoming)];
 
     private Ratio Aggregate(Func<Flow, bool> predicate)
     {
