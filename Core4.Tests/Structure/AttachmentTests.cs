@@ -34,7 +34,7 @@ public sealed class AttachmentTests
         Assert.Equal(Measure.Zero, attachment.SegmentPivot());
         Assert.Equal(new Measure(5), attachment.SegmentEnd());
         Assert.Equal(new Measure(7), attachment.SegmentSpanMeasure());
-        Assert.Equal(new Ratio(7, 10), attachment.SegmentSpanProjection());
+        Assert.Equal(new Ratio(-70, -100), attachment.SegmentSpanProjection());
     }
 
     [Fact]
@@ -51,10 +51,10 @@ public sealed class AttachmentTests
         var quadrants = attachment.QuadrantCoefficients();
 
         Assert.Equal(new Measure(1), attachment.KernelCode);
-        Assert.Equal(new Ratio(8, 100), quadrants[1]);
-        Assert.Equal(new Ratio(0, 100), quadrants[0]);
-        Assert.Equal(new Ratio(0, 100), quadrants[2]);
-        Assert.Equal(new Ratio(0, 100), quadrants[3]);
+        Assert.Equal(new Ratio(-8, -100), quadrants[1]);
+        Assert.Equal(new Ratio(0, -100), quadrants[0]);
+        Assert.Equal(new Ratio(0, -100), quadrants[2]);
+        Assert.Equal(new Ratio(0, -100), quadrants[3]);
     }
 
     [Fact]

@@ -13,7 +13,8 @@ namespace Core4.AvaloniaProbe.Rendering;
 public static class SiteAnatomyRenderer
 {
     private const double HorizontalPadding = 38d;
-    private const double VerticalPadding = -40d;
+    private const double VerticalPadding = 26d;
+    private const double BottomPadding = 14d;
     private const double SiteHalfSize = 20d;
     private const double SupportLength = 122d;
     private const double InputMaxCircle = 14d;
@@ -26,7 +27,7 @@ public static class SiteAnatomyRenderer
             bounds.X + HorizontalPadding,
             bounds.Y + VerticalPadding,
             Math.Max(64d, bounds.Width - (HorizontalPadding * 2d)),
-            Math.Max(64d, bounds.Height + (VerticalPadding + 20d)));
+            Math.Max(64d, bounds.Height - (VerticalPadding + BottomPadding)));
         var center = new Point(scene.Center.X, scene.Y + (scene.Height * 0.56d));
         var site = SitePorts.FromCenter(center);
 
@@ -44,7 +45,8 @@ public static class SiteAnatomyRenderer
 
     private static void DrawBackdrop(DrawingContext context, Rect rect)
     {
-        context.DrawRectangle(null, new Pen(ProbePalette.Axis, 1d), rect, 18d, 18d);
+        _ = context;
+        _ = rect;
     }
 
     private static void DrawSectionLabels(DrawingContext context, Rect rect, Point center)

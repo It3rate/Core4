@@ -6,6 +6,7 @@ namespace Core4.Numerics;
 /// <summary>
 /// An ordered recessive/dominant relation. <c>m/0</c> carries unresolved tension, while <c>m/u</c> is a resolved
 /// relation against a denominator. This is the shared numeric form behind placement, projection, and slot state.
+/// Denominator sign is preserved exactly; any fold into a positive denominator is an explicit lossy operation.
 /// Example: <c>var halfway = new Ratio(5, 10);</c>
 /// </summary>
 public readonly record struct Ratio(Measure Recessive, Measure Dominant)
@@ -142,6 +143,10 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant)
             new BigInteger(Dominant.Raw) * other.Recessive.Raw);
     }
 
+    /// <summary>
+    /// Reduces common magnitude without relocating sign between numerator and denominator.
+    /// This keeps structural denominator orientation intact while still shrinking exact ratios.
+    /// </summary>
     public Ratio Canonicalize()
     {
         if (IsTension)
@@ -149,36 +154,38 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant)
             return this;
         }
 
-        var normalized = Normalize();
-
-        if (normalized.Recessive.Raw == 0)
+        if (Recessive.Raw == 0)
         {
-            return new Ratio(Measure.Zero, Measure.One);
+            return new Ratio(Measure.Zero, Dominant.Sign == Measure.Zero ? Measure.One : Dominant.Sign);
         }
 
-        var numerator = normalized.Recessive.Absolute.Raw;
-        var denominator = normalized.Dominant.Absolute.Raw;
+        var numerator = Recessive.Absolute.Raw;
+        var denominator = Dominant.Absolute.Raw;
         var gcd = GreatestCommonDivisor(numerator, denominator);
 
         if (gcd <= 1)
         {
-            return normalized;
-        }
-
-        return new Ratio(
-            new Measure(normalized.Recessive.Raw / gcd),
-            new Measure(normalized.Dominant.Raw / gcd));
-    }
-
-    public Ratio Normalize()
-    {
-        if (IsTension || Dominant.Raw > 0)
-        {
             return this;
         }
 
-        return new Ratio(-Recessive, -Dominant);
+        return new Ratio(
+            new Measure(Recessive.Raw / gcd),
+            new Measure(Dominant.Raw / gcd));
     }
+
+    /// <summary>
+    /// Structural normalization is identity for ratios. Denominator sign is preserved exactly.
+    /// Any positive-denominator conversion must be requested explicitly through <see cref="FoldDenominator"/>.
+    /// </summary>
+    public Ratio Normalize() => this;
+
+    /// <summary>
+    /// Lossy arithmetic fold into a positive denominator. Useful for projection or float-like comparison,
+    /// but not for structural storage.
+    /// </summary>
+    public Ratio FoldDenominator() => IsTension || Dominant.Raw >= 0
+        ? this
+        : new Ratio(-Recessive, -Dominant);
 
     public override string ToString() => string.Create(
         CultureInfo.InvariantCulture,
@@ -201,12 +208,6 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant)
         if (dominant.IsZero)
         {
             return Tension(ToMeasure(BigInteger.Abs(recessive)));
-        }
-
-        if (dominant.Sign < 0)
-        {
-            recessive = BigInteger.Negate(recessive);
-            dominant = BigInteger.Negate(dominant);
         }
 
         if (Fits(recessive) && Fits(dominant))
