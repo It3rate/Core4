@@ -7,9 +7,17 @@ internal static class ProbeGlossary
     public static IReadOnlyList<GlossarySection> Sections { get; } =
     [
         new GlossarySection(
+            "Substrate / Domain",
+            "These two terms sit outside the carrier-site-basis ladder but help keep implementation, semantics, and calibration from blurring together.",
+            [
+                new GlossaryEntry("Substrate", "Raw machine backing for order.", "Substrate is the underlying implementation medium that lets order be represented at all. In the current engine that is mostly the long-valued backing, but substrate is not itself a Core4 carrier or basis."),
+                new GlossaryEntry("Domain", "Semantic field a carrier belongs to.", "A domain is the meaning-family a carrier is read as belonging to, such as heat or light. One carrier may stand for one domain in the simple case, while richer fused structures may span several domains without making domain itself the primitive math object.")
+            ]),
+        new GlossarySection(
             "Claim / Creation",
             "This section reads support-first: carrier, then site, then reading. From there the same pattern appears twice: pin, origin, relation for the primitive live case, and freeze, basis, attachment for the richer reusable case.",
             [
+                new GlossaryEntry("Support", "Anything measurably traversable.", "Any traversable structure built from carriers by freezing/fusing landmarks. In that sense, a carrier is the atomic support, and a unit/relation/basis/segment are higher supports."),
                 new GlossaryEntry("Carrier", "Ordered support.", "A carrier is the support a value lives on or moves along. It is the ordered attribute or line of possible relation, not yet a reading by itself."),
                 new GlossaryEntry("Site", "Place where relation may occur.", "A site is a referencable place on a carrier together with its current relation state. It is not only a location, but a location that may be open, occupied, or tension-bearing."),
                 new GlossaryEntry("Measure", "Reading of a site.", "A measure is a reading of a site with no implied zero, scale, or extent. It is the first detected value, but not yet a committed relation."),
