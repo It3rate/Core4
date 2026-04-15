@@ -2,6 +2,11 @@ using System.Collections.Immutable;
 using Core4.Numerics;
 namespace Core4.Structure;
 
+public readonly record struct OrthogonalFlowGroup(
+    Carrier Carrier,
+    Ratio Value,
+    Measure FlowCount);
+
 /// <summary>
 /// The unresolved orthogonal remainder around a site plus any articulated child flows that have attached to it.
 /// The current engine stores these flows in one reservoir, but the intended interpretation is that foreign
@@ -109,6 +114,15 @@ public readonly record struct OrthogonalReservoir(
 
     public Ratio LocalOscillating() => Aggregate(flow => flow.IsOscillating && flow.Support is not Carrier);
 
+    public ImmutableArray<OrthogonalFlowGroup> LocalIncomingGroups() =>
+        Group(flow => flow.IsIncoming && flow.Support is not Carrier);
+
+    public ImmutableArray<OrthogonalFlowGroup> LocalOutgoingGroups() =>
+        Group(flow => flow.IsOutgoing && flow.Support is not Carrier);
+
+    public ImmutableArray<OrthogonalFlowGroup> LocalOscillatingGroups() =>
+        Group(flow => flow.IsOscillating && flow.Support is not Carrier);
+
     public ImmutableArray<OrthogonalPublication> IncomingPublications() =>
         [.. Publications.Where(publication => publication.IsIncoming)];
 
@@ -138,5 +152,53 @@ public readonly record struct OrthogonalReservoir(
         }
 
         return hasAny ? total.Normalize() : Ratio.Zero(Measure.Zero);
+    }
+
+    private ImmutableArray<OrthogonalFlowGroup> Group(Func<Flow, bool> predicate)
+    {
+        var groups = new Dictionary<Carrier, GroupAccumulator>();
+
+        foreach (var flow in Flows)
+        {
+            if (!predicate(flow))
+            {
+                continue;
+            }
+
+            if (!groups.TryGetValue(flow.Carrier, out var accumulator))
+            {
+                accumulator = new GroupAccumulator();
+                groups[flow.Carrier] = accumulator;
+            }
+
+            accumulator.Add(flow.Value);
+        }
+
+        return
+        [
+            .. groups
+                .OrderBy(pair => pair.Key.Id)
+                .Select(pair => new OrthogonalFlowGroup(
+                    pair.Key,
+                    pair.Value.ValueOrZero(),
+                    pair.Value.FlowCount))
+        ];
+    }
+
+    private sealed class GroupAccumulator
+    {
+        private bool _hasValue;
+        private Ratio _value;
+
+        public Measure FlowCount { get; private set; }
+
+        public void Add(Ratio value)
+        {
+            _value = _hasValue ? _value.Add(value).Normalize() : value.Normalize();
+            _hasValue = true;
+            FlowCount += Measure.One;
+        }
+
+        public Ratio ValueOrZero() => _hasValue ? _value.Normalize() : Ratio.Zero(Measure.Zero);
     }
 }

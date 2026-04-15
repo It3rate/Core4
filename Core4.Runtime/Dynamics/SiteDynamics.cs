@@ -16,7 +16,7 @@ public static class SiteDynamics
         var stiffness = site.Kernel.Stiffness.Normalize();
         var routingGain = site.Kernel.RoutingGain.Normalize();
         var dominantBias = site.Kernel.DominantBias.Normalize();
-        var incoming = site.Orthogonal.LocalIncoming();
+        var incoming = ComposeIncoming(site);
 
         if (site.Orthogonal.Residual.Potential != Measure.Zero || site.Orthogonal.Residual.Dominant != Measure.Zero)
         {
@@ -25,7 +25,7 @@ public static class SiteDynamics
                 : incoming.Add(site.Orthogonal.Residual).Normalize();
         }
 
-        var feedback = site.Orthogonal.LocalOutgoing().Add(site.Orthogonal.LocalOscillating()).Normalize();
+        var feedback = ComposeFeedback(site);
         var available = incoming.Subtract(feedback).Normalize();
         var uptake = new Ratio(Measure.One, Measure.One).Subtract(stiffness).Normalize();
         var softened = available.ScaleBy(uptake).Normalize();
@@ -41,5 +41,32 @@ public static class SiteDynamics
         var next = site.Anchor(nextAnchor).Resolve(nextClaim).WithResidual(remainder);
 
         return new SiteSettlement(site, anchor, incoming, provisional, published, feedback, settled, remainder, next);
+    }
+
+    private static Ratio ComposeIncoming(Site site) => ComposeGroups(site.Carrier, site.Orthogonal.LocalIncomingGroups());
+
+    private static Ratio ComposeFeedback(Site site) => ComposeGroups(
+        site.Carrier,
+        [.. site.Orthogonal.LocalOutgoingGroups(), .. site.Orthogonal.LocalOscillatingGroups()]);
+
+    private static Ratio ComposeGroups(Carrier carrier, IEnumerable<OrthogonalFlowGroup> groups)
+    {
+        var hasAny = false;
+        var total = Ratio.Zero(Measure.Zero);
+
+        foreach (var group in groups)
+        {
+            // Same-carrier groups already speak the local support language and may balance algebraically.
+            // Foreign-carrier groups stay distinct longer by contributing unresolved potential instead of
+            // canceling each other away before the site has had any local interpretation step.
+            var projected = group.Carrier == carrier
+                ? group.Value.Normalize()
+                : Ratio.Tension(group.Value.Potential);
+
+            total = hasAny ? total.Add(projected).Normalize() : projected;
+            hasAny = true;
+        }
+
+        return hasAny ? total.Normalize() : Ratio.Zero(Measure.Zero);
     }
 }

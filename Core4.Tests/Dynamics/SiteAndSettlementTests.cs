@@ -232,4 +232,80 @@ public sealed class SiteAndSettlementTests
         Assert.Equal(new Ratio(0, 0), settlement.Feedback);
         Assert.Equal(new Ratio(0, 0), settlement.Remainder);
     }
+
+    [Fact]
+    public void DifferentCarrierResolvedInputsDoNotCancelBeforeLocalSettlement()
+    {
+        Carrier x = 1;
+        Carrier heat = 2;
+        Carrier light = 3;
+        var heatReading = new Relation(Site.Open(heat, new Measure(0)), Site.Open(heat, new Measure(8)));
+        var lightReading = new Relation(Site.Open(light, new Measure(0)), Site.Open(light, new Measure(8)));
+
+        var site = Site.Open(x, new Measure(0))
+            .Anchor(new Ratio(0, 1))
+            .Request(heatReading, new Ratio(4, 1))
+            .Request(lightReading, new Ratio(-4, 1));
+
+        var groups = site.Orthogonal.LocalIncomingGroups();
+        var settlement = SiteDynamics.Settle(site);
+
+        Assert.Equal(2, groups.Length);
+        Assert.Equal(heat, groups[0].Carrier);
+        Assert.Equal(new Ratio(4, 1), groups[0].Value);
+        Assert.Equal(light, groups[1].Carrier);
+        Assert.Equal(new Ratio(-4, 1), groups[1].Value);
+        Assert.Equal(new Ratio(8, 0), settlement.Incoming);
+        Assert.Equal(new Ratio(8, 0), settlement.Published);
+        Assert.Equal(new Ratio(0, 0), settlement.Remainder);
+    }
+
+    [Fact]
+    public void SameCarrierResolvedInputsCanBalanceBeforeLocalSettlement()
+    {
+        Carrier x = 1;
+        Carrier heat = 2;
+        var lower = new Relation(Site.Open(heat, new Measure(0)), Site.Open(heat, new Measure(8)));
+        var upper = new Relation(Site.Open(heat, new Measure(8)), Site.Open(heat, new Measure(16)));
+
+        var site = Site.Open(x, new Measure(0))
+            .Anchor(new Ratio(0, 1))
+            .Request(lower, new Ratio(4, 1))
+            .Request(upper, new Ratio(-4, 1));
+
+        var groups = site.Orthogonal.LocalIncomingGroups();
+        var settlement = SiteDynamics.Settle(site);
+
+        Assert.Single(groups);
+        Assert.Equal(heat, groups[0].Carrier);
+        Assert.Equal(new Ratio(0, 1), groups[0].Value);
+        Assert.Equal(new Ratio(0, 0), settlement.Incoming);
+        Assert.Equal(new Ratio(0, 0), settlement.Published);
+        Assert.Equal(new Ratio(0, 0), settlement.Next.State);
+    }
+
+    [Fact]
+    public void SameCarrierRelationInputsStayResolvedUntilZeroTensionFeedbackComposition()
+    {
+        Carrier x = 1;
+        var left = Site.Open(x, new Measure(0));
+        var right = Site.Open(x, new Measure(8));
+        var support = new Relation(left, right);
+
+        var site = Site.Open(x, new Measure(4))
+            .Anchor(new Ratio(0, 1))
+            .Resolve(new Ratio(0, 1))
+            .Request(support, new Ratio(3, 2));
+
+        var groups = site.Orthogonal.LocalIncomingGroups();
+        var settlement = SiteDynamics.Settle(site);
+
+        Assert.Single(groups);
+        Assert.Equal(x, groups[0].Carrier);
+        Assert.Equal(new Ratio(3, 2), groups[0].Value);
+        Assert.Equal(new Ratio(3, 2), settlement.Incoming);
+        Assert.Equal(new Ratio(3, 0), settlement.Published);
+        Assert.Equal(new Ratio(3, 0), settlement.Next.State);
+        Assert.Equal(new Ratio(0, 0), settlement.Remainder);
+    }
 }
