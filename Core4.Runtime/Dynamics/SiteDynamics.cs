@@ -96,6 +96,9 @@ public static class SiteDynamics
         return leftForMath.Subtract(rightForMath).Normalize();
     }
 
+    // TODO: This neutral-absence lift is the small runtime bridge. The longer-term operator law should let
+    // composition slots carry numeric participation/commitment directly, so "no contribution yet", "resolved
+    // contribution", and "unresolved tension" remain distinct without ad hoc support-local neutralization.
     private static Ratio NeutralizeAbsence(Ratio candidate, Ratio reference) =>
         IsAbsent(candidate) && reference.IsResolved
             ? Ratio.Zero(reference.Dominant)

@@ -1425,3 +1425,29 @@ At minimum the sender should remain able to inspect:
 
 The current engine now carries this as a first runtime aggregate rather than as
 an immediate local settlement.
+
+## 22. Future Operator Composition
+
+The current runtime uses a small support-local bridge when one side of a
+composition is absent:
+
+- if one side is `0/0`
+- and the other side is a resolved `m/u`
+- the absent side may be lifted temporarily to `0/u`
+
+This keeps same-support settlement from accidentally turning a resolved value
+into tension merely because no feedback or routed share has appeared yet.
+
+This is useful, but it should probably not be the final operator law.
+
+The likely longer-term direction is that operator slots should themselves carry
+numeric participation or commitment, so the system can distinguish:
+
+- no contribution yet
+- resolved contribution
+- unresolved tension
+
+without procedural guards or ad hoc neutralization steps.
+
+That would let incomplete operators remain meaningful inspectable structures
+rather than forcing each runtime law to rediscover the same absence handling.
