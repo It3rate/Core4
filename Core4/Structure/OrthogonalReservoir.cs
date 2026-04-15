@@ -96,6 +96,9 @@ public readonly record struct OrthogonalReservoir(
 
     public OrthogonalReservoir Add(OrthogonalFeedback feedback) => new(Residual, Flows, Publications, Feedback.Add(feedback));
 
+    public OrthogonalReservoir WithFlows(ImmutableArray<Flow> flows) =>
+        new(Residual, flows, Publications, Feedback);
+
     public OrthogonalReservoir WithPublications(ImmutableArray<OrthogonalPublication> publications) =>
         new(Residual, Flows, publications, Feedback);
 

@@ -102,7 +102,7 @@ public sealed class ProbeView : UserControl
             new PageDefinition(ProbePage.GlossaryBasis, ProbeCategory.Glossary, "Freeze / Basis / Attachment", "glossary-basis", _glossaryBasisPage),
             new PageDefinition(ProbePage.GlossaryMeasurement, ProbeCategory.Glossary, "Unit / Ratio / Placement / Resolution", "glossary-measurement", _glossaryMeasurementPage),
             new PageDefinition(ProbePage.GlossaryTension, ProbeCategory.Glossary, "Tension / Fusion / Orthogonal", "glossary-tension", _glossaryTensionPage),
-            new PageDefinition(ProbePage.GlossaryFusion, ProbeCategory.Glossary, "Fuse Pairs Into Bases", "glossary-fusion", _glossaryFusionPage),
+            new PageDefinition(ProbePage.GlossaryFusion, ProbeCategory.Glossary, "Fuse Pairs Into a Site", "glossary-fusion", _glossaryFusionPage),
             new PageDefinition(ProbePage.DominantOnly, ProbeCategory.Primitives, "Dominant Only", "dominant-only", _dominantOnlyPage),
             new PageDefinition(ProbePage.InvertedPair, ProbeCategory.Primitives, "Inverted Pair", "inverted-pair", _invertedPairPage),
             new PageDefinition(ProbePage.FrozenSegment, ProbeCategory.Primitives, "Frozen Segment", "frozen-segment", _frozenSegmentPage),

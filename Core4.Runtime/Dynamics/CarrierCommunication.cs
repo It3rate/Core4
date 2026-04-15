@@ -8,8 +8,9 @@ namespace Core4.Dynamics;
 /// <summary>
 /// A locality-preserving carrier field. Sites remain purely local claim machines; this layer transports resolved
 /// carrier-backed publication between listening sites while leaving unresolved orthogonal residual local unless some
-/// later law explicitly republishes it. Read-only orthogonal site publications ride the same listener ports, and
-/// resolved carrier requests now return read-only feedback back to the original publisher on the same carrier.
+/// later law explicitly republishes it. Read-only orthogonal site publications ride the same listener ports, resolved
+/// carrier requests return read-only feedback back to the original publisher on the same carrier, and sender-side
+/// feedback summaries can now retune next-round carrier publication numerically instead of remaining note-only.
 /// </summary>
 public readonly record struct CarrierCommunication(ImmutableArray<Site> Sites, ImmutableArray<Relation> Relations)
 {
@@ -111,7 +112,8 @@ public readonly record struct CarrierFeedbackSummary(
 /// One repeated carrier communication field over locally settling sites. Carrier-backed flows act as ports here:
 /// they do not feed the site's same-pass local settlement, but resolved outgoing values can publish across them
 /// between rounds. Carrier-backed publication payloads are also delivered here as read-only site references, while
-/// resolved incoming carrier requests are interpreted as read-only feedback about those publications.
+/// resolved incoming carrier requests are interpreted as read-only feedback about those publications and can retune
+/// the sender's next-round carrier publication surface through a numeric participation law.
 /// </summary>
 public readonly record struct CarrierCommunicationState(
     CarrierCommunication Communication,
@@ -479,6 +481,7 @@ public readonly record struct CarrierCommunicationState(
         {
             var nextSite = nextSites[index];
             var receivedFeedback = feedbackReceipts[index].ToImmutable();
+            var adaptiveSummaries = ImmutableArray.CreateBuilder<CarrierFeedbackSummary>();
 
             foreach (var byCarrier in receivedFeedback
                          .GroupBy(feedback => feedback.Carrier)
@@ -491,7 +494,7 @@ public readonly record struct CarrierCommunicationState(
                     : Ratio.Zero(Measure.Zero);
                 var preferred = ComposeDesired(feedbacks);
                 var desiredResolution = AverageResolution(feedbacks);
-                feedbackSummaries.Add(new CarrierFeedbackSummary(
+                var summary = new CarrierFeedbackSummary(
                     byCarrier.Key,
                     nextSite.Placement,
                     published,
@@ -503,9 +506,12 @@ public readonly record struct CarrierCommunicationState(
                     desiredResolution.Subtract(new Ratio(published.Dominant, Measure.One)).Normalize(),
                     ValueSpread(feedbacks),
                     ResolutionSpread(feedbacks),
-                    new Measure(feedbacks.Length)));
+                    new Measure(feedbacks.Length));
+                feedbackSummaries.Add(summary);
+                adaptiveSummaries.Add(summary);
             }
 
+            nextSite = ApplyAdaptivePublicationUpdates(nextSite, adaptiveSummaries.ToImmutable());
             finalized.Add(new Site(
                 nextSite.Placement,
                 nextSite.Kernel,
@@ -852,4 +858,131 @@ public readonly record struct CarrierCommunicationState(
 
         return new Ratio(new Measure(high - low), Measure.One);
     }
+
+    private static Site ApplyAdaptivePublicationUpdates(Site site, ImmutableArray<CarrierFeedbackSummary> summaries)
+    {
+        if (summaries.IsDefaultOrEmpty)
+        {
+            return site;
+        }
+
+        var flows = site.Orthogonal.Flows.ToBuilder();
+        var publications = site.Orthogonal.OwnedPublications().ToBuilder();
+        var changed = false;
+
+        foreach (var summary in summaries)
+        {
+            if (!summary.Published.IsResolved || !summary.Preferred.IsResolved)
+            {
+                continue;
+            }
+
+            var response = AdaptationParticipation(summary);
+
+            if (response.Potential == Measure.Zero)
+            {
+                continue;
+            }
+
+            var appliedDelta = summary.ValueDelta.ScaleBy(response).Normalize();
+            var flowIndexes = FlowEmittersOn(flows, summary.Carrier);
+            var publicationIndexes = PublicationEmittersOn(publications, summary.Carrier);
+            var emitterCount = new Measure(flowIndexes.Length + publicationIndexes.Length);
+
+            if (emitterCount == Measure.Zero
+                || (appliedDelta.Potential == Measure.Zero && appliedDelta.Dominant == Measure.Zero))
+            {
+                continue;
+            }
+
+            foreach (var flowIndex in flowIndexes)
+            {
+                var flow = flows[flowIndex];
+                var participation = EmitterParticipation(flow.Value, summary.Published, emitterCount);
+                flows[flowIndex] = flow.Retune(flow.Value.Add(appliedDelta.Multiply(participation)).Normalize());
+            }
+
+            foreach (var publicationIndex in publicationIndexes)
+            {
+                var publication = publications[publicationIndex];
+                var participation = EmitterParticipation(publication.Value, summary.Published, emitterCount);
+                publications[publicationIndex] = publication.Revalue(
+                    publication.Value.Add(appliedDelta.Multiply(participation)).Normalize());
+            }
+
+            changed = true;
+        }
+
+        if (!changed)
+        {
+            return site;
+        }
+
+        return new Site(
+            site.Placement,
+            site.Kernel,
+            site.Orthogonal
+                .WithFlows(flows.ToImmutable())
+                .WithPublications(publications.ToImmutable()));
+    }
+
+    private static Ratio AdaptationParticipation(CarrierFeedbackSummary summary)
+    {
+        if (summary.FeedbackCount == Measure.Zero)
+        {
+            return Ratio.Zero(Measure.One);
+        }
+
+        // Agreement hardens participation. More listeners strengthen the update, while wider disagreement keeps the
+        // publication closer to its current value until the returning field converges.
+        var disagreement = summary.ValueSpread.Potential + summary.ResolutionSpread.Potential;
+        return new Ratio(summary.FeedbackCount, summary.FeedbackCount + disagreement + Measure.One).Normalize();
+    }
+
+    private static ImmutableArray<int> FlowEmittersOn(ImmutableArray<Flow>.Builder flows, Carrier carrier)
+    {
+        var indexes = ImmutableArray.CreateBuilder<int>();
+
+        for (var index = 0; index < flows.Count; index++)
+        {
+            var flow = flows[index];
+
+            if (flow.Support is Carrier flowCarrier
+                && flowCarrier == carrier
+                && flow.Value.IsResolved
+                && (flow.IsOutgoing || flow.IsOscillating))
+            {
+                indexes.Add(index);
+            }
+        }
+
+        return indexes.ToImmutable();
+    }
+
+    private static ImmutableArray<int> PublicationEmittersOn(
+        ImmutableArray<OrthogonalPublication>.Builder publications,
+        Carrier carrier)
+    {
+        var indexes = ImmutableArray.CreateBuilder<int>();
+
+        for (var index = 0; index < publications.Count; index++)
+        {
+            var publication = publications[index];
+
+            if (publication.Support is Carrier publicationCarrier
+                && publicationCarrier == carrier
+                && publication.Value.IsResolved
+                && (publication.IsOutgoing || publication.IsOscillating))
+            {
+                indexes.Add(index);
+            }
+        }
+
+        return indexes.ToImmutable();
+    }
+
+    private static Ratio EmitterParticipation(Ratio emitterValue, Ratio aggregatePublished, Measure emitterCount) =>
+        aggregatePublished.IsResolved && aggregatePublished.Potential != Measure.Zero
+            ? emitterValue.Divide(aggregatePublished).Normalize()
+            : new Ratio(Measure.One, emitterCount).Normalize();
 }

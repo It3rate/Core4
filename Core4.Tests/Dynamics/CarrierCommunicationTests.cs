@@ -222,6 +222,58 @@ public sealed class CarrierCommunicationTests
     }
 
     [Fact]
+    public void FeedbackSummariesRetuneNextRoundCarrierPublication()
+    {
+        Carrier x = 1;
+        Carrier light = 2;
+
+        var source = Site.Open(x, new Measure(0))
+            .Anchor(new Ratio(0, 1))
+            .Resolve(new Ratio(4, 1))
+            .Publish(light, new Ratio(4, 1));
+        var receiver = Site.Open(x, new Measure(10))
+            .Anchor(new Ratio(0, 1))
+            .Request(light, new Ratio(6, 1));
+
+        var communication = CarrierCommunication.Create(ConnectedSiteTopology.Create([source, receiver]));
+        var afterOne = communication.Seed().Relax();
+        var afterTwo = afterOne.Relax();
+
+        Assert.Single(afterOne.FeedbackSummaries);
+        Assert.Equal(new Ratio(40, 8), afterOne.At(source).Orthogonal.Flows[0].Value);
+        Assert.Single(afterTwo.Transfers);
+        Assert.Equal(new Ratio(40, 8), afterTwo.Transfers[0].Value);
+        Assert.Single(afterTwo.PublicationTransfers);
+        Assert.Equal(new Ratio(40, 8), afterTwo.PublicationTransfers[0].Publication.Value);
+    }
+
+    [Fact]
+    public void FeedbackSpreadDampensAdaptivePublicationUpdate()
+    {
+        Carrier x = 1;
+        Carrier light = 2;
+
+        var source = Site.Open(x, new Measure(0))
+            .Anchor(new Ratio(0, 1))
+            .Resolve(new Ratio(4, 1))
+            .Publish(light, new Ratio(4, 1));
+        var left = Site.Open(x, new Measure(10))
+            .Anchor(new Ratio(0, 1))
+            .Request(light, new Ratio(6, 1));
+        var right = Site.Open(x, new Measure(20))
+            .Anchor(new Ratio(0, 1))
+            .Request(light, new Ratio(10, 1));
+
+        var communication = CarrierCommunication.Create(ConnectedSiteTopology.Create([source, left, right]));
+        var afterOne = communication.Seed().Relax();
+
+        Assert.Single(afterOne.FeedbackSummaries);
+        Assert.Equal(new Ratio(16, 2), afterOne.FeedbackSummaries[0].Preferred);
+        Assert.Equal(new Ratio(4, 1), afterOne.FeedbackSummaries[0].ValueSpread);
+        Assert.Equal(new Ratio(288, 56), afterOne.At(source).Orthogonal.Flows[0].Value);
+    }
+
+    [Fact]
     public void TensionOnlyCarrierRequestsRegisterListeningWithoutSendingFeedback()
     {
         Carrier x = 1;
