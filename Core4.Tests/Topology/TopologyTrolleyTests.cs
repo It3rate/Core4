@@ -147,12 +147,17 @@ public sealed class TopologyTrolleyTests
         var reflection = Assert.Single(trolley.Observe().ForwardContinuations);
         Assert.Equal(new Ratio(new Measure(1), new Measure(2)), reflection.Transmission);
         Assert.Equal(new Ratio(new Measure(1), new Measure(2)), reflection.Retention);
+        Assert.Equal(new Ratio(new Measure(5), Measure.One), reflection.TransmittedCalibrationRead.AsRatio());
+        Assert.Equal(new Ratio(new Measure(5), Measure.One), reflection.RetainedCalibrationRead.AsRatio());
+        Assert.Equal(new Ratio(new Measure(5), Measure.One), reflection.NextCalibrationRead.AsRatio());
         Assert.Equal(new Ratio(new Measure(5), Measure.One), reflection.TransmittedCalibration);
         Assert.Equal(new Ratio(new Measure(5), Measure.One), reflection.RetainedCalibration);
         Assert.True(reflection.HasRetention);
 
         Assert.True(trolley.TryContinuePreferred(out var returned));
         Assert.True(SameNode(returned.Site, left));
+        Assert.Equal(new Ratio(new Measure(5), Measure.One), returned.CarriedCalibrationRead.AsRatio());
+        Assert.Equal(new Ratio(new Measure(5), Measure.One), returned.Signature.CalibrationRead.AsRatio());
         Assert.Equal(new Ratio(new Measure(5), Measure.One), returned.Signature.Calibration);
     }
 

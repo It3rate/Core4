@@ -14,7 +14,7 @@ public readonly record struct TopologyTrolley(
     Site Site,
     Relation? Ingress,
     Measure Direction,
-    Ratio CarriedCalibration,
+    ISupportProjection CarriedCalibrationRead,
     ImmutableArray<TraversalSignature> TrailSignatures,
     ImmutableArray<Site> TrailSites,
     ImmutableArray<Relation> TrailRelations)
@@ -39,7 +39,10 @@ public readonly record struct TopologyTrolley(
 
     public ImmutableArray<SiteBasisEncounter> BasisEncounters => Topology.BasisEncountersAt(Site);
 
-    public TraversalSignature Signature => SignatureOf(Site, Direction, CarriedCalibration, Ingress);
+    // TODO(core): Delete this compatibility alias once callers consume CarriedCalibrationRead directly.
+    public Ratio CarriedCalibration => CarriedCalibrationRead.AsRatio().Normalize();
+
+    public TraversalSignature Signature => SignatureOf(Site, Direction, CarriedCalibrationRead, Ingress);
 
     public Measure ExactReentryPeriod => ReentryPeriod((prior, current) => prior.Equivalent(current));
 
@@ -107,7 +110,7 @@ public readonly record struct TopologyTrolley(
     public TopologyTrolley Move(TopologyTrolleyContinuation continuation)
     {
         var next = Canonicalize(Topology, continuation.To);
-        var calibration = continuation.TargetSignature.Calibration.Multiply(continuation.Transmission).Canonicalize();
+        var calibration = continuation.NextCalibrationRead;
         var nextSignature = SignatureOf(next, continuation.Direction, calibration, continuation.Relation);
         return new TopologyTrolley(
             Topology,
@@ -177,21 +180,25 @@ public readonly record struct TopologyTrolley(
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier
         && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
 
-    private static TraversalSignature SignatureOf(Site site, Measure direction, Ratio calibration, Relation? ingress) =>
+    private static TraversalSignature SignatureOf(
+        Site site,
+        Measure direction,
+        ISupportProjection calibration,
+        Relation? ingress) =>
         TraversalSignature.FromSite(
             site,
-            direction,
             calibration,
+            TraversalModifier.FromDirection(direction),
             TraversalSignature.ProvenanceFor(direction, ingress?.Potential ?? site.Potential));
 
-    private static Ratio InitialCalibration(Site site)
+    private static ISupportProjection InitialCalibration(Site site)
     {
         if (site.State.Potential != Measure.Zero || site.State.Dominant != Measure.Zero)
         {
-            return site.State.Normalize().Canonicalize();
+            return new SupportProjectionRead(site.State.Normalize().Canonicalize());
         }
 
-        return Ratio.Tension(site.Potential).Canonicalize();
+        return new SupportProjectionRead(Ratio.Tension(site.Potential).Canonicalize());
     }
 
     private Measure ReentryPeriod(Func<TraversalSignature, TraversalSignature, bool> predicate)
@@ -279,9 +286,20 @@ public readonly record struct TopologyTrolleyContinuation(
 
     public bool IsOutgoing => Disposition.IsOutgoing;
 
-    public Ratio TransmittedCalibration => SourceSignature.Calibration.Multiply(Transmission).Canonicalize();
+    public ISupportProjection TransmittedCalibrationRead =>
+        new SupportProjectionRead(SourceSignature.Calibration.Multiply(Transmission).Canonicalize());
 
-    public Ratio RetainedCalibration => SourceSignature.Calibration.Multiply(Retention).Canonicalize();
+    // TODO(core): Delete this compatibility alias once callers consume TransmittedCalibrationRead directly.
+    public Ratio TransmittedCalibration => TransmittedCalibrationRead.AsRatio();
+
+    public ISupportProjection RetainedCalibrationRead =>
+        new SupportProjectionRead(SourceSignature.Calibration.Multiply(Retention).Canonicalize());
+
+    // TODO(core): Delete this compatibility alias once callers consume RetainedCalibrationRead directly.
+    public Ratio RetainedCalibration => RetainedCalibrationRead.AsRatio();
+
+    public ISupportProjection NextCalibrationRead =>
+        new SupportProjectionRead(TargetSignature.Calibration.Multiply(Transmission).Canonicalize());
 
     public bool HasRetention => Retention.Potential != Measure.Zero;
 

@@ -13,12 +13,17 @@ public readonly record struct BasisEncounterAgreement(
     Ratio Resolution,
     Ratio Continuation,
     Ratio Capability,
-    Ratio Commitment)
+    Ratio Commitment) : ISupportFold
 {
     public ISupportFold CalibrationRead => Encounter;
 
+    public ISupportProjection FoldRead => CalibrationRead.FoldRead;
+
+    // TODO(core): Delete this compatibility alias once callers consume FoldRead directly.
+    public Ratio Fold => FoldRead.AsRatio().Normalize();
+
     // TODO(core): Delete this compatibility alias once callers consume CalibrationRead/FoldRead directly.
-    public Ratio Calibration => CalibrationRead.Fold.Normalize();
+    public Ratio Calibration => Fold;
 
     public Measure Potential => CalibrationRead.Potential;
 
@@ -98,7 +103,7 @@ public readonly record struct BasisEncounterAgreement(
             : supportsCurrent || supportsOpposite
                 ? new Ratio(Measure.One, new Measure(2))
                 : Ratio.Zero(Measure.One);
-        var resolution = ResolutionAgreement(signature.Calibration.Potential, encounter.Potential);
+        var resolution = ResolutionAgreement(signature.CalibrationRead.Potential, encounter.Potential);
         var commitment = encounter.Commitment;
 
         return new BasisEncounterAgreement(encounter, resolution, continuation, capability, commitment);

@@ -19,8 +19,11 @@ public sealed class TraversalEncodingTests
             Provenance.SelfDriven(Measure.One));
 
         Assert.Equal(placement.ProjectionRead.AsRatio(), signature.ProjectionRead.AsRatio());
+        Assert.Equal(new Ratio(Measure.One, Measure.One), signature.CalibrationRead.AsRatio());
         Assert.Equal(placement.Projection, signature.Projection);
         Assert.Equal(placement.Projection, signature.Position);
+        Assert.Equal(new Ratio(Measure.One, Measure.One), signature.Calibration);
+        Assert.Equal(new Ratio(Measure.One, Measure.One), signature.Basis);
     }
 
     [Fact]

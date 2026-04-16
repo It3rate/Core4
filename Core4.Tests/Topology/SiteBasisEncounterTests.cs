@@ -134,7 +134,9 @@ public sealed class SiteBasisEncounterTests
 
         var agreement = encounter.Agree(signature, Measure.One);
 
+        Assert.Equal(encounter.FoldRead.AsRatio(), agreement.FoldRead.AsRatio());
         Assert.Equal(encounter.Fold, agreement.Calibration);
+        Assert.Equal(encounter.Fold, agreement.Fold);
         Assert.Equal(encounter.Potential, agreement.Potential);
         Assert.Equal(encounter.Fold, agreement.CalibrationRead.Fold);
         Assert.Equal(encounter.Potential, agreement.CalibrationRead.Potential);

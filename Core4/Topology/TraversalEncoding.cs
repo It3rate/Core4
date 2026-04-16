@@ -34,7 +34,7 @@ public readonly record struct TraversalModifier(Ratio State)
 /// </summary>
 public readonly record struct TraversalSignature(
     Placement Placement,
-    Ratio Basis,
+    ISupportProjection CalibrationRead,
     TraversalModifier Modifier,
     Provenance Provenance)
 {
@@ -50,7 +50,11 @@ public readonly record struct TraversalSignature(
     // TODO(core): Delete this compatibility alias once callers stop expecting position as raw Ratio.
     public Ratio Position => Projection;
 
-    public Ratio Calibration => Basis.Normalize();
+    // TODO(core): Delete this compatibility alias once callers consume CalibrationRead directly.
+    public Ratio Calibration => CalibrationRead.AsRatio().Normalize();
+
+    // TODO(core): Delete this compatibility alias once callers stop expecting carried calibration as raw Ratio.
+    public Ratio Basis => Calibration;
 
     public Measure CalibrationDirection => Calibration.Sign;
 
@@ -58,7 +62,7 @@ public readonly record struct TraversalSignature(
 
     public Measure EffectiveDirection => new Measure(CalibrationDirection.Raw * Modifier.Direction.Raw);
 
-    public Measure Potential => Placement.Potential + Calibration.Potential + Provenance.Potential;
+    public Measure Potential => Placement.Potential + CalibrationRead.Potential + Provenance.Potential;
 
     public bool SameProjection(TraversalSignature other) =>
         Carrier == other.Carrier && Projection == other.Projection;
@@ -97,11 +101,20 @@ public readonly record struct TraversalSignature(
 
     public static TraversalSignature FromPlacement(
         Placement placement,
+        ISupportProjection calibration,
+        TraversalModifier modifier,
+        Provenance provenance) =>
+        new(placement, calibration, modifier, provenance);
+
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped calibration reads directly.
+    public static TraversalSignature FromPlacement(
+        Placement placement,
         Ratio basis,
         TraversalModifier modifier,
         Provenance provenance) =>
-        new(placement, basis.Normalize(), modifier, provenance);
+        FromPlacement(placement, (ISupportProjection)basis.Normalize(), modifier, provenance);
 
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped calibration reads directly.
     public static TraversalSignature FromPlacement(
         Placement placement,
         Measure perspective,
@@ -111,11 +124,20 @@ public readonly record struct TraversalSignature(
 
     public static TraversalSignature FromSite(
         Site site,
+        ISupportProjection calibration,
+        TraversalModifier modifier,
+        Provenance provenance) =>
+        FromPlacement(site.Placement, calibration, modifier, provenance);
+
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped calibration reads directly.
+    public static TraversalSignature FromSite(
+        Site site,
         Ratio basis,
         TraversalModifier modifier,
         Provenance provenance) =>
         FromPlacement(site.Placement, basis, modifier, provenance);
 
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped calibration reads directly.
     public static TraversalSignature FromSite(
         Site site,
         Measure perspective,
