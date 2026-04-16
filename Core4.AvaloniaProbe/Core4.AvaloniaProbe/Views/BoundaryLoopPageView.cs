@@ -131,7 +131,7 @@ public sealed class BoundaryLoopPageView : UserControl
                     Children =
                     {
                         ProbeUi.Mono("READING", 10d, ProbePalette.Muted),
-                        ProbeUi.Body("Pinned basis is still frozen structure. At a boundary, the same basis can be encountered actionably: retain the carried calibration, replace it, compose through local agreement, or stop and hold the unresolved remainder as local tension.", 10d)
+                        ProbeUi.Body("Pinned basis is still frozen support. At a boundary, the same frozen support can return as a live calibration read: retain the carried calibration, replace it, compose through local agreement, or stop and hold the unresolved remainder as local tension.", 10d)
                     }
                 }, 20, new Thickness(12, 10)),
                 ProbeUi.Card(new StackPanel
@@ -550,14 +550,14 @@ public sealed class BoundaryLoopPageView : UserControl
             builder.Append("site                      ");
             builder.Append(SiteLabel(frontier.Site));
             builder.Append('\n');
-            builder.Append("local basis               ");
+            builder.Append("local reads               ");
             builder.Append(frontier.BasisEncounters.Length);
 
             foreach (var encounter in frontier.BasisEncounters)
             {
                 builder.Append('\n');
                 builder.Append(" - ");
-                builder.Append(DescribeEncounter(encounter));
+                builder.Append(SupportReadFormatting.DescribeEncounter(encounter));
             }
 
             builder.Append('\n');
@@ -575,7 +575,7 @@ public sealed class BoundaryLoopPageView : UserControl
             {
                 builder.Append('\n');
                 builder.Append("best agreement            ");
-                builder.Append(DescribeAgreement(preferred.BestBasisAgreement));
+                builder.Append(SupportReadFormatting.DescribeAgreement(preferred.BestBasisAgreement));
             }
 
             builder.Append('\n');
@@ -731,34 +731,6 @@ public sealed class BoundaryLoopPageView : UserControl
         displaySites = builder.ToImmutable();
         highlightIndex = currentOffset;
         return true;
-    }
-
-    private static string DescribeEncounter(SiteBasisEncounter encounter)
-    {
-        var kind = encounter.IsExplicitPinnedBasis
-            ? "explicit"
-            : encounter.IsBilateral
-                ? "bilateral"
-                : "local";
-        var sidedness = encounter.HasRecessiveCalibration && encounter.HasDominantCalibration
-            ? "dual"
-            : encounter.HasDominantCalibration
-                ? "dominant"
-                : encounter.HasRecessiveCalibration
-                    ? "recessive"
-                    : "blocked";
-        return $"{kind} {sidedness} c {encounter.Commitment}";
-    }
-
-    private static string DescribeAgreement(BasisEncounterAgreement agreement)
-    {
-        var continuation = agreement.PreservesDirection
-            ? "preserve"
-            : agreement.InvertsDirection
-                ? "invert"
-                : "block";
-        var capability = agreement.IsBilateral ? "bilateral" : agreement.IsOneSided ? "one-sided" : "none";
-        return $"{continuation} {capability} c {agreement.Commitment}";
     }
 
     private static string ContinuationLabel(TopologyTrolleyContinuation continuation)
@@ -1238,7 +1210,7 @@ public sealed class BoundaryLoopPageView : UserControl
     {
         public static BoundaryPreset ClampInterval => new(
             "Clamp Interval",
-            "One plain bounded span. The far end exposes no explicit pinned basis, so the trolley can arrive there but not continue through local basis encounter.",
+            "One plain bounded span. The far end exposes no explicit pinned support read, so the trolley can arrive there but not continue through local encounter alone.",
             CarrierChainDemoState.ClampInterval,
             Site.Open(new Carrier(1), new Measure(0)),
             false,
@@ -1246,7 +1218,7 @@ public sealed class BoundaryLoopPageView : UserControl
 
         public static BoundaryPreset ReflectiveInterval => new(
             "Reflective Interval",
-            "Both ends carry inward local basis. The encountered basis can replace or invert the trolley's local reading so the same span behaves like a football-field shuttle.",
+            "Both ends carry inward local support reads. The encountered read can replace or invert the trolley's local reading so the same span behaves like a football-field shuttle.",
             CarrierChainDemoState.ReflectiveInterval,
             Site.Open(new Carrier(1), new Measure(0)),
             true,

@@ -680,6 +680,13 @@ public sealed class TopologyTrolleyPageView : UserControl
 
             if (observation.TryPreferred(out preferred))
             {
+                if (preferred.HasBasisAgreement)
+                {
+                    builder.Append('\n');
+                    builder.Append("best agreement            ");
+                    builder.Append(SupportReadFormatting.DescribeAgreement(preferred.BestBasisAgreement));
+                }
+
                 builder.Append('\n');
                 builder.Append("preferred transfer        ");
                 builder.Append(preferred.TransmittedCalibration);
