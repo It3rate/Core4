@@ -8,7 +8,7 @@ namespace Core4.Structure;
 /// rather than assuming ratio is the only possible projection forever.
 /// Example: <c>var p = basis.Place(new Ratio(3, 10));</c>
 /// </summary>
-public readonly record struct Placement(ISupport Support, Ratio Projection)
+public readonly record struct Placement(ISupport Support, ISupportProjection ProjectionRead)
 {
     public static Placement Exact(Carrier carrier, Measure location) => new(
         carrier,
@@ -18,14 +18,18 @@ public readonly record struct Placement(ISupport Support, Ratio Projection)
 
     public Measure SupportGrade => Support.SupportGrade;
 
-    // Compatibility alias while callers are moved toward projection-first naming.
+    // TODO(core): Delete this compatibility alias once callers read ProjectionRead directly.
+    public Ratio Projection => ProjectionRead.AsRatio();
+
+    // TODO(core): Delete this compatibility alias once callers read Projection directly.
     public Ratio Ratio => Projection;
 
-    public Measure Potential => Projection.Potential;
+    public Measure Potential => ProjectionRead.Potential;
 
-    public Ratio On(Carrier carrier) => Support.Locate((ISupportProjection)Projection.Normalize(), carrier).Normalize();
+    public Ratio On(Carrier carrier) => Support.Locate(ProjectionRead, carrier).Normalize();
 
+    // TODO(core): Delete this compatibility overload once callers resolve through support projections directly.
     public Placement Resolve(Ratio projection) => Resolve((ISupportProjection)projection);
 
-    public Placement Resolve(ISupportProjection projection) => new(Support, projection.AsRatio());
+    public Placement Resolve(ISupportProjection projection) => new(Support, projection);
 }

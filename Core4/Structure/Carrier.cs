@@ -26,12 +26,14 @@ public readonly record struct Carrier(long Id, CarrierDomain Domain) : ISupport
 
     public Placement At(Ratio ratio) => new(this, ratio.Normalize());
 
-    public Placement Place(ISupportProjection projection) => At(projection.AsRatio());
+    public Placement Place(ISupportProjection projection) => new(this, projection);
 
+    // TODO(core): Delete this compatibility overload once callers pass support projections directly.
     public Placement Place(Ratio ratio) => Place((ISupportProjection)ratio);
 
     public Ratio Locate(ISupportProjection position, Carrier carrier) => Structure.Locate(position, carrier);
 
+    // TODO(core): Delete this compatibility overload once callers pass support projections directly.
     public Ratio Locate(Ratio position, Carrier carrier) => Locate((ISupportProjection)position, carrier);
 
     public Carrier InDomain(CarrierDomain domain) => new(Id, domain);

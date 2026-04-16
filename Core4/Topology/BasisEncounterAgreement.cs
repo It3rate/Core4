@@ -17,6 +17,7 @@ public readonly record struct BasisEncounterAgreement(
 {
     public ISupportFold CalibrationRead => Encounter;
 
+    // TODO(core): Delete this compatibility alias once callers consume CalibrationRead/FoldRead directly.
     public Ratio Calibration => CalibrationRead.Fold.Normalize();
 
     public Measure Potential => CalibrationRead.Potential;

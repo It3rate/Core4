@@ -101,9 +101,10 @@ internal sealed class SupportStructure : ISupport
             : new Measure(checked(Inputs[0].Potential.Raw * Inputs[1].Potential.Raw));
 
     public ISupportProjection FoldRead => IsComposite
-        ? new Ratio(Inputs[0].Potential, Inputs[1].Potential).Normalize()
-        : Ratio.Tension(Potential);
+        ? new SupportProjectionRead(new Ratio(Inputs[0].Potential, Inputs[1].Potential).Normalize())
+        : new SupportProjectionRead(Ratio.Tension(Potential));
 
+    // TODO(core): Delete this compatibility alias once callers consume FoldRead directly.
     public Ratio Fold => FoldRead.AsRatio();
 
     public Measure Orientation => IsAtomic ? AtomicOrientation() : Measure.Zero;
@@ -287,39 +288,46 @@ internal sealed class SupportStructure : ISupport
     {
         if (!IsAtomic || !TryGetAtomicSpan(out var span))
         {
-            return Ratio.Tension(site.Potential);
+            return new SupportProjectionRead(Ratio.Tension(site.Potential));
         }
 
-        return ProjectSpan(span, site);
+        return new SupportProjectionRead(ProjectSpan(span, site));
     }
 
+    // TODO(core): Delete this compatibility alias once callers consume ProjectRead directly.
     public Ratio Project(Site site) => ProjectRead(site).AsRatio();
 
     public ISupportProjection ProjectRead(Measure measure)
     {
         if (!IsAtomic || Spans.IsEmpty)
         {
-            return Ratio.Tension(measure);
+            return new SupportProjectionRead(Ratio.Tension(measure));
         }
 
         return ProjectRead(Site.Open(Spans[0].Carrier, measure));
     }
 
+    // TODO(core): Delete this compatibility alias once callers consume ProjectRead directly.
     public Ratio Project(Measure measure) => ProjectRead(measure).AsRatio();
 
-    public ImmutableArray<Ratio> ProjectComponents(ImmutableArray<Site> sites)
+    public ImmutableArray<ISupportProjection> ProjectComponentReads(ImmutableArray<Site> sites)
     {
-        var projections = ImmutableArray.CreateBuilder<Ratio>(Spans.Length);
+        var projections = ImmutableArray.CreateBuilder<ISupportProjection>(Spans.Length);
         var defaults = DefaultAttachmentSites();
 
         for (var index = 0; index < Spans.Length; index++)
         {
             var site = index < sites.Length ? sites[index] : defaults[index];
-            projections.Add(ProjectSpan(Spans[index], site));
+            projections.Add(new SupportProjectionRead(ProjectSpan(Spans[index], site)));
         }
 
         return projections.MoveToImmutable();
     }
+
+    // TODO(core): Delete this compatibility alias once callers consume ProjectComponentReads directly.
+    public ImmutableArray<Ratio> ProjectComponents(ImmutableArray<Site> sites) => ProjectComponentReads(sites)
+        .Select(static projection => projection.AsRatio())
+        .ToImmutableArray();
 
     public SupportStructure Flip()
     {

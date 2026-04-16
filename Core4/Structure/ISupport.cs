@@ -15,9 +15,11 @@ public interface ISupport
 
     Ratio Locate(ISupportProjection position, Carrier carrier);
 
+    // TODO(core): Delete this compatibility overload once callers pass support projections directly.
     Ratio Locate(Ratio position, Carrier carrier) => Locate((ISupportProjection)position, carrier);
 
-    Placement Place(ISupportProjection projection) => new(this, projection.AsRatio());
+    Placement Place(ISupportProjection projection) => new(this, projection);
 
+    // TODO(core): Delete this compatibility overload once callers pass support projections directly.
     Placement Place(Ratio ratio) => Place((ISupportProjection)ratio);
 }

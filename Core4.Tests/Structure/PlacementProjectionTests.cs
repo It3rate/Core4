@@ -11,8 +11,10 @@ public sealed class PlacementProjectionTests
         Carrier x = 1;
         var placement = new Placement(x, new Ratio(3, 10));
 
+        Assert.Equal(new Ratio(3, 10), placement.ProjectionRead.AsRatio());
         Assert.Equal(new Ratio(3, 10), placement.Projection);
         Assert.Equal(new Ratio(3, 10), placement.Ratio);
+        Assert.Equal(new Ratio(3, 10), placement.Resolve(new Ratio(3, 10)).ProjectionRead.AsRatio());
         Assert.Equal(new Ratio(3, 10), placement.Resolve(new Ratio(3, 10)).Projection);
     }
 
@@ -26,6 +28,7 @@ public sealed class PlacementProjectionTests
         var located = x.Locate(projection, x);
 
         Assert.Equal(new Ratio(7, 10), projection.AsRatio());
+        Assert.Equal(new Ratio(7, 10), placement.ProjectionRead.AsRatio());
         Assert.Equal(new Ratio(7, 10), placement.Projection);
         Assert.Equal(new Ratio(7, 10), located);
     }
@@ -40,6 +43,7 @@ public sealed class PlacementProjectionTests
         var placement = support.Place(projection);
         var located = support.Locate(projection, x);
 
+        Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), placement.ProjectionRead.AsRatio());
         Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), placement.Projection);
         Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), located);
     }
@@ -53,6 +57,7 @@ public sealed class PlacementProjectionTests
 
         var resolved = placement.Resolve(projection);
 
+        Assert.Equal(new Ratio(9, 10), resolved.ProjectionRead.AsRatio());
         Assert.Equal(new Ratio(9, 10), resolved.Projection);
         Assert.Equal(new Ratio(9, 10), resolved.Ratio);
     }

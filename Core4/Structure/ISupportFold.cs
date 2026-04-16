@@ -12,5 +12,6 @@ public interface ISupportFold
 
     ISupportProjection FoldRead { get; }
 
+    // TODO(core): Delete this compatibility alias once callers consume FoldRead directly.
     Ratio Fold => FoldRead.AsRatio();
 }

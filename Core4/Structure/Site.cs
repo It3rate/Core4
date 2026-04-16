@@ -20,6 +20,9 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
 
     public Carrier Carrier => Placement.PrimaryCarrier;
 
+    public ISupportProjection PositionRead => Placement.ProjectionRead;
+
+    // TODO(core): Delete this compatibility alias once callers consume PositionRead directly.
     public Ratio Position => Placement.Projection;
 
     public Ratio State => Kernel.Dominant;

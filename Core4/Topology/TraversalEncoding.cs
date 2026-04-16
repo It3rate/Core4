@@ -42,8 +42,12 @@ public readonly record struct TraversalSignature(
 
     public Measure Grade => Placement.SupportGrade;
 
+    public ISupportProjection ProjectionRead => Placement.ProjectionRead;
+
+    // TODO(core): Delete this compatibility alias once callers consume ProjectionRead directly.
     public Ratio Projection => Placement.Projection.Normalize();
 
+    // TODO(core): Delete this compatibility alias once callers stop expecting position as raw Ratio.
     public Ratio Position => Projection;
 
     public Ratio Calibration => Basis.Normalize();

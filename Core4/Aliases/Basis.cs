@@ -63,9 +63,10 @@ public sealed class Basis : ISupport, ISupportFold
 
     public ISupportProjection FoldRead => _structure.FoldRead;
 
+    // TODO(core): Delete this compatibility alias once callers consume FoldRead directly.
     public Ratio Fold => FoldRead.AsRatio();
 
-    // Compatibility alias while callers move from ratio-as-primitive wording toward fold/support reads.
+    // TODO(core): Delete this compatibility alias once callers stop expecting basis-wide Ratio.
     public Ratio Ratio => Fold;
 
     public Measure Orientation => _structure.Orientation;
@@ -137,20 +138,24 @@ public sealed class Basis : ISupport, ISupportFold
 
     public Basis Flip() => new(_structure.Flip());
 
-    public Placement Place(ISupportProjection projection) => new(this, projection.AsRatio());
+    public Placement Place(ISupportProjection projection) => new(this, projection);
 
+    // TODO(core): Delete this compatibility overload once callers pass support projections directly.
     public Placement Place(Ratio ratio) => Place((ISupportProjection)ratio);
 
     public Ratio Locate(ISupportProjection position, Carrier carrier) => _structure.Locate(position, carrier);
 
+    // TODO(core): Delete this compatibility overload once callers pass support projections directly.
     public Ratio Locate(Ratio position, Carrier carrier) => Locate((ISupportProjection)position, carrier);
 
     public ISupportProjection ProjectRead(Site site) => _structure.ProjectRead(site);
 
+    // TODO(core): Delete this compatibility alias once callers consume ProjectRead directly.
     public Ratio Project(Site site) => ProjectRead(site).AsRatio();
 
     public ISupportProjection ProjectRead(Measure measure) => _structure.ProjectRead(measure);
 
+    // TODO(core): Delete this compatibility alias once callers consume ProjectRead directly.
     public Ratio Project(Measure measure) => ProjectRead(measure).AsRatio();
 
     public Attachment Attach(params Site[] sites) => Attachment.Attach(this, sites);

@@ -41,18 +41,22 @@ public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor
 
     public ISupportProjection ProjectRead(Site site) => Structure.ProjectRead(site);
 
+    // TODO(core): Delete this compatibility alias once callers consume ProjectRead directly.
     public Ratio Project(Site site) => ProjectRead(site).AsRatio();
 
     public ISupportProjection ProjectRead(Measure measure) => Structure.ProjectRead(measure);
 
+    // TODO(core): Delete this compatibility alias once callers consume ProjectRead directly.
     public Ratio Project(Measure measure) => ProjectRead(measure).AsRatio();
 
-    public Placement Place(ISupportProjection projection) => new(this, projection.AsRatio());
+    public Placement Place(ISupportProjection projection) => new(this, projection);
 
+    // TODO(core): Delete this compatibility overload once callers pass support projections directly.
     public Placement Place(Ratio ratio) => Place((ISupportProjection)ratio);
 
     public Ratio Locate(ISupportProjection position, Carrier carrier) => Structure.Locate(position, carrier);
 
+    // TODO(core): Delete this compatibility overload once callers pass support projections directly.
     public Ratio Locate(Ratio position, Carrier carrier) => Locate((ISupportProjection)position, carrier);
 
     public Basis Freeze() => Basis.Freeze(this);

@@ -51,8 +51,9 @@ public sealed class Attachment : ISupportFold
     // have one atomic projection, so they return unresolved tension and callers should prefer Fold or ComponentProjections.
     public ISupportProjection ProjectionRead => TryGetProjectionRead(out var projection)
         ? projection
-        : Ratio.Tension(Potential);
+        : new SupportProjectionRead(Ratio.Tension(Potential));
 
+    // TODO(core): Delete this compatibility alias once callers consume ProjectionRead directly.
     public Ratio Projection => ProjectionRead.AsRatio();
 
     public Measure Potential => IsAtomic
@@ -62,12 +63,13 @@ public sealed class Attachment : ISupportFold
             : new Measure(checked(Recessive.Potential.Raw * Dominant.Potential.Raw));
 
     public ISupportProjection FoldRead => IsComposite
-        ? new Ratio(Recessive.Potential, Dominant.Potential).Normalize()
+        ? new SupportProjectionRead(new Ratio(Recessive.Potential, Dominant.Potential).Normalize())
         : ProjectionRead;
 
+    // TODO(core): Delete this compatibility alias once callers consume FoldRead directly.
     public Ratio Fold => FoldRead.AsRatio();
 
-    // Compatibility alias while callers move from ratio-as-primitive wording toward fold/support reads.
+    // TODO(core): Delete this compatibility alias once callers stop expecting attachment-wide Ratio.
     public Ratio Ratio => Fold;
 
     public Measure KernelCode => Structure.KernelCode();
@@ -90,10 +92,11 @@ public sealed class Attachment : ISupportFold
             return true;
         }
 
-        projection = Ratio.Tension(Potential);
+        projection = new SupportProjectionRead(Ratio.Tension(Potential));
         return false;
     }
 
+    // TODO(core): Delete this compatibility alias once callers consume TryGetProjectionRead directly.
     public bool TryGetProjection(out Ratio projection)
     {
         var success = TryGetProjectionRead(out var read);
@@ -102,22 +105,14 @@ public sealed class Attachment : ISupportFold
     }
 
     public ImmutableArray<ISupportProjection> ComponentProjectionReads()
-    {
-        var ratios = Structure.ProjectComponents(_sites);
-        var projections = ImmutableArray.CreateBuilder<ISupportProjection>(ratios.Length);
+        => Structure.ProjectComponentReads(_sites);
 
-        foreach (var ratio in ratios)
-        {
-            projections.Add(ratio);
-        }
-
-        return projections.MoveToImmutable();
-    }
-
+    // TODO(core): Delete this compatibility alias once callers consume ComponentProjectionReads directly.
     public ImmutableArray<Ratio> ComponentProjections() => ComponentProjectionReads()
         .Select(static projection => projection.AsRatio())
         .ToImmutableArray();
 
+    // TODO(core): Delete this compatibility alias once callers stop expecting ratio-only component reads.
     public ImmutableArray<Ratio> Components() => ComponentProjections();
 
     public Ratio ResolvedCoefficient() => IsAtomicPair
