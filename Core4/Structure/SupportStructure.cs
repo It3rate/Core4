@@ -192,6 +192,29 @@ internal sealed class SupportStructure : ISupport
         return new Measure((recessive << 1) | dominant);
     }
 
+    public Ratio Project(Site site)
+    {
+        if (!IsAtomic || Spans.IsEmpty)
+        {
+            return Ratio.Tension(site.Potential);
+        }
+
+        var span = Spans[0];
+        var sitePosition = site.On(span.Carrier).Normalize();
+        var delta = sitePosition.Subtract(span.OriginPosition);
+        return delta.Divide(span.Span);
+    }
+
+    public Ratio Project(Measure measure)
+    {
+        if (!IsAtomic || Spans.IsEmpty)
+        {
+            return Ratio.Tension(measure);
+        }
+
+        return Project(Site.Open(Spans[0].Carrier, measure));
+    }
+
     public static SupportStructure ForCarrier(Carrier carrier) => new(
         carrier,
         Measure.Zero,

@@ -38,14 +38,9 @@ public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor
 
     public Relation Harden(Ratio stiffness) => new(Carrier, Origin.Harden(stiffness), Anchor.Harden(stiffness));
 
-    public Ratio Project(Site site)
-    {
-        var sitePosition = site.On(Carrier);
-        var delta = sitePosition.Subtract(OriginPosition);
-        return delta.Divide(Span);
-    }
+    public Ratio Project(Site site) => Structure.Project(site);
 
-    public Ratio Project(Measure measure) => Project(Site.Open(Carrier, measure));
+    public Ratio Project(Measure measure) => Structure.Project(measure);
 
     public Placement Place(Ratio ratio) => new(this, ratio.Normalize());
 

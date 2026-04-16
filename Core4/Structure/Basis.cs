@@ -33,11 +33,11 @@ public sealed class Basis : ISupport, ISupportFold
         _structure = SupportStructure.Fuse(recessive._structure, dominant._structure);
     }
 
-    public bool IsAtomic => _inputs.IsEmpty;
+    public bool IsAtomic => _structure.IsAtomic;
 
-    public bool IsComposite => !IsAtomic;
+    public bool IsComposite => _structure.IsComposite;
 
-    public bool IsAtomicPair => IsComposite && Recessive.IsAtomic && Dominant.IsAtomic;
+    public bool IsAtomicPair => _structure.IsAtomicPair();
 
     public Measure Grade => _structure.SupportGrade;
 
@@ -147,13 +147,9 @@ public sealed class Basis : ISupport, ISupportFold
 
     public Ratio Locate(ISupportProjection position, Carrier carrier) => Locate(position.AsRatio(), carrier);
 
-    public Ratio Project(Site site) => IsAtomic
-        ? AtomicRelation.Project(site)
-        : Ratio.Tension(site.Potential);
+    public Ratio Project(Site site) => _structure.Project(site);
 
-    public Ratio Project(Measure measure) => IsAtomic
-        ? Project(Site.Open(AtomicRelation.Carrier, measure))
-        : Ratio.Tension(measure);
+    public Ratio Project(Measure measure) => _structure.Project(measure);
 
     public Attachment Attach(params Site[] sites) => Attachment.Attach(this, sites);
 
