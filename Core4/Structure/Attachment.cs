@@ -1,8 +1,7 @@
 using System.Collections.Immutable;
 using Core4.Aliases;
-using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.Interpretation;
 
 /// <summary>
 /// A frozen measuring scaffold with bound live samples. This is not a single local place; it is a read of one whole
@@ -264,3 +263,4 @@ public sealed class Attachment : ISupportFold
 
     private static Measure Absolute(Measure value) => value.Raw < 0 ? -value : value;
 }
+

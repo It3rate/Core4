@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Core4.Numerics;
+namespace Core4.Encoding;
 
 /// <summary>
 /// The primitive Core4 reading. All canonical numeric storage stays wrapped as a measure so the backing type
@@ -29,3 +29,4 @@ public readonly record struct Measure(long Raw)
 
     public override string ToString() => Raw.ToString(CultureInfo.InvariantCulture);
 }
+

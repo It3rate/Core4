@@ -1,6 +1,4 @@
 using System.Collections.Immutable;
-using Core4.Numerics;
-using Core4.Structure;
 
 namespace Core4.Topology;
 
@@ -449,3 +447,4 @@ public readonly record struct TraversalObservation(
     private static int Compare(ISupportProjection left, ISupportProjection right)
         => left.CompareValueRead(right);
 }
+

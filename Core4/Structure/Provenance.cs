@@ -1,6 +1,6 @@
 using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.State;
 
 /// <summary>
 /// Self/other weighting encoded on a provenance axis. Positive settled values are self-driven, negative settled
@@ -45,3 +45,4 @@ public readonly record struct Provenance(SupportProjectionRead AxisRead)
 
     public Measure Other => IsOther || IsShared ? Potential : Measure.Zero;
 }
+

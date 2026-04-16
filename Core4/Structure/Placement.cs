@@ -1,6 +1,6 @@
 using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.Interpretation;
 
 /// <summary>
 /// A location expressed as support plus a support-derived projection. The current compatibility projection is still
@@ -36,3 +36,4 @@ public readonly record struct Placement(ISupport Support, ISupportProjection Pro
 
     public Placement Resolve(ISupportProjection projection) => new(Support, projection);
 }
+

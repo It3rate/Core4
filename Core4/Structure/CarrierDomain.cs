@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Core4.Structure;
+namespace Core4.Encoding;
 
 /// <summary>
 /// One semantic family of carriers, such as temperature or distance. Several carrier instances may belong to the same
@@ -13,3 +13,4 @@ public readonly record struct CarrierDomain(long Id)
 
     public override string ToString() => Id.ToString(CultureInfo.InvariantCulture);
 }
+

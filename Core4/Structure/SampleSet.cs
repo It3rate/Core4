@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.Encoding;
 
 /// <summary>
 /// A support-independent collected sample group. This is not yet calibrated by a ruler; it is an ordered,
@@ -98,3 +98,4 @@ public sealed class SampleSet
         return new SampleSet(sites.ToImmutable(), inputs);
     }
 }
+

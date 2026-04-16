@@ -1,6 +1,6 @@
 using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.State;
 
 /// <summary>
 /// A read-only feedback publication travelling back across the orthogonal frontier toward the site that originally
@@ -112,3 +112,4 @@ public sealed record OrthogonalFeedback(
         Ratio published,
         Ratio desired) => Request(support, source, target, (ISupportProjection)published, desired);
 }
+

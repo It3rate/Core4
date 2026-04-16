@@ -1,6 +1,6 @@
 using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.Interpretation;
 
 /// <summary>
 /// A support-level read that exposes whole-structure potential together with the current fold comparing its ordered
@@ -15,3 +15,4 @@ public interface ISupportFold
     // TODO(core): Delete this compatibility alias once callers consume FoldRead directly.
     Ratio Fold => FoldRead.AsRatio();
 }
+

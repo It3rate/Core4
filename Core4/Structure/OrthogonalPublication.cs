@@ -1,6 +1,6 @@
 using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.State;
 
 /// <summary>
 /// A read-only foreign publication visible across the orthogonal frontier. Unlike tension flow, this payload is not
@@ -71,3 +71,4 @@ public sealed record OrthogonalPublication(ISupport Support, SupportProjectionRe
 
     public OrthogonalPublication Rebalance(Provenance provenance) => new(Support, ValueRead, Site, provenance);
 }
+

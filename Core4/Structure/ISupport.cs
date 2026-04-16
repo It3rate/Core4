@@ -1,6 +1,6 @@
 using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.Interpretation;
 
 /// <summary>
 /// Anything traversable by committed structure. A carrier is the simplest support, a basis is a reusable frozen
@@ -26,3 +26,4 @@ public interface ISupport
     // TODO(core): Delete this compatibility overload once callers pass support projections directly.
     Placement Place(Ratio ratio) => Place((ISupportProjection)ratio);
 }
+

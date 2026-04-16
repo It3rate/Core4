@@ -1,5 +1,5 @@
 using Core4.Numerics;
-namespace Core4.Structure;
+namespace Core4.State;
 
 /// <summary>
 /// A live support-linked orthogonal influence. In the current engine this still carries one shared Ratio channel,
@@ -37,3 +37,4 @@ public readonly record struct Flow(ISupport Support, SupportProjectionRead Value
 
     public Flow Rebalance(Provenance provenance) => new(Support, ValueRead, provenance);
 }
+

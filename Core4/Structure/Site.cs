@@ -1,7 +1,7 @@
 using Core4.Aliases;
 using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.State;
 
 /// <summary>
 /// A local place where connection can happen. A site has a placement, a fixed aligned kernel, and an orthogonal
@@ -145,3 +145,4 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
 
     public Relation Relate(Carrier carrier, Site anchor) => new(carrier, this, anchor);
 }
+

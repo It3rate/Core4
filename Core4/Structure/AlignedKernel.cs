@@ -1,6 +1,6 @@
 using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.State;
 
 /// <summary>
 /// The fixed aligned pair for one carrier-local reading. Recessive retains anchor or memory, and dominant carries
@@ -123,3 +123,4 @@ public readonly record struct AlignedKernel(
         ? Measure.One
         : Measure.Zero;
 }
+

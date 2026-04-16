@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.State;
 
 public readonly record struct OrthogonalFlowGroup(
     Carrier Carrier,
@@ -254,3 +254,4 @@ public readonly record struct OrthogonalReservoir(
         public ISupportProjection ValueOrZeroRead() => _hasValue ? _value : Ratio.Zero(Measure.Zero);
     }
 }
+

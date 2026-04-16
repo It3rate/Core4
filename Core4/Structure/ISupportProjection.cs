@@ -1,6 +1,6 @@
 using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.Interpretation;
 
 /// <summary>
 /// A support-derived read that can still be used as a placement or traversal coordinate. The current engine uses
@@ -15,3 +15,4 @@ public interface ISupportProjection
     // TODO(core): Delete this compatibility fold once support reads no longer need to collapse back to Ratio.
     Ratio AsRatio();
 }
+

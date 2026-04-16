@@ -1,6 +1,6 @@
 using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.Interpretation;
 
 /// <summary>
 /// Shared transitional math for support-shaped reads. This keeps the current ratio-backed compatibility fold in one
@@ -39,3 +39,4 @@ public static class SupportProjectionMath
     public static SupportProjectionRead MultiplyRead(this ISupportProjection projection, Ratio factor) =>
         MultiplyRead(projection, (ISupportProjection)factor);
 }
+

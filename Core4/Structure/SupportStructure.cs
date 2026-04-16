@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.Encoding;
 
 internal readonly record struct LandmarkId(long Value)
 {
@@ -559,3 +559,4 @@ internal sealed class SupportStructure : ISupport
         return -1L;
     }
 }
+

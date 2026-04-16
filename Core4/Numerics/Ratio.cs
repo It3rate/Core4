@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Numerics;
 using Core4.Structure;
 
-namespace Core4.Numerics;
+namespace Core4.Aliases;
 
 /// <summary>
 /// An ordered support-local read stored as a pinned origin, a pinned unit location, and a current value location.
@@ -335,3 +335,4 @@ public readonly record struct Ratio : ISupportProjection
         return new Measure((long)value);
     }
 }
+

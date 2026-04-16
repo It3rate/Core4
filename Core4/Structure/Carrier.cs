@@ -1,7 +1,7 @@
 using System.Globalization;
 using Core4.Numerics;
 
-namespace Core4.Structure;
+namespace Core4.Encoding;
 
 /// <summary>
 /// A primitive support: one concrete ordered carrier instance inside some semantic domain. Different carrier instances
@@ -43,3 +43,4 @@ public readonly record struct Carrier(long Id, CarrierDomain Domain) : ISupport
 
     public override string ToString() => Id.ToString(CultureInfo.InvariantCulture);
 }
+
