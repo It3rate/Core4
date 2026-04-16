@@ -38,7 +38,7 @@ public readonly record struct TraversalSignature(
     TraversalModifier Modifier,
     Provenance Provenance)
 {
-    private Ratio NormalizedCalibration => CalibrationRead.AsRatio().Normalize();
+    private Ratio NormalizedCalibration => CalibrationRead.NormalizedRatio();
 
     public Carrier Carrier => Placement.PrimaryCarrier;
 

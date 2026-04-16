@@ -20,7 +20,7 @@ public readonly record struct BasisEncounterAgreement(
     public ISupportProjection FoldRead => CalibrationRead.FoldRead;
 
     // TODO(core): Delete this compatibility alias once callers consume FoldRead directly.
-    public Ratio Fold => FoldRead.AsRatio().Normalize();
+    public Ratio Fold => FoldRead.NormalizedRatio();
 
     // TODO(core): Delete this compatibility alias once callers consume CalibrationRead/FoldRead directly.
     public Ratio Calibration => Fold;

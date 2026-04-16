@@ -53,6 +53,17 @@ public sealed class PlacementProjectionTests
     }
 
     [Fact]
+    public void SupportProjectionMathKeepsCompatibilityFoldingInOnePlace()
+    {
+        ISupportProjection offset = new ProxyProjection(new Ratio(new Measure(100), new Measure(107), new Measure(110)));
+        ISupportProjection magnitude = new ProxyProjection(new Ratio(new Measure(4), Measure.One));
+
+        Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), offset.NormalizedRatio());
+        Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), offset.NormalizeRead().AsRatio());
+        Assert.Equal(new Ratio(new Measure(2), Measure.One), magnitude.MultiplyRead(new Ratio(new Measure(1), new Measure(2))).AsRatio());
+    }
+
+    [Fact]
     public void PlacementCanResolveFromSupportProjectionInterface()
     {
         Carrier x = 1;

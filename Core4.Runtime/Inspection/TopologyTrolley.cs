@@ -40,7 +40,7 @@ public readonly record struct TopologyTrolley(
     public ImmutableArray<SiteBasisEncounter> BasisEncounters => Topology.BasisEncountersAt(Site);
 
     // TODO(core): Delete this compatibility alias once callers consume CarriedCalibrationRead directly.
-    public Ratio CarriedCalibration => CarriedCalibrationRead.AsRatio().Normalize();
+    public Ratio CarriedCalibration => CarriedCalibrationRead.NormalizedRatio();
 
     public TraversalSignature Signature => SignatureOf(Site, Direction, CarriedCalibrationRead, Ingress);
 
@@ -287,19 +287,19 @@ public readonly record struct TopologyTrolleyContinuation(
     public bool IsOutgoing => Disposition.IsOutgoing;
 
     public ISupportProjection TransmittedCalibrationRead =>
-        new SupportProjectionRead(SourceSignature.CalibrationRead.AsRatio().Multiply(Transmission).Canonicalize());
+        SourceSignature.CalibrationRead.MultiplyRead(Transmission);
 
     // TODO(core): Delete this compatibility alias once callers consume TransmittedCalibrationRead directly.
     public Ratio TransmittedCalibration => TransmittedCalibrationRead.AsRatio();
 
     public ISupportProjection RetainedCalibrationRead =>
-        new SupportProjectionRead(SourceSignature.CalibrationRead.AsRatio().Multiply(Retention).Canonicalize());
+        SourceSignature.CalibrationRead.MultiplyRead(Retention);
 
     // TODO(core): Delete this compatibility alias once callers consume RetainedCalibrationRead directly.
     public Ratio RetainedCalibration => RetainedCalibrationRead.AsRatio();
 
     public ISupportProjection NextCalibrationRead =>
-        new SupportProjectionRead(TargetSignature.CalibrationRead.AsRatio().Multiply(Transmission).Canonicalize());
+        TargetSignature.CalibrationRead.MultiplyRead(Transmission);
 
     public bool HasRetention => Retention.Potential != Measure.Zero;
 
