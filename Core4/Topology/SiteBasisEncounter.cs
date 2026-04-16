@@ -146,7 +146,7 @@ public readonly record struct SiteBasisEncounter(
             return false;
         }
 
-        relation = Structure.AtomicRelation;
+        relation = Structure.AtomicRelation();
         target = relation.Anchor;
         return !SameNode(Site, target);
     }

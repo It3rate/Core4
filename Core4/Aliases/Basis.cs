@@ -45,7 +45,7 @@ public sealed class Basis : ISupport, ISupportFold
 
     public Measure AttachmentArity => RelationCount;
 
-    public Measure CarrierCount => _structure.CarrierCount;
+    public Measure CarrierCount => _structure.CarrierCount();
 
     public ImmutableArray<Basis> Inputs => _inputs;
 
@@ -57,9 +57,9 @@ public sealed class Basis : ISupport, ISupportFold
 
     public Basis Dominant => IsComposite ? _inputs[1] : this;
 
-    public Measure Potential => _structure.Potential;
+    public Measure Potential => _structure.Potential();
 
-    public ISupportProjection FoldRead => _structure.FoldRead;
+    public ISupportProjection FoldRead => _structure.FoldRead();
 
     // TODO(core): Delete this compatibility alias once callers consume FoldRead directly.
     public Ratio Fold => FoldRead.AsRatio();
@@ -67,15 +67,15 @@ public sealed class Basis : ISupport, ISupportFold
     // TODO(core): Delete this compatibility alias once callers stop expecting basis-wide Ratio.
     public Ratio Ratio => Fold;
 
-    public Measure Orientation => _structure.Orientation;
+    public Measure Orientation => _structure.Orientation();
 
-    public Ratio Stiffness => _structure.Stiffness;
+    public Ratio Stiffness => _structure.Stiffness();
 
-    public bool IsRecessive => _structure.IsRecessive;
+    public bool IsRecessive => _structure.IsRecessive();
 
-    public bool IsDominant => _structure.IsDominant;
+    public bool IsDominant => _structure.IsDominant();
 
-    internal Relation AtomicRelation => _structure.AtomicRelation;
+    internal Relation AtomicRelation => _structure.AtomicRelation();
 
     public static Basis Freeze(Relation relation) => Freeze(relation, new Ratio(Measure.One, Measure.One));
 

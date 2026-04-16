@@ -17,30 +17,34 @@ public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor
 
     public Measure SupportGrade => Measure.Zero;
 
-    internal SupportStructure Structure => SupportStructure.FromRelation(this);
+    internal SupportStructure Structure => SupportStructure.FromSpan(
+        Carrier,
+        Origin.On(Carrier).Normalize(),
+        Anchor.On(Carrier).Normalize(),
+        Origin.Stiffness.Weaker(Anchor.Stiffness));
 
-    public ISupportProjection OriginPositionRead => Structure.OriginPositionRead;
+    public ISupportProjection OriginPositionRead => Structure.OriginPositionRead();
 
     // TODO(core): Delete this compatibility alias once callers consume OriginPositionRead directly.
-    public Ratio OriginPosition => Structure.OriginPosition;
+    public Ratio OriginPosition => Structure.OriginPosition();
 
-    public ISupportProjection AnchorPositionRead => Structure.AnchorPositionRead;
+    public ISupportProjection AnchorPositionRead => Structure.AnchorPositionRead();
 
     // TODO(core): Delete this compatibility alias once callers consume AnchorPositionRead directly.
-    public Ratio AnchorPosition => Structure.AnchorPosition;
+    public Ratio AnchorPosition => Structure.AnchorPosition();
 
-    public ISupportProjection SpanRead => Structure.SpanRead;
+    public ISupportProjection SpanRead => Structure.SpanRead();
 
     // TODO(core): Delete this compatibility alias once callers consume SpanRead directly.
-    public Ratio Span => Structure.Span;
+    public Ratio Span => Structure.Span();
 
-    public Measure Delta => Structure.Delta;
+    public Measure Delta => Structure.Delta();
 
-    public Measure Orientation => Structure.Orientation;
+    public Measure Orientation => Structure.Orientation();
 
-    public Measure Potential => Structure.Potential;
+    public Measure Potential => Structure.Potential();
 
-    public Ratio Stiffness => Structure.Stiffness;
+    public Ratio Stiffness => Structure.Stiffness();
 
     public Relation Flip() => new(Carrier, Anchor, Origin);
 

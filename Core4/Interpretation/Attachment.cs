@@ -144,7 +144,7 @@ public sealed class Attachment : ISupportFold
 
     public Measure SegmentStart() => IsSegmentPair() ? Recessive.Sites[0].Location : Measure.Zero;
 
-    public Measure SegmentPivot() => IsSegmentPair() ? Recessive.Structure.AtomicRelation.Origin.Location : Measure.Zero;
+    public Measure SegmentPivot() => IsSegmentPair() ? Recessive.Structure.AtomicRelation().Origin.Location : Measure.Zero;
 
     public Measure SegmentEnd() => IsSegmentPair() ? Dominant.Sites[0].Location : Measure.Zero;
 
