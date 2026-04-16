@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using Avalonia;
+using Core4.AvaloniaProbe.Formatting;
 using Core4.Dynamics;
 using Core4.Numerics;
 using Core4.Structure;
@@ -97,7 +98,7 @@ public readonly record struct CircuitDemoState(
             }
         }
 
-        return $"{CarrierLabel(node.Key.PrimaryCarrier)}{node.Key.On(node.Key.PrimaryCarrier).Whole.Raw}";
+        return ProbeSiteFormatting.PlacementLabel(node.Key);
     }
 
     private static CircuitDemoState CreateLoop(
@@ -190,13 +191,4 @@ public readonly record struct CircuitDemoState(
 
         return builder.ToImmutable();
     }
-
-    private static string CarrierLabel(Carrier carrier) => carrier.Id switch
-    {
-        1L => "x",
-        2L => "y",
-        3L => "z",
-        4L => "w",
-        _ => $"c{carrier.Id}"
-    };
 }

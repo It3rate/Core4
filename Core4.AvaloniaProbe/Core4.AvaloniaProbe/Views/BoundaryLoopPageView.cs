@@ -8,6 +8,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Core4.AvaloniaProbe.Controls;
+using Core4.AvaloniaProbe.Formatting;
 using Core4.AvaloniaProbe.Models;
 using Core4.AvaloniaProbe.Rendering;
 using Core4.Inspection;
@@ -1184,27 +1185,11 @@ public sealed class BoundaryLoopPageView : UserControl
         return -1;
     }
 
-    private static bool SameNode(Site left, Site right) =>
-        left.Carrier == right.Carrier && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
+    private static bool SameNode(Site left, Site right) => ProbeSiteFormatting.SameNode(left, right);
 
-    private static string CarrierLabel(Carrier carrier) => carrier.Id switch
-    {
-        1L => "x",
-        2L => "y",
-        3L => "z",
-        4L => "w",
-        _ => $"c{carrier.Id}"
-    };
+    private static string CarrierLabel(Carrier carrier) => ProbeSiteFormatting.CarrierLabel(carrier);
 
-    private static string SiteLabel(Site site) => $"{CarrierLabel(site.Carrier)}{PositionLabel(site)}";
-
-    private static string PositionLabel(Site site)
-    {
-        var position = site.On(site.Carrier).Normalize();
-        return position.IsResolved && position.Remainder == Core4.Numerics.Measure.Zero
-            ? position.Whole.Raw.ToString()
-            : position.ToString();
-    }
+    private static string SiteLabel(Site site) => ProbeSiteFormatting.SiteLabel(site);
 
     private readonly record struct BoundaryPreset(
         string Label,

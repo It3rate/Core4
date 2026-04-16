@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Core4.AvaloniaProbe.Controls;
+using Core4.AvaloniaProbe.Formatting;
 using Core4.AvaloniaProbe.Models;
 using Core4.AvaloniaProbe.Rendering;
 using Core4.Dynamics;
@@ -260,7 +261,7 @@ public sealed class CarrierChainPageView : UserControl
             $"continuing                {connector.Incidence.ContinuingCarrierCount.Raw}\n" +
             $"terminal                  {connector.Incidence.TerminalCarrierCount.Raw}\n" +
             $"geometry carriers         {connector.GeometryCarrierCount.Raw}\n" +
-            $"site position             {connector.SiteCarrierPosition.Normalize()}";
+            $"site position             {ProbeSiteFormatting.PositionLabel(connector.SiteCarrierPosition)}";
     }
 
     private static string DescribeFlows(CarrierChainDemoState state, CarrierChainSceneLayout layout)
@@ -335,7 +336,7 @@ public sealed class CarrierChainPageView : UserControl
         {
             var node = chain.Nodes[index];
             builder.Append('[');
-            builder.Append(node.Location.Raw);
+            builder.Append(ProbeSiteFormatting.PositionLabel(node.Site));
             builder.Append(" a");
             builder.Append(node.AttachmentCount.Raw);
             builder.Append(']');
@@ -351,14 +352,7 @@ public sealed class CarrierChainPageView : UserControl
         return builder.ToString();
     }
 
-    private static string SiteLabel(Site site) => $"{CarrierLabel(site.Carrier)}{site.Location.Raw}";
+    private static string SiteLabel(Site site) => ProbeSiteFormatting.SiteLabel(site);
 
-    private static string CarrierLabel(Carrier carrier) => carrier.Id switch
-    {
-        1L => "x",
-        2L => "y",
-        3L => "z",
-        4L => "w",
-        _ => $"c{carrier.Id}"
-    };
+    private static string CarrierLabel(Carrier carrier) => ProbeSiteFormatting.CarrierLabel(carrier);
 }

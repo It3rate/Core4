@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Core4.AvaloniaProbe.Controls;
+using Core4.AvaloniaProbe.Formatting;
 using Core4.AvaloniaProbe.Models;
 using Core4.AvaloniaProbe.Rendering;
 using Core4.Dynamics;
@@ -418,7 +419,7 @@ public sealed class CircuitPageView : UserControl
             }
         }
 
-        return key.On(key.PrimaryCarrier).Whole.Raw.ToString();
+        return ProbeSiteFormatting.PlacementLabel(key);
     }
 
     private string Format(Ratio value) => CircuitFormat.FormatRatio(value, _fractionView);

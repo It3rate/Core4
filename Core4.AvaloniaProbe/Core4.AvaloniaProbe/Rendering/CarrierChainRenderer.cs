@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using Avalonia;
 using Avalonia.Media;
+using Core4.AvaloniaProbe.Formatting;
 using Core4.AvaloniaProbe.Models;
 using Core4.Dynamics;
 using Core4.Numerics;
@@ -513,7 +514,7 @@ public static class CarrierChainRenderer
             {
                 carriers.Add(node.Carrier);
                 memberSites.Add(node.Site);
-                labels.Add(SiteLabel(node.Site));
+                labels.Add(ProbeSiteFormatting.SiteLabel(node.Site));
 
                 foreach (var site in node.AttachedSites)
                 {
@@ -705,17 +706,6 @@ public static class CarrierChainRenderer
         ? ProbePalette.OrthogonalInput
         : ProbePalette.Orthogonal;
 
-    private static string SiteLabel(Site site) => $"{CarrierLabel(site.Carrier)}{PositionLabel(site)}";
-
-    private static string CarrierLabel(Carrier carrier) => carrier.Id switch
-    {
-        1L => "x",
-        2L => "y",
-        3L => "z",
-        4L => "w",
-        _ => $"c{carrier.Id}"
-    };
-
     private static IBrush EdgeBrush(
         CarrierChainDemoState state,
         CarrierChain chain,
@@ -842,7 +832,7 @@ public static class CarrierChainRenderer
 
     private static string EdgeLabel(Carrier carrier, long desiredMagnitude, long actualMagnitude)
     {
-        var prefix = $"{CarrierLabel(carrier)}:{desiredMagnitude}";
+        var prefix = $"{ProbeSiteFormatting.CarrierLabel(carrier)}:{desiredMagnitude}";
         return desiredMagnitude == actualMagnitude
             ? prefix
             : $"{prefix}->{actualMagnitude}";
@@ -1002,16 +992,7 @@ public static class CarrierChainRenderer
         return false;
     }
 
-    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier
-        && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
-
-    private static string PositionLabel(Site site)
-    {
-        var position = site.On(site.Carrier).Normalize();
-        return position.IsResolved && position.Remainder == Measure.Zero
-            ? position.Whole.Raw.ToString()
-            : position.ToString();
-    }
+    private static bool SameNode(Site left, Site right) => ProbeSiteFormatting.SameNode(left, right);
 }
 
 public readonly record struct CarrierChainSceneLayout(

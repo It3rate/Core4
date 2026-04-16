@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Threading;
 using Core4.AvaloniaProbe.Controls;
+using Core4.AvaloniaProbe.Formatting;
 using Core4.AvaloniaProbe.Models;
 using Core4.AvaloniaProbe.Rendering;
 using Core4.Inspection;
@@ -786,7 +787,7 @@ public sealed class TopologyTrolleyPageView : UserControl
 
         foreach (var frontier in _autoWave.VisibleFrontiers)
         {
-            if (frontier.Site.Carrier == site.Carrier && frontier.Site.Location == site.Location)
+            if (ProbeSiteFormatting.SameNode(frontier.Site, site))
             {
                 var intensity = frontier.Intensity.Canonicalize();
                 return intensity == new Ratio(Core4.Numerics.Measure.One, Core4.Numerics.Measure.One)
@@ -811,8 +812,7 @@ public sealed class TopologyTrolleyPageView : UserControl
 
         var relation = frontier.TrailRelations[^1];
         var actualMagnitude = RelationMagnitude(layout, relation);
-        var atOrigin = frontier.Site.Carrier == relation.Origin.Carrier
-            && frontier.Site.Location == relation.Origin.Location;
+        var atOrigin = ProbeSiteFormatting.SameNode(frontier.Site, relation.Origin);
         var position = atOrigin ? 0d : 1d;
         var recessive = actualMagnitude * position;
         var dominant = Math.Max(0d, actualMagnitude - recessive);
@@ -984,7 +984,7 @@ public sealed class TopologyTrolleyPageView : UserControl
         {
             foreach (var site in hub.MemberSites)
             {
-                if (site.Carrier == continuation.To.Carrier && site.Location == continuation.To.Location)
+                if (ProbeSiteFormatting.SameNode(site, continuation.To))
                 {
                     return hub.Point;
                 }
@@ -994,22 +994,15 @@ public sealed class TopologyTrolleyPageView : UserControl
         return default;
     }
 
-    private static string SiteLabel(Site site) => $"{CarrierLabel(site.Carrier)}{site.Location.Raw}";
+    private static string SiteLabel(Site site) => ProbeSiteFormatting.SiteLabel(site);
 
-    private static string CarrierLabel(Carrier carrier) => carrier.Id switch
-    {
-        1L => "x",
-        2L => "y",
-        3L => "z",
-        4L => "w",
-        _ => $"c{carrier.Id}"
-    };
+    private static string CarrierLabel(Carrier carrier) => ProbeSiteFormatting.CarrierLabel(carrier);
 
     private static void AddSite(ImmutableArray<Site>.Builder sites, Site site)
     {
         foreach (var known in sites)
         {
-            if (known.Carrier == site.Carrier && known.Location == site.Location)
+            if (ProbeSiteFormatting.SameNode(known, site))
             {
                 return;
             }
@@ -1022,7 +1015,7 @@ public sealed class TopologyTrolleyPageView : UserControl
     {
         foreach (var known in readouts)
         {
-            if (known.Site.Carrier == readout.Site.Carrier && known.Site.Location == readout.Site.Location)
+            if (ProbeSiteFormatting.SameNode(known.Site, readout.Site))
             {
                 return;
             }
@@ -1036,12 +1029,9 @@ public sealed class TopologyTrolleyPageView : UserControl
         foreach (var known in motions)
         {
             if (known.Relation == motion.Relation
-                && known.From.Carrier == motion.From.Carrier
-                && known.From.Location == motion.From.Location
-                && known.To.Carrier == motion.To.Carrier
-                && known.To.Location == motion.To.Location
-                && known.TrailAnchor.Carrier == motion.TrailAnchor.Carrier
-                && known.TrailAnchor.Location == motion.TrailAnchor.Location)
+                && ProbeSiteFormatting.SameNode(known.From, motion.From)
+                && ProbeSiteFormatting.SameNode(known.To, motion.To)
+                && ProbeSiteFormatting.SameNode(known.TrailAnchor, motion.TrailAnchor))
             {
                 return;
             }

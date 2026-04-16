@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Core4.AvaloniaProbe.Controls;
+using Core4.AvaloniaProbe.Formatting;
 using Core4.AvaloniaProbe.Models;
 using Core4.AvaloniaProbe.Rendering;
 using Core4.Numerics;
@@ -250,10 +251,10 @@ public sealed class InvertedPairPageView : UserControl
             $"Recessive value           {_state.RecessiveValueOffset.Raw}";
 
         _valueSitesText.Text =
-            $"Dominant site             {_state.DominantValueSite.Location.Raw}\n" +
-            $"Recessive site            {_state.RecessiveValueSite.Location.Raw}\n" +
-            $"Dominant anchor           {_state.DominantUnitLocation.Raw}\n" +
-            $"Recessive anchor          {_state.RecessiveUnitLocation.Raw}";
+            $"Dominant site             {ProbeSiteFormatting.PositionLabel(_state.DominantValueSite)}\n" +
+            $"Recessive site            {ProbeSiteFormatting.PositionLabel(_state.RecessiveValueSite)}\n" +
+            $"Dominant anchor           {ProbeSiteFormatting.PositionLabel(_state.DominantUnitLocation)}\n" +
+            $"Recessive anchor          {ProbeSiteFormatting.PositionLabel(_state.RecessiveUnitLocation)}";
     }
 
     private void HookBox(TextBox box, Action<long> apply)
