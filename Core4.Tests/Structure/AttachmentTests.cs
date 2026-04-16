@@ -15,8 +15,10 @@ public sealed class AttachmentTests
         ISupportFold frozen = basis;
         ISupportFold live = attachment;
 
+        Assert.Equal(new Ratio(10, 0), frozen.FoldRead.AsRatio());
         Assert.Equal(new Ratio(10, 0), frozen.Fold);
         Assert.Equal(new Measure(10), frozen.Potential);
+        Assert.Equal(new Ratio(7, 10), live.FoldRead.AsRatio());
         Assert.Equal(new Ratio(7, 10), live.Fold);
         Assert.Equal(new Measure(7), live.Potential);
     }
@@ -30,9 +32,13 @@ public sealed class AttachmentTests
         var attachment = basis.Attach(new Measure(7));
 
         Assert.Equal(new Measure(1), attachment.SiteCount);
+        Assert.True(attachment.TryGetProjectionRead(out var projectionRead));
         Assert.True(attachment.TryGetProjection(out var projection));
+        Assert.Equal(new Ratio(7, 10), projectionRead.AsRatio());
         Assert.Equal(new Ratio(7, 10), projection);
+        Assert.Equal(new Ratio(7, 10), attachment.ProjectionRead.AsRatio());
         Assert.Equal(new Ratio(7, 10), attachment.Projection);
+        Assert.Equal(new Ratio(7, 10), attachment.FoldRead.AsRatio());
         Assert.Equal(new Ratio(7, 10), attachment.Fold);
         Assert.Equal(attachment.Fold, attachment.Ratio);
         Assert.Equal(new Measure(7), attachment.Potential);
@@ -54,10 +60,15 @@ public sealed class AttachmentTests
         Assert.Equal(Measure.Zero, attachment.SegmentPivot());
         Assert.Equal(new Measure(5), attachment.SegmentEnd());
         Assert.Equal(new Measure(7), attachment.SegmentSpanMeasure());
+        Assert.False(attachment.TryGetProjectionRead(out var projectionRead));
         Assert.False(attachment.TryGetProjection(out var projection));
+        Assert.Equal(Ratio.Tension(new Measure(7)), projectionRead.AsRatio());
         Assert.Equal(Ratio.Tension(new Measure(7)), projection);
+        Assert.Equal(new Ratio(2, 5), attachment.FoldRead.AsRatio());
         Assert.Equal(new Ratio(2, 5), attachment.Fold);
         Assert.Equal(attachment.Fold, attachment.Ratio);
+        Assert.Equal(new Ratio(-2, -10), attachment.ComponentProjectionReads()[0].AsRatio());
+        Assert.Equal(new Ratio(5, 10), attachment.ComponentProjectionReads()[1].AsRatio());
         Assert.Equal(new Ratio(-2, -10), attachment.ComponentProjections()[0]);
         Assert.Equal(new Ratio(5, 10), attachment.ComponentProjections()[1]);
         Assert.Equal(new Ratio(-70, -100), attachment.SegmentSpanProjection());

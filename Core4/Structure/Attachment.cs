@@ -49,9 +49,11 @@ public sealed class Attachment : ISupportFold
 
     // Compatibility projection for callers that still expect a single ratio-shaped read. Composite attachments do not
     // have one atomic projection, so they return unresolved tension and callers should prefer Fold or ComponentProjections.
-    public Ratio Projection => TryGetProjection(out var projection)
+    public ISupportProjection ProjectionRead => TryGetProjectionRead(out var projection)
         ? projection
         : Ratio.Tension(Potential);
+
+    public Ratio Projection => ProjectionRead.AsRatio();
 
     public Measure Potential => IsAtomic
         ? Absolute(Projection.Recessive + _sites[0].Potential)
@@ -59,9 +61,11 @@ public sealed class Attachment : ISupportFold
             ? Recessive.Potential + Dominant.Potential
             : new Measure(checked(Recessive.Potential.Raw * Dominant.Potential.Raw));
 
-    public Ratio Fold => IsComposite
+    public ISupportProjection FoldRead => IsComposite
         ? new Ratio(Recessive.Potential, Dominant.Potential).Normalize()
-        : Projection;
+        : ProjectionRead;
+
+    public Ratio Fold => FoldRead.AsRatio();
 
     // Compatibility alias while callers move from ratio-as-primitive wording toward fold/support reads.
     public Ratio Ratio => Fold;
@@ -78,11 +82,11 @@ public sealed class Attachment : ISupportFold
 
     public bool HasSharedOriginPerCarrier => Structure.HasSharedOriginPerCarrier();
 
-    public bool TryGetProjection(out Ratio projection)
+    public bool TryGetProjectionRead(out ISupportProjection projection)
     {
         if (IsAtomic)
         {
-            projection = Structure.Project(_sites[0]).Normalize();
+            projection = Structure.ProjectRead(_sites[0]);
             return true;
         }
 
@@ -90,8 +94,29 @@ public sealed class Attachment : ISupportFold
         return false;
     }
 
-    public ImmutableArray<Ratio> ComponentProjections()
-        => Structure.ProjectComponents(_sites);
+    public bool TryGetProjection(out Ratio projection)
+    {
+        var success = TryGetProjectionRead(out var read);
+        projection = read.AsRatio();
+        return success;
+    }
+
+    public ImmutableArray<ISupportProjection> ComponentProjectionReads()
+    {
+        var ratios = Structure.ProjectComponents(_sites);
+        var projections = ImmutableArray.CreateBuilder<ISupportProjection>(ratios.Length);
+
+        foreach (var ratio in ratios)
+        {
+            projections.Add(ratio);
+        }
+
+        return projections.MoveToImmutable();
+    }
+
+    public ImmutableArray<Ratio> ComponentProjections() => ComponentProjectionReads()
+        .Select(static projection => projection.AsRatio())
+        .ToImmutableArray();
 
     public ImmutableArray<Ratio> Components() => ComponentProjections();
 

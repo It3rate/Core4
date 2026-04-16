@@ -39,9 +39,13 @@ public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor
 
     public Relation Harden(Ratio stiffness) => new(Carrier, Origin.Harden(stiffness), Anchor.Harden(stiffness));
 
-    public Ratio Project(Site site) => Structure.Project(site);
+    public ISupportProjection ProjectRead(Site site) => Structure.ProjectRead(site);
 
-    public Ratio Project(Measure measure) => Structure.Project(measure);
+    public Ratio Project(Site site) => ProjectRead(site).AsRatio();
+
+    public ISupportProjection ProjectRead(Measure measure) => Structure.ProjectRead(measure);
+
+    public Ratio Project(Measure measure) => ProjectRead(measure).AsRatio();
 
     public Placement Place(ISupportProjection projection) => new(this, projection.AsRatio());
 

@@ -100,9 +100,11 @@ internal sealed class SupportStructure : ISupport
             ? Inputs[0].Potential + Inputs[1].Potential
             : new Measure(checked(Inputs[0].Potential.Raw * Inputs[1].Potential.Raw));
 
-    public Ratio Fold => IsComposite
+    public ISupportProjection FoldRead => IsComposite
         ? new Ratio(Inputs[0].Potential, Inputs[1].Potential).Normalize()
         : Ratio.Tension(Potential);
+
+    public Ratio Fold => FoldRead.AsRatio();
 
     public Measure Orientation => IsAtomic ? AtomicOrientation() : Measure.Zero;
 
@@ -281,7 +283,7 @@ internal sealed class SupportStructure : ISupport
         return new Measure((recessive << 1) | dominant);
     }
 
-    public Ratio Project(Site site)
+    public ISupportProjection ProjectRead(Site site)
     {
         if (!IsAtomic || !TryGetAtomicSpan(out var span))
         {
@@ -291,15 +293,19 @@ internal sealed class SupportStructure : ISupport
         return ProjectSpan(span, site);
     }
 
-    public Ratio Project(Measure measure)
+    public Ratio Project(Site site) => ProjectRead(site).AsRatio();
+
+    public ISupportProjection ProjectRead(Measure measure)
     {
         if (!IsAtomic || Spans.IsEmpty)
         {
             return Ratio.Tension(measure);
         }
 
-        return Project(Site.Open(Spans[0].Carrier, measure));
+        return ProjectRead(Site.Open(Spans[0].Carrier, measure));
     }
+
+    public Ratio Project(Measure measure) => ProjectRead(measure).AsRatio();
 
     public ImmutableArray<Ratio> ProjectComponents(ImmutableArray<Site> sites)
     {

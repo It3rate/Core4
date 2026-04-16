@@ -61,7 +61,9 @@ public sealed class Basis : ISupport, ISupportFold
 
     public Measure Potential => _structure.Potential;
 
-    public Ratio Fold => _structure.Fold;
+    public ISupportProjection FoldRead => _structure.FoldRead;
+
+    public Ratio Fold => FoldRead.AsRatio();
 
     // Compatibility alias while callers move from ratio-as-primitive wording toward fold/support reads.
     public Ratio Ratio => Fold;
@@ -143,9 +145,13 @@ public sealed class Basis : ISupport, ISupportFold
 
     public Ratio Locate(Ratio position, Carrier carrier) => Locate((ISupportProjection)position, carrier);
 
-    public Ratio Project(Site site) => _structure.Project(site);
+    public ISupportProjection ProjectRead(Site site) => _structure.ProjectRead(site);
 
-    public Ratio Project(Measure measure) => _structure.Project(measure);
+    public Ratio Project(Site site) => ProjectRead(site).AsRatio();
+
+    public ISupportProjection ProjectRead(Measure measure) => _structure.ProjectRead(measure);
+
+    public Ratio Project(Measure measure) => ProjectRead(measure).AsRatio();
 
     public Attachment Attach(params Site[] sites) => Attachment.Attach(this, sites);
 

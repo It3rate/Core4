@@ -24,7 +24,9 @@ public readonly record struct SiteBasisEncounter(
 
     public ISupportFold CalibrationRead => Basis;
 
-    public Ratio Fold => CalibrationRead.Fold.Normalize();
+    public ISupportProjection FoldRead => CalibrationRead.FoldRead;
+
+    public Ratio Fold => FoldRead.AsRatio().Normalize();
 
     public Ratio Calibration => Fold;
 

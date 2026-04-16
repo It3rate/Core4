@@ -10,5 +10,7 @@ public interface ISupportFold
 {
     Measure Potential { get; }
 
-    Ratio Fold { get; }
+    ISupportProjection FoldRead { get; }
+
+    Ratio Fold => FoldRead.AsRatio();
 }
