@@ -30,15 +30,13 @@ public sealed class TopologyTrolleyTests
 
         var trolley = TopologyTrolley.Start(topology, left);
         Assert.True(trolley.TryContinuePreferred(out trolley));
-        Assert.Equal(center.Carrier, trolley.Site.Carrier);
-        Assert.Equal(center.Location, trolley.Site.Location);
+        Assert.True(SameNode(trolley.Site, center));
 
         var observation = trolley.Observe();
 
         Assert.True(observation.IsDecisionPoint);
         Assert.True(observation.TryPreferred(out var preferred));
-        Assert.Equal(right.Carrier, preferred.To.Carrier);
-        Assert.Equal(right.Location, preferred.To.Location);
+        Assert.True(SameNode(preferred.To, right));
 
         var forks = trolley.ForkAll();
 
@@ -355,7 +353,7 @@ public sealed class TopologyTrolleyTests
 
         var branch = Assert.Single(
             trolley.Observe().ForwardContinuations,
-            continuation => continuation.To.Carrier == y && continuation.To.Location == new Measure(4));
+            continuation => SameNode(continuation.To, stemEnd));
 
         Assert.True(branch.HasBasisAgreement);
         Assert.True(branch.BestBasisAgreement.PreservesDirection);
@@ -456,7 +454,7 @@ public sealed class TopologyTrolleyTests
         Assert.True(trolley.TryContinuePreferred(out trolley));
 
         var branch = trolley.Observe().ForwardContinuations;
-        var upper = Assert.Single(branch.Where(continuation => continuation.To.Carrier == y && continuation.To.Location == new Measure(4)));
+        var upper = Assert.Single(branch.Where(continuation => SameNode(continuation.To, upperApex)));
         trolley = trolley.Move(upper);
 
         var apexObservation = trolley.Observe();
@@ -472,8 +470,8 @@ public sealed class TopologyTrolleyTests
         var crossObservation = trolley.Observe();
         Assert.Equal(2, crossObservation.ForwardContinuations.Length);
         Assert.Contains(crossObservation.ForwardContinuations, continuation => SameNode(continuation.To, right));
-        Assert.Contains(crossObservation.ForwardContinuations, continuation => continuation.To.Carrier == w && continuation.To.Location == new Measure(4));
-        Assert.DoesNotContain(crossObservation.ForwardContinuations, continuation => continuation.To.Carrier == w && continuation.To.Location == new Measure(-4));
+        Assert.Contains(crossObservation.ForwardContinuations, continuation => SameNode(continuation.To, verticalHigh));
+        Assert.DoesNotContain(crossObservation.ForwardContinuations, continuation => SameNode(continuation.To, verticalLow));
     }
 
     [Fact]
@@ -529,11 +527,11 @@ public sealed class TopologyTrolleyTests
 
         var trolley = TopologyTrolley.Start(topology, left);
         Assert.True(trolley.TryContinuePreferred(out trolley));
-        var upper = Assert.Single(trolley.Observe().ForwardContinuations, continuation => continuation.To.Carrier == y && continuation.To.Location == new Measure(4));
+        var upper = Assert.Single(trolley.Observe().ForwardContinuations, continuation => SameNode(continuation.To, upperApex));
         trolley = trolley.Move(upper);
         Assert.True(trolley.TryContinuePreferred(out trolley));
         Assert.True(trolley.TryContinuePreferred(out trolley));
-        var upperVertical = Assert.Single(trolley.Observe().ForwardContinuations, continuation => continuation.To.Carrier == w && continuation.To.Location == new Measure(4));
+        var upperVertical = Assert.Single(trolley.Observe().ForwardContinuations, continuation => SameNode(continuation.To, verticalHigh));
         trolley = trolley.Move(upperVertical);
 
         Assert.True(trolley.TryContinuePreferred(-Measure.One, out var returned));
@@ -593,7 +591,7 @@ public sealed class TopologyTrolleyTests
 
         var trolley = TopologyTrolley.Start(topology, left);
         Assert.True(trolley.TryContinuePreferred(out trolley));
-        var upper = Assert.Single(trolley.Observe().ForwardContinuations, continuation => continuation.To.Carrier == y && continuation.To.Location == new Measure(4));
+        var upper = Assert.Single(trolley.Observe().ForwardContinuations, continuation => SameNode(continuation.To, upperApex));
         trolley = trolley.Move(upper);
         Assert.True(trolley.TryContinuePreferred(out trolley));
         Assert.True(trolley.TryContinuePreferred(out trolley));
@@ -605,8 +603,8 @@ public sealed class TopologyTrolleyTests
 
         var reverseObservation = backToMerge.Observe(-Measure.One);
         Assert.Equal(2, reverseObservation.ForwardContinuationsIn(-Measure.One).Length);
-        Assert.Contains(reverseObservation.ForwardContinuationsIn(-Measure.One), continuation => continuation.To.Carrier == y && continuation.To.Location == new Measure(4));
-        Assert.Contains(reverseObservation.ForwardContinuationsIn(-Measure.One), continuation => continuation.To.Carrier == z && continuation.To.Location == new Measure(4));
+        Assert.Contains(reverseObservation.ForwardContinuationsIn(-Measure.One), continuation => SameNode(continuation.To, upperApex));
+        Assert.Contains(reverseObservation.ForwardContinuationsIn(-Measure.One), continuation => SameNode(continuation.To, lowerApex));
         Assert.DoesNotContain(reverseObservation.ForwardContinuationsIn(-Measure.One), continuation => SameNode(continuation.To, cross));
     }
 
