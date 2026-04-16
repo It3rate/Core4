@@ -5,7 +5,9 @@ namespace Core4.Structure;
 
 /// <summary>
 /// A basis-wide binding of live sites into a frozen basis. This is not a single local place; it is a read of one
-/// whole basis through one site per atomic relation slot.
+/// whole basis through one site per atomic relation slot. Atomic attachments expose a direct local projection through
+/// their basis; composite attachments also expose a higher-level fold that compares their ordered child reads without
+/// pretending the whole object is itself one atomic relation.
 /// Example: <c>var reading = basis.Attach(5, 4);</c>
 /// </summary>
 public sealed class Attachment
@@ -42,7 +44,11 @@ public sealed class Attachment
 
     public ImmutableArray<Placement> Placements => _sites.Select(site => site.Placement).ToImmutableArray();
 
-    public Ratio Projection => IsAtomic ? Basis.Project(_sites[0]) : Ratio.Tension(Potential);
+    // Compatibility projection for callers that still expect a single ratio-shaped read. Composite attachments do not
+    // have one atomic projection, so they return unresolved tension and callers should prefer Fold or ComponentProjections.
+    public Ratio Projection => TryGetProjection(out var projection)
+        ? projection
+        : Ratio.Tension(Potential);
 
     public Measure Potential => IsAtomic
         ? Absolute(Projection.Recessive + _sites[0].Potential)
@@ -50,9 +56,12 @@ public sealed class Attachment
             ? Recessive.Potential + Dominant.Potential
             : new Measure(checked(Recessive.Potential.Raw * Dominant.Potential.Raw));
 
-    public Ratio Ratio => IsComposite
+    public Ratio Fold => IsComposite
         ? new Ratio(Recessive.Potential, Dominant.Potential).Normalize()
-        : Ratio.Tension(Potential);
+        : Projection;
+
+    // Compatibility alias while callers move from ratio-as-primitive wording toward fold/support reads.
+    public Ratio Ratio => Fold;
 
     public Measure KernelCode => Basis.KernelCode();
 
@@ -66,7 +75,19 @@ public sealed class Attachment
 
     public bool HasSharedOriginPerCarrier => Basis.HasSharedOriginPerCarrier();
 
-    public ImmutableArray<Ratio> Components()
+    public bool TryGetProjection(out Ratio projection)
+    {
+        if (IsAtomic)
+        {
+            projection = Basis.Project(_sites[0]).Normalize();
+            return true;
+        }
+
+        projection = Ratio.Tension(Potential);
+        return false;
+    }
+
+    public ImmutableArray<Ratio> ComponentProjections()
     {
         var components = ImmutableArray.CreateBuilder<Ratio>(_sites.Length);
 
@@ -77,6 +98,8 @@ public sealed class Attachment
 
         return components.MoveToImmutable();
     }
+
+    public ImmutableArray<Ratio> Components() => ComponentProjections();
 
     public Ratio ResolvedCoefficient() => IsAtomicPair
         ? Recessive.Projection.Multiply(Dominant.Projection)

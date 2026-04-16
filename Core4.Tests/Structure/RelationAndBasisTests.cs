@@ -33,6 +33,7 @@ public sealed class RelationAndBasisTests
         Assert.Equal(new Measure(1), basis.RelationCount);
         Assert.Equal(new Measure(1), basis.CarrierCount);
         Assert.Equal(new Measure(10), basis.Potential);
+        Assert.Equal(new Ratio(10, 0), basis.Fold);
         Assert.Equal(new Ratio(10, 0), basis.Ratio);
         Assert.Equal(Measure.One, basis.Orientation);
         Assert.Equal(new Ratio(1, 1), basis.Stiffness);
@@ -87,6 +88,7 @@ public sealed class RelationAndBasisTests
         Assert.True(segment.IsOpposedPair());
         Assert.False(segment.IsAlignedPair());
         Assert.Equal(new Measure(20), segment.Potential);
+        Assert.Equal(new Ratio(10, 10), segment.Fold);
         Assert.Equal(new Ratio(10, 10), segment.Ratio);
         Assert.Equal(new Ratio(0, 2), midpoint);
         Assert.Equal(Measure.Zero, midpoint.Whole);
@@ -105,6 +107,7 @@ public sealed class RelationAndBasisTests
         Assert.True(self.IsAlignedPair());
         Assert.False(self.IsOpposedPair());
         Assert.Equal(new Measure(200), self.Potential);
+        Assert.Equal(new Ratio(10, 20), self.Fold);
         Assert.Equal(new Ratio(10, 20), self.Ratio);
     }
 

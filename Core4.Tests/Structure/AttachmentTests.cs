@@ -14,7 +14,11 @@ public sealed class AttachmentTests
         var attachment = basis.Attach(new Measure(7));
 
         Assert.Equal(new Measure(1), attachment.SiteCount);
+        Assert.True(attachment.TryGetProjection(out var projection));
+        Assert.Equal(new Ratio(7, 10), projection);
         Assert.Equal(new Ratio(7, 10), attachment.Projection);
+        Assert.Equal(new Ratio(7, 10), attachment.Fold);
+        Assert.Equal(attachment.Fold, attachment.Ratio);
         Assert.Equal(new Measure(7), attachment.Potential);
         Assert.Equal(new Measure(7), attachment.Measures[0]);
     }
@@ -34,6 +38,12 @@ public sealed class AttachmentTests
         Assert.Equal(Measure.Zero, attachment.SegmentPivot());
         Assert.Equal(new Measure(5), attachment.SegmentEnd());
         Assert.Equal(new Measure(7), attachment.SegmentSpanMeasure());
+        Assert.False(attachment.TryGetProjection(out var projection));
+        Assert.Equal(Ratio.Tension(new Measure(7)), projection);
+        Assert.Equal(new Ratio(2, 5), attachment.Fold);
+        Assert.Equal(attachment.Fold, attachment.Ratio);
+        Assert.Equal(new Ratio(-2, -10), attachment.ComponentProjections()[0]);
+        Assert.Equal(new Ratio(5, 10), attachment.ComponentProjections()[1]);
         Assert.Equal(new Ratio(-70, -100), attachment.SegmentSpanProjection());
     }
 

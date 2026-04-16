@@ -70,9 +70,12 @@ public sealed class Basis : ISupport
             ? Recessive.Potential + Dominant.Potential
             : new Measure(checked(Recessive.Potential.Raw * Dominant.Potential.Raw));
 
-    public Ratio Ratio => IsComposite
+    public Ratio Fold => IsComposite
         ? new Ratio(Recessive.Potential, Dominant.Potential).Normalize()
         : Ratio.Tension(Potential);
+
+    // Compatibility alias while callers move from ratio-as-primitive wording toward fold/support reads.
+    public Ratio Ratio => Fold;
 
     public Measure Orientation => IsAtomic ? AtomicRelation.Orientation : Measure.Zero;
 

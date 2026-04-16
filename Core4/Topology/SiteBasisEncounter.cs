@@ -20,7 +20,7 @@ public readonly record struct SiteBasisEncounter(
 
     public Measure RelationCount => Basis.RelationCount;
 
-    public Ratio Calibration => Basis.Ratio.Normalize();
+    public Ratio Calibration => Basis.Fold.Normalize();
 
     public Measure Potential => Basis.Potential;
 
