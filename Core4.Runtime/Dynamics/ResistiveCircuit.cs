@@ -324,7 +324,7 @@ public readonly record struct ResistiveCircuit(
     {
         foreach (var known in sites)
         {
-            if (known.Carrier == site.Carrier && known.Location == site.Location)
+            if (SameNode(known, site))
             {
                 return true;
             }
@@ -332,6 +332,9 @@ public readonly record struct ResistiveCircuit(
 
         return false;
     }
+
+    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier
+        && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
 }
 
 public readonly record struct ResolvedResistiveBranch(

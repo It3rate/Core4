@@ -20,6 +20,23 @@ public readonly record struct CarrierChainDemoState(
     ImmutableDictionary<Site, Point> SeedPositions)
 {
     public const string DiamondCrossLabel = "Diamond Cross";
+    private static readonly ImmutableArray<DesiredSiteSeed> DiamondCrossDesiredLayout =
+    [
+        new(new Carrier(1), new Measure(0), new Point(0.02d, 0.54d)),
+        new(new Carrier(1), new Measure(4), new Point(0.28d, 0.54d)),
+        new(new Carrier(2), new Measure(0), new Point(0.28d, 0.54d)),
+        new(new Carrier(3), new Measure(0), new Point(0.28d, 0.54d)),
+        new(new Carrier(2), new Measure(4), new Point(0.36d, 0.40d)),
+        new(new Carrier(3), new Measure(4), new Point(0.36d, 0.68d)),
+        new(new Carrier(1), new Measure(12), new Point(0.66d, 0.54d)),
+        new(new Carrier(2), new Measure(8), new Point(0.66d, 0.54d)),
+        new(new Carrier(3), new Measure(8), new Point(0.66d, 0.54d)),
+        new(new Carrier(1), new Measure(18), new Point(0.82d, 0.54d)),
+        new(new Carrier(4), new Measure(0), new Point(0.82d, 0.54d)),
+        new(new Carrier(1), new Measure(22), new Point(0.95d, 0.54d)),
+        new(new Carrier(4), new Measure(-4), new Point(0.82d, 0.78d)),
+        new(new Carrier(4), new Measure(4), new Point(0.82d, 0.04d))
+    ];
 
     public SiteConnector FocusConnector => Topology.ConnectorAt(FocusSite);
 
@@ -350,27 +367,23 @@ public readonly record struct CarrierChainDemoState(
 
         foreach (var (site, point) in visible)
         {
-            builder[site] = site.Carrier.Id switch
-            {
-                1L when site.Location == new Measure(0) => new Point(0.02d, 0.54d),
-                1L when site.Location == new Measure(4) => new Point(0.28d, 0.54d),
-                2L when site.Location == new Measure(0) => new Point(0.28d, 0.54d),
-                3L when site.Location == new Measure(0) => new Point(0.28d, 0.54d),
-                2L when site.Location == new Measure(4) => new Point(0.36d, 0.40d),
-                3L when site.Location == new Measure(4) => new Point(0.36d, 0.68d),
-                1L when site.Location == new Measure(12) => new Point(0.66d, 0.54d),
-                2L when site.Location == new Measure(8) => new Point(0.66d, 0.54d),
-                3L when site.Location == new Measure(8) => new Point(0.66d, 0.54d),
-                1L when site.Location == new Measure(18) => new Point(0.82d, 0.54d),
-                4L when site.Location == new Measure(0) => new Point(0.82d, 0.54d),
-                1L when site.Location == new Measure(22) => new Point(0.95d, 0.54d),
-                4L when site.Location == new Measure(-4) => new Point(0.82d, 0.78d),
-                4L when site.Location == new Measure(4) => new Point(0.82d, 0.04d),
-                _ => point
-            };
+            builder[site] = DesiredPoint(site, point);
         }
 
         return builder.ToImmutable();
+    }
+
+    private static Point DesiredPoint(Site site, Point fallback)
+    {
+        foreach (var desired in DiamondCrossDesiredLayout)
+        {
+            if (desired.Matches(site))
+            {
+                return desired.Point;
+            }
+        }
+
+        return fallback;
     }
 
     private static CarrierChainDemoState CreateClampInterval()
@@ -497,5 +510,15 @@ public readonly record struct CarrierChainDemoState(
         }
 
         return builder.ToImmutable();
+    }
+
+    private readonly record struct DesiredSiteSeed(Carrier Carrier, Ratio Position, Point Point)
+    {
+        public DesiredSiteSeed(Carrier carrier, Measure position, Point point)
+            : this(carrier, new Ratio(position, Measure.One).Normalize(), point)
+        {
+        }
+
+        public bool Matches(Site site) => site.Carrier == Carrier && site.On(site.Carrier).Normalize() == Position;
     }
 }

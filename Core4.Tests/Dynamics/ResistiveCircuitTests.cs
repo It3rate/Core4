@@ -49,6 +49,26 @@ public sealed class ResistiveCircuitTests
     }
 
     [Fact]
+    public void ResistiveCircuitKeepsDistinctExactNodesThatShareWholeLocation()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x.At(new Ratio(new Measure(1), new Measure(4))));
+        var right = Site.Open(x.At(new Ratio(new Measure(3), new Measure(4))));
+        var span = new Relation(left, right);
+        var circuit = ResistiveCircuit.Create(
+            ConnectedSiteTopology.FromRelations(span),
+            [
+                ResistiveBranch.Create(span, Measure.One)
+            ],
+            []);
+
+        Assert.Equal(2, circuit.Nodes.Length);
+        Assert.Single(circuit.Branches);
+        Assert.NotEqual(circuit.NodeKeyOf(left), circuit.NodeKeyOf(right));
+    }
+
+    [Fact]
     public void ResistiveCircuitSettlesUnevenParallelBranchMidpoints()
     {
         Carrier x = 1;
