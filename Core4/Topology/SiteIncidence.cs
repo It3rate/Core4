@@ -71,43 +71,7 @@ public readonly record struct SiteIncidence(Site Site, ImmutableArray<Relation> 
     }
 
     public ImmutableArray<SiteBasisEncounter> BasisEncountersOn(Carrier carrier)
-    {
-        var incoming = ImmutableArray.CreateBuilder<Relation>();
-        var outgoing = ImmutableArray.CreateBuilder<Relation>();
-        var encounters = ImmutableArray.CreateBuilder<SiteBasisEncounter>();
-
-        foreach (var leg in LegsOn(carrier))
-        {
-            if (leg.Support is Basis basis && basis.PrimaryCarrier == carrier)
-            {
-                encounters.Add(SiteBasisEncounter.FromPinnedBasis(Site, carrier, basis, leg.Potential));
-                continue;
-            }
-
-            if (leg.Support is not Relation relation)
-            {
-                continue;
-            }
-
-            if (leg.IsIncoming)
-            {
-                incoming.Add(relation);
-                encounters.Add(SiteBasisEncounter.FromIncoming(Site, relation));
-            }
-            else if (leg.IsOutgoing)
-            {
-                outgoing.Add(relation);
-                encounters.Add(SiteBasisEncounter.FromOutgoing(Site, relation));
-            }
-        }
-
-        if (incoming.Count == 1 && outgoing.Count == 1)
-        {
-            encounters.Insert(0, SiteBasisEncounter.FromPassThrough(Site, incoming[0], outgoing[0]));
-        }
-
-        return encounters.ToImmutable();
-    }
+        => SiteBasisEncounter.SelectAt(Site, carrier, LegsOn(carrier));
 
     public ImmutableArray<Carrier> Carriers()
     {

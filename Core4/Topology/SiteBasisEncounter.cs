@@ -70,6 +70,48 @@ public readonly record struct SiteBasisEncounter(
         Measure desiredDirection) =>
         BasisEncounterAgreement.Create(signature, this, desiredDirection);
 
+    internal static ImmutableArray<SiteBasisEncounter> SelectAt(
+        Site site,
+        Carrier carrier,
+        ImmutableArray<SiteLeg> legs)
+    {
+        var incoming = ImmutableArray.CreateBuilder<Relation>();
+        var outgoing = ImmutableArray.CreateBuilder<Relation>();
+        var encounters = ImmutableArray.CreateBuilder<SiteBasisEncounter>();
+
+        foreach (var leg in legs)
+        {
+            if (TryCreatePinnedBasisEncounter(site, carrier, leg, out var pinned))
+            {
+                encounters.Add(pinned);
+                continue;
+            }
+
+            if (leg.Support is not Relation relation)
+            {
+                continue;
+            }
+
+            if (leg.IsIncoming)
+            {
+                incoming.Add(relation);
+                encounters.Add(FromIncoming(site, relation));
+            }
+            else if (leg.IsOutgoing)
+            {
+                outgoing.Add(relation);
+                encounters.Add(FromOutgoing(site, relation));
+            }
+        }
+
+        if (incoming.Count == 1 && outgoing.Count == 1)
+        {
+            encounters.Insert(0, FromPassThrough(site, incoming[0], outgoing[0]));
+        }
+
+        return encounters.ToImmutable();
+    }
+
     internal static SiteBasisEncounter FromIncoming(Site site, Relation relation) =>
         new(site, relation.Carrier, Basis.Freeze(relation.Flip()), relation, relation.Potential);
 
@@ -101,6 +143,22 @@ public readonly record struct SiteBasisEncounter(
         relation = Structure.AtomicRelation;
         target = relation.Anchor;
         return !SameNode(Site, target);
+    }
+
+    private static bool TryCreatePinnedBasisEncounter(
+        Site site,
+        Carrier carrier,
+        SiteLeg leg,
+        out SiteBasisEncounter encounter)
+    {
+        if (leg.Support is Basis basis && basis.PrimaryCarrier == carrier)
+        {
+            encounter = FromPinnedBasis(site, carrier, basis, leg.Potential);
+            return true;
+        }
+
+        encounter = default;
+        return false;
     }
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;

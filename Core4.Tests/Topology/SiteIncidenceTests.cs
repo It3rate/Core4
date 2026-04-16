@@ -91,4 +91,37 @@ public sealed class SiteIncidenceTests
         Assert.Equal(new Measure(1), incidence.ContinuingCarrierCount);
         Assert.Equal(new Measure(1), incidence.TerminalCarrierCount);
     }
+
+    [Fact]
+    public void SiteIncidenceDelegatesCarrierEncounterAssemblyToEncounterLayer()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+
+        var site = Site.Open(x, new Measure(5))
+            .Publish(
+                new Relation(
+                    Site.Open(y, new Measure(0)),
+                    Site.Open(y, new Measure(4))),
+                Ratio.Tension(new Measure(4)));
+
+        var left = new Relation(
+            Site.Open(x, new Measure(0)),
+            Site.Open(x, new Measure(5)));
+        var right = new Relation(
+            Site.Open(x, new Measure(5)),
+            Site.Open(x, new Measure(10)));
+
+        var incidence = SiteIncidence.Create(site, left, right);
+        var xEncounters = incidence.BasisEncountersOn(x);
+        var yEncounters = incidence.BasisEncountersOn(y);
+
+        Assert.Contains(xEncounters, encounter => encounter.IsBilateral);
+
+        var branch = Assert.Single(yEncounters);
+        Assert.True(branch.IsAtomic);
+        Assert.True(branch.IsOneSided);
+        Assert.True(branch.HasDominantCalibration);
+        Assert.False(branch.HasRecessiveCalibration);
+    }
 }
