@@ -111,6 +111,21 @@ public sealed class RelationAndBasisTests
         Assert.Equal(new Ratio(10, 20), self.Ratio);
     }
 
+    [Fact]
+    public void OpposedSameCarrierPairWithoutSharedOriginStaysMultiplicative()
+    {
+        Carrier x = 1;
+
+        var left = Basis.Freeze(x, new Measure(0), new Measure(-10));
+        var right = Basis.Freeze(x, new Measure(5), new Measure(15));
+        var fused = Basis.Fuse(left, right);
+
+        Assert.True(fused.IsSameCarrierPair());
+        Assert.True(fused.IsOpposedPair());
+        Assert.False(fused.HasSharedOriginPerCarrier());
+        Assert.Equal(new Measure(100), fused.Potential);
+    }
+
     [Theory]
     [InlineData(-10, -10, 0)]
     [InlineData(-10, 10, 1)]

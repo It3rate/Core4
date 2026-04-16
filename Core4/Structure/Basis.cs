@@ -48,11 +48,11 @@ public sealed class Basis : ISupport, ISupportFold
 
     public Measure SupportGrade => _structure.SupportGrade;
 
-    public Measure RelationCount => new(_relations.Length);
+    public Measure RelationCount => _structure.RelationCount;
 
     public Measure AttachmentArity => RelationCount;
 
-    public Measure CarrierCount => new(SelectCarriers().Length);
+    public Measure CarrierCount => _structure.CarrierCount;
 
     public ImmutableArray<Basis> Inputs => _inputs;
 
@@ -187,90 +187,17 @@ public sealed class Basis : ISupport, ISupportFold
         return relations.ToImmutable();
     }
 
-    public ImmutableArray<Carrier> SelectCarriers()
-    {
-        var carriers = ImmutableArray.CreateBuilder<Carrier>();
+    public ImmutableArray<Carrier> SelectCarriers() => _structure.SelectCarriers();
 
-        foreach (var relation in _relations)
-        {
-            if (!carriers.Contains(relation.Carrier))
-            {
-                carriers.Add(relation.Carrier);
-            }
-        }
+    public bool HasSharedOriginPerCarrier() => _structure.HasSharedOriginPerCarrier();
 
-        return carriers.ToImmutable();
-    }
+    public bool IsSameCarrierPair() => _structure.IsSameCarrierPair();
 
-    public bool HasSharedOriginPerCarrier()
-    {
-        foreach (var carrier in SelectCarriers())
-        {
-            var origin = default(Measure);
-            var hasOrigin = false;
+    public bool IsAlignedPair() => _structure.IsAlignedPair();
 
-            foreach (var relation in SelectRelations(carrier))
-            {
-                if (!hasOrigin)
-                {
-                    origin = relation.Origin.Location;
-                    hasOrigin = true;
-                    continue;
-                }
+    public bool IsOpposedPair() => _structure.IsOpposedPair();
 
-                if (relation.Origin.Location != origin)
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    public bool IsSameCarrierPair() => IsAtomicPair &&
-        Recessive.AtomicRelation.Carrier == Dominant.AtomicRelation.Carrier;
-
-    public bool IsAlignedPair() => IsAtomicPair &&
-        Recessive.AtomicRelation.Orientation.Raw != 0 &&
-        Recessive.AtomicRelation.Orientation == Dominant.AtomicRelation.Orientation;
-
-    public bool IsOpposedPair() => IsAtomicPair &&
-        Recessive.AtomicRelation.Orientation.Raw != 0 &&
-        Recessive.AtomicRelation.Orientation == -Dominant.AtomicRelation.Orientation;
-
-    public Measure KernelCode()
-    {
-        if (!IsAtomicPair)
-        {
-            return Measure.Zero;
-        }
-
-        var recessive = SideCode(Recessive.AtomicRelation);
-        var dominant = SideCode(Dominant.AtomicRelation);
-
-        if (recessive < 0 || dominant < 0)
-        {
-            return Measure.Zero;
-        }
-
-        return new Measure((recessive << 1) | dominant);
-    }
-
-    private static long SideCode(Relation relation)
-    {
-        if (relation.Orientation.Raw < 0)
-        {
-            return 0L;
-        }
-
-        if (relation.Orientation.Raw > 0)
-        {
-            return 1L;
-        }
-
-        return -1L;
-    }
+    public Measure KernelCode() => _structure.KernelCode();
 
     private Ratio LocateSegment(Ratio position, Carrier carrier)
     {

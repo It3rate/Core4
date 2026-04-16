@@ -17,6 +17,19 @@ internal readonly record struct SupportLandmark(
     public SupportLandmark Reidentify(LandmarkId id) => new(id, Carrier, Position.Normalize(), Commitment.Normalize());
 }
 
+internal readonly record struct SupportSpan(
+    Carrier Carrier,
+    Ratio OriginPosition,
+    Ratio AnchorPosition,
+    Ratio Commitment)
+{
+    public Ratio Span => AnchorPosition.Subtract(OriginPosition).Normalize();
+
+    public Measure Potential => Span.Potential;
+
+    public Measure Orientation => Span.Recessive.Sign;
+}
+
 internal readonly record struct LandmarkCoincidence(
     LandmarkId Left,
     LandmarkId Right,
@@ -35,6 +48,7 @@ internal sealed class SupportStructure : ISupport
         Carrier primaryCarrier,
         Measure supportGrade,
         ImmutableArray<SupportLandmark> landmarks,
+        ImmutableArray<SupportSpan> spans,
         ImmutableArray<LandmarkCoincidence> coincidences,
         ImmutableArray<SupportStructure> inputs,
         Func<Ratio, Carrier, Ratio> locate)
@@ -42,6 +56,7 @@ internal sealed class SupportStructure : ISupport
         PrimaryCarrier = primaryCarrier;
         SupportGrade = supportGrade;
         Landmarks = landmarks;
+        Spans = spans;
         Coincidences = coincidences;
         Inputs = inputs;
         _locate = locate;
@@ -53,16 +68,104 @@ internal sealed class SupportStructure : ISupport
 
     public ImmutableArray<SupportLandmark> Landmarks { get; }
 
+    public ImmutableArray<SupportSpan> Spans { get; }
+
     public ImmutableArray<LandmarkCoincidence> Coincidences { get; }
 
     public ImmutableArray<SupportStructure> Inputs { get; }
 
+    public Measure RelationCount => new(Spans.Length);
+
+    public Measure CarrierCount => new(SelectCarriers().Length);
+
     public Ratio Locate(Ratio position, Carrier carrier) => _locate(position.Normalize(), carrier).Normalize();
+
+    public ImmutableArray<Carrier> SelectCarriers()
+    {
+        var carriers = ImmutableArray.CreateBuilder<Carrier>();
+
+        foreach (var span in Spans)
+        {
+            if (!carriers.Contains(span.Carrier))
+            {
+                carriers.Add(span.Carrier);
+            }
+        }
+
+        return carriers.ToImmutable();
+    }
+
+    public bool HasSharedOriginPerCarrier()
+    {
+        foreach (var carrier in SelectCarriers())
+        {
+            var origin = default(Ratio);
+            var hasOrigin = false;
+
+            foreach (var span in Spans)
+            {
+                if (span.Carrier != carrier)
+                {
+                    continue;
+                }
+
+                if (!hasOrigin)
+                {
+                    origin = span.OriginPosition.Normalize();
+                    hasOrigin = true;
+                    continue;
+                }
+
+                if (span.OriginPosition.Normalize() != origin)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public bool IsAtomicPair() => Inputs.Length == 2
+        && Inputs[0].Inputs.IsEmpty
+        && Inputs[1].Inputs.IsEmpty
+        && Inputs[0].Spans.Length == 1
+        && Inputs[1].Spans.Length == 1;
+
+    public bool IsSameCarrierPair() => IsAtomicPair()
+        && Inputs[0].Spans[0].Carrier == Inputs[1].Spans[0].Carrier;
+
+    public bool IsAlignedPair() => IsAtomicPair()
+        && Inputs[0].Spans[0].Orientation.Raw != 0
+        && Inputs[0].Spans[0].Orientation == Inputs[1].Spans[0].Orientation;
+
+    public bool IsOpposedPair() => IsAtomicPair()
+        && Inputs[0].Spans[0].Orientation.Raw != 0
+        && Inputs[0].Spans[0].Orientation == -Inputs[1].Spans[0].Orientation;
+
+    public Measure KernelCode()
+    {
+        if (!IsAtomicPair())
+        {
+            return Measure.Zero;
+        }
+
+        var recessive = SideCode(Inputs[0].Spans[0].Orientation);
+        var dominant = SideCode(Inputs[1].Spans[0].Orientation);
+
+        if (recessive < 0 || dominant < 0)
+        {
+            return Measure.Zero;
+        }
+
+        return new Measure((recessive << 1) | dominant);
+    }
 
     public static SupportStructure ForCarrier(Carrier carrier) => new(
         carrier,
         Measure.Zero,
         ImmutableArray<SupportLandmark>.Empty,
+        ImmutableArray<SupportSpan>.Empty,
         ImmutableArray<LandmarkCoincidence>.Empty,
         ImmutableArray<SupportStructure>.Empty,
         (position, target) => target == carrier
@@ -92,6 +195,9 @@ internal sealed class SupportStructure : ISupport
             [
                 new SupportLandmark(0, carrier, originPosition, normalizedCommitment),
                 new SupportLandmark(1, carrier, anchorPosition, normalizedCommitment)
+            ],
+            [
+                new SupportSpan(carrier, originPosition, anchorPosition, normalizedCommitment)
             ],
             ImmutableArray<LandmarkCoincidence>.Empty,
             ImmutableArray<SupportStructure>.Empty,
@@ -124,6 +230,7 @@ internal sealed class SupportStructure : ISupport
         Func<Ratio, Carrier, Ratio> locate)
     {
         var landmarks = ImmutableArray.CreateBuilder<SupportLandmark>();
+        var spans = ImmutableArray.CreateBuilder<SupportSpan>();
         var coincidences = ImmutableArray.CreateBuilder<LandmarkCoincidence>();
         var flattened = new List<(int InputIndex, SupportLandmark Landmark)>();
         long nextId = 0L;
@@ -149,6 +256,8 @@ internal sealed class SupportStructure : ISupport
                     coincidences.Add(new LandmarkCoincidence(left, right, coincidence.Commitment.Normalize()));
                 }
             }
+
+            spans.AddRange(input.Spans);
         }
 
         for (var leftIndex = 0; leftIndex < flattened.Count; leftIndex++)
@@ -181,8 +290,24 @@ internal sealed class SupportStructure : ISupport
             primaryCarrier,
             supportGrade,
             landmarks.ToImmutable(),
+            spans.ToImmutable(),
             coincidences.ToImmutable(),
             inputs,
             locate);
+    }
+
+    private static long SideCode(Measure orientation)
+    {
+        if (orientation.Raw < 0)
+        {
+            return 0L;
+        }
+
+        if (orientation.Raw > 0)
+        {
+            return 1L;
+        }
+
+        return -1L;
     }
 }
