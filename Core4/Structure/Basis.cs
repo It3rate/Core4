@@ -30,10 +30,7 @@ public sealed class Basis : ISupport, ISupportFold
         relations.AddRange(recessive._relations);
         relations.AddRange(dominant._relations);
         _relations = relations.MoveToImmutable();
-        _structure = SupportStructure.Fuse(
-            recessive._structure,
-            dominant._structure,
-            LocateComposite);
+        _structure = SupportStructure.Fuse(recessive._structure, dominant._structure);
     }
 
     public bool IsAtomic => _inputs.IsEmpty;
@@ -198,31 +195,4 @@ public sealed class Basis : ISupport, ISupportFold
     public bool IsOpposedPair() => _structure.IsOpposedPair();
 
     public Measure KernelCode() => _structure.KernelCode();
-
-    private Ratio LocateSegment(Ratio position, Carrier carrier)
-    {
-        if (Recessive.AtomicRelation.Carrier != carrier || Dominant.AtomicRelation.Carrier != carrier)
-        {
-            return Ratio.Tension(position.Potential);
-        }
-
-        var start = Recessive.AtomicRelation.AnchorPosition;
-        var end = Dominant.AtomicRelation.AnchorPosition;
-        return start.Add(end.Subtract(start).Multiply(position)).Normalize();
-    }
-
-    private Ratio LocateComposite(Ratio position, Carrier carrier)
-    {
-        if (IsAtomic)
-        {
-            return AtomicRelation.Locate(position, carrier);
-        }
-
-        if (IsAtomicPair && IsSameCarrierPair() && IsOpposedPair() && HasSharedOriginPerCarrier())
-        {
-            return LocateSegment(position, carrier);
-        }
-
-        return Ratio.Tension(position.Potential);
-    }
 }

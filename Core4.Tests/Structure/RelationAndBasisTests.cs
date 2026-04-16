@@ -119,11 +119,13 @@ public sealed class RelationAndBasisTests
         var left = Basis.Freeze(x, new Measure(0), new Measure(-10));
         var right = Basis.Freeze(x, new Measure(5), new Measure(15));
         var fused = Basis.Fuse(left, right);
+        var attemptedMidpoint = fused.Locate(new Ratio(1, 2), x);
 
         Assert.True(fused.IsSameCarrierPair());
         Assert.True(fused.IsOpposedPair());
         Assert.False(fused.HasSharedOriginPerCarrier());
         Assert.Equal(new Measure(100), fused.Potential);
+        Assert.Equal(new Ratio(1, 0), attemptedMidpoint);
     }
 
     [Theory]

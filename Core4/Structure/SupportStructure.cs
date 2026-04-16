@@ -42,16 +42,13 @@ internal readonly record struct LandmarkCoincidence(
 /// </summary>
 internal sealed class SupportStructure : ISupport
 {
-    private readonly Func<Ratio, Carrier, Ratio> _locate;
-
     private SupportStructure(
         Carrier primaryCarrier,
         Measure supportGrade,
         ImmutableArray<SupportLandmark> landmarks,
         ImmutableArray<SupportSpan> spans,
         ImmutableArray<LandmarkCoincidence> coincidences,
-        ImmutableArray<SupportStructure> inputs,
-        Func<Ratio, Carrier, Ratio> locate)
+        ImmutableArray<SupportStructure> inputs)
     {
         PrimaryCarrier = primaryCarrier;
         SupportGrade = supportGrade;
@@ -59,7 +56,6 @@ internal sealed class SupportStructure : ISupport
         Spans = spans;
         Coincidences = coincidences;
         Inputs = inputs;
-        _locate = locate;
     }
 
     public Carrier PrimaryCarrier { get; }
@@ -78,7 +74,22 @@ internal sealed class SupportStructure : ISupport
 
     public Measure CarrierCount => new(SelectCarriers().Length);
 
-    public Ratio Locate(Ratio position, Carrier carrier) => _locate(position.Normalize(), carrier).Normalize();
+    public Ratio Locate(Ratio position, Carrier carrier)
+    {
+        var normalized = position.Normalize();
+
+        if (Inputs.IsEmpty)
+        {
+            return LocateAtomic(normalized, carrier);
+        }
+
+        if (IsAtomicPair() && IsSameCarrierPair() && IsOpposedPair() && HasSharedOriginPerCarrier())
+        {
+            return LocateDirectedSegment(normalized, carrier);
+        }
+
+        return Ratio.Tension(normalized.Potential);
+    }
 
     public ImmutableArray<Carrier> SelectCarriers()
     {
@@ -167,10 +178,7 @@ internal sealed class SupportStructure : ISupport
         ImmutableArray<SupportLandmark>.Empty,
         ImmutableArray<SupportSpan>.Empty,
         ImmutableArray<LandmarkCoincidence>.Empty,
-        ImmutableArray<SupportStructure>.Empty,
-        (position, target) => target == carrier
-            ? position.Normalize()
-            : Ratio.Tension(position.Potential));
+        ImmutableArray<SupportStructure>.Empty);
 
     public static SupportStructure FromRelation(Relation relation) => FromRelation(
         relation.Carrier,
@@ -200,34 +208,25 @@ internal sealed class SupportStructure : ISupport
                 new SupportSpan(carrier, originPosition, anchorPosition, normalizedCommitment)
             ],
             ImmutableArray<LandmarkCoincidence>.Empty,
-            ImmutableArray<SupportStructure>.Empty,
-            (position, target) => target == carrier
-                ? originPosition.Add(span.Multiply(position)).Normalize()
-                : Ratio.Tension(position.Potential));
+            ImmutableArray<SupportStructure>.Empty);
     }
 
-    public static SupportStructure Fuse(
-        SupportStructure recessive,
-        SupportStructure dominant,
-        Func<Ratio, Carrier, Ratio> locate) =>
-        Compose([recessive, dominant], locate);
+    public static SupportStructure Fuse(SupportStructure recessive, SupportStructure dominant) =>
+        Compose([recessive, dominant]);
 
     public static SupportStructure Fuse(
         SupportStructure recessive,
         SupportStructure dominant,
-        ImmutableArray<SupportStructure> remaining,
-        Func<Ratio, Carrier, Ratio> locate)
+        ImmutableArray<SupportStructure> remaining)
     {
         var inputs = ImmutableArray.CreateBuilder<SupportStructure>(remaining.Length + 2);
         inputs.Add(recessive);
         inputs.Add(dominant);
         inputs.AddRange(remaining);
-        return Compose(inputs.ToImmutable(), locate);
+        return Compose(inputs.ToImmutable());
     }
 
-    private static SupportStructure Compose(
-        ImmutableArray<SupportStructure> inputs,
-        Func<Ratio, Carrier, Ratio> locate)
+    private static SupportStructure Compose(ImmutableArray<SupportStructure> inputs)
     {
         var landmarks = ImmutableArray.CreateBuilder<SupportLandmark>();
         var spans = ImmutableArray.CreateBuilder<SupportSpan>();
@@ -292,8 +291,35 @@ internal sealed class SupportStructure : ISupport
             landmarks.ToImmutable(),
             spans.ToImmutable(),
             coincidences.ToImmutable(),
-            inputs,
-            locate);
+            inputs);
+    }
+
+    private Ratio LocateAtomic(Ratio position, Carrier carrier)
+    {
+        if (Spans.IsEmpty)
+        {
+            return carrier == PrimaryCarrier
+                ? position.Normalize()
+                : Ratio.Tension(position.Potential);
+        }
+
+        var span = Spans[0];
+        return carrier == span.Carrier
+            ? span.OriginPosition.Add(span.Span.Multiply(position)).Normalize()
+            : Ratio.Tension(position.Potential);
+    }
+
+    private Ratio LocateDirectedSegment(Ratio position, Carrier carrier)
+    {
+        var left = Inputs[0].Spans[0];
+        var right = Inputs[1].Spans[0];
+
+        if (left.Carrier != carrier || right.Carrier != carrier)
+        {
+            return Ratio.Tension(position.Potential);
+        }
+
+        return left.AnchorPosition.Add(right.AnchorPosition.Subtract(left.AnchorPosition).Multiply(position)).Normalize();
     }
 
     private static long SideCode(Measure orientation)
