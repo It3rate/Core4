@@ -38,11 +38,11 @@ public sealed class Attachment : ISupportFold
 
     public ImmutableArray<Site> Sites => Samples.Sites;
 
-    public ImmutableArray<Attachment> Inputs => BuildInputs();
+    public ImmutableArray<Attachment> Components => BuildComponents();
 
-    public Attachment Recessive => IsComposite ? Inputs[0] : this;
+    public Attachment Recessive => IsComposite ? Components[0] : this;
 
-    public Attachment Dominant => IsComposite ? Inputs[1] : this;
+    public Attachment Dominant => IsComposite ? Components[1] : this;
 
     public ImmutableArray<Measure> Measures => Samples.Measures();
 
@@ -119,7 +119,7 @@ public sealed class Attachment : ISupportFold
         .ToImmutableArray();
 
     // TODO(core): Delete this compatibility alias once callers stop expecting ratio-only component reads.
-    public ImmutableArray<Ratio> Components() => ComponentProjections();
+    public ImmutableArray<Ratio> ComponentRatios() => ComponentProjections();
 
     public Ratio ResolvedCoefficient() => IsAtomicPair
         ? Recessive.Projection.Multiply(Dominant.Projection)
@@ -186,16 +186,16 @@ public sealed class Attachment : ISupportFold
             return AlignAtomicSamples(structure, samples.Sites);
         }
 
-        if (samples.IsComposite && samples.Inputs.Length == structure.Inputs.Length)
+        if (samples.IsComposite && samples.Groups.Length == structure.Components.Length)
         {
-            var alignedInputs = ImmutableArray.CreateBuilder<SampleSet>(structure.Inputs.Length);
+            var alignedGroups = ImmutableArray.CreateBuilder<SampleSet>(structure.Components.Length);
 
-            for (var index = 0; index < structure.Inputs.Length; index++)
+            for (var index = 0; index < structure.Components.Length; index++)
             {
-                alignedInputs.Add(AlignSamples(structure.Inputs[index], samples.Inputs[index]));
+                alignedGroups.Add(AlignSamples(structure.Components[index], samples.Groups[index]));
             }
 
-            return SampleSet.Compose(alignedInputs.MoveToImmutable());
+            return SampleSet.Compose(alignedGroups.MoveToImmutable());
         }
 
         return AlignSampleSlices(structure, samples.Sites);
@@ -228,37 +228,37 @@ public sealed class Attachment : ISupportFold
             return AlignAtomicSamples(structure, sites);
         }
 
-        var inputs = ImmutableArray.CreateBuilder<SampleSet>(structure.Inputs.Length);
+        var groups = ImmutableArray.CreateBuilder<SampleSet>(structure.Components.Length);
         var offset = 0;
 
-        foreach (var input in structure.Inputs)
+        foreach (var component in structure.Components)
         {
-            var count = (int)input.RelationCount().Raw;
+            var count = (int)component.RelationCount().Raw;
             var available = offset < sites.Length
                 ? sites.Slice(offset, Math.Min(count, sites.Length - offset))
                 : ImmutableArray<Site>.Empty;
-            inputs.Add(AlignSampleSlices(input, available));
+            groups.Add(AlignSampleSlices(component, available));
             offset += count;
         }
 
-        return SampleSet.Compose(inputs.MoveToImmutable());
+        return SampleSet.Compose(groups.MoveToImmutable());
     }
 
-    private ImmutableArray<Attachment> BuildInputs()
+    private ImmutableArray<Attachment> BuildComponents()
     {
         if (IsAtomic)
         {
             return ImmutableArray<Attachment>.Empty;
         }
 
-        var inputs = ImmutableArray.CreateBuilder<Attachment>(Structure.Inputs.Length);
+        var components = ImmutableArray.CreateBuilder<Attachment>(Structure.Components.Length);
 
-        for (var index = 0; index < Structure.Inputs.Length; index++)
+        for (var index = 0; index < Structure.Components.Length; index++)
         {
-            inputs.Add(new Attachment(new Basis(Structure.Inputs[index]), Samples.Inputs[index]));
+            components.Add(new Attachment(new Basis(Structure.Components[index]), Samples.Groups[index]));
         }
 
-        return inputs.MoveToImmutable();
+        return components.MoveToImmutable();
     }
 
     private static Measure Absolute(Measure value) => value.Raw < 0 ? -value : value;

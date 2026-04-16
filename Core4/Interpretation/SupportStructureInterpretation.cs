@@ -10,9 +10,9 @@ namespace Core4.Interpretation;
 /// </summary>
 internal static class SupportStructureInterpretation
 {
-    public static Measure SupportGrade(this SupportStructure structure) => structure.Inputs.IsEmpty
+    public static Measure SupportGrade(this SupportStructure structure) => structure.Components.IsEmpty
         ? Measure.Zero
-        : new Measure(structure.Inputs.Max(static input => input.SupportGrade().Raw) + 1L);
+        : new Measure(structure.Components.Max(static component => component.SupportGrade().Raw) + 1L);
 
     public static Measure RelationCount(this SupportStructure structure) => new(structure.Spans.Length);
 
@@ -20,7 +20,7 @@ internal static class SupportStructureInterpretation
 
     public static Ratio Stiffness(this SupportStructure structure) => structure.IsAtomic
         ? structure.AtomicStiffness()
-        : structure.Inputs[0].Stiffness().Weaker(structure.Inputs[1].Stiffness());
+        : structure.Components[0].Stiffness().Weaker(structure.Components[1].Stiffness());
 
     public static ISupportProjection OriginPositionRead(this SupportStructure structure) =>
         new SupportProjectionRead(structure.OriginPosition());
@@ -42,11 +42,11 @@ internal static class SupportStructureInterpretation
     public static Measure Potential(this SupportStructure structure) => structure.IsAtomic
         ? structure.AtomicPotential()
         : structure.IsSameCarrierPair() && structure.IsOpposedPair() && structure.HasSharedOriginPerCarrier()
-            ? structure.Inputs[0].Potential() + structure.Inputs[1].Potential()
-            : new Measure(checked(structure.Inputs[0].Potential().Raw * structure.Inputs[1].Potential().Raw));
+            ? structure.Components[0].Potential() + structure.Components[1].Potential()
+            : new Measure(checked(structure.Components[0].Potential().Raw * structure.Components[1].Potential().Raw));
 
     public static ISupportProjection FoldRead(this SupportStructure structure) => structure.IsComposite
-        ? new SupportProjectionRead(new Ratio(structure.Inputs[0].Potential(), structure.Inputs[1].Potential()).Normalize())
+        ? new SupportProjectionRead(new Ratio(structure.Components[0].Potential(), structure.Components[1].Potential()).Normalize())
         : new SupportProjectionRead(Ratio.Tension(structure.Potential()));
 
     public static Measure Orientation(this SupportStructure structure) =>
@@ -185,11 +185,11 @@ internal static class SupportStructureInterpretation
 
     public static bool HasRecessiveCalibration(this SupportStructure structure) => structure.IsAtomic
         ? structure.IsRecessive()
-        : structure.IsAtomicPair() && structure.Inputs[0].IsAtomic && structure.Inputs[0].IsRecessive();
+        : structure.IsAtomicPair() && structure.Components[0].IsAtomic && structure.Components[0].IsRecessive();
 
     public static bool HasDominantCalibration(this SupportStructure structure) => structure.IsAtomic
         ? structure.IsDominant()
-        : structure.IsAtomicPair() && structure.Inputs[1].IsAtomic && structure.Inputs[1].IsDominant();
+        : structure.IsAtomicPair() && structure.Components[1].IsAtomic && structure.Components[1].IsDominant();
 
     public static bool IsBilateralAt(this SupportStructure structure, Site site, Carrier carrier) => structure.IsAtomicPair()
         && structure.IsSameCarrierPair()
@@ -198,22 +198,22 @@ internal static class SupportStructureInterpretation
         && structure.HasRecessiveCalibration()
         && structure.HasDominantCalibration();
 
-    public static bool IsAtomicPair(this SupportStructure structure) => structure.Inputs.Length == 2
-        && structure.Inputs[0].Inputs.IsEmpty
-        && structure.Inputs[1].Inputs.IsEmpty
-        && structure.Inputs[0].Spans.Length == 1
-        && structure.Inputs[1].Spans.Length == 1;
+    public static bool IsAtomicPair(this SupportStructure structure) => structure.Components.Length == 2
+        && structure.Components[0].Components.IsEmpty
+        && structure.Components[1].Components.IsEmpty
+        && structure.Components[0].Spans.Length == 1
+        && structure.Components[1].Spans.Length == 1;
 
     public static bool IsSameCarrierPair(this SupportStructure structure) => structure.IsAtomicPair()
-        && structure.Inputs[0].Spans[0].Carrier == structure.Inputs[1].Spans[0].Carrier;
+        && structure.Components[0].Spans[0].Carrier == structure.Components[1].Spans[0].Carrier;
 
     public static bool IsAlignedPair(this SupportStructure structure) => structure.IsAtomicPair()
-        && structure.Inputs[0].Spans[0].Orientation().Raw != 0
-        && structure.Inputs[0].Spans[0].Orientation() == structure.Inputs[1].Spans[0].Orientation();
+        && structure.Components[0].Spans[0].Orientation().Raw != 0
+        && structure.Components[0].Spans[0].Orientation() == structure.Components[1].Spans[0].Orientation();
 
     public static bool IsOpposedPair(this SupportStructure structure) => structure.IsAtomicPair()
-        && structure.Inputs[0].Spans[0].Orientation().Raw != 0
-        && structure.Inputs[0].Spans[0].Orientation() == -structure.Inputs[1].Spans[0].Orientation();
+        && structure.Components[0].Spans[0].Orientation().Raw != 0
+        && structure.Components[0].Spans[0].Orientation() == -structure.Components[1].Spans[0].Orientation();
 
     public static Measure KernelCode(this SupportStructure structure)
     {
@@ -222,8 +222,8 @@ internal static class SupportStructureInterpretation
             return Measure.Zero;
         }
 
-        var recessive = SideCode(structure.Inputs[0].Spans[0].Orientation());
-        var dominant = SideCode(structure.Inputs[1].Spans[0].Orientation());
+        var recessive = SideCode(structure.Components[0].Spans[0].Orientation());
+        var dominant = SideCode(structure.Components[1].Spans[0].Orientation());
 
         if (recessive < 0 || dominant < 0)
         {
@@ -275,11 +275,11 @@ internal static class SupportStructureInterpretation
             return SupportStructure.FromSpan(span.Carrier, span.AnchorPosition, span.OriginPosition, span.Commitment);
         }
 
-        var flipped = SupportStructure.Fuse(structure.Inputs[0].Flip(), structure.Inputs[1].Flip());
+        var flipped = SupportStructure.Fuse(structure.Components[0].Flip(), structure.Components[1].Flip());
 
-        for (var index = 2; index < structure.Inputs.Length; index++)
+        for (var index = 2; index < structure.Components.Length; index++)
         {
-            flipped = SupportStructure.Fuse(flipped, structure.Inputs[index].Flip());
+            flipped = SupportStructure.Fuse(flipped, structure.Components[index].Flip());
         }
 
         return flipped;
@@ -301,8 +301,8 @@ internal static class SupportStructureInterpretation
 
     private static Ratio LocateDirectedSegment(this SupportStructure structure, Ratio position, Carrier carrier)
     {
-        var left = structure.Inputs[0].Spans[0];
-        var right = structure.Inputs[1].Spans[0];
+        var left = structure.Components[0].Spans[0];
+        var right = structure.Components[1].Spans[0];
 
         if (left.Carrier != carrier || right.Carrier != carrier)
         {

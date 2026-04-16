@@ -168,7 +168,7 @@ public sealed class AttachmentTests
         var attachment = basis.Attach(samples);
 
         Assert.True(attachment.Samples.IsComposite);
-        Assert.Equal(2, attachment.Samples.Inputs.Length);
+        Assert.Equal(2, attachment.Samples.Groups.Length);
         Assert.Equal(new Measure(1), attachment.Recessive.Samples.SiteCount);
         Assert.Equal(new Measure(1), attachment.Dominant.Samples.SiteCount);
         Assert.Equal(new Measure(7), attachment.Recessive.Samples.Measures()[0]);
@@ -191,7 +191,7 @@ public sealed class AttachmentTests
         var attachment = basis.Attach(flatSamples);
 
         Assert.True(attachment.Samples.IsComposite);
-        Assert.Equal(2, attachment.Samples.Inputs.Length);
+        Assert.Equal(2, attachment.Samples.Groups.Length);
         Assert.Equal(new Measure(7), attachment.Recessive.Samples.Measures()[0]);
         Assert.Equal(new Measure(8), attachment.Dominant.Samples.Measures()[0]);
     }

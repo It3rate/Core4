@@ -27,9 +27,9 @@ public static class SampleSetInterpretation
 
         var selectedInputs = ImmutableArray.CreateBuilder<SampleSet>();
 
-        foreach (var input in samples.Inputs)
+        foreach (var group in samples.Groups)
         {
-            var selected = input.Select(carrier);
+            var selected = group.Select(carrier);
             if (!selected.IsEmpty)
             {
                 selectedInputs.Add(selected);

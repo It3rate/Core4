@@ -11,15 +11,15 @@ namespace Core4.Encoding;
 public sealed class SampleSet
 {
     private readonly ImmutableArray<Site> _sites;
-    private readonly ImmutableArray<SampleSet> _inputs;
+    private readonly ImmutableArray<SampleSet> _groups;
 
-    private SampleSet(ImmutableArray<Site> sites, ImmutableArray<SampleSet> inputs)
+    private SampleSet(ImmutableArray<Site> sites, ImmutableArray<SampleSet> groups)
     {
         _sites = sites;
-        _inputs = inputs;
+        _groups = groups;
     }
 
-    public bool IsAtomic => _inputs.IsEmpty;
+    public bool IsAtomic => _groups.IsEmpty;
 
     public bool IsComposite => !IsAtomic;
 
@@ -29,11 +29,11 @@ public sealed class SampleSet
 
     public ImmutableArray<Site> Sites => _sites;
 
-    public ImmutableArray<SampleSet> Inputs => _inputs;
+    public ImmutableArray<SampleSet> Groups => _groups;
 
-    public SampleSet Recessive => IsComposite ? _inputs[0] : this;
+    public SampleSet Recessive => IsComposite ? _groups[0] : this;
 
-    public SampleSet Dominant => IsComposite ? _inputs[1] : this;
+    public SampleSet Dominant => IsComposite ? _groups[1] : this;
 
     public static SampleSet Collect(params Site[] sites) => new([.. sites], ImmutableArray<SampleSet>.Empty);
 
@@ -41,28 +41,28 @@ public sealed class SampleSet
 
     public static SampleSet Fuse(SampleSet recessive, SampleSet dominant, params SampleSet[] remaining)
     {
-        var inputs = new SampleSet[remaining.Length + 2];
-        inputs[0] = recessive;
-        inputs[1] = dominant;
+        var groups = new SampleSet[remaining.Length + 2];
+        groups[0] = recessive;
+        groups[1] = dominant;
 
         for (var index = 0; index < remaining.Length; index++)
         {
-            inputs[index + 2] = remaining[index];
+            groups[index + 2] = remaining[index];
         }
 
-        return Compose(inputs.ToImmutableArray());
+        return Compose(groups.ToImmutableArray());
     }
 
-    internal static SampleSet Compose(ImmutableArray<SampleSet> inputs)
+    internal static SampleSet Compose(ImmutableArray<SampleSet> groups)
     {
         var sites = ImmutableArray.CreateBuilder<Site>();
 
-        foreach (var input in inputs)
+        foreach (var group in groups)
         {
-            sites.AddRange(input.Sites);
+            sites.AddRange(group.Sites);
         }
 
-        return new SampleSet(sites.ToImmutable(), inputs);
+        return new SampleSet(sites.ToImmutable(), groups);
     }
 }
 

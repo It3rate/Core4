@@ -37,13 +37,13 @@ internal sealed class SupportStructure
         ImmutableArray<SupportLandmark> landmarks,
         ImmutableArray<SupportSpan> spans,
         ImmutableArray<LandmarkCoincidence> coincidences,
-        ImmutableArray<SupportStructure> inputs)
+        ImmutableArray<SupportStructure> components)
     {
         PrimaryCarrier = primaryCarrier;
         Landmarks = landmarks;
         Spans = spans;
         Coincidences = coincidences;
-        Inputs = inputs;
+        Components = components;
     }
 
     public Carrier PrimaryCarrier { get; }
@@ -54,9 +54,9 @@ internal sealed class SupportStructure
 
     public ImmutableArray<LandmarkCoincidence> Coincidences { get; }
 
-    public ImmutableArray<SupportStructure> Inputs { get; }
+    public ImmutableArray<SupportStructure> Components { get; }
 
-    public bool IsAtomic => Inputs.IsEmpty;
+    public bool IsAtomic => Components.IsEmpty;
 
     public bool IsComposite => !IsAtomic;
 
@@ -109,7 +109,7 @@ internal sealed class SupportStructure
         return fused;
     }
 
-    private static SupportStructure Compose(ImmutableArray<SupportStructure> inputs)
+    private static SupportStructure Compose(ImmutableArray<SupportStructure> components)
     {
         var landmarks = ImmutableArray.CreateBuilder<SupportLandmark>();
         var spans = ImmutableArray.CreateBuilder<SupportSpan>();
@@ -117,12 +117,12 @@ internal sealed class SupportStructure
         var flattened = new List<(int InputIndex, SupportLandmark Landmark)>();
         long nextId = 0L;
 
-        for (var inputIndex = 0; inputIndex < inputs.Length; inputIndex++)
+        for (var inputIndex = 0; inputIndex < components.Length; inputIndex++)
         {
-            var input = inputs[inputIndex];
+            var component = components[inputIndex];
             var remap = new Dictionary<LandmarkId, LandmarkId>();
 
-            foreach (var landmark in input.Landmarks)
+            foreach (var landmark in component.Landmarks)
             {
                 var remapped = Reidentify(landmark, nextId++);
                 remap[landmark.Id] = remapped.Id;
@@ -130,7 +130,7 @@ internal sealed class SupportStructure
                 flattened.Add((inputIndex, remapped));
             }
 
-            foreach (var coincidence in input.Coincidences)
+            foreach (var coincidence in component.Coincidences)
             {
                 if (remap.TryGetValue(coincidence.Left, out var left)
                     && remap.TryGetValue(coincidence.Right, out var right))
@@ -139,7 +139,7 @@ internal sealed class SupportStructure
                 }
             }
 
-            spans.AddRange(input.Spans);
+            spans.AddRange(component.Spans);
         }
 
         for (var leftIndex = 0; leftIndex < flattened.Count; leftIndex++)
@@ -163,14 +163,14 @@ internal sealed class SupportStructure
             }
         }
 
-        var primaryCarrier = inputs.Length == 0 ? new Carrier(0) : inputs[0].PrimaryCarrier;
+        var primaryCarrier = components.Length == 0 ? new Carrier(0) : components[0].PrimaryCarrier;
 
         return new SupportStructure(
             primaryCarrier,
             landmarks.ToImmutable(),
             spans.ToImmutable(),
             coincidences.ToImmutable(),
-            inputs);
+            components);
     }
 
     private static SupportLandmark Reidentify(SupportLandmark landmark, LandmarkId id) =>

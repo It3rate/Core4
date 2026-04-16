@@ -91,7 +91,7 @@ public sealed class RelationAndBasisTests
         var right = Basis.Freeze(y, new Measure(5), new Measure(15), new Ratio(1, 2));
         var fused = Basis.Fuse(left, right);
 
-        Assert.Equal(2, fused.Inputs.Length);
+        Assert.Equal(2, fused.Components.Length);
         Assert.Equal(x, fused.Recessive.Relations[0].Carrier);
         Assert.Equal(y, fused.Dominant.Relations[0].Carrier);
         Assert.Equal(new Ratio(3, 4), fused.Recessive.Relations[0].Stiffness);

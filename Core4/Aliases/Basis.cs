@@ -11,13 +11,13 @@ namespace Core4.Aliases;
 public sealed class Basis : ISupport, ISupportFold
 {
     private readonly SupportStructure _structure;
-    private readonly ImmutableArray<Basis> _inputs;
+    private readonly ImmutableArray<Basis> _components;
     private readonly ImmutableArray<Relation> _relations;
 
     internal Basis(SupportStructure structure)
     {
         _structure = structure;
-        _inputs = _structure.Inputs.Select(static input => new Basis(input)).ToImmutableArray();
+        _components = _structure.Components.Select(static component => new Basis(component)).ToImmutableArray();
         _relations = _structure.SelectRelations();
     }
 
@@ -47,15 +47,15 @@ public sealed class Basis : ISupport, ISupportFold
 
     public Measure CarrierCount => _structure.CarrierCount();
 
-    public ImmutableArray<Basis> Inputs => _inputs;
+    public ImmutableArray<Basis> Components => _components;
 
     public ImmutableArray<Relation> Relations => _relations;
 
     internal SupportStructure Structure => _structure;
 
-    public Basis Recessive => IsComposite ? _inputs[0] : this;
+    public Basis Recessive => IsComposite ? _components[0] : this;
 
-    public Basis Dominant => IsComposite ? _inputs[1] : this;
+    public Basis Dominant => IsComposite ? _components[1] : this;
 
     public Measure Potential => _structure.Potential();
 
