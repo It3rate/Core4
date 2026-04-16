@@ -297,4 +297,29 @@ public sealed class CarrierCommunicationTests
         Assert.Empty(afterOne.At(source).Orthogonal.IncomingFeedback());
         Assert.Equal(new Ratio(0, 0), afterOne.FeedbackFields[0].Requested);
     }
+
+    [Fact]
+    public void CarrierCommunicationStateDistinguishesExactSitesThatShareWholeLocation()
+    {
+        Carrier x = 1;
+        Carrier light = 2;
+
+        var left = Site.Open(x.At(new Ratio(new Measure(1), new Measure(4))))
+            .Anchor(new Ratio(0, 1))
+            .Publish(light, new Ratio(4, 4));
+        var right = Site.Open(x.At(new Ratio(new Measure(3), new Measure(4))))
+            .Anchor(new Ratio(0, 1))
+            .Request(light, Ratio.Tension(new Measure(4)));
+
+        var state = CarrierCommunication.Create(ConnectedSiteTopology.Create([left, right]))
+            .Seed()
+            .Relax();
+
+        Assert.Equal(left.Placement, state.At(left).Placement);
+        Assert.Equal(right.Placement, state.At(right).Placement);
+        Assert.NotEqual(state.At(left).Placement, state.At(right).Placement);
+        Assert.Single(state.Transfers);
+        Assert.Equal(left.Placement, state.Transfers[0].Source);
+        Assert.Equal(right.Placement, state.Transfers[0].Target);
+    }
 }

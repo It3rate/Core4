@@ -705,7 +705,7 @@ public static class CarrierChainRenderer
         ? ProbePalette.OrthogonalInput
         : ProbePalette.Orthogonal;
 
-    private static string SiteLabel(Site site) => $"{CarrierLabel(site.Carrier)}{site.Location.Raw}";
+    private static string SiteLabel(Site site) => $"{CarrierLabel(site.Carrier)}{PositionLabel(site)}";
 
     private static string CarrierLabel(Carrier carrier) => carrier.Id switch
     {
@@ -821,11 +821,7 @@ public static class CarrierChainRenderer
         return Compare(origin, anchor) >= 0 ? origin : anchor;
     }
 
-    private static int Compare(Ratio left, Ratio right)
-    {
-        var comparison = checked((left.Recessive.Raw * right.Dominant.Raw) - (right.Recessive.Raw * left.Dominant.Raw));
-        return comparison < 0 ? -1 : comparison > 0 ? 1 : 0;
-    }
+    private static int Compare(Ratio left, Ratio right) => left.CompareValue(right);
 
     private static Point ResolvePoint(Rect content, Point normalized) => new(
         content.X + (content.Width * normalized.X),
@@ -1006,7 +1002,16 @@ public static class CarrierChainRenderer
         return false;
     }
 
-    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
+    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier
+        && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
+
+    private static string PositionLabel(Site site)
+    {
+        var position = site.On(site.Carrier).Normalize();
+        return position.IsResolved && position.Remainder == Measure.Zero
+            ? position.Whole.Raw.ToString()
+            : position.ToString();
+    }
 }
 
 public readonly record struct CarrierChainSceneLayout(

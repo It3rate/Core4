@@ -759,7 +759,7 @@ public sealed class BoundaryLoopPageView : UserControl
 
         foreach (var frontier in _autoWave.VisibleFrontiers)
         {
-            if (frontier.Site.Carrier == site.Carrier && frontier.Site.Location == site.Location)
+            if (SameNode(frontier.Site, site))
             {
                 var intensity = frontier.Intensity.Canonicalize();
                 return intensity == new Ratio(Core4.Numerics.Measure.One, Core4.Numerics.Measure.One)
@@ -784,8 +784,7 @@ public sealed class BoundaryLoopPageView : UserControl
 
         var relation = frontier.TrailRelations[^1];
         var actualMagnitude = RelationMagnitude(layout, relation);
-        var atOrigin = frontier.Site.Carrier == relation.Origin.Carrier
-            && frontier.Site.Location == relation.Origin.Location;
+        var atOrigin = SameNode(frontier.Site, relation.Origin);
         var position = atOrigin ? 0d : 1d;
         var recessive = actualMagnitude * position;
         var dominant = Math.Max(0d, actualMagnitude - recessive);
@@ -934,7 +933,7 @@ public sealed class BoundaryLoopPageView : UserControl
     {
         foreach (var existing in sites)
         {
-            if (existing.Carrier == site.Carrier && existing.Location == site.Location)
+            if (SameNode(existing, site))
             {
                 return;
             }
@@ -949,8 +948,7 @@ public sealed class BoundaryLoopPageView : UserControl
     {
         foreach (var existing in readouts)
         {
-            if (existing.Site.Carrier == readout.Site.Carrier
-                && existing.Site.Location == readout.Site.Location
+            if (SameNode(existing.Site, readout.Site)
                 && existing.Label == readout.Label)
             {
                 return;
@@ -1117,7 +1115,7 @@ public sealed class BoundaryLoopPageView : UserControl
         {
             foreach (var member in candidate.MemberSites)
             {
-                if (member.Carrier == site.Carrier && member.Location == site.Location)
+                if (SameNode(member, site))
                 {
                     hub = candidate;
                     return true;
@@ -1187,7 +1185,7 @@ public sealed class BoundaryLoopPageView : UserControl
     }
 
     private static bool SameNode(Site left, Site right) =>
-        left.Carrier == right.Carrier && left.Location == right.Location;
+        left.Carrier == right.Carrier && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
 
     private static string CarrierLabel(Carrier carrier) => carrier.Id switch
     {
@@ -1198,7 +1196,15 @@ public sealed class BoundaryLoopPageView : UserControl
         _ => $"c{carrier.Id}"
     };
 
-    private static string SiteLabel(Site site) => $"{CarrierLabel(site.Carrier)}{site.Location.Raw}";
+    private static string SiteLabel(Site site) => $"{CarrierLabel(site.Carrier)}{PositionLabel(site)}";
+
+    private static string PositionLabel(Site site)
+    {
+        var position = site.On(site.Carrier).Normalize();
+        return position.IsResolved && position.Remainder == Core4.Numerics.Measure.Zero
+            ? position.Whole.Raw.ToString()
+            : position.ToString();
+    }
 
     private readonly record struct BoundaryPreset(
         string Label,

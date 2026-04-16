@@ -624,7 +624,8 @@ public readonly record struct CarrierCommunicationState(
             feedbackEmitters.ToImmutable());
     }
 
-    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
+    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier
+        && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
 
     private static int CompareMagnitude(Ratio left, Ratio right) => left.CompareMagnitude(right);
 
