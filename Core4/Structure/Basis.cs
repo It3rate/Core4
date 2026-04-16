@@ -4,19 +4,22 @@ using Core4.Numerics;
 namespace Core4.Structure;
 
 /// <summary>
-/// A frozen relation, or a frozen fusion of relations. Because a basis is also a support, placements can travel
-/// along it by ratio just like they do on a carrier.
+/// A frozen relation, or a frozen fusion of relations. In the support-first reading this is reusable calibration over
+/// shared support structure rather than a separate primitive species. Because a basis is also a support, placements
+/// can travel along it by ratio just like they do on a carrier.
 /// Example: <c>var segment = Basis.Fuse(leftBasis, rightBasis); var point = segment.Place(new Ratio(1, 2));</c>
 /// </summary>
 public sealed class Basis : ISupport
 {
     private readonly ImmutableArray<Basis> _inputs;
     private readonly ImmutableArray<Relation> _relations;
+    private readonly SupportStructure _structure;
 
     private Basis(Relation relation)
     {
         _inputs = ImmutableArray<Basis>.Empty;
         _relations = ImmutableArray.Create(relation);
+        _structure = relation.Structure;
     }
 
     private Basis(Basis recessive, Basis dominant)
@@ -27,6 +30,10 @@ public sealed class Basis : ISupport
         relations.AddRange(recessive._relations);
         relations.AddRange(dominant._relations);
         _relations = relations.MoveToImmutable();
+        _structure = SupportStructure.Fuse(
+            recessive._structure,
+            dominant._structure,
+            LocateComposite);
     }
 
     public bool IsAtomic => _inputs.IsEmpty;
@@ -35,11 +42,11 @@ public sealed class Basis : ISupport
 
     public bool IsAtomicPair => IsComposite && Recessive.IsAtomic && Dominant.IsAtomic;
 
-    public Measure Grade => IsAtomic ? Measure.Zero : new Measure(Math.Max(Recessive.Grade.Raw, Dominant.Grade.Raw) + 1);
+    public Measure Grade => _structure.SupportGrade;
 
-    public Carrier PrimaryCarrier => _relations.IsEmpty ? new Carrier(0) : _relations[0].Carrier;
+    public Carrier PrimaryCarrier => _structure.PrimaryCarrier;
 
-    public Measure SupportGrade => Grade;
+    public Measure SupportGrade => _structure.SupportGrade;
 
     public Measure RelationCount => new(_relations.Length);
 
@@ -50,6 +57,8 @@ public sealed class Basis : ISupport
     public ImmutableArray<Basis> Inputs => _inputs;
 
     public ImmutableArray<Relation> Relations => _relations;
+
+    internal SupportStructure Structure => _structure;
 
     public Basis Recessive => IsComposite ? _inputs[0] : this;
 
@@ -138,20 +147,7 @@ public sealed class Basis : ISupport
         ? Freeze(AtomicRelation.Flip())
         : Fuse(Recessive.Flip(), Dominant.Flip());
 
-    public Ratio Locate(Ratio position, Carrier carrier)
-    {
-        if (IsAtomic)
-        {
-            return AtomicRelation.Locate(position, carrier);
-        }
-
-        if (IsAtomicPair && IsSameCarrierPair() && IsOpposedPair() && HasSharedOriginPerCarrier())
-        {
-            return LocateSegment(position, carrier);
-        }
-
-        return Ratio.Tension(position.Potential);
-    }
+    public Ratio Locate(Ratio position, Carrier carrier) => _structure.Locate(position, carrier);
 
     public Ratio Project(Site site) => IsAtomic
         ? AtomicRelation.Project(site)
@@ -277,5 +273,20 @@ public sealed class Basis : ISupport
         var start = Recessive.AtomicRelation.AnchorPosition;
         var end = Dominant.AtomicRelation.AnchorPosition;
         return start.Add(end.Subtract(start).Multiply(position)).Normalize();
+    }
+
+    private Ratio LocateComposite(Ratio position, Carrier carrier)
+    {
+        if (IsAtomic)
+        {
+            return AtomicRelation.Locate(position, carrier);
+        }
+
+        if (IsAtomicPair && IsSameCarrierPair() && IsOpposedPair() && HasSharedOriginPerCarrier())
+        {
+            return LocateSegment(position, carrier);
+        }
+
+        return Ratio.Tension(position.Potential);
     }
 }

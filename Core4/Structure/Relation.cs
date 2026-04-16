@@ -3,8 +3,9 @@ using Core4.Numerics;
 namespace Core4.Structure;
 
 /// <summary>
-/// A live ordered coupling between two sites on a chosen carrier. Freezing a relation produces the first reusable
-/// basis, while leaving it live keeps it available for negotiation or future dynamic motion.
+/// A live ordered coupling between two sites on a chosen carrier. In the support-first reading this is the lowest
+/// ergonomic alias for a same-carrier support with two pinned landmarks. Freezing a relation produces the first
+/// reusable basis, while leaving it live keeps it available for negotiation or future dynamic motion.
 /// Example: <c>var relation = origin.Relate(anchor);</c>
 /// </summary>
 public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor) : ISupport
@@ -16,6 +17,8 @@ public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor
     public Carrier PrimaryCarrier => Carrier;
 
     public Measure SupportGrade => Measure.Zero;
+
+    internal SupportStructure Structure => SupportStructure.FromRelation(this);
 
     public Ratio OriginPosition => Origin.On(Carrier);
 
@@ -46,9 +49,7 @@ public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor
 
     public Placement Place(Ratio ratio) => new(this, ratio.Normalize());
 
-    public Ratio Locate(Ratio position, Carrier carrier) => carrier == Carrier
-        ? OriginPosition.Add(Span.Multiply(position)).Normalize()
-        : Ratio.Tension(position.Potential);
+    public Ratio Locate(Ratio position, Carrier carrier) => Structure.Locate(position, carrier);
 
     public Basis Freeze() => Basis.Freeze(this);
 }
