@@ -447,15 +447,15 @@ public readonly record struct TopologyTrolleyObservation(
                 continue;
             }
 
-            if (agreement.Commitment.Potential == Measure.Zero)
+            if (!agreement.HasCommittedTransfer)
             {
                 continue;
             }
 
             continuations.Add(continuation with
             {
-                Transmission = agreement.Commitment.Canonicalize(),
-                Retention = new Ratio(Measure.One, Measure.One).Subtract(agreement.Commitment).Canonicalize()
+                Transmission = agreement.Transmission,
+                Retention = agreement.Retention
             });
         }
 
@@ -478,7 +478,7 @@ public readonly record struct TopologyTrolleyObservation(
 
             var agreement = encounter.Agree(Trolley.Signature, preservedDirection);
 
-            if (agreement.Commitment.Potential == Measure.Zero)
+            if (!agreement.HasCommittedTransfer)
             {
                 continue;
             }
@@ -510,8 +510,8 @@ public readonly record struct TopologyTrolleyObservation(
                 Trolley.Signature,
                 targetSignature,
                 [agreement],
-                agreement.Commitment.Canonicalize(),
-                new Ratio(Measure.One, Measure.One).Subtract(agreement.Commitment).Canonicalize()));
+                agreement.Transmission,
+                agreement.Retention));
         }
 
         return continuations.ToImmutable();
@@ -526,12 +526,11 @@ public readonly record struct TopologyTrolleyObservation(
 
         foreach (var agreement in continuation.BasisAgreements)
         {
-            if (agreement.Encounter.IsExplicitPinnedBasis
-                && agreement.Encounter.IsLocalToSite
-                && !TryResolveClosureTarget(agreement.Encounter, out _)
-                && agreement.PreservesDirection)
+            var hasClosureTarget = TryResolveClosureTarget(agreement.Encounter, out _);
+
+            if (agreement.CanReflectAtLocalPinnedBoundary(hasClosureTarget))
             {
-                if (!hasSelected || CompareRatio(agreement.Commitment, selected.Commitment) > 0)
+                if (!hasSelected || agreement.CompareTransferPreference(selected) > 0)
                 {
                     selected = agreement;
                     hasSelected = true;

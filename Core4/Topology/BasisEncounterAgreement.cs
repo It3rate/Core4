@@ -33,6 +33,12 @@ public readonly record struct BasisEncounterAgreement(
 
     public bool IsOneSided => Capability == new Ratio(Measure.One, new Measure(2));
 
+    public bool HasCommittedTransfer => Commitment.Potential != Measure.Zero;
+
+    public Ratio Transmission => Commitment.Canonicalize();
+
+    public Ratio Retention => new Ratio(Measure.One, Measure.One).Subtract(Commitment).Canonicalize();
+
     public int ComparePreference(BasisEncounterAgreement other)
     {
         var traversal = CompareTraversalPreference(other);
@@ -63,6 +69,15 @@ public readonly record struct BasisEncounterAgreement(
 
         return CompareRatio(Commitment, other.Commitment);
     }
+
+    public int CompareTransferPreference(BasisEncounterAgreement other) =>
+        CompareRatio(Commitment, other.Commitment);
+
+    public bool CanReflectAtLocalPinnedBoundary(bool hasClosureTarget) =>
+        Encounter.IsExplicitPinnedBasis
+        && Encounter.IsLocalToSite
+        && !hasClosureTarget
+        && PreservesDirection;
 
     public static BasisEncounterAgreement Create(
         TraversalSignature signature,
