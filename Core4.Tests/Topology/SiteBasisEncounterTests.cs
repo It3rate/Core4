@@ -85,6 +85,7 @@ public sealed class SiteBasisEncounterTests
         Assert.True(explicitBasis.IsLocalToSite);
         Assert.True(explicitBasis.HasRecessiveCalibration);
         Assert.False(explicitBasis.HasDominantCalibration);
+        Assert.Equal(explicitBasis.Basis.Fold, explicitBasis.Fold);
         Assert.Equal(explicitBasis.Basis.Fold, explicitBasis.CalibrationRead.Fold);
         Assert.Equal(explicitBasis.Basis.Potential, explicitBasis.CalibrationRead.Potential);
         Assert.Equal(new Ratio(Measure.One, Measure.One), explicitBasis.Commitment);
@@ -107,5 +108,36 @@ public sealed class SiteBasisEncounterTests
 
         var explicitBasis = Assert.Single(encounters, encounter => encounter.IsExplicitPinnedBasis);
         Assert.Equal(new Ratio(new Measure(1), new Measure(2)), explicitBasis.Commitment);
+    }
+
+    [Fact]
+    public void EncounterAgreementCarriesEncounteredSupportFoldRead()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var right = Site.Open(x, new Measure(10))
+            .Exchange(
+                Basis.Freeze(x, new Measure(10), new Measure(6)),
+                Ratio.Tension(new Measure(4)),
+                Provenance.Shared(new Measure(4)));
+
+        var encounter = Assert.Single(
+            ConnectedSiteTopology.FromRelations(new Relation(left, right))
+                .BasisEncountersAt(right, x),
+            candidate => candidate.IsExplicitPinnedBasis);
+        var signature = TraversalSignature.FromSite(
+            right,
+            Measure.One,
+            new Ratio(new Measure(10), Measure.One),
+            Provenance.SelfDriven(new Measure(10)));
+
+        var agreement = encounter.Agree(signature, Measure.One);
+
+        Assert.Equal(encounter.Fold, agreement.Calibration);
+        Assert.Equal(encounter.Potential, agreement.Potential);
+        Assert.Equal(encounter.Fold, agreement.CalibrationRead.Fold);
+        Assert.Equal(encounter.Potential, agreement.CalibrationRead.Potential);
+        Assert.Equal(new Ratio(new Measure(4), new Measure(10)), agreement.Resolution);
     }
 }

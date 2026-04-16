@@ -14,7 +14,7 @@ public readonly record struct SiteBasisEncounter(
     Carrier Carrier,
     Basis Basis,
     ISupport SourceSupport,
-    Measure SupportPotential)
+    Measure SupportPotential) : ISupportFold
 {
     public Measure Grade => Basis.Grade;
 
@@ -22,7 +22,9 @@ public readonly record struct SiteBasisEncounter(
 
     public ISupportFold CalibrationRead => Basis;
 
-    public Ratio Calibration => CalibrationRead.Fold.Normalize();
+    public Ratio Fold => CalibrationRead.Fold.Normalize();
+
+    public Ratio Calibration => Fold;
 
     public Measure Potential => CalibrationRead.Potential;
 
@@ -69,6 +71,11 @@ public readonly record struct SiteBasisEncounter(
     };
 
     public ImmutableArray<Relation> LocalRelations => Basis.SelectRelations();
+
+    public BasisEncounterAgreement Agree(
+        TraversalSignature signature,
+        Measure desiredDirection) =>
+        BasisEncounterAgreement.Create(signature, this, desiredDirection);
 
     internal static SiteBasisEncounter FromIncoming(Site site, Relation relation) =>
         new(site, relation.Carrier, Basis.Freeze(relation.Flip()), relation, relation.Potential);

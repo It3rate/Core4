@@ -1,4 +1,5 @@
 using Core4.Numerics;
+using Core4.Structure;
 
 namespace Core4.Topology;
 
@@ -14,6 +15,12 @@ public readonly record struct BasisEncounterAgreement(
     Ratio Capability,
     Ratio Commitment)
 {
+    public ISupportFold CalibrationRead => Encounter;
+
+    public Ratio Calibration => CalibrationRead.Fold.Normalize();
+
+    public Measure Potential => CalibrationRead.Potential;
+
     public Ratio Rank => Resolution.Add(Continuation).Add(Capability).Add(Commitment).Normalize();
 
     public bool PreservesDirection => Continuation == new Ratio(Measure.One, Measure.One);

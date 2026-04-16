@@ -84,7 +84,7 @@ public readonly record struct TopologyTrolley(
 
             foreach (var encounter in Topology.BasisEncountersAt(Site, relation.Carrier))
             {
-                basisAgreements.Add(BasisEncounterAgreement.Create(sourceSignature, encounter, disposition.Direction));
+                basisAgreements.Add(encounter.Agree(sourceSignature, disposition.Direction));
             }
 
             continuations.Add(new TopologyTrolleyContinuation(
@@ -533,7 +533,7 @@ public readonly record struct TopologyTrolleyObservation(
                 continue;
             }
 
-            var agreement = BasisEncounterAgreement.Create(Trolley.Signature, encounter, preservedDirection);
+            var agreement = encounter.Agree(Trolley.Signature, preservedDirection);
 
             if (agreement.Commitment.Potential == Measure.Zero)
             {
