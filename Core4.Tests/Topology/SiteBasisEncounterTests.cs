@@ -140,4 +140,30 @@ public sealed class SiteBasisEncounterTests
         Assert.Equal(encounter.Potential, agreement.CalibrationRead.Potential);
         Assert.Equal(new Ratio(new Measure(4), new Measure(10)), agreement.Resolution);
     }
+
+    [Fact]
+    public void ExactOriginPinnedBasisRemainsLocalToExactSite()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x, new Measure(0));
+        var right = Site.Open(x.At(new Ratio(new Measure(20), new Measure(2))))
+            .Exchange(
+                Basis.Freeze(
+                    Site.Open(x.At(new Ratio(new Measure(20), new Measure(2)))),
+                    Site.Open(x.At(new Ratio(new Measure(16), new Measure(2))))),
+                Ratio.Tension(new Measure(2)),
+                Provenance.Shared(new Measure(2)));
+
+        var explicitBasis = Assert.Single(
+            ConnectedSiteTopology.FromRelations(new Relation(left, right))
+                .BasisEncountersAt(right, x),
+            encounter => encounter.IsExplicitPinnedBasis);
+
+        Assert.True(explicitBasis.IsAtomic);
+        Assert.True(explicitBasis.IsLocalToSite);
+        Assert.True(explicitBasis.HasRecessiveCalibration);
+        Assert.False(explicitBasis.HasDominantCalibration);
+        Assert.Equal(new Ratio(new Measure(20), new Measure(2)), explicitBasis.LocalRelations[0].OriginPosition);
+    }
 }

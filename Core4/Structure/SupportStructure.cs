@@ -214,6 +214,36 @@ internal sealed class SupportStructure : ISupport
         return true;
     }
 
+    public bool HasSharedOriginAt(Site site, Carrier carrier)
+    {
+        var sitePosition = site.On(carrier).Normalize();
+
+        foreach (var span in Spans)
+        {
+            if (span.OriginPosition.Normalize() != sitePosition)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public bool HasRecessiveCalibration() => IsAtomic
+        ? IsRecessive
+        : IsAtomicPair() && RecessiveInput.IsAtomic && RecessiveInput.IsRecessive;
+
+    public bool HasDominantCalibration() => IsAtomic
+        ? IsDominant
+        : IsAtomicPair() && DominantInput.IsAtomic && DominantInput.IsDominant;
+
+    public bool IsBilateralAt(Site site, Carrier carrier) => IsAtomicPair()
+        && IsSameCarrierPair()
+        && IsOpposedPair()
+        && HasSharedOriginAt(site, carrier)
+        && HasRecessiveCalibration()
+        && HasDominantCalibration();
+
     public bool IsAtomicPair() => Inputs.Length == 2
         && Inputs[0].Inputs.IsEmpty
         && Inputs[1].Inputs.IsEmpty

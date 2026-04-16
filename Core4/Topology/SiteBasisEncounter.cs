@@ -16,9 +16,11 @@ public readonly record struct SiteBasisEncounter(
     ISupport SourceSupport,
     Measure SupportPotential) : ISupportFold
 {
-    public Measure Grade => Basis.Grade;
+    internal SupportStructure Structure => Basis.Structure;
 
-    public Measure RelationCount => Basis.RelationCount;
+    public Measure Grade => Structure.SupportGrade;
+
+    public Measure RelationCount => Structure.RelationCount;
 
     public ISupportFold CalibrationRead => Basis;
 
@@ -28,9 +30,9 @@ public readonly record struct SiteBasisEncounter(
 
     public Measure Potential => CalibrationRead.Potential;
 
-    public bool IsAtomic => Basis.IsAtomic;
+    public bool IsAtomic => Structure.IsAtomic;
 
-    public bool IsComposite => Basis.IsComposite;
+    public bool IsComposite => Structure.IsComposite;
 
     public Ratio Commitment => CalibrationRead.Potential == Measure.Zero
         ? Ratio.Zero(Measure.One)
@@ -44,24 +46,15 @@ public readonly record struct SiteBasisEncounter(
 
     public bool IsRelationDerived => SourceSupport is Relation;
 
-    public bool IsLocalToSite => HasSharedOriginAtSite();
+    public bool IsLocalToSite => Structure.HasSharedOriginAt(Site, Carrier);
 
-    public bool HasRecessiveCalibration => IsAtomic
-        ? Basis.IsRecessive
-        : Basis.IsAtomicPair && Basis.Recessive.IsAtomic && Basis.Recessive.IsRecessive;
+    public bool HasRecessiveCalibration => Structure.HasRecessiveCalibration();
 
-    public bool HasDominantCalibration => IsAtomic
-        ? Basis.IsDominant
-        : Basis.IsAtomicPair && Basis.Dominant.IsAtomic && Basis.Dominant.IsDominant;
+    public bool HasDominantCalibration => Structure.HasDominantCalibration();
 
     public bool IsOneSided => HasRecessiveCalibration != HasDominantCalibration;
 
-    public bool IsBilateral => Basis.IsAtomicPair
-        && Basis.IsSameCarrierPair()
-        && Basis.IsOpposedPair()
-        && IsLocalToSite
-        && HasRecessiveCalibration
-        && HasDominantCalibration;
+    public bool IsBilateral => Structure.IsBilateralAt(Site, Carrier);
 
     public bool SupportsDirection(Measure direction) => direction.Raw switch
     {
@@ -70,7 +63,7 @@ public readonly record struct SiteBasisEncounter(
         _ => false
     };
 
-    public ImmutableArray<Relation> LocalRelations => Basis.SelectRelations();
+    public ImmutableArray<Relation> LocalRelations => Structure.SelectRelations();
 
     public BasisEncounterAgreement Agree(
         TraversalSignature signature,
@@ -105,24 +98,9 @@ public readonly record struct SiteBasisEncounter(
             return false;
         }
 
-        relation = Basis.AtomicRelation;
+        relation = Structure.AtomicRelation;
         target = relation.Anchor;
         return !SameNode(Site, target);
-    }
-
-    private bool HasSharedOriginAtSite()
-    {
-        var sitePosition = Site.On(Carrier).Normalize();
-
-        foreach (var relation in Basis.Relations)
-        {
-            if (relation.OriginPosition.Normalize() != sitePosition)
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
