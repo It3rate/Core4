@@ -70,9 +70,7 @@ public sealed class Basis : ISupport, ISupportFold
 
     public Measure Orientation => _structure.Orientation;
 
-    public Ratio Stiffness => IsAtomic
-        ? AtomicRelation.Stiffness
-        : Recessive.Stiffness.Weaker(Dominant.Stiffness);
+    public Ratio Stiffness => _structure.Stiffness;
 
     public bool IsRecessive => IsAtomic && Orientation.Raw < 0;
 

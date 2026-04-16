@@ -78,6 +78,10 @@ internal sealed class SupportStructure : ISupport
 
     public Measure CarrierCount => new(SelectCarriers().Length);
 
+    public Ratio Stiffness => IsAtomic
+        ? AtomicStiffness()
+        : Inputs[0].Stiffness.Weaker(Inputs[1].Stiffness);
+
     public Measure Potential => IsAtomic
         ? AtomicPotential()
         : IsSameCarrierPair() && IsOpposedPair() && HasSharedOriginPerCarrier()
@@ -344,6 +348,8 @@ internal sealed class SupportStructure : ISupport
     private Measure AtomicPotential() => Spans.IsEmpty ? Measure.Zero : Spans[0].Potential;
 
     private Measure AtomicOrientation() => Spans.IsEmpty ? Measure.Zero : Spans[0].Orientation;
+
+    private Ratio AtomicStiffness() => Spans.IsEmpty ? Ratio.Zero(Measure.One) : Spans[0].Commitment;
 
     private static long SideCode(Measure orientation)
     {

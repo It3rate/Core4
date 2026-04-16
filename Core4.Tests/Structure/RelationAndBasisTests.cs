@@ -167,4 +167,17 @@ public sealed class RelationAndBasisTests
         Assert.Equal(new Ratio(3, 4), basis.Relations[0].Origin.Stiffness);
         Assert.Equal(new Ratio(3, 4), basis.Relations[0].Anchor.Stiffness);
     }
+
+    [Fact]
+    public void CompositeBasisStiffnessTracksWeakerInputAtStructureLevel()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+
+        var left = Basis.Freeze(x, new Measure(0), new Measure(10), new Ratio(3, 4));
+        var right = Basis.Freeze(y, new Measure(0), new Measure(10), new Ratio(1, 2));
+        var fused = Basis.Fuse(left, right);
+
+        Assert.Equal(new Ratio(1, 2), fused.Stiffness);
+    }
 }
