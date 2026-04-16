@@ -68,6 +68,9 @@ public sealed class TraversalEncodingTests
 
         Assert.True(adopted.SameProjection(invertedState));
         Assert.False(adopted.Equivalent(invertedState));
+        Assert.Equal(new Ratio(Measure.One, Measure.One), adopted.Modifier.StateRead.AsRatio());
+        Assert.Equal(new Ratio(-Measure.One, Measure.One), invertedState.Modifier.StateRead.AsRatio());
+        Assert.Equal(new Ratio(-Measure.One, Measure.One), adopted.Modifier.AgreementRead(invertedState.Modifier).AsRatio());
         Assert.Equal(new Ratio(-Measure.One, Measure.One), adopted.CalibrationAgreement(invertedState));
         Assert.Equal(new Ratio(-Measure.One, Measure.One), adopted.ModifierAgreement(invertedState));
         Assert.Equal(new Ratio(-Measure.One, Measure.One), adopted.PerspectiveAgreement(invertedState));
@@ -103,6 +106,10 @@ public sealed class TraversalEncodingTests
         Assert.True(disposition.IsIncoming);
         Assert.False(disposition.IsOutgoing);
         Assert.True(disposition.ReturnsAlongIngress);
+        Assert.Equal(new Ratio(Measure.One, Measure.One), disposition.ContinuityRead.AsRatio());
+        Assert.Equal(new Ratio(-Measure.One, Measure.One), disposition.PerspectiveRead.AsRatio());
+        Assert.Equal(new Ratio(-Measure.One, Measure.One), disposition.ReentryRead.AsRatio());
+        Assert.Equal(new Ratio(-Measure.One, Measure.One), disposition.RankRead.AsRatio());
         Assert.Equal(new Ratio(Measure.One, Measure.One), disposition.Continuity);
         Assert.Equal(new Ratio(-Measure.One, Measure.One), disposition.Perspective);
         Assert.Equal(new Ratio(-Measure.One, Measure.One), disposition.Reentry);

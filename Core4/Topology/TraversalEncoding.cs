@@ -8,23 +8,38 @@ namespace Core4.Topology;
 /// A trolley-local modifier applied through the carried calibration law. This is the mutable traversal state:
 /// intent, handedness, and later step shaping should live here rather than by mutating the basis being carried.
 /// </summary>
-public readonly record struct TraversalModifier(Ratio State)
+public readonly record struct TraversalModifier(SupportProjectionRead StateRead)
 {
+    public TraversalModifier(ISupportProjection state) : this(new SupportProjectionRead(state.CompatibilityRatio()))
+    {
+    }
+
+    public TraversalModifier(Ratio state) : this(new SupportProjectionRead(state))
+    {
+    }
+
     public static TraversalModifier Identity => new(new Ratio(Measure.One, Measure.One));
 
-    public Ratio Ratio => State.Normalize();
+    // TODO(core): Delete this compatibility alias once traversal modifier consumers stay on StateRead directly.
+    public Ratio State => StateRead.CompatibilityRatio();
 
-    public Measure Direction => Ratio.Sign;
+    // TODO(core): Delete this compatibility alias once traversal modifier consumers stop expecting raw Ratio state.
+    public Ratio Ratio => State;
 
-    public Measure Potential => Ratio.Potential;
+    public Measure Direction => State.Sign;
 
-    public Ratio Agreement(TraversalModifier other) => new Ratio(
+    public Measure Potential => StateRead.Potential;
+
+    public ISupportProjection AgreementRead(TraversalModifier other) => new SupportProjectionRead(new Ratio(
         new Measure(Direction.Raw * other.Direction.Raw),
-        Measure.One).Normalize();
+        Measure.One).Canonicalize());
+
+    // TODO(core): Delete this compatibility alias once callers consume AgreementRead directly.
+    public Ratio Agreement(TraversalModifier other) => AgreementRead(other).CompatibilityRatio();
 
     public static TraversalModifier FromDirection(Measure direction) => direction.Raw == 0L
         ? new TraversalModifier(Ratio.Zero(Measure.One))
-        : new TraversalModifier(new Ratio(direction.Sign, Measure.One).Normalize());
+        : new TraversalModifier(new Ratio(direction.Sign, Measure.One).Canonicalize());
 }
 
 /// <summary>
@@ -168,10 +183,29 @@ public readonly record struct TraversalSignature(
 /// continuity, perspective, and re-entry bias remain ordinary signed Core4 values.
 /// </summary>
 public readonly record struct TraversalDisposition(
-    Ratio Continuity,
-    Ratio Perspective,
-    Ratio Reentry)
+    SupportProjectionRead ContinuityRead,
+    SupportProjectionRead PerspectiveRead,
+    SupportProjectionRead ReentryRead)
 {
+    public TraversalDisposition(
+        ISupportProjection continuity,
+        ISupportProjection perspective,
+        ISupportProjection reentry) : this(
+            new SupportProjectionRead(continuity.CompatibilityRatio()),
+            new SupportProjectionRead(perspective.CompatibilityRatio()),
+            new SupportProjectionRead(reentry.CompatibilityRatio()))
+    {
+    }
+
+    // TODO(core): Delete this compatibility alias once traversal disposition consumers stay on ContinuityRead directly.
+    public Ratio Continuity => ContinuityRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once traversal disposition consumers stay on PerspectiveRead directly.
+    public Ratio Perspective => PerspectiveRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once traversal disposition consumers stay on ReentryRead directly.
+    public Ratio Reentry => ReentryRead.CompatibilityRatio();
+
     public Measure Direction => Perspective.Sign;
 
     public bool ContinuesCarrier => Continuity.Sign.Raw > 0;
@@ -184,7 +218,10 @@ public readonly record struct TraversalDisposition(
 
     public bool IsOscillating => Direction.Raw == 0;
 
-    public Ratio Rank => Continuity.Add(Perspective).Add(Reentry).Normalize();
+    public ISupportProjection RankRead => ContinuityRead.AddRead(PerspectiveRead).AddRead(ReentryRead);
+
+    // TODO(core): Delete this compatibility alias once callers consume RankRead directly.
+    public Ratio Rank => RankRead.CompatibilityRatio();
 
     public Measure DirectionIn(Measure observerPerspective)
     {
@@ -206,25 +243,29 @@ public readonly record struct TraversalDisposition(
         return direction.Raw > 0L;
     }
 
-    public Ratio ForwardPreference(Measure observerPerspective, bool carrierContinues)
+    public ISupportProjection ForwardPreferenceRead(Measure observerPerspective, bool carrierContinues)
     {
         var direction = DirectionIn(observerPerspective);
-        var directionBias = direction.Raw > 0L
-            ? new Ratio(Measure.One, Measure.One)
+        ISupportProjection directionBias = direction.Raw > 0L
+            ? new SupportProjectionRead(new Ratio(Measure.One, Measure.One))
             : carrierContinues
-                ? Ratio.Zero(Measure.One)
-                : new Ratio(-Measure.One, Measure.One);
-        var ingressBias = ReturnsAlongIngressIn(observerPerspective)
-            ? new Ratio(-Measure.One, Measure.One)
-            : Ratio.Zero(Measure.One);
+                ? new SupportProjectionRead(Ratio.Zero(Measure.One))
+                : new SupportProjectionRead(new Ratio(-Measure.One, Measure.One));
+        ISupportProjection ingressBias = ReturnsAlongIngressIn(observerPerspective)
+            ? new SupportProjectionRead(new Ratio(-Measure.One, Measure.One))
+            : new SupportProjectionRead(Ratio.Zero(Measure.One));
 
-        return Continuity.Add(directionBias).Add(ingressBias).Normalize();
+        return ContinuityRead.AddRead(directionBias).AddRead(ingressBias);
     }
 
+    // TODO(core): Delete this compatibility alias once callers consume ForwardPreferenceRead directly.
+    public Ratio ForwardPreference(Measure observerPerspective, bool carrierContinues) =>
+        ForwardPreferenceRead(observerPerspective, carrierContinues).CompatibilityRatio();
+
     public static TraversalDisposition Create(bool continuesCarrier, Measure direction, bool returnsAlongIngress) => new(
-        continuesCarrier ? new Ratio(Measure.One, Measure.One) : Ratio.Zero(Measure.One),
-        new Ratio(direction, Measure.One).Normalize(),
-        new Ratio(returnsAlongIngress ? -Measure.One : Measure.One, Measure.One).Normalize());
+        new SupportProjectionRead(continuesCarrier ? new Ratio(Measure.One, Measure.One) : Ratio.Zero(Measure.One)),
+        new SupportProjectionRead(new Ratio(direction, Measure.One).Canonicalize()),
+        new SupportProjectionRead(new Ratio(returnsAlongIngress ? -Measure.One : Measure.One, Measure.One).Canonicalize()));
 }
 
 /// <summary>
@@ -323,13 +364,13 @@ public readonly record struct TraversalObservation(
         }
 
         var bestIndex = -1;
-        var bestPreference = Ratio.Zero(Measure.One);
+        ISupportProjection bestPreference = new SupportProjectionRead(Ratio.Zero(Measure.One));
         var ambiguous = false;
 
         foreach (var candidateIndex in forward)
         {
             var continuation = Continuations[candidateIndex];
-            var preference = continuation.Disposition.ForwardPreference(
+            var preference = continuation.Disposition.ForwardPreferenceRead(
                 observerPerspective,
                 HasOutgoingOnCarrier(continuation.Carrier));
             var comparison = Compare(preference, bestPreference);
@@ -381,6 +422,6 @@ public readonly record struct TraversalObservation(
         return false;
     }
 
-    private static int Compare(Ratio left, Ratio right)
-        => left.CompareValue(right);
+    private static int Compare(ISupportProjection left, ISupportProjection right)
+        => left.CompareValueRead(right);
 }

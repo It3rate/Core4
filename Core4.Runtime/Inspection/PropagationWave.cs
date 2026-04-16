@@ -188,7 +188,7 @@ public readonly record struct PropagationWave(
             frontiers[index] = frontiers[index] with
             {
                 Histories = frontiers[index].Histories.AddRange(frontier.Histories),
-                Weight = frontiers[index].Weight.Add(frontier.Weight).Canonicalize()
+                WeightRead = frontiers[index].WeightRead.AddRead(frontier.WeightRead)
             };
             return;
         }
@@ -230,9 +230,9 @@ public readonly record struct PropagationWave(
 
 public readonly record struct PropagationFrontier(
     ImmutableArray<TopologyTrolley> Histories,
-    Ratio Weight)
+    SupportProjectionRead WeightRead)
 {
-    public PropagationFrontier(TopologyTrolley trolley) : this([trolley], new Ratio(Measure.One, Measure.One))
+    public PropagationFrontier(TopologyTrolley trolley) : this([trolley], new SupportProjectionRead(new Ratio(Measure.One, Measure.One)))
     {
     }
 
@@ -240,7 +240,13 @@ public readonly record struct PropagationFrontier(
 
     public Measure Multiplicity => new(Histories.Length);
 
-    public Ratio Intensity => Weight.Canonicalize();
+    // TODO(core): Delete this compatibility alias once callers consume WeightRead directly.
+    public Ratio Weight => WeightRead.CompatibilityRatio();
+
+    public ISupportProjection IntensityRead => WeightRead.CanonicalizeRead();
+
+    // TODO(core): Delete this compatibility alias once callers consume IntensityRead directly.
+    public Ratio Intensity => IntensityRead.CompatibilityRatio();
 
     public Measure ExactReentryPeriod
     {
@@ -288,7 +294,7 @@ public readonly record struct PropagationFrontier(
 
         return new PropagationFrontier(
             moved.ToImmutable(),
-            Weight.Multiply(transmission.CompatibilityRatio()).Canonicalize());
+            WeightRead.MultiplyRead(transmission));
     }
 
     // TODO(core): Delete this compatibility overload once callers pass support-shaped transmission reads directly.
@@ -296,7 +302,7 @@ public readonly record struct PropagationFrontier(
         Move(continuation, (ISupportProjection)transmission);
 
     public PropagationFrontier Retain(ISupportProjection retention) =>
-        new(Histories, Weight.Multiply(retention.CompatibilityRatio()).Canonicalize());
+        new(Histories, WeightRead.MultiplyRead(retention));
 
     // TODO(core): Delete this compatibility overload once callers pass support-shaped retention reads directly.
     public PropagationFrontier Retain(Ratio retention) => Retain((ISupportProjection)retention);

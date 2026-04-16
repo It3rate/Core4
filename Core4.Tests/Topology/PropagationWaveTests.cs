@@ -153,16 +153,22 @@ public sealed class PropagationWaveTests
         Assert.True(atBoundary.HasMotion);
         var boundary = Assert.Single(atBoundary.After.Active);
         Assert.True(SameNode(boundary.Site, right));
+        Assert.Equal(new Ratio(Measure.One, Measure.One), boundary.WeightRead.AsRatio());
+        Assert.Equal(new Ratio(Measure.One, Measure.One), boundary.IntensityRead.AsRatio());
         Assert.Equal(new Ratio(Measure.One, Measure.One), boundary.Intensity);
 
         var split = atBoundary.After.Advance();
         Assert.True(split.HasMotion);
         var reflected = Assert.Single(split.After.Active);
         Assert.True(SameNode(reflected.Site, left));
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), reflected.WeightRead.AsRatio());
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), reflected.IntensityRead.AsRatio());
         Assert.Equal(new Ratio(new Measure(1), new Measure(2)), reflected.Intensity);
 
         var retained = Assert.Single(split.After.Parked);
         Assert.True(SameNode(retained.Site, right));
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), retained.WeightRead.AsRatio());
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), retained.IntensityRead.AsRatio());
         Assert.Equal(new Ratio(new Measure(1), new Measure(2)), retained.Intensity);
 
         var move = Assert.Single(split.Moves);
