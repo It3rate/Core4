@@ -1,6 +1,4 @@
 using Core4.Dynamics;
-using Core4.Numerics;
-using Core4.Structure;
 using SettlementPhase = Core4.Dynamics.SiteSettlement.SettlementPhase;
 
 namespace Core4.Tests.Dynamics;

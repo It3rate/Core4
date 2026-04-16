@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Numerics;
-using Core4.Structure;
 
 namespace Core4.Aliases;
 

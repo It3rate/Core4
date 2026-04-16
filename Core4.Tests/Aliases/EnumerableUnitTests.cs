@@ -1,7 +1,5 @@
 using Core4.Aliases;
 using Core4.Dynamics;
-using Core4.Numerics;
-using Core4.Structure;
 using Core4.Topology;
 using SettlementPhase = Core4.Dynamics.SiteSettlement.SettlementPhase;
 

@@ -1,6 +1,4 @@
 using System.Collections.Immutable;
-using Core4.Numerics;
-using Core4.Structure;
 using Core4.Topology;
 
 namespace Core4.Dynamics;

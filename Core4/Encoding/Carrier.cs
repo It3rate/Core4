@@ -1,5 +1,4 @@
 using System.Globalization;
-using Core4.Numerics;
 
 namespace Core4.Encoding;
 

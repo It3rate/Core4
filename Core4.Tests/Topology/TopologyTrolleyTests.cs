@@ -1,7 +1,5 @@
 using System.Linq;
 using Core4.Inspection;
-using Core4.Numerics;
-using Core4.Structure;
 using Core4.Topology;
 
 namespace Core4.Tests.Topology;

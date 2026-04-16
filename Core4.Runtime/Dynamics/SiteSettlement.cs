@@ -1,7 +1,5 @@
 using System.Collections.Immutable;
 using Core4.Aliases;
-using Core4.Numerics;
-using Core4.Structure;
 
 namespace Core4.Dynamics;
 
