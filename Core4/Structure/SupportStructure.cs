@@ -86,9 +86,15 @@ internal sealed class SupportStructure : ISupport
         ? AtomicStiffness()
         : Inputs[0].Stiffness.Weaker(Inputs[1].Stiffness);
 
+    public ISupportProjection OriginPositionRead => new SupportProjectionRead(OriginPosition);
+
     public Ratio OriginPosition => AtomicSpan().OriginPosition;
 
+    public ISupportProjection AnchorPositionRead => new SupportProjectionRead(AnchorPosition);
+
     public Ratio AnchorPosition => AtomicSpan().AnchorPosition;
+
+    public ISupportProjection SpanRead => new SupportProjectionRead(Span);
 
     public Ratio Span => AtomicSpan().Span;
 

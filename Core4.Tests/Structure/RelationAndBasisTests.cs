@@ -18,8 +18,11 @@ public sealed class RelationAndBasisTests
         var projection = relation.Project(new Measure(107));
         var located = relation.Locate(projection, x);
 
+        Assert.Equal(new Ratio(100, 1), relation.OriginPositionRead.AsRatio());
         Assert.Equal(new Ratio(100, 1), relation.OriginPosition);
+        Assert.Equal(new Ratio(110, 1), relation.AnchorPositionRead.AsRatio());
         Assert.Equal(new Ratio(110, 1), relation.AnchorPosition);
+        Assert.Equal(new Ratio(10, 1), relation.SpanRead.AsRatio());
         Assert.Equal(new Ratio(10, 1), relation.Span);
         Assert.Equal(new Measure(10), relation.Delta);
         Assert.Equal(Measure.One, relation.Orientation);

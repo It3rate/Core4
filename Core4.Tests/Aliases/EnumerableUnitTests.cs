@@ -52,6 +52,7 @@ public sealed class EnumerableUnitTests
         var relation = unit.Relate(SettlementPhase.Provisional, SettlementPhase.Settled);
         var basis = unit.Freeze(SettlementPhase.Provisional, SettlementPhase.Settled);
 
+        Assert.Equal(new Ratio(3, 1), relation.SpanRead.AsRatio());
         Assert.Equal(new Ratio(3, 1), relation.Span);
         Assert.Equal(new Measure(3), relation.Potential);
         Assert.Equal(new Measure(3), basis.Potential);

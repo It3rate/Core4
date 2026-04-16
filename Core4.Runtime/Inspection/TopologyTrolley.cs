@@ -80,8 +80,8 @@ public readonly record struct TopologyTrolley(
             var disposition = TraversalDisposition.Create(continuesCarrier, leg.Direction, returnsAlongIngress);
             var targetSignature = TraversalSignature.FromSite(
                 resolvedTarget,
-                disposition.Direction,
-                relation.Span.Normalize(),
+                relation.SpanRead,
+                TraversalModifier.FromDirection(disposition.Direction),
                 TraversalSignature.ProvenanceFor(disposition.Direction, relation.Potential));
             var basisAgreements = ImmutableArray.CreateBuilder<BasisEncounterAgreement>();
 
@@ -287,19 +287,19 @@ public readonly record struct TopologyTrolleyContinuation(
     public bool IsOutgoing => Disposition.IsOutgoing;
 
     public ISupportProjection TransmittedCalibrationRead =>
-        new SupportProjectionRead(SourceSignature.Calibration.Multiply(Transmission).Canonicalize());
+        new SupportProjectionRead(SourceSignature.CalibrationRead.AsRatio().Multiply(Transmission).Canonicalize());
 
     // TODO(core): Delete this compatibility alias once callers consume TransmittedCalibrationRead directly.
     public Ratio TransmittedCalibration => TransmittedCalibrationRead.AsRatio();
 
     public ISupportProjection RetainedCalibrationRead =>
-        new SupportProjectionRead(SourceSignature.Calibration.Multiply(Retention).Canonicalize());
+        new SupportProjectionRead(SourceSignature.CalibrationRead.AsRatio().Multiply(Retention).Canonicalize());
 
     // TODO(core): Delete this compatibility alias once callers consume RetainedCalibrationRead directly.
     public Ratio RetainedCalibration => RetainedCalibrationRead.AsRatio();
 
     public ISupportProjection NextCalibrationRead =>
-        new SupportProjectionRead(TargetSignature.Calibration.Multiply(Transmission).Canonicalize());
+        new SupportProjectionRead(TargetSignature.CalibrationRead.AsRatio().Multiply(Transmission).Canonicalize());
 
     public bool HasRetention => Retention.Potential != Measure.Zero;
 
@@ -517,7 +517,7 @@ public readonly record struct TopologyTrolleyObservation(
             var disposition = TraversalDisposition.Create(false, continuationDirection, false);
             var targetSignature = TraversalSignature.FromSite(
                 target,
-                relation.Span.Normalize(),
+                relation.SpanRead,
                 TraversalModifier.FromDirection(continuationDirection),
                 TraversalSignature.ProvenanceFor(continuationDirection, relation.Potential));
 

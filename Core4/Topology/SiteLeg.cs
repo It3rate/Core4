@@ -24,8 +24,8 @@ public readonly record struct SiteLeg(ISupport Support, Measure Direction, Measu
     public static bool TryFromRelation(Relation relation, Site site, out SiteLeg leg)
     {
         var position = site.On(relation.Carrier).Normalize();
-        var origin = relation.OriginPosition.Normalize();
-        var anchor = relation.AnchorPosition.Normalize();
+        var origin = relation.OriginPositionRead.AsRatio().Normalize();
+        var anchor = relation.AnchorPositionRead.AsRatio().Normalize();
         var atOrigin = position == origin;
         var atAnchor = position == anchor;
 

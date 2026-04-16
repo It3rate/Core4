@@ -75,6 +75,23 @@ public sealed class TraversalEncodingTests
     }
 
     [Fact]
+    public void TraversalSignatureCanCarryCustomCalibrationRead()
+    {
+        Carrier x = 1;
+        var site = Site.Open(x, new Measure(5));
+        ISupportProjection calibration = new ProxyProjection(new Ratio(new Measure(2), new Measure(5)));
+        var signature = TraversalSignature.FromSite(
+            site,
+            calibration,
+            TraversalModifier.Identity,
+            Provenance.SelfDriven(Measure.One));
+
+        Assert.Equal(new Ratio(new Measure(2), new Measure(5)), signature.CalibrationRead.AsRatio());
+        Assert.Equal(new Ratio(new Measure(2), new Measure(5)), signature.Calibration);
+        Assert.Equal(new Measure(8), signature.Potential);
+    }
+
+    [Fact]
     public void TraversalDispositionEncodesContinuationPerspectiveAndReturnNumerically()
     {
         var disposition = TraversalDisposition.Create(
@@ -167,5 +184,12 @@ public sealed class TraversalEncodingTests
         Assert.Single(observation.ForwardContinuationsIn(-Measure.One));
         Assert.True(observation.TryPreferred(-Measure.One, out var preferred));
         Assert.Equal(new Measure(0), preferred.Target.Position.Whole);
+    }
+
+    private readonly record struct ProxyProjection(Ratio Value) : ISupportProjection
+    {
+        public Measure Potential => Value.Potential;
+
+        public Ratio AsRatio() => Value;
     }
 }

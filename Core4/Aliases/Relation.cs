@@ -21,10 +21,19 @@ public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor
 
     internal SupportStructure Structure => SupportStructure.FromRelation(this);
 
+    public ISupportProjection OriginPositionRead => Structure.OriginPositionRead;
+
+    // TODO(core): Delete this compatibility alias once callers consume OriginPositionRead directly.
     public Ratio OriginPosition => Structure.OriginPosition;
 
+    public ISupportProjection AnchorPositionRead => Structure.AnchorPositionRead;
+
+    // TODO(core): Delete this compatibility alias once callers consume AnchorPositionRead directly.
     public Ratio AnchorPosition => Structure.AnchorPosition;
 
+    public ISupportProjection SpanRead => Structure.SpanRead;
+
+    // TODO(core): Delete this compatibility alias once callers consume SpanRead directly.
     public Ratio Span => Structure.Span;
 
     public Measure Delta => Structure.Delta;
