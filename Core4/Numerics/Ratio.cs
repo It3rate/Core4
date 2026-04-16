@@ -130,7 +130,7 @@ public readonly record struct Ratio : ISupportProjection
 
     public Ratio Add(Ratio other)
     {
-        var origin = SharedOriginOrZero(other);
+        var origin = PreferredOriginOrZero(other);
 
         if (IsTension || other.IsTension)
         {
@@ -153,7 +153,7 @@ public readonly record struct Ratio : ISupportProjection
 
     public Ratio Subtract(Ratio other)
     {
-        var origin = SharedOriginOrZero(other);
+        var origin = PreferredOriginOrZero(other);
 
         if (IsTension || other.IsTension)
         {
@@ -176,7 +176,7 @@ public readonly record struct Ratio : ISupportProjection
 
     public Ratio Multiply(Ratio other)
     {
-        var origin = SharedOriginOrZero(other);
+        var origin = PreferredOriginOrZero(other);
 
         if (IsTension || other.IsTension)
         {
@@ -191,7 +191,7 @@ public readonly record struct Ratio : ISupportProjection
 
     public Ratio Divide(Ratio other)
     {
-        var origin = SharedOriginOrZero(other);
+        var origin = PreferredOriginOrZero(other);
 
         if (IsTension || other.IsTension || other.Recessive == Measure.Zero)
         {
@@ -255,9 +255,25 @@ public readonly record struct Ratio : ISupportProjection
         CultureInfo.InvariantCulture,
         $"{Recessive.Raw}/{Dominant.Raw}");
 
-    private Measure SharedOriginOrZero(Ratio other) => Origin == other.Origin
-        ? Origin
-        : Measure.Zero;
+    private Measure PreferredOriginOrZero(Ratio other)
+    {
+        if (Origin == other.Origin)
+        {
+            return Origin;
+        }
+
+        if (Origin != Measure.Zero && other.Origin == Measure.Zero)
+        {
+            return Origin;
+        }
+
+        if (Origin == Measure.Zero && other.Origin != Measure.Zero)
+        {
+            return other.Origin;
+        }
+
+        return Measure.Zero;
+    }
 
     private static long GreatestCommonDivisor(long left, long right)
     {

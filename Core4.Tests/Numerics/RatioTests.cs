@@ -207,6 +207,36 @@ public sealed class RatioTests
     }
 
     [Fact]
+    public void AddCanKeepExplicitOriginWhenOtherSideIsZeroOriginOffset()
+    {
+        var anchored = new Ratio(new Measure(100), new Measure(105), new Measure(110));
+        var offset = new Ratio(2, 10);
+
+        Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), anchored.Add(offset));
+        Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), offset.Add(anchored));
+    }
+
+    [Fact]
+    public void SubtractCanKeepExplicitOriginWhenOtherSideIsZeroOriginOffset()
+    {
+        var anchored = new Ratio(new Measure(100), new Measure(105), new Measure(110));
+        var offset = new Ratio(2, 10);
+
+        Assert.Equal(new Ratio(new Measure(100), new Measure(103), new Measure(110)), anchored.Subtract(offset));
+    }
+
+    [Fact]
+    public void MultiplyAndDivideCanKeepExplicitOriginWhenScalingByZeroOriginFactor()
+    {
+        var anchored = new Ratio(new Measure(100), new Measure(105), new Measure(110));
+        var factor = new Ratio(2, 1);
+        var divisor = new Ratio(1, 2);
+
+        Assert.Equal(new Ratio(new Measure(100), new Measure(110), new Measure(110)), anchored.Multiply(factor));
+        Assert.Equal(new Ratio(new Measure(100), new Measure(110), new Measure(110)), anchored.Divide(divisor));
+    }
+
+    [Fact]
     public void ScaleByCanPartitionUnresolvedTensionWithResolvedShare()
     {
         var tension = Ratio.Tension(new Measure(11));
