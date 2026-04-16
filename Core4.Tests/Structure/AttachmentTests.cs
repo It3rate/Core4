@@ -171,8 +171,8 @@ public sealed class AttachmentTests
         Assert.Equal(2, attachment.Samples.Inputs.Length);
         Assert.Equal(new Measure(1), attachment.Recessive.Samples.SiteCount);
         Assert.Equal(new Measure(1), attachment.Dominant.Samples.SiteCount);
-        Assert.Equal(new Measure(7), attachment.Recessive.Samples.Measures[0]);
-        Assert.Equal(new Measure(8), attachment.Dominant.Samples.Measures[0]);
+        Assert.Equal(new Measure(7), attachment.Recessive.Samples.Measures()[0]);
+        Assert.Equal(new Measure(8), attachment.Dominant.Samples.Measures()[0]);
     }
 
     [Fact]
@@ -192,8 +192,8 @@ public sealed class AttachmentTests
 
         Assert.True(attachment.Samples.IsComposite);
         Assert.Equal(2, attachment.Samples.Inputs.Length);
-        Assert.Equal(new Measure(7), attachment.Recessive.Samples.Measures[0]);
-        Assert.Equal(new Measure(8), attachment.Dominant.Samples.Measures[0]);
+        Assert.Equal(new Measure(7), attachment.Recessive.Samples.Measures()[0]);
+        Assert.Equal(new Measure(8), attachment.Dominant.Samples.Measures()[0]);
     }
 
     [Fact]
@@ -216,7 +216,7 @@ public sealed class AttachmentTests
 
         Assert.Equal(new Measure(2), xSamples.SiteCount);
         Assert.True(xSamples.IsComposite);
-        Assert.Equal(new Measure(7), xSamples.Recessive.Measures[0]);
-        Assert.Equal(new Measure(9), xSamples.Dominant.Measures[0]);
+        Assert.Equal(new Measure(7), xSamples.Recessive.Measures()[0]);
+        Assert.Equal(new Measure(9), xSamples.Dominant.Measures()[0]);
     }
 }

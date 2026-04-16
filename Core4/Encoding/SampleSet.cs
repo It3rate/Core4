@@ -5,7 +5,8 @@ namespace Core4.Encoding;
 /// <summary>
 /// A support-independent collected sample group. This is not yet calibrated by a ruler; it is an ordered,
 /// persistent grouping of distinguishable live sample sites that can later be attached to different measuring
-/// scaffolds. Composite sample sets preserve child order while also carrying the flattened site order.
+/// scaffolds. Composite sample sets preserve child order while also carrying the flattened site order, but this
+/// type intentionally stays close to raw sample storage rather than accumulating read/filter helpers directly.
 /// </summary>
 public sealed class SampleSet
 {
@@ -33,39 +34,6 @@ public sealed class SampleSet
     public SampleSet Recessive => IsComposite ? _inputs[0] : this;
 
     public SampleSet Dominant => IsComposite ? _inputs[1] : this;
-
-    public ImmutableArray<Measure> Measures => _sites.Select(site => site.Location).ToImmutableArray();
-
-    public ImmutableArray<Placement> Placements => _sites.Select(site => site.Placement).ToImmutableArray();
-
-    // TODO(core): This carrier-local selection is the springboard for richer sample operations such as filter,
-    // sort, support-relative extraction, and measured regrouping. Later passes should likely move those behaviors
-    // into their own sample-operations surface rather than growing this type ad hoc.
-    public SampleSet Select(Carrier carrier)
-    {
-        if (IsAtomic)
-        {
-            return Collect(_sites.Where(site => site.Carrier == carrier).ToImmutableArray());
-        }
-
-        var selectedInputs = ImmutableArray.CreateBuilder<SampleSet>();
-
-        foreach (var input in _inputs)
-        {
-            var selected = input.Select(carrier);
-            if (!selected.IsEmpty)
-            {
-                selectedInputs.Add(selected);
-            }
-        }
-
-        return selectedInputs.Count switch
-        {
-            0 => Collect(),
-            1 => selectedInputs[0],
-            _ => Compose(selectedInputs.ToImmutable())
-        };
-    }
 
     public static SampleSet Collect(params Site[] sites) => new([.. sites], ImmutableArray<SampleSet>.Empty);
 

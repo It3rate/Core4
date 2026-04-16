@@ -44,9 +44,9 @@ public sealed class Attachment : ISupportFold
 
     public Attachment Dominant => IsComposite ? Inputs[1] : this;
 
-    public ImmutableArray<Measure> Measures => Samples.Measures;
+    public ImmutableArray<Measure> Measures => Samples.Measures();
 
-    public ImmutableArray<Placement> Placements => Samples.Placements;
+    public ImmutableArray<Placement> Placements => Samples.Placements();
 
     // TODO(core): Keep this as the narrow attachment-side entry point for now. Later sample operations should be
     // able to select, filter, sort, and regroup by richer criteria, possibly using different support structures,

@@ -17,8 +17,8 @@ public sealed class SampleSetTests
         Assert.Equal(new Measure(2), fused.SiteCount);
         Assert.Equal(x, fused.Recessive.Sites[0].Carrier);
         Assert.Equal(y, fused.Dominant.Sites[0].Carrier);
-        Assert.Equal(new Measure(7), fused.Measures[0]);
-        Assert.Equal(new Measure(8), fused.Measures[1]);
+        Assert.Equal(new Measure(7), fused.Measures()[0]);
+        Assert.Equal(new Measure(8), fused.Measures()[1]);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class SampleSetTests
 
         Assert.Equal(new Measure(2), selected.SiteCount);
         Assert.True(selected.IsComposite);
-        Assert.Equal(new Measure(3), selected.Recessive.Measures[0]);
-        Assert.Equal(new Measure(7), selected.Dominant.Measures[0]);
+        Assert.Equal(new Measure(3), selected.Recessive.Measures()[0]);
+        Assert.Equal(new Measure(7), selected.Dominant.Measures()[0]);
     }
 }
