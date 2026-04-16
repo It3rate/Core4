@@ -82,6 +82,14 @@ internal sealed class SupportStructure : ISupport
         ? AtomicStiffness()
         : Inputs[0].Stiffness.Weaker(Inputs[1].Stiffness);
 
+    public Ratio OriginPosition => AtomicSpan().OriginPosition;
+
+    public Ratio AnchorPosition => AtomicSpan().AnchorPosition;
+
+    public Ratio Span => AtomicSpan().Span;
+
+    public Measure Delta => Span.Recessive;
+
     public Measure Potential => IsAtomic
         ? AtomicPotential()
         : IsSameCarrierPair() && IsOpposedPair() && HasSharedOriginPerCarrier()
@@ -93,6 +101,10 @@ internal sealed class SupportStructure : ISupport
         : Ratio.Tension(Potential);
 
     public Measure Orientation => IsAtomic ? AtomicOrientation() : Measure.Zero;
+
+    public bool IsRecessive => IsAtomic && Orientation.Raw < 0;
+
+    public bool IsDominant => IsAtomic && Orientation.Raw > 0;
 
     public Ratio Locate(Ratio position, Carrier carrier)
     {
@@ -227,7 +239,7 @@ internal sealed class SupportStructure : ISupport
         relation.Carrier,
         relation.Origin,
         relation.Anchor,
-        relation.Stiffness);
+        relation.Origin.Stiffness.Weaker(relation.Anchor.Stiffness));
 
     public static SupportStructure FromRelation(
         Carrier carrier,
@@ -349,7 +361,7 @@ internal sealed class SupportStructure : ISupport
                 : Ratio.Tension(position.Potential);
         }
 
-        var span = Spans[0];
+        var span = AtomicSpan();
         return carrier == span.Carrier
             ? span.OriginPosition.Add(span.Span.Multiply(position)).Normalize()
             : Ratio.Tension(position.Potential);
@@ -373,6 +385,10 @@ internal sealed class SupportStructure : ISupport
     private Measure AtomicOrientation() => Spans.IsEmpty ? Measure.Zero : Spans[0].Orientation;
 
     private Ratio AtomicStiffness() => Spans.IsEmpty ? Ratio.Zero(Measure.One) : Spans[0].Commitment;
+
+    private SupportSpan AtomicSpan() => Spans.IsEmpty
+        ? throw new InvalidOperationException("This support does not expose an atomic span.")
+        : Spans[0];
 
     private static long SideCode(Measure orientation)
     {

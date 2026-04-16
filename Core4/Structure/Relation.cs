@@ -20,19 +20,19 @@ public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor
 
     internal SupportStructure Structure => SupportStructure.FromRelation(this);
 
-    public Ratio OriginPosition => Origin.On(Carrier);
+    public Ratio OriginPosition => Structure.OriginPosition;
 
-    public Ratio AnchorPosition => Anchor.On(Carrier);
+    public Ratio AnchorPosition => Structure.AnchorPosition;
 
-    public Ratio Span => AnchorPosition.Subtract(OriginPosition).Normalize();
+    public Ratio Span => Structure.Span;
 
-    public Measure Delta => Span.Recessive;
+    public Measure Delta => Structure.Delta;
 
-    public Measure Orientation => Span.Recessive.Sign;
+    public Measure Orientation => Structure.Orientation;
 
-    public Measure Potential => Span.Potential;
+    public Measure Potential => Structure.Potential;
 
-    public Ratio Stiffness => Origin.Stiffness.Weaker(Anchor.Stiffness);
+    public Ratio Stiffness => Structure.Stiffness;
 
     public Relation Flip() => new(Carrier, Anchor, Origin);
 

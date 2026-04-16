@@ -16,6 +16,13 @@ public sealed class RelationAndBasisTests
         var projection = relation.Project(new Measure(107));
         var located = relation.Locate(projection, x);
 
+        Assert.Equal(new Ratio(100, 1), relation.OriginPosition);
+        Assert.Equal(new Ratio(110, 1), relation.AnchorPosition);
+        Assert.Equal(new Ratio(10, 1), relation.Span);
+        Assert.Equal(new Measure(10), relation.Delta);
+        Assert.Equal(Measure.One, relation.Orientation);
+        Assert.Equal(new Measure(10), relation.Potential);
+        Assert.Equal(new Ratio(0, 1), relation.Stiffness);
         Assert.Equal(new Ratio(7, 10), projection);
         Assert.Equal(new Ratio(1070, 10), located);
         Assert.Equal(new Measure(107), located.Whole);
@@ -36,6 +43,8 @@ public sealed class RelationAndBasisTests
         Assert.Equal(new Ratio(10, 0), basis.Fold);
         Assert.Equal(new Ratio(10, 0), basis.Ratio);
         Assert.Equal(Measure.One, basis.Orientation);
+        Assert.False(basis.IsRecessive);
+        Assert.True(basis.IsDominant);
         Assert.Equal(new Ratio(1, 1), basis.Stiffness);
         Assert.Equal(new Ratio(1, 1), basis.Relations[0].Origin.Stiffness);
         Assert.Equal(new Ratio(1, 1), basis.Relations[0].Anchor.Stiffness);
