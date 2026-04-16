@@ -38,13 +38,17 @@ public readonly record struct SiteBasisEncounter(
 
     public bool IsComposite => Structure.IsComposite;
 
-    public Ratio Commitment => CalibrationRead.Potential == Measure.Zero
-        ? Ratio.Zero(Measure.One)
-        : new Ratio(
-            SupportPotential.Raw <= CalibrationRead.Potential.Raw
-                ? SupportPotential
-                : CalibrationRead.Potential,
-            CalibrationRead.Potential).Canonicalize();
+    public ISupportProjection CommitmentRead => new SupportProjectionRead(
+        CalibrationRead.Potential == Measure.Zero
+            ? Ratio.Zero(Measure.One)
+            : new Ratio(
+                SupportPotential.Raw <= CalibrationRead.Potential.Raw
+                    ? SupportPotential
+                    : CalibrationRead.Potential,
+                CalibrationRead.Potential).Canonicalize());
+
+    // TODO(core): Delete this compatibility alias once callers consume CommitmentRead directly.
+    public Ratio Commitment => CommitmentRead.CompatibilityRatio();
 
     public bool IsExplicitPinnedBasis => SourceSupport is Basis;
 

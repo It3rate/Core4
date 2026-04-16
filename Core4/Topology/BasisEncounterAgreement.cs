@@ -10,11 +10,25 @@ namespace Core4.Topology;
 /// </summary>
 public readonly record struct BasisEncounterAgreement(
     SiteBasisEncounter Encounter,
-    Ratio Resolution,
-    Ratio Continuation,
-    Ratio Capability,
-    Ratio Commitment) : ISupportFold
+    SupportProjectionRead ResolutionRead,
+    SupportProjectionRead ContinuationRead,
+    SupportProjectionRead CapabilityRead,
+    SupportProjectionRead CommitmentRead) : ISupportFold
 {
+    public BasisEncounterAgreement(
+        SiteBasisEncounter encounter,
+        ISupportProjection resolution,
+        ISupportProjection continuation,
+        ISupportProjection capability,
+        ISupportProjection commitment) : this(
+            encounter,
+            new SupportProjectionRead(resolution.CompatibilityRatio()),
+            new SupportProjectionRead(continuation.CompatibilityRatio()),
+            new SupportProjectionRead(capability.CompatibilityRatio()),
+            new SupportProjectionRead(commitment.CompatibilityRatio()))
+    {
+    }
+
     public ISupportFold CalibrationRead => Encounter;
 
     public ISupportProjection FoldRead => CalibrationRead.FoldRead;
@@ -27,7 +41,25 @@ public readonly record struct BasisEncounterAgreement(
 
     public Measure Potential => CalibrationRead.Potential;
 
-    public Ratio Rank => Resolution.Add(Continuation).Add(Capability).Add(Commitment).Normalize();
+    // TODO(core): Delete this compatibility alias once callers consume ResolutionRead directly.
+    public Ratio Resolution => ResolutionRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume ContinuationRead directly.
+    public Ratio Continuation => ContinuationRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume CapabilityRead directly.
+    public Ratio Capability => CapabilityRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume CommitmentRead directly.
+    public Ratio Commitment => CommitmentRead.CompatibilityRatio();
+
+    public ISupportProjection RankRead => ResolutionRead
+        .AddRead(ContinuationRead)
+        .AddRead(CapabilityRead)
+        .AddRead(CommitmentRead);
+
+    // TODO(core): Delete this compatibility alias once callers consume RankRead directly.
+    public Ratio Rank => RankRead.CompatibilityRatio();
 
     public bool PreservesDirection => Continuation == new Ratio(Measure.One, Measure.One);
 
@@ -39,15 +71,15 @@ public readonly record struct BasisEncounterAgreement(
 
     public bool IsOneSided => Capability == new Ratio(Measure.One, new Measure(2));
 
-    public bool HasCommittedTransfer => Commitment.Potential != Measure.Zero;
+    public bool HasCommittedTransfer => CommitmentRead.Potential != Measure.Zero;
 
-    public ISupportProjection TransmissionRead => new SupportProjectionRead(Commitment.Canonicalize());
+    public ISupportProjection TransmissionRead => CommitmentRead.CanonicalizeRead();
 
     // TODO(core): Delete this compatibility alias once callers consume TransmissionRead directly.
     public Ratio Transmission => TransmissionRead.CompatibilityRatio();
 
-    public ISupportProjection RetentionRead => new SupportProjectionRead(
-        new Ratio(Measure.One, Measure.One).Subtract(Commitment).Canonicalize());
+    public ISupportProjection RetentionRead =>
+        new SupportProjectionRead(new Ratio(Measure.One, Measure.One)).SubtractRead(CommitmentRead);
 
     // TODO(core): Delete this compatibility alias once callers consume RetentionRead directly.
     public Ratio Retention => RetentionRead.CompatibilityRatio();
@@ -61,30 +93,30 @@ public readonly record struct BasisEncounterAgreement(
             return traversal;
         }
 
-        return CompareRatio(Resolution, other.Resolution);
+        return CompareRead(ResolutionRead, other.ResolutionRead);
     }
 
     public int CompareTraversalPreference(BasisEncounterAgreement other)
     {
-        var continuation = CompareRatio(Continuation, other.Continuation);
+        var continuation = CompareRead(ContinuationRead, other.ContinuationRead);
 
         if (continuation != 0)
         {
             return continuation;
         }
 
-        var capability = CompareRatio(Capability, other.Capability);
+        var capability = CompareRead(CapabilityRead, other.CapabilityRead);
 
         if (capability != 0)
         {
             return capability;
         }
 
-        return CompareRatio(Commitment, other.Commitment);
+        return CompareRead(CommitmentRead, other.CommitmentRead);
     }
 
     public int CompareTransferPreference(BasisEncounterAgreement other) =>
-        CompareRatio(Commitment, other.Commitment);
+        CompareRead(CommitmentRead, other.CommitmentRead);
 
     public bool CanReflectAtLocalPinnedBoundary(bool hasClosureTarget) =>
         Encounter.IsExplicitPinnedBasis
@@ -110,22 +142,22 @@ public readonly record struct BasisEncounterAgreement(
             : supportsCurrent || supportsOpposite
                 ? new Ratio(Measure.One, new Measure(2))
                 : Ratio.Zero(Measure.One);
-        var resolution = ResolutionAgreement(signature.CalibrationRead.Potential, encounter.Potential);
-        var commitment = encounter.Commitment;
+        var resolution = ResolutionAgreementRead(signature.CalibrationRead.Potential, encounter.Potential);
+        var commitment = encounter.CommitmentRead;
 
         return new BasisEncounterAgreement(encounter, resolution, continuation, capability, commitment);
     }
 
-    private static Ratio ResolutionAgreement(Measure left, Measure right)
+    private static ISupportProjection ResolutionAgreementRead(Measure left, Measure right)
     {
         var low = left.Raw < right.Raw ? left : right;
         var high = left.Raw < right.Raw ? right : left;
 
-        return high == Measure.Zero
+        return new SupportProjectionRead(high == Measure.Zero
             ? Ratio.Zero(Measure.One)
-            : new Ratio(low, high).Normalize();
+            : new Ratio(low, high).Canonicalize());
     }
 
-    private static int CompareRatio(Ratio left, Ratio right)
-        => left.CompareValue(right);
+    private static int CompareRead(ISupportProjection left, ISupportProjection right)
+        => left.CompareValueRead(right);
 }

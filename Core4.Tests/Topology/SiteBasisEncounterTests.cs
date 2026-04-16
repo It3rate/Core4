@@ -88,6 +88,7 @@ public sealed class SiteBasisEncounterTests
         Assert.Equal(explicitBasis.Basis.Fold, explicitBasis.Fold);
         Assert.Equal(explicitBasis.Basis.Fold, explicitBasis.CalibrationRead.Fold);
         Assert.Equal(explicitBasis.Basis.Potential, explicitBasis.CalibrationRead.Potential);
+        Assert.Equal(new Ratio(Measure.One, Measure.One), explicitBasis.CommitmentRead.AsRatio());
         Assert.Equal(new Ratio(Measure.One, Measure.One), explicitBasis.Commitment);
     }
 
@@ -107,6 +108,7 @@ public sealed class SiteBasisEncounterTests
             .BasisEncountersAt(right, x);
 
         var explicitBasis = Assert.Single(encounters, encounter => encounter.IsExplicitPinnedBasis);
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), explicitBasis.CommitmentRead.AsRatio());
         Assert.Equal(new Ratio(new Measure(1), new Measure(2)), explicitBasis.Commitment);
     }
 
@@ -140,7 +142,8 @@ public sealed class SiteBasisEncounterTests
         Assert.Equal(encounter.Potential, agreement.Potential);
         Assert.Equal(encounter.Fold, agreement.CalibrationRead.Fold);
         Assert.Equal(encounter.Potential, agreement.CalibrationRead.Potential);
-        Assert.Equal(new Ratio(new Measure(4), new Measure(10)), agreement.Resolution);
+        Assert.Equal(new Ratio(new Measure(2), new Measure(5)), agreement.ResolutionRead.AsRatio());
+        Assert.Equal(new Ratio(new Measure(2), new Measure(5)), agreement.Resolution);
     }
 
     [Fact]
