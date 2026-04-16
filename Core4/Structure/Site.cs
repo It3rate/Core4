@@ -42,7 +42,7 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
     public ISupportProjection OnRead(Carrier carrier) => Placement.OnRead(carrier);
 
     // TODO(core): Delete this compatibility alias once callers consume OnRead directly.
-    public Ratio On(Carrier carrier) => OnRead(carrier).AsRatio();
+    public Ratio On(Carrier carrier) => OnRead(carrier).CompatibilityRatio();
 
     public Measure Location => On(Carrier).Whole;
 

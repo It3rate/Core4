@@ -85,6 +85,8 @@ public sealed class BasisEncounterAgreementTests
             resolution: Ratio.Zero(Measure.One));
 
         Assert.True(agreement.HasCommittedTransfer);
+        Assert.Equal(new Ratio(new Measure(3), new Measure(4)), agreement.TransmissionRead.AsRatio());
+        Assert.Equal(new Ratio(new Measure(1), new Measure(4)), agreement.RetentionRead.AsRatio());
         Assert.Equal(new Ratio(new Measure(3), new Measure(4)), agreement.Transmission);
         Assert.Equal(new Ratio(new Measure(1), new Measure(4)), agreement.Retention);
     }

@@ -38,7 +38,7 @@ public readonly record struct TraversalSignature(
     TraversalModifier Modifier,
     Provenance Provenance)
 {
-    private Ratio NormalizedCalibration => CalibrationRead.NormalizedRatio();
+    private Ratio CompatibilityCalibration => CalibrationRead.CompatibilityRatio();
 
     public Carrier Carrier => Placement.PrimaryCarrier;
 
@@ -53,12 +53,12 @@ public readonly record struct TraversalSignature(
     public Ratio Position => Projection;
 
     // TODO(core): Delete this compatibility alias once callers consume CalibrationRead directly.
-    public Ratio Calibration => NormalizedCalibration;
+    public Ratio Calibration => CompatibilityCalibration;
 
     // TODO(core): Delete this compatibility alias once callers stop expecting carried calibration as raw Ratio.
     public Ratio Basis => Calibration;
 
-    public Measure CalibrationDirection => NormalizedCalibration.Sign;
+    public Measure CalibrationDirection => CompatibilityCalibration.Sign;
 
     public Measure Perspective => Modifier.Direction;
 
@@ -72,7 +72,7 @@ public readonly record struct TraversalSignature(
     public bool Equivalent(TraversalSignature other) =>
         SameProjection(other)
         && Grade == other.Grade
-        && NormalizedCalibration == other.NormalizedCalibration
+        && CompatibilityCalibration == other.CompatibilityCalibration
         && Modifier == other.Modifier
         && Provenance.Direction == other.Provenance.Direction
         && Perspective.Sign == other.Perspective.Sign;
@@ -81,9 +81,9 @@ public readonly record struct TraversalSignature(
         ? new Ratio(Measure.One, Measure.One)
         : Ratio.Zero(Measure.One);
 
-    public Ratio CalibrationAgreement(TraversalSignature other) => NormalizedCalibration == other.NormalizedCalibration
+    public Ratio CalibrationAgreement(TraversalSignature other) => CompatibilityCalibration == other.CompatibilityCalibration
         ? new Ratio(Measure.One, Measure.One)
-        : new Ratio(new Measure(NormalizedCalibration.Sign.Raw * other.NormalizedCalibration.Sign.Raw), Measure.One).Normalize();
+        : new Ratio(new Measure(CompatibilityCalibration.Sign.Raw * other.CompatibilityCalibration.Sign.Raw), Measure.One).Normalize();
 
     public Ratio ModifierAgreement(TraversalSignature other) => Modifier.Agreement(other.Modifier);
 

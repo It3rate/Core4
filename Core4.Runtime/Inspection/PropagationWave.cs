@@ -120,7 +120,7 @@ public readonly record struct PropagationWave(
 
             foreach (var continuation in forward)
             {
-                if (continuation.Transmission.Potential != Measure.Zero)
+                if (continuation.TransmissionRead.Potential != Measure.Zero)
                 {
                     var moved = frontier.Move(continuation);
                     MergeFrontier(nextActive, moved);
@@ -133,9 +133,9 @@ public readonly record struct PropagationWave(
                         continuation.Retention));
                 }
 
-                if (continuation.Retention.Potential != Measure.Zero)
+                if (continuation.RetentionRead.Potential != Measure.Zero)
                 {
-                    MergeFrontier(nextParked, frontier.Retain(continuation.Retention));
+                    MergeFrontier(nextParked, frontier.Retain(continuation.RetentionRead));
                 }
             }
         }
@@ -275,9 +275,9 @@ public readonly record struct PropagationFrontier(
         Signature.SameProjection(other.Signature)
         && Signature.Perspective.Sign == other.Signature.Perspective.Sign;
 
-    public PropagationFrontier Move(TopologyTrolleyContinuation continuation) => Move(continuation, continuation.Transmission);
+    public PropagationFrontier Move(TopologyTrolleyContinuation continuation) => Move(continuation, continuation.TransmissionRead);
 
-    public PropagationFrontier Move(TopologyTrolleyContinuation continuation, Ratio transmission)
+    public PropagationFrontier Move(TopologyTrolleyContinuation continuation, ISupportProjection transmission)
     {
         var moved = ImmutableArray.CreateBuilder<TopologyTrolley>(Histories.Length);
 
@@ -286,10 +286,20 @@ public readonly record struct PropagationFrontier(
             moved.Add(history.Move(continuation));
         }
 
-        return new PropagationFrontier(moved.ToImmutable(), Weight.Multiply(transmission).Canonicalize());
+        return new PropagationFrontier(
+            moved.ToImmutable(),
+            Weight.Multiply(transmission.CompatibilityRatio()).Canonicalize());
     }
 
-    public PropagationFrontier Retain(Ratio retention) => new(Histories, Weight.Multiply(retention).Canonicalize());
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped transmission reads directly.
+    public PropagationFrontier Move(TopologyTrolleyContinuation continuation, Ratio transmission) =>
+        Move(continuation, (ISupportProjection)transmission);
+
+    public PropagationFrontier Retain(ISupportProjection retention) =>
+        new(Histories, Weight.Multiply(retention.CompatibilityRatio()).Canonicalize());
+
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped retention reads directly.
+    public PropagationFrontier Retain(Ratio retention) => Retain((ISupportProjection)retention);
 }
 
 public readonly record struct PropagationMove(

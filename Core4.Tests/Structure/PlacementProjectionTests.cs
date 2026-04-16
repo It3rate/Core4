@@ -57,10 +57,14 @@ public sealed class PlacementProjectionTests
     {
         ISupportProjection offset = new ProxyProjection(new Ratio(new Measure(100), new Measure(107), new Measure(110)));
         ISupportProjection magnitude = new ProxyProjection(new Ratio(new Measure(4), Measure.One));
+        ISupportProjection half = new ProxyProjection(new Ratio(new Measure(1), new Measure(2)));
 
-        Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), offset.NormalizedRatio());
-        Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), offset.NormalizeRead().AsRatio());
-        Assert.Equal(new Ratio(new Measure(2), Measure.One), magnitude.MultiplyRead(new Ratio(new Measure(1), new Measure(2))).AsRatio());
+        Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), offset.CompatibilityRatio());
+        Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), offset.CanonicalizeRead().AsRatio());
+        Assert.Equal(new Ratio(new Measure(2), Measure.One), magnitude.MultiplyRead(half).AsRatio());
+        Assert.True(magnitude.CompareValueRead(half) > 0);
+        Assert.Equal(offset.CompatibilityRatio(), offset.NormalizedRatio());
+        Assert.Equal(offset.CanonicalizeRead().AsRatio(), offset.NormalizeRead().AsRatio());
     }
 
     [Fact]

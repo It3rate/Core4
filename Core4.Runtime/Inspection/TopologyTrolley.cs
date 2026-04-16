@@ -40,7 +40,7 @@ public readonly record struct TopologyTrolley(
     public ImmutableArray<SiteBasisEncounter> BasisEncounters => Topology.BasisEncountersAt(Site);
 
     // TODO(core): Delete this compatibility alias once callers consume CarriedCalibrationRead directly.
-    public Ratio CarriedCalibration => CarriedCalibrationRead.NormalizedRatio();
+    public Ratio CarriedCalibration => CarriedCalibrationRead.CompatibilityRatio();
 
     public TraversalSignature Signature => SignatureOf(Site, Direction, CarriedCalibrationRead, Ingress);
 
@@ -98,8 +98,8 @@ public readonly record struct TopologyTrolley(
                 sourceSignature,
                 targetSignature,
                 basisAgreements.ToImmutable(),
-                new Ratio(Measure.One, Measure.One),
-                Ratio.Zero(Measure.One)));
+                new SupportProjectionRead(new Ratio(Measure.One, Measure.One)),
+                new SupportProjectionRead(Ratio.Zero(Measure.One))));
         }
 
         return new TopologyTrolleyObservation(this, continuations.ToImmutable());
@@ -267,8 +267,8 @@ public readonly record struct TopologyTrolleyContinuation(
     TraversalSignature SourceSignature,
     TraversalSignature TargetSignature,
     ImmutableArray<BasisEncounterAgreement> BasisAgreements,
-    Ratio Transmission,
-    Ratio Retention)
+    ISupportProjection TransmissionRead,
+    ISupportProjection RetentionRead)
 {
     public Carrier Carrier => Relation.Carrier;
 
@@ -286,22 +286,28 @@ public readonly record struct TopologyTrolleyContinuation(
 
     public bool IsOutgoing => Disposition.IsOutgoing;
 
+    // TODO(core): Delete this compatibility alias once callers consume TransmissionRead directly.
+    public Ratio Transmission => TransmissionRead.CompatibilityRatio();
+
     public ISupportProjection TransmittedCalibrationRead =>
-        SourceSignature.CalibrationRead.MultiplyRead(Transmission);
+        SourceSignature.CalibrationRead.MultiplyRead(TransmissionRead);
 
     // TODO(core): Delete this compatibility alias once callers consume TransmittedCalibrationRead directly.
-    public Ratio TransmittedCalibration => TransmittedCalibrationRead.AsRatio();
+    public Ratio TransmittedCalibration => TransmittedCalibrationRead.CompatibilityRatio();
 
     public ISupportProjection RetainedCalibrationRead =>
-        SourceSignature.CalibrationRead.MultiplyRead(Retention);
+        SourceSignature.CalibrationRead.MultiplyRead(RetentionRead);
+
+    // TODO(core): Delete this compatibility alias once callers consume RetentionRead directly.
+    public Ratio Retention => RetentionRead.CompatibilityRatio();
 
     // TODO(core): Delete this compatibility alias once callers consume RetainedCalibrationRead directly.
-    public Ratio RetainedCalibration => RetainedCalibrationRead.AsRatio();
+    public Ratio RetainedCalibration => RetainedCalibrationRead.CompatibilityRatio();
 
     public ISupportProjection NextCalibrationRead =>
-        TargetSignature.CalibrationRead.MultiplyRead(Transmission);
+        TargetSignature.CalibrationRead.MultiplyRead(TransmissionRead);
 
-    public bool HasRetention => Retention.Potential != Measure.Zero;
+    public bool HasRetention => RetentionRead.Potential != Measure.Zero;
 
     public bool IsPartialTransfer => Transmission != new Ratio(Measure.One, Measure.One)
         || Retention != Ratio.Zero(Measure.One);
@@ -473,8 +479,8 @@ public readonly record struct TopologyTrolleyObservation(
 
             continuations.Add(continuation with
             {
-                Transmission = agreement.Transmission,
-                Retention = agreement.Retention
+                TransmissionRead = agreement.TransmissionRead,
+                RetentionRead = agreement.RetentionRead
             });
         }
 
@@ -529,8 +535,8 @@ public readonly record struct TopologyTrolleyObservation(
                 Trolley.Signature,
                 targetSignature,
                 [agreement],
-                agreement.Transmission,
-                agreement.Retention));
+                agreement.TransmissionRead,
+                agreement.RetentionRead));
         }
 
         return continuations.ToImmutable();

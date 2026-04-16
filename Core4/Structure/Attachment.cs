@@ -49,6 +49,9 @@ public sealed class Attachment : ISupportFold
 
     public ImmutableArray<Placement> Placements => Samples.Placements;
 
+    // TODO(core): Keep this as the narrow attachment-side entry point for now. Later sample operations should be
+    // able to select, filter, sort, and regroup by richer criteria, possibly using different support structures,
+    // before deciding whether the result remains a SampleSet or hardens into a new attachment.
     public SampleSet SelectSamples(Carrier carrier) => Samples.Select(carrier);
 
     // Compatibility projection for callers that still expect a single ratio-shaped read. Composite attachments do not

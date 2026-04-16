@@ -145,6 +145,8 @@ public sealed class TopologyTrolleyTests
         Assert.True(SameNode(trolley.Site, right));
 
         var reflection = Assert.Single(trolley.Observe().ForwardContinuations);
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), reflection.TransmissionRead.AsRatio());
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), reflection.RetentionRead.AsRatio());
         Assert.Equal(new Ratio(new Measure(1), new Measure(2)), reflection.Transmission);
         Assert.Equal(new Ratio(new Measure(1), new Measure(2)), reflection.Retention);
         Assert.Equal(new Ratio(new Measure(5), Measure.One), reflection.TransmittedCalibrationRead.AsRatio());

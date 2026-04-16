@@ -39,6 +39,9 @@ public sealed class SampleSet
 
     public ImmutableArray<Placement> Placements => _sites.Select(site => site.Placement).ToImmutableArray();
 
+    // TODO(core): This carrier-local selection is the springboard for richer sample operations such as filter,
+    // sort, support-relative extraction, and measured regrouping. Later passes should likely move those behaviors
+    // into their own sample-operations surface rather than growing this type ad hoc.
     public SampleSet Select(Carrier carrier)
     {
         if (IsAtomic)

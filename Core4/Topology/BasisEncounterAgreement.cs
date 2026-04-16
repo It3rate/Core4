@@ -20,7 +20,7 @@ public readonly record struct BasisEncounterAgreement(
     public ISupportProjection FoldRead => CalibrationRead.FoldRead;
 
     // TODO(core): Delete this compatibility alias once callers consume FoldRead directly.
-    public Ratio Fold => FoldRead.NormalizedRatio();
+    public Ratio Fold => FoldRead.CompatibilityRatio();
 
     // TODO(core): Delete this compatibility alias once callers consume CalibrationRead/FoldRead directly.
     public Ratio Calibration => Fold;
@@ -41,9 +41,16 @@ public readonly record struct BasisEncounterAgreement(
 
     public bool HasCommittedTransfer => Commitment.Potential != Measure.Zero;
 
-    public Ratio Transmission => Commitment.Canonicalize();
+    public ISupportProjection TransmissionRead => new SupportProjectionRead(Commitment.Canonicalize());
 
-    public Ratio Retention => new Ratio(Measure.One, Measure.One).Subtract(Commitment).Canonicalize();
+    // TODO(core): Delete this compatibility alias once callers consume TransmissionRead directly.
+    public Ratio Transmission => TransmissionRead.CompatibilityRatio();
+
+    public ISupportProjection RetentionRead => new SupportProjectionRead(
+        new Ratio(Measure.One, Measure.One).Subtract(Commitment).Canonicalize());
+
+    // TODO(core): Delete this compatibility alias once callers consume RetentionRead directly.
+    public Ratio Retention => RetentionRead.CompatibilityRatio();
 
     public int ComparePreference(BasisEncounterAgreement other)
     {

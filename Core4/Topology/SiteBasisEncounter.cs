@@ -27,7 +27,7 @@ public readonly record struct SiteBasisEncounter(
     public ISupportProjection FoldRead => CalibrationRead.FoldRead;
 
     // TODO(core): Delete this compatibility alias once callers consume FoldRead directly.
-    public Ratio Fold => FoldRead.NormalizedRatio();
+    public Ratio Fold => FoldRead.CompatibilityRatio();
 
     // TODO(core): Delete this compatibility alias once callers stop expecting encounter calibration as Ratio.
     public Ratio Calibration => Fold;
