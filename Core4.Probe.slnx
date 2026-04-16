@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="Core4/Core4.csproj" />
+  <Project Path="Core4.Runtime/Core4.Runtime.csproj" />
+  <Folder Name="/Core4.AvaloniaProbe/">
+    <Project Path="Core4.AvaloniaProbe/Core4.AvaloniaProbe.Browser/Core4.AvaloniaProbe.Browser.csproj" />
+    <Project Path="Core4.AvaloniaProbe/Core4.AvaloniaProbe.Desktop/Core4.AvaloniaProbe.Desktop.csproj" />
+    <Project Path="Core4.AvaloniaProbe/Core4.AvaloniaProbe/Core4.AvaloniaProbe.csproj" />
+  </Folder>
+</Solution>
