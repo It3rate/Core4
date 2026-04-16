@@ -5,9 +5,11 @@ using Core4.Structure;
 namespace Core4.Numerics;
 
 /// <summary>
-/// An ordered recessive/dominant relation. <c>m/0</c> carries unresolved tension, while <c>m/u</c> is a resolved
-/// relation against a denominator. This is the shared numeric form behind placement, projection, and slot state.
-/// Denominator sign is preserved exactly; any fold into a positive denominator is an explicit lossy operation.
+/// An ordered recessive/dominant relation. This is the current machine-privileged read of a richer support-local
+/// structure: conceptually it stands in for value read through a chosen unit, while the producing support still
+/// carries the implicit origin/context. <c>m/0</c> carries unresolved tension, while <c>m/u</c> is a resolved
+/// relation against a denominator. Denominator sign is preserved exactly; any fold into a positive denominator is an
+/// explicit lossy operation.
 /// Example: <c>var halfway = new Ratio(5, 10);</c>
 /// </summary>
 public readonly record struct Ratio(Measure Recessive, Measure Dominant) : ISupportProjection
@@ -44,6 +46,21 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant) : ISupp
     public Measure Remainder => IsResolved ? new Measure(Recessive.Raw % Dominant.Raw) : Recessive;
 
     public double Approximate => IsResolved ? (double)Recessive.Raw / Dominant.Raw : 0d;
+
+    public int CompareValue(Ratio other)
+    {
+        var left = FoldDenominator();
+        var right = other.FoldDenominator();
+
+        if (left.IsResolved && right.IsResolved)
+        {
+            var leftScaled = new BigInteger(left.Recessive.Raw) * right.Dominant.Raw;
+            var rightScaled = new BigInteger(right.Recessive.Raw) * left.Dominant.Raw;
+            return leftScaled.CompareTo(rightScaled);
+        }
+
+        return Recessive.Raw.CompareTo(other.Recessive.Raw);
+    }
 
     public int CompareMagnitude(Ratio other)
     {

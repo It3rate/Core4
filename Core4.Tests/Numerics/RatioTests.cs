@@ -115,6 +115,30 @@ public sealed class RatioTests
     }
 
     [Fact]
+    public void CompareValueOrdersResolvedRatiosExactlyWithoutAssumingPositiveDenominator()
+    {
+        Assert.True(new Ratio(3, 4).CompareValue(new Ratio(2, 3)) > 0);
+        Assert.True(new Ratio(1, -2).CompareValue(new Ratio(1, 4)) < 0);
+        Assert.Equal(0, new Ratio(2, 4).CompareValue(new Ratio(1, 2)));
+    }
+
+    [Fact]
+    public void CompareValueFallsBackToRawRecessiveForUnresolvedReads()
+    {
+        Assert.True(Ratio.Tension(new Measure(7)).CompareValue(Ratio.Tension(new Measure(5))) > 0);
+        Assert.True(Ratio.Tension(new Measure(-3)).CompareValue(Ratio.Tension(new Measure(2))) < 0);
+    }
+
+    [Fact]
+    public void CompareValueUsesBigIntegerForLargeResolvedCrossProducts()
+    {
+        var left = new Ratio(new Measure(long.MaxValue), new Measure(long.MaxValue - 1));
+        var right = new Ratio(new Measure(long.MaxValue - 1), new Measure(long.MaxValue - 2));
+
+        Assert.True(left.CompareValue(right) < 0);
+    }
+
+    [Fact]
     public void ScaleByCanPartitionUnresolvedTensionWithResolvedShare()
     {
         var tension = Ratio.Tension(new Measure(11));

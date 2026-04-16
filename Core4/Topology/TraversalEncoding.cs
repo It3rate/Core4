@@ -354,9 +354,5 @@ public readonly record struct TraversalObservation(
     }
 
     private static int Compare(Ratio left, Ratio right)
-    {
-        var leftScaled = checked(left.Recessive.Raw * right.Dominant.Raw);
-        var rightScaled = checked(right.Recessive.Raw * left.Dominant.Raw);
-        return leftScaled.CompareTo(rightScaled);
-    }
+        => left.CompareValue(right);
 }

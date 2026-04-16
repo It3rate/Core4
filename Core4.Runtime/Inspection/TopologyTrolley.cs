@@ -566,16 +566,9 @@ public readonly record struct TopologyTrolleyObservation(
     {
         var leftPosition = left.On(carrier).Normalize();
         var rightPosition = right.On(carrier).Normalize();
-        return CompareRatio(leftPosition, rightPosition) <= 0
+        return leftPosition.CompareValue(rightPosition) <= 0
             ? new Relation(carrier, left, right)
             : new Relation(carrier, right, left);
-    }
-
-    private static int CompareRatio(Ratio left, Ratio right)
-    {
-        var leftScaled = checked(left.Recessive.Raw * right.Dominant.Raw);
-        var rightScaled = checked(right.Recessive.Raw * left.Dominant.Raw);
-        return leftScaled.CompareTo(rightScaled);
     }
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;

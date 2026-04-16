@@ -316,11 +316,7 @@ public sealed class EnumerableUnit<TEnum> : IEnumerable<TEnum> where TEnum : str
     }
 
     private static int Compare(Ratio left, Ratio right)
-    {
-        var leftScaled = checked(left.Recessive.Raw * right.Dominant.Raw);
-        var rightScaled = checked(right.Recessive.Raw * left.Dominant.Raw);
-        return leftScaled.CompareTo(rightScaled);
-    }
+        => left.CompareValue(right);
 
     private TraversalSignature StepTarget(Measure index, Measure direction)
     {
