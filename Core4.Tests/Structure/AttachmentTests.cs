@@ -6,6 +6,22 @@ namespace Core4.Tests.Structure;
 public sealed class AttachmentTests
 {
     [Fact]
+    public void BasisAndAttachmentCanBeConsumedThroughSharedSupportFoldRead()
+    {
+        Carrier x = 1;
+        var basis = Basis.Freeze(x, new Measure(0), new Measure(10));
+        var attachment = basis.Attach(new Measure(7));
+
+        ISupportFold frozen = basis;
+        ISupportFold live = attachment;
+
+        Assert.Equal(new Ratio(10, 0), frozen.Fold);
+        Assert.Equal(new Measure(10), frozen.Potential);
+        Assert.Equal(new Ratio(7, 10), live.Fold);
+        Assert.Equal(new Measure(7), live.Potential);
+    }
+
+    [Fact]
     public void AtomicAttachmentProjectsLiveSiteThroughFrozenUnit()
     {
         Carrier x = 1;

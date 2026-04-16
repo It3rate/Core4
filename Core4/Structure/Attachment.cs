@@ -10,7 +10,7 @@ namespace Core4.Structure;
 /// pretending the whole object is itself one atomic relation.
 /// Example: <c>var reading = basis.Attach(5, 4);</c>
 /// </summary>
-public sealed class Attachment
+public sealed class Attachment : ISupportFold
 {
     private readonly ImmutableArray<Site> _sites;
     private readonly ImmutableArray<Attachment> _inputs;

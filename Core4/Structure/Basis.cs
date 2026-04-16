@@ -9,7 +9,7 @@ namespace Core4.Structure;
 /// can travel along it by ratio just like they do on a carrier.
 /// Example: <c>var segment = Basis.Fuse(leftBasis, rightBasis); var point = segment.Place(new Ratio(1, 2));</c>
 /// </summary>
-public sealed class Basis : ISupport
+public sealed class Basis : ISupport, ISupportFold
 {
     private readonly ImmutableArray<Basis> _inputs;
     private readonly ImmutableArray<Relation> _relations;

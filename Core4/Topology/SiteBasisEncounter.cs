@@ -20,21 +20,23 @@ public readonly record struct SiteBasisEncounter(
 
     public Measure RelationCount => Basis.RelationCount;
 
-    public Ratio Calibration => Basis.Fold.Normalize();
+    public ISupportFold CalibrationRead => Basis;
 
-    public Measure Potential => Basis.Potential;
+    public Ratio Calibration => CalibrationRead.Fold.Normalize();
+
+    public Measure Potential => CalibrationRead.Potential;
 
     public bool IsAtomic => Basis.IsAtomic;
 
     public bool IsComposite => Basis.IsComposite;
 
-    public Ratio Commitment => Basis.Potential == Measure.Zero
+    public Ratio Commitment => CalibrationRead.Potential == Measure.Zero
         ? Ratio.Zero(Measure.One)
         : new Ratio(
-            SupportPotential.Raw <= Basis.Potential.Raw
+            SupportPotential.Raw <= CalibrationRead.Potential.Raw
                 ? SupportPotential
-                : Basis.Potential,
-            Basis.Potential).Canonicalize();
+                : CalibrationRead.Potential,
+            CalibrationRead.Potential).Canonicalize();
 
     public bool IsExplicitPinnedBasis => SourceSupport is Basis;
 

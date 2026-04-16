@@ -85,6 +85,8 @@ public sealed class SiteBasisEncounterTests
         Assert.True(explicitBasis.IsLocalToSite);
         Assert.True(explicitBasis.HasRecessiveCalibration);
         Assert.False(explicitBasis.HasDominantCalibration);
+        Assert.Equal(explicitBasis.Basis.Fold, explicitBasis.CalibrationRead.Fold);
+        Assert.Equal(explicitBasis.Basis.Potential, explicitBasis.CalibrationRead.Potential);
         Assert.Equal(new Ratio(Measure.One, Measure.One), explicitBasis.Commitment);
     }
 
