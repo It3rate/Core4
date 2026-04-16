@@ -135,13 +135,13 @@ public sealed class Basis : ISupport, ISupportFold
 
     public Basis Flip() => new(_structure.Flip());
 
-    public Placement Place(Ratio ratio) => new(this, ratio.Normalize());
-
     public Placement Place(ISupportProjection projection) => new(this, projection.AsRatio());
 
-    public Ratio Locate(Ratio position, Carrier carrier) => _structure.Locate(position, carrier);
+    public Placement Place(Ratio ratio) => Place((ISupportProjection)ratio);
 
-    public Ratio Locate(ISupportProjection position, Carrier carrier) => Locate(position.AsRatio(), carrier);
+    public Ratio Locate(ISupportProjection position, Carrier carrier) => _structure.Locate(position, carrier);
+
+    public Ratio Locate(Ratio position, Carrier carrier) => Locate((ISupportProjection)position, carrier);
 
     public Ratio Project(Site site) => _structure.Project(site);
 

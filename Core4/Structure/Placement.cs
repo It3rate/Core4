@@ -23,9 +23,9 @@ public readonly record struct Placement(ISupport Support, Ratio Projection)
 
     public Measure Potential => Projection.Potential;
 
-    public Ratio On(Carrier carrier) => Support.Locate(Projection.Normalize(), carrier).Normalize();
+    public Ratio On(Carrier carrier) => Support.Locate((ISupportProjection)Projection.Normalize(), carrier).Normalize();
 
-    public Placement Resolve(Ratio projection) => new(Support, projection.Normalize());
+    public Placement Resolve(Ratio projection) => Resolve((ISupportProjection)projection);
 
     public Placement Resolve(ISupportProjection projection) => new(Support, projection.AsRatio());
 }

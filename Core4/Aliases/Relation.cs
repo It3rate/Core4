@@ -43,13 +43,13 @@ public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor
 
     public Ratio Project(Measure measure) => Structure.Project(measure);
 
-    public Placement Place(Ratio ratio) => new(this, ratio.Normalize());
-
     public Placement Place(ISupportProjection projection) => new(this, projection.AsRatio());
 
-    public Ratio Locate(Ratio position, Carrier carrier) => Structure.Locate(position, carrier);
+    public Placement Place(Ratio ratio) => Place((ISupportProjection)ratio);
 
-    public Ratio Locate(ISupportProjection position, Carrier carrier) => Locate(position.AsRatio(), carrier);
+    public Ratio Locate(ISupportProjection position, Carrier carrier) => Structure.Locate(position, carrier);
+
+    public Ratio Locate(Ratio position, Carrier carrier) => Locate((ISupportProjection)position, carrier);
 
     public Basis Freeze() => Basis.Freeze(this);
 }

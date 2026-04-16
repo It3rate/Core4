@@ -13,11 +13,11 @@ public interface ISupport
 
     Measure SupportGrade { get; }
 
-    Ratio Locate(Ratio position, Carrier carrier);
+    Ratio Locate(ISupportProjection position, Carrier carrier);
 
-    Ratio Locate(ISupportProjection position, Carrier carrier) => Locate(position.AsRatio(), carrier);
-
-    Placement Place(Ratio ratio) => new(this, ratio.Normalize());
+    Ratio Locate(Ratio position, Carrier carrier) => Locate((ISupportProjection)position, carrier);
 
     Placement Place(ISupportProjection projection) => new(this, projection.AsRatio());
+
+    Placement Place(Ratio ratio) => Place((ISupportProjection)ratio);
 }

@@ -112,6 +112,8 @@ internal sealed class SupportStructure : ISupport
 
     public Relation AtomicRelation => RelationFromSpan(AtomicSpan());
 
+    public Ratio Locate(ISupportProjection position, Carrier carrier) => Locate(position.AsRatio(), carrier);
+
     public Ratio Locate(Ratio position, Carrier carrier)
     {
         var normalized = position.Normalize();

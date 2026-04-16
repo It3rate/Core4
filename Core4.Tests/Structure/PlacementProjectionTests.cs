@@ -31,6 +31,20 @@ public sealed class PlacementProjectionTests
     }
 
     [Fact]
+    public void CustomSupportProjectionCanTravelAcrossSupportContract()
+    {
+        Carrier x = 1;
+        ISupport support = x;
+        ISupportProjection projection = new ProxyProjection(new Ratio(new Measure(100), new Measure(107), new Measure(110)));
+
+        var placement = support.Place(projection);
+        var located = support.Locate(projection, x);
+
+        Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), placement.Projection);
+        Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), located);
+    }
+
+    [Fact]
     public void PlacementCanResolveFromSupportProjectionInterface()
     {
         Carrier x = 1;
@@ -41,5 +55,12 @@ public sealed class PlacementProjectionTests
 
         Assert.Equal(new Ratio(9, 10), resolved.Projection);
         Assert.Equal(new Ratio(9, 10), resolved.Ratio);
+    }
+
+    private readonly record struct ProxyProjection(Ratio Value) : ISupportProjection
+    {
+        public Measure Potential => Value.Potential;
+
+        public Ratio AsRatio() => Value;
     }
 }
