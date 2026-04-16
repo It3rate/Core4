@@ -12,12 +12,27 @@ namespace Core4.Structure;
 /// Example: <c>var kernel = AlignedKernel.Open.Anchor(new Ratio(0, 1)).Assert(new Ratio(5, 10)).Harden(new Ratio(1, 1)).Route(new Ratio(1, 2)).BiasToDominant(new Ratio(3, 4));</c>
 /// </summary>
 public readonly record struct AlignedKernel(
-    Ratio Recessive,
-    Ratio Dominant,
-    Ratio Stiffness,
-    Ratio RoutingGain,
-    Ratio DominantBias)
+    SupportProjectionRead RecessiveRead,
+    SupportProjectionRead DominantRead,
+    SupportProjectionRead StiffnessRead,
+    SupportProjectionRead RoutingGainRead,
+    SupportProjectionRead DominantBiasRead)
 {
+    public AlignedKernel(
+        ISupportProjection recessive,
+        ISupportProjection dominant,
+        ISupportProjection stiffness,
+        ISupportProjection routingGain,
+        ISupportProjection dominantBias)
+        : this(
+            recessive.ToSupportRead(),
+            dominant.ToSupportRead(),
+            stiffness.ToSupportRead(),
+            routingGain.ToSupportRead(),
+            dominantBias.ToSupportRead())
+    {
+    }
+
     public static AlignedKernel Open => new(
         Ratio.Zero(Measure.Zero),
         Ratio.Zero(Measure.Zero),
@@ -25,31 +40,86 @@ public readonly record struct AlignedKernel(
         new Ratio(Measure.One, Measure.One),
         new Ratio(Measure.One, Measure.One));
 
-    public Measure Potential => Recessive.Potential + Dominant.Potential;
+    // TODO(core): Delete this compatibility alias once callers consume RecessiveRead directly.
+    public Ratio Recessive => RecessiveRead.CompatibilityRatio();
 
-    public Measure OccupiedCount => Count(Recessive) + Count(Dominant);
+    // TODO(core): Delete this compatibility alias once callers consume DominantRead directly.
+    public Ratio Dominant => DominantRead.CompatibilityRatio();
 
-    public Measure BoundCount => Bound(Recessive) + Bound(Dominant);
+    // TODO(core): Delete this compatibility alias once callers consume StiffnessRead directly.
+    public Ratio Stiffness => StiffnessRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume RoutingGainRead directly.
+    public Ratio RoutingGain => RoutingGainRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume DominantBiasRead directly.
+    public Ratio DominantBias => DominantBiasRead.CompatibilityRatio();
+
+    public Measure Potential => RecessiveRead.Potential + DominantRead.Potential;
+
+    public Measure OccupiedCount => Count(RecessiveRead) + Count(DominantRead);
+
+    public Measure BoundCount => Bound(RecessiveRead) + Bound(DominantRead);
 
     public bool IsOpen => OccupiedCount == Measure.Zero;
 
-    public AlignedKernel Anchor(Ratio state) => new(state.Normalize(), Dominant, Stiffness, RoutingGain, DominantBias);
+    public AlignedKernel AnchorRead(ISupportProjection state) => new(
+        state.ToSupportRead(),
+        DominantRead,
+        StiffnessRead,
+        RoutingGainRead,
+        DominantBiasRead);
 
-    public AlignedKernel Assert(Ratio state) => new(Recessive, state.Normalize(), Stiffness, RoutingGain, DominantBias);
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public AlignedKernel Anchor(Ratio state) => AnchorRead(state);
 
-    public AlignedKernel Focus(Measure energy) => Assert(Ratio.Tension(energy));
+    public AlignedKernel AssertRead(ISupportProjection state) => new(
+        RecessiveRead,
+        state.ToSupportRead(),
+        StiffnessRead,
+        RoutingGainRead,
+        DominantBiasRead);
 
-    public AlignedKernel Harden(Ratio stiffness) => new(Recessive, Dominant, stiffness.Normalize(), RoutingGain, DominantBias);
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public AlignedKernel Assert(Ratio state) => AssertRead(state);
 
-    public AlignedKernel Route(Ratio gain) => new(Recessive, Dominant, Stiffness, gain.Normalize(), DominantBias);
+    public AlignedKernel Focus(Measure energy) => AssertRead(Ratio.Tension(energy));
 
-    public AlignedKernel BiasToDominant(Ratio bias) => new(Recessive, Dominant, Stiffness, RoutingGain, bias.Normalize());
+    public AlignedKernel HardenRead(ISupportProjection stiffness) => new(
+        RecessiveRead,
+        DominantRead,
+        stiffness.ToSupportRead(),
+        RoutingGainRead,
+        DominantBiasRead);
 
-    private static Measure Count(Ratio state) => state.Potential != Measure.Zero || state.Dominant != Measure.Zero
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public AlignedKernel Harden(Ratio stiffness) => HardenRead(stiffness);
+
+    public AlignedKernel RouteRead(ISupportProjection gain) => new(
+        RecessiveRead,
+        DominantRead,
+        StiffnessRead,
+        gain.ToSupportRead(),
+        DominantBiasRead);
+
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public AlignedKernel Route(Ratio gain) => RouteRead(gain);
+
+    public AlignedKernel BiasToDominantRead(ISupportProjection bias) => new(
+        RecessiveRead,
+        DominantRead,
+        StiffnessRead,
+        RoutingGainRead,
+        bias.ToSupportRead());
+
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public AlignedKernel BiasToDominant(Ratio bias) => BiasToDominantRead(bias);
+
+    private static Measure Count(ISupportProjection state) => state.Potential != Measure.Zero || state.CompatibilityRatio().Dominant != Measure.Zero
         ? Measure.One
         : Measure.Zero;
 
-    private static Measure Bound(Ratio state) => state.Dominant != Measure.Zero
+    private static Measure Bound(ISupportProjection state) => state.CompatibilityRatio().Dominant != Measure.Zero
         ? Measure.One
         : Measure.Zero;
 }

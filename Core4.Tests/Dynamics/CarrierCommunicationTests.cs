@@ -34,8 +34,10 @@ public sealed class CarrierCommunicationTests
         Assert.Equal(source.Placement, afterOne.Transfers[0].Source);
         Assert.Equal(receiver.Placement, afterOne.Transfers[0].Target);
         Assert.Equal(new Ratio(4, 4), afterOne.Transfers[0].Value);
+        Assert.Equal(new Ratio(4, 4), afterOne.Transfers[0].ValueRead.AsRatio());
         Assert.Equal(light, afterOne.Fields[0].Carrier);
         Assert.Equal(new Ratio(4, 4), afterOne.Fields[0].Published);
+        Assert.Equal(new Ratio(4, 4), afterOne.Fields[0].PublishedRead.AsRatio());
         Assert.Equal(new Ratio(4, 4), afterOne.Fields[0].Delivered);
         Assert.Equal(new Ratio(0, 0), afterOne.Fields[0].Retained);
         Assert.Equal(new Measure(4), afterOne.Fields[0].EmitterWeight);
@@ -216,6 +218,7 @@ public sealed class CarrierCommunicationTests
         Assert.Equal(new Ratio(51, 10), afterOne.FeedbackFields[0].Delivered);
         Assert.Equal(new Ratio(0, 0), afterOne.FeedbackFields[0].Retained);
         Assert.Equal(new Ratio(51, 10), afterOne.FeedbackSummaries[0].Preferred);
+        Assert.Equal(new Ratio(51, 10), afterOne.FeedbackSummaries[0].PreferredRead.AsRatio());
         Assert.Equal(new Ratio(10, 1), afterOne.FeedbackSummaries[0].DesiredResolution);
         Assert.Equal(new Ratio(11, 10), afterOne.FeedbackSummaries[0].ValueDelta);
         Assert.Equal(new Ratio(9, 1), afterOne.FeedbackSummaries[0].ResolutionDelta);

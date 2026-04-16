@@ -8,11 +8,19 @@ namespace Core4.Structure;
 /// present pressure is mostly self-sourced, other-sourced, or balanced into oscillation.
 /// Example: <c>var flow = new Flow(sensor, Ratio.Tension(4), Provenance.OtherDriven(4));</c>
 /// </summary>
-public readonly record struct Flow(ISupport Support, Ratio Value, Provenance Provenance)
+public readonly record struct Flow(ISupport Support, SupportProjectionRead ValueRead, Provenance Provenance)
 {
+    public Flow(ISupport support, ISupportProjection value, Provenance provenance)
+        : this(support, value.ToSupportRead(), provenance)
+    {
+    }
+
     public Carrier Carrier => Support.PrimaryCarrier;
 
-    public Measure Potential => Value.Potential;
+    // TODO(core): Delete this compatibility alias once callers consume ValueRead directly.
+    public Ratio Value => ValueRead.CompatibilityRatio();
+
+    public Measure Potential => ValueRead.Potential;
 
     public Measure Direction => Provenance.Direction;
 
@@ -22,7 +30,10 @@ public readonly record struct Flow(ISupport Support, Ratio Value, Provenance Pro
 
     public bool IsOscillating => Direction.Raw == 0;
 
-    public Flow Retune(Ratio value) => new(Support, value.Normalize(), Provenance);
+    public Flow RetuneRead(ISupportProjection value) => new(Support, value, Provenance);
 
-    public Flow Rebalance(Provenance provenance) => new(Support, Value.Normalize(), provenance);
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public Flow Retune(Ratio value) => RetuneRead(value);
+
+    public Flow Rebalance(Provenance provenance) => new(Support, ValueRead, provenance);
 }

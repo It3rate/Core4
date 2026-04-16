@@ -1,11 +1,21 @@
 using System.Collections.Immutable;
 using Core4.Numerics;
+
 namespace Core4.Structure;
 
 public readonly record struct OrthogonalFlowGroup(
     Carrier Carrier,
-    Ratio Value,
-    Measure FlowCount);
+    SupportProjectionRead ValueRead,
+    Measure FlowCount)
+{
+    public OrthogonalFlowGroup(Carrier carrier, ISupportProjection value, Measure flowCount)
+        : this(carrier, value.ToSupportRead(), flowCount)
+    {
+    }
+
+    // TODO(core): Delete this compatibility alias once callers consume ValueRead directly.
+    public Ratio Value => ValueRead.CompatibilityRatio();
+}
 
 /// <summary>
 /// The unresolved orthogonal remainder around a site plus any articulated child flows that have attached to it.
@@ -14,14 +24,23 @@ public readonly record struct OrthogonalFlowGroup(
 /// Example: <c>var reservoir = OrthogonalReservoir.Open.Resolve(Ratio.Tension(10)).Add(flow);</c>
 /// </summary>
 public readonly record struct OrthogonalReservoir(
-    Ratio Residual,
+    SupportProjectionRead ResidualRead,
     ImmutableArray<Flow> Flows,
     ImmutableArray<OrthogonalPublication> Publications,
     ImmutableArray<OrthogonalFeedback> Feedback)
 {
-    public OrthogonalReservoir(Ratio residual, ImmutableArray<Flow> flows)
+    public OrthogonalReservoir(
+        ISupportProjection residual,
+        ImmutableArray<Flow> flows,
+        ImmutableArray<OrthogonalPublication> publications,
+        ImmutableArray<OrthogonalFeedback> feedback)
+        : this(residual.ToSupportRead(), flows, publications, feedback)
+    {
+    }
+
+    public OrthogonalReservoir(ISupportProjection residual, ImmutableArray<Flow> flows)
         : this(
-            residual,
+            residual.ToSupportRead(),
             flows,
             ImmutableArray<OrthogonalPublication>.Empty,
             ImmutableArray<OrthogonalFeedback>.Empty)
@@ -29,16 +48,19 @@ public readonly record struct OrthogonalReservoir(
     }
 
     public static OrthogonalReservoir Open => new(
-        Ratio.Zero(Measure.Zero),
+        Ratio.Zero(Measure.Zero).ToSupportRead(),
         ImmutableArray<Flow>.Empty,
         ImmutableArray<OrthogonalPublication>.Empty,
         ImmutableArray<OrthogonalFeedback>.Empty);
+
+    // TODO(core): Delete this compatibility alias once callers consume ResidualRead directly.
+    public Ratio Residual => ResidualRead.CompatibilityRatio();
 
     public Measure Potential
     {
         get
         {
-            var total = Residual.Potential;
+            var total = ResidualRead.Potential;
 
             foreach (var flow in Flows)
             {
@@ -59,7 +81,8 @@ public readonly record struct OrthogonalReservoir(
     {
         get
         {
-            var total = Residual.Potential != Measure.Zero || Residual.Dominant != Measure.Zero ? 1L : 0L;
+            var residual = ResidualRead.CompatibilityRatio();
+            var total = ResidualRead.Potential != Measure.Zero || residual.Dominant != Measure.Zero ? 1L : 0L;
             total += Flows.Length;
             total += Publications.Length;
             total += Feedback.Length;
@@ -71,11 +94,11 @@ public readonly record struct OrthogonalReservoir(
     {
         get
         {
-            var total = Residual.Dominant != Measure.Zero ? 1L : 0L;
+            var total = ResidualRead.CompatibilityRatio().Dominant != Measure.Zero ? 1L : 0L;
 
             foreach (var flow in Flows)
             {
-                if (flow.Value.Dominant != Measure.Zero)
+                if (flow.ValueRead.CompatibilityRatio().Dominant != Measure.Zero)
                 {
                     total++;
                 }
@@ -88,34 +111,56 @@ public readonly record struct OrthogonalReservoir(
         }
     }
 
-    public OrthogonalReservoir Resolve(Ratio residual) => new(residual.Normalize(), Flows, Publications, Feedback);
+    public OrthogonalReservoir ResolveRead(ISupportProjection residual) =>
+        new(residual.ToSupportRead(), Flows, Publications, Feedback);
 
-    public OrthogonalReservoir Add(Flow flow) => new(Residual, Flows.Add(flow), Publications, Feedback);
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public OrthogonalReservoir Resolve(Ratio residual) => ResolveRead(residual);
 
-    public OrthogonalReservoir Add(OrthogonalPublication publication) => new(Residual, Flows, Publications.Add(publication), Feedback);
+    public OrthogonalReservoir Add(Flow flow) => new(ResidualRead, Flows.Add(flow), Publications, Feedback);
 
-    public OrthogonalReservoir Add(OrthogonalFeedback feedback) => new(Residual, Flows, Publications, Feedback.Add(feedback));
+    public OrthogonalReservoir Add(OrthogonalPublication publication) => new(ResidualRead, Flows, Publications.Add(publication), Feedback);
+
+    public OrthogonalReservoir Add(OrthogonalFeedback feedback) => new(ResidualRead, Flows, Publications, Feedback.Add(feedback));
 
     public OrthogonalReservoir WithFlows(ImmutableArray<Flow> flows) =>
-        new(Residual, flows, Publications, Feedback);
+        new(ResidualRead, flows, Publications, Feedback);
 
     public OrthogonalReservoir WithPublications(ImmutableArray<OrthogonalPublication> publications) =>
-        new(Residual, Flows, publications, Feedback);
+        new(ResidualRead, Flows, publications, Feedback);
 
     public OrthogonalReservoir WithFeedback(ImmutableArray<OrthogonalFeedback> feedback) =>
-        new(Residual, Flows, Publications, feedback);
+        new(ResidualRead, Flows, Publications, feedback);
 
-    public Ratio Incoming() => Aggregate(flow => flow.IsIncoming);
+    public ISupportProjection IncomingRead() => AggregateRead(flow => flow.IsIncoming);
 
-    public Ratio LocalIncoming() => Aggregate(flow => flow.IsIncoming && flow.Support is not Carrier);
+    // TODO(core): Delete this compatibility alias once callers consume IncomingRead directly.
+    public Ratio Incoming() => IncomingRead().CompatibilityRatio();
 
-    public Ratio Outgoing() => Aggregate(flow => flow.IsOutgoing);
+    public ISupportProjection LocalIncomingRead() => AggregateRead(flow => flow.IsIncoming && flow.Support is not Carrier);
 
-    public Ratio LocalOutgoing() => Aggregate(flow => flow.IsOutgoing && flow.Support is not Carrier);
+    // TODO(core): Delete this compatibility alias once callers consume LocalIncomingRead directly.
+    public Ratio LocalIncoming() => LocalIncomingRead().CompatibilityRatio();
 
-    public Ratio Oscillating() => Aggregate(flow => flow.IsOscillating);
+    public ISupportProjection OutgoingRead() => AggregateRead(flow => flow.IsOutgoing);
 
-    public Ratio LocalOscillating() => Aggregate(flow => flow.IsOscillating && flow.Support is not Carrier);
+    // TODO(core): Delete this compatibility alias once callers consume OutgoingRead directly.
+    public Ratio Outgoing() => OutgoingRead().CompatibilityRatio();
+
+    public ISupportProjection LocalOutgoingRead() => AggregateRead(flow => flow.IsOutgoing && flow.Support is not Carrier);
+
+    // TODO(core): Delete this compatibility alias once callers consume LocalOutgoingRead directly.
+    public Ratio LocalOutgoing() => LocalOutgoingRead().CompatibilityRatio();
+
+    public ISupportProjection OscillatingRead() => AggregateRead(flow => flow.IsOscillating);
+
+    // TODO(core): Delete this compatibility alias once callers consume OscillatingRead directly.
+    public Ratio Oscillating() => OscillatingRead().CompatibilityRatio();
+
+    public ISupportProjection LocalOscillatingRead() => AggregateRead(flow => flow.IsOscillating && flow.Support is not Carrier);
+
+    // TODO(core): Delete this compatibility alias once callers consume LocalOscillatingRead directly.
+    public Ratio LocalOscillating() => LocalOscillatingRead().CompatibilityRatio();
 
     public ImmutableArray<OrthogonalFlowGroup> LocalIncomingGroups() =>
         Group(flow => flow.IsIncoming && flow.Support is not Carrier);
@@ -138,7 +183,7 @@ public readonly record struct OrthogonalReservoir(
     public ImmutableArray<OrthogonalFeedback> IncomingFeedback() =>
         [.. Feedback.Where(feedback => feedback.IsIncoming)];
 
-    private Ratio Aggregate(Func<Flow, bool> predicate)
+    private ISupportProjection AggregateRead(Func<Flow, bool> predicate)
     {
         var hasAny = false;
         var total = Ratio.Zero(Measure.Zero);
@@ -150,11 +195,13 @@ public readonly record struct OrthogonalReservoir(
                 continue;
             }
 
-            total = hasAny ? total.Add(flow.Value) : flow.Value.Normalize();
+            total = hasAny
+                ? total.Add(flow.ValueRead.CompatibilityRatio())
+                : flow.ValueRead.CompatibilityRatio().Normalize();
             hasAny = true;
         }
 
-        return hasAny ? total.Normalize() : Ratio.Zero(Measure.Zero);
+        return hasAny ? new SupportProjectionRead(total.Normalize()) : Ratio.Zero(Measure.Zero);
     }
 
     private ImmutableArray<OrthogonalFlowGroup> Group(Func<Flow, bool> predicate)
@@ -174,7 +221,7 @@ public readonly record struct OrthogonalReservoir(
                 groups[flow.Carrier] = accumulator;
             }
 
-            accumulator.Add(flow.Value);
+            accumulator.Add(flow.ValueRead);
         }
 
         return
@@ -183,7 +230,7 @@ public readonly record struct OrthogonalReservoir(
                 .OrderBy(pair => pair.Key.Id)
                 .Select(pair => new OrthogonalFlowGroup(
                     pair.Key,
-                    pair.Value.ValueOrZero(),
+                    pair.Value.ValueOrZeroRead(),
                     pair.Value.FlowCount))
         ];
     }
@@ -191,17 +238,19 @@ public readonly record struct OrthogonalReservoir(
     private sealed class GroupAccumulator
     {
         private bool _hasValue;
-        private Ratio _value;
+        private SupportProjectionRead _value;
 
         public Measure FlowCount { get; private set; }
 
-        public void Add(Ratio value)
+        public void Add(ISupportProjection value)
         {
-            _value = _hasValue ? _value.Add(value).Normalize() : value.Normalize();
+            _value = _hasValue
+                ? new SupportProjectionRead(_value.CompatibilityRatio().Add(value.CompatibilityRatio()).Normalize())
+                : value.ToSupportRead();
             _hasValue = true;
             FlowCount += Measure.One;
         }
 
-        public Ratio ValueOrZero() => _hasValue ? _value.Normalize() : Ratio.Zero(Measure.Zero);
+        public ISupportProjection ValueOrZeroRead() => _hasValue ? _value : Ratio.Zero(Measure.Zero);
     }
 }

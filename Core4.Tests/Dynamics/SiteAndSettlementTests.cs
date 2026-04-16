@@ -16,9 +16,11 @@ public sealed class SiteAndSettlementTests
         Assert.True(site.IsOpen);
         Assert.False(site.IsTension);
         Assert.Equal(new Ratio(0, 0), site.State);
+        Assert.Equal(new Ratio(0, 0), site.StateRead.AsRatio());
         Assert.Equal(new Ratio(0, 1), site.Stiffness);
         Assert.Equal(new Ratio(1, 1), site.RoutingGain);
         Assert.Equal(new Ratio(1, 1), site.DominantBias);
+        Assert.Equal(new Ratio(0, 0), site.ResidualRead.AsRatio());
         Assert.Equal(Measure.Zero, site.Potential);
     }
 
@@ -49,6 +51,7 @@ public sealed class SiteAndSettlementTests
             .Exchange(sharedCarrier, Ratio.Tension(new Measure(2)), Provenance.Shared(new Measure(2)));
 
         Assert.Equal(new Ratio(4, 0), site.Orthogonal.Incoming());
+        Assert.Equal(new Ratio(4, 0), site.Orthogonal.IncomingRead().AsRatio());
         Assert.Equal(new Ratio(6, 0), site.Orthogonal.Outgoing());
         Assert.Equal(new Ratio(2, 0), site.Orthogonal.Oscillating());
         Assert.Equal(new Measure(3), site.Orthogonal.ConnectionCount);
@@ -79,6 +82,7 @@ public sealed class SiteAndSettlementTests
         Assert.Equal(new Ratio(0, 1), settlement.Anchor);
         Assert.Equal(new Ratio(13, 0), settlement.Incoming);
         Assert.Equal(new Ratio(11, 0), settlement.Provisional);
+        Assert.Equal(new Ratio(11, 0), settlement.ProvisionalRead.AsRatio());
         Assert.Equal(new Ratio(2, 0), settlement.Published);
         Assert.Equal(new Ratio(2, 0), settlement.Feedback);
         Assert.Equal(new Ratio(2, 0), settlement.Settled);

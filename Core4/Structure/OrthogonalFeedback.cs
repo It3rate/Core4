@@ -11,18 +11,41 @@ namespace Core4.Structure;
 /// </summary>
 public sealed record OrthogonalFeedback(
     ISupport Support,
-    Ratio Desired,
-    Ratio Published,
+    SupportProjectionRead DesiredRead,
+    SupportProjectionRead PublishedRead,
     Site Source,
     Site Target,
     Provenance Provenance)
 {
+    public OrthogonalFeedback(
+        ISupport support,
+        ISupportProjection desired,
+        ISupportProjection published,
+        Site source,
+        Site target,
+        Provenance provenance)
+        : this(
+            support,
+            desired.ToSupportRead(),
+            published.ToSupportRead(),
+            source,
+            target,
+            provenance)
+    {
+    }
+
     public Carrier Carrier => Support.PrimaryCarrier;
 
-    public Measure Potential => Desired.Potential != Measure.Zero
-        ? Desired.Potential
-        : Published.Potential != Measure.Zero
-            ? Published.Potential
+    // TODO(core): Delete this compatibility alias once callers consume DesiredRead directly.
+    public Ratio Desired => DesiredRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume PublishedRead directly.
+    public Ratio Published => PublishedRead.CompatibilityRatio();
+
+    public Measure Potential => DesiredRead.Potential != Measure.Zero
+        ? DesiredRead.Potential
+        : PublishedRead.Potential != Measure.Zero
+            ? PublishedRead.Potential
             : Source.Potential != Measure.Zero
                 ? Source.Potential
                 : Measure.One;
@@ -35,22 +58,35 @@ public sealed record OrthogonalFeedback(
 
     public bool IsOscillating => Direction.Raw == 0;
 
-    public Ratio ValueDelta => Desired.IsResolved && Published.IsResolved
-        ? Desired.Subtract(Published).Normalize()
+    public ISupportProjection ValueDeltaRead => Desired.IsResolved && Published.IsResolved
+        ? new SupportProjectionRead(Desired.Subtract(Published).Normalize())
         : Ratio.Tension(Potential);
 
-    public Ratio DesiredResolution => new(Desired.Dominant, Measure.One);
+    // TODO(core): Delete this compatibility alias once callers consume ValueDeltaRead directly.
+    public Ratio ValueDelta => ValueDeltaRead.CompatibilityRatio();
 
-    public Ratio PublishedResolution => new(Published.Dominant, Measure.One);
+    public ISupportProjection DesiredResolutionRead => new SupportProjectionRead(new Ratio(Desired.Dominant, Measure.One));
 
-    public Ratio ResolutionDelta => DesiredResolution.Subtract(PublishedResolution).Normalize();
+    // TODO(core): Delete this compatibility alias once callers consume DesiredResolutionRead directly.
+    public Ratio DesiredResolution => DesiredResolutionRead.CompatibilityRatio();
+
+    public ISupportProjection PublishedResolutionRead => new SupportProjectionRead(new Ratio(Published.Dominant, Measure.One));
+
+    // TODO(core): Delete this compatibility alias once callers consume PublishedResolutionRead directly.
+    public Ratio PublishedResolution => PublishedResolutionRead.CompatibilityRatio();
+
+    public ISupportProjection ResolutionDeltaRead => new SupportProjectionRead(
+        DesiredResolution.Subtract(PublishedResolution).Normalize());
+
+    // TODO(core): Delete this compatibility alias once callers consume ResolutionDeltaRead directly.
+    public Ratio ResolutionDelta => ResolutionDeltaRead.CompatibilityRatio();
 
     public static OrthogonalFeedback Request(
         ISupport support,
         Site source,
         Site target,
-        Ratio published,
-        Ratio desired)
+        ISupportProjection published,
+        ISupportProjection desired)
     {
         var strength = desired.Potential != Measure.Zero
             ? desired.Potential
@@ -61,10 +97,18 @@ public sealed record OrthogonalFeedback(
                     : Measure.One;
         return new OrthogonalFeedback(
             support,
-            desired.Normalize(),
-            published.Normalize(),
+            desired,
+            published,
             source,
             target,
             Provenance.OtherDriven(strength));
     }
+
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public static OrthogonalFeedback Request(
+        ISupport support,
+        Site source,
+        Site target,
+        Ratio published,
+        Ratio desired) => Request(support, source, target, (ISupportProjection)published, desired);
 }

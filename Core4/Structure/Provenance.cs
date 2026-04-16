@@ -7,8 +7,13 @@ namespace Core4.Structure;
 /// values are other-driven, zero settled values are shared, and <c>m/0</c> carries unresolved provenance.
 /// Example: <c>var incoming = Provenance.OtherDriven(5);</c>
 /// </summary>
-public readonly record struct Provenance(Ratio Axis)
+public readonly record struct Provenance(SupportProjectionRead AxisRead)
 {
+    public Provenance(ISupportProjection axis)
+        : this(axis.ToSupportRead())
+    {
+    }
+
     public static Provenance SelfDriven(Measure strength) => new(new Ratio(strength, Measure.One));
 
     public static Provenance OtherDriven(Measure strength) => new(new Ratio(-strength, Measure.One));
@@ -16,6 +21,9 @@ public readonly record struct Provenance(Ratio Axis)
     public static Provenance Shared(Measure strength) => new(new Ratio(Measure.Zero, strength));
 
     public static Provenance Unknown(Measure strength) => new(Ratio.Tension(strength));
+
+    // TODO(core): Delete this compatibility alias once callers consume AxisRead directly.
+    public Ratio Axis => AxisRead.CompatibilityRatio();
 
     public Measure Direction => Axis.IsTension ? Measure.Zero : Axis.Recessive.Sign;
 

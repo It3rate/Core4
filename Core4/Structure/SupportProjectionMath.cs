@@ -9,6 +9,9 @@ namespace Core4.Structure;
 /// </summary>
 public static class SupportProjectionMath
 {
+    public static SupportProjectionRead ToSupportRead(this ISupportProjection projection) =>
+        new(projection.CompatibilityRatio().Normalize());
+
     public static Ratio CompatibilityRatio(this ISupportProjection projection) => projection.AsRatio();
 
     public static SupportProjectionRead CanonicalizeRead(this ISupportProjection projection) =>

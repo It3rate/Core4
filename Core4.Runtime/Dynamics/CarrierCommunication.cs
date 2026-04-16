@@ -34,7 +34,20 @@ public readonly record struct CarrierCommunication(ImmutableArray<Site> Sites, I
 /// <summary>
 /// One carrier-level resolved publication transfer produced by a single communication step.
 /// </summary>
-public readonly record struct CarrierTransfer(Carrier Carrier, Placement Source, Placement Target, Ratio Value);
+public readonly record struct CarrierTransfer(
+    Carrier Carrier,
+    Placement Source,
+    Placement Target,
+    SupportProjectionRead ValueRead)
+{
+    public CarrierTransfer(Carrier carrier, Placement source, Placement target, ISupportProjection value)
+        : this(carrier, source, target, value.ToSupportRead())
+    {
+    }
+
+    // TODO(core): Delete this compatibility alias once callers consume ValueRead directly.
+    public Ratio Value => ValueRead.CompatibilityRatio();
+}
 
 /// <summary>
 /// One carrier-level read-only publication transfer produced by a single communication step.
@@ -59,16 +72,47 @@ public readonly record struct CarrierFeedbackTransfer(
 /// </summary>
 public readonly record struct CarrierFieldState(
     Carrier Carrier,
-    Ratio Published,
-    Ratio Delivered,
-    Ratio Retained,
+    SupportProjectionRead PublishedRead,
+    SupportProjectionRead DeliveredRead,
+    SupportProjectionRead RetainedRead,
     Measure EmitterWeight,
     Measure ListenerWeight,
     Measure TransferCount)
 {
-    public Ratio DeliveryFraction => Published.Potential == Measure.Zero
+    public CarrierFieldState(
+        Carrier carrier,
+        ISupportProjection published,
+        ISupportProjection delivered,
+        ISupportProjection retained,
+        Measure emitterWeight,
+        Measure listenerWeight,
+        Measure transferCount)
+        : this(
+            carrier,
+            published.ToSupportRead(),
+            delivered.ToSupportRead(),
+            retained.ToSupportRead(),
+            emitterWeight,
+            listenerWeight,
+            transferCount)
+    {
+    }
+
+    // TODO(core): Delete this compatibility alias once callers consume PublishedRead directly.
+    public Ratio Published => PublishedRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume DeliveredRead directly.
+    public Ratio Delivered => DeliveredRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume RetainedRead directly.
+    public Ratio Retained => RetainedRead.CompatibilityRatio();
+
+    public ISupportProjection DeliveryFractionRead => PublishedRead.Potential == Measure.Zero
         ? Ratio.Zero(Measure.One)
-        : new Ratio(Delivered.Potential, Published.Potential).Normalize();
+        : new SupportProjectionRead(new Ratio(DeliveredRead.Potential, PublishedRead.Potential).Normalize());
+
+    // TODO(core): Delete this compatibility alias once callers consume DeliveryFractionRead directly.
+    public Ratio DeliveryFraction => DeliveryFractionRead.CompatibilityRatio();
 }
 
 /// <summary>
@@ -86,12 +130,41 @@ public readonly record struct CarrierPublicationFieldState(
 /// </summary>
 public readonly record struct CarrierFeedbackFieldState(
     Carrier Carrier,
-    Ratio Requested,
-    Ratio Delivered,
-    Ratio Retained,
+    SupportProjectionRead RequestedRead,
+    SupportProjectionRead DeliveredRead,
+    SupportProjectionRead RetainedRead,
     Measure PublisherCount,
     Measure RequesterCount,
-    Measure TransferCount);
+    Measure TransferCount)
+{
+    public CarrierFeedbackFieldState(
+        Carrier carrier,
+        ISupportProjection requested,
+        ISupportProjection delivered,
+        ISupportProjection retained,
+        Measure publisherCount,
+        Measure requesterCount,
+        Measure transferCount)
+        : this(
+            carrier,
+            requested.ToSupportRead(),
+            delivered.ToSupportRead(),
+            retained.ToSupportRead(),
+            publisherCount,
+            requesterCount,
+            transferCount)
+    {
+    }
+
+    // TODO(core): Delete this compatibility alias once callers consume RequestedRead directly.
+    public Ratio Requested => RequestedRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume DeliveredRead directly.
+    public Ratio Delivered => DeliveredRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume RetainedRead directly.
+    public Ratio Retained => RetainedRead.CompatibilityRatio();
+}
 
 /// <summary>
 /// One sender-side aggregate of feedback delivered back to a published carrier output.
@@ -99,14 +172,61 @@ public readonly record struct CarrierFeedbackFieldState(
 public readonly record struct CarrierFeedbackSummary(
     Carrier Carrier,
     Placement Target,
-    Ratio Published,
-    Ratio Preferred,
-    Ratio DesiredResolution,
-    Ratio ValueDelta,
-    Ratio ResolutionDelta,
-    Ratio ValueSpread,
-    Ratio ResolutionSpread,
-    Measure FeedbackCount);
+    SupportProjectionRead PublishedRead,
+    SupportProjectionRead PreferredRead,
+    SupportProjectionRead DesiredResolutionRead,
+    SupportProjectionRead ValueDeltaRead,
+    SupportProjectionRead ResolutionDeltaRead,
+    SupportProjectionRead ValueSpreadRead,
+    SupportProjectionRead ResolutionSpreadRead,
+    Measure FeedbackCount)
+{
+    public CarrierFeedbackSummary(
+        Carrier carrier,
+        Placement target,
+        ISupportProjection published,
+        ISupportProjection preferred,
+        ISupportProjection desiredResolution,
+        ISupportProjection valueDelta,
+        ISupportProjection resolutionDelta,
+        ISupportProjection valueSpread,
+        ISupportProjection resolutionSpread,
+        Measure feedbackCount)
+        : this(
+            carrier,
+            target,
+            published.ToSupportRead(),
+            preferred.ToSupportRead(),
+            desiredResolution.ToSupportRead(),
+            valueDelta.ToSupportRead(),
+            resolutionDelta.ToSupportRead(),
+            valueSpread.ToSupportRead(),
+            resolutionSpread.ToSupportRead(),
+            feedbackCount)
+    {
+    }
+
+    // TODO(core): Delete this compatibility alias once callers consume PublishedRead directly.
+    public Ratio Published => PublishedRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume PreferredRead directly.
+    public Ratio Preferred => PreferredRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume DesiredResolutionRead directly.
+    public Ratio DesiredResolution => DesiredResolutionRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume ValueDeltaRead directly.
+    public Ratio ValueDelta => ValueDeltaRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume ResolutionDeltaRead directly.
+    public Ratio ResolutionDelta => ResolutionDeltaRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume ValueSpreadRead directly.
+    public Ratio ValueSpread => ValueSpreadRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume ResolutionSpreadRead directly.
+    public Ratio ResolutionSpread => ResolutionSpreadRead.CompatibilityRatio();
+}
 
 /// <summary>
 /// One repeated carrier communication field over locally settling sites. Carrier-backed flows act as ports here:
@@ -127,8 +247,40 @@ public readonly record struct CarrierCommunicationState(
     ImmutableArray<CarrierFeedbackTransfer> FeedbackTransfers,
     ImmutableArray<CarrierFeedbackSummary> FeedbackSummaries,
     Measure Iteration,
-    Ratio MaxTransfer)
+    SupportProjectionRead MaxTransferRead)
 {
+    public CarrierCommunicationState(
+        CarrierCommunication communication,
+        ImmutableArray<Site> sites,
+        ImmutableArray<SiteSettlement> settlements,
+        ImmutableArray<CarrierFieldState> fields,
+        ImmutableArray<CarrierTransfer> transfers,
+        ImmutableArray<CarrierPublicationFieldState> publicationFields,
+        ImmutableArray<CarrierPublicationTransfer> publicationTransfers,
+        ImmutableArray<CarrierFeedbackFieldState> feedbackFields,
+        ImmutableArray<CarrierFeedbackTransfer> feedbackTransfers,
+        ImmutableArray<CarrierFeedbackSummary> feedbackSummaries,
+        Measure iteration,
+        ISupportProjection maxTransfer)
+        : this(
+            communication,
+            sites,
+            settlements,
+            fields,
+            transfers,
+            publicationFields,
+            publicationTransfers,
+            feedbackFields,
+            feedbackTransfers,
+            feedbackSummaries,
+            iteration,
+            maxTransfer.ToSupportRead())
+    {
+    }
+
+    // TODO(core): Delete this compatibility alias once callers consume MaxTransferRead directly.
+    public Ratio MaxTransfer => MaxTransferRead.CompatibilityRatio();
+
     public ConnectedSiteTopology Topology => ConnectedSiteTopology.Create(Sites, [.. Communication.Relations]);
 
     public Site At(Site site)
@@ -558,7 +710,7 @@ public readonly record struct CarrierCommunicationState(
         {
             state = state.Relax();
 
-            if (state.MaxTransfer.Potential == Measure.Zero)
+            if (state.MaxTransferRead.Potential == Measure.Zero)
             {
                 break;
             }
@@ -587,7 +739,7 @@ public readonly record struct CarrierCommunicationState(
 
             if ((flow.IsOutgoing || flow.IsOscillating) && flow.Potential != Measure.Zero && flow.Value.IsResolved)
             {
-                valueEmitters.Add(new CarrierValueEmitter(carrier, flow.Value.Normalize(), flow.Potential));
+                valueEmitters.Add(new CarrierValueEmitter(carrier, flow.ValueRead, flow.Potential));
             }
 
             if ((flow.IsIncoming || flow.IsOscillating) && flow.Potential != Measure.Zero)
@@ -599,7 +751,7 @@ public readonly record struct CarrierCommunicationState(
 
             if ((flow.IsIncoming || flow.IsOscillating) && flow.Potential != Measure.Zero && flow.Value.IsResolved)
             {
-                feedbackEmitters.Add(new CarrierFeedbackEmitter(carrier, flow.Value.Normalize(), flow.Potential));
+                feedbackEmitters.Add(new CarrierFeedbackEmitter(carrier, flow.ValueRead, flow.Potential));
             }
         }
 
@@ -625,7 +777,8 @@ public readonly record struct CarrierCommunicationState(
     }
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier
-        && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
+        && left.OnRead(left.Carrier).CompatibilityRatio().Normalize()
+        == right.OnRead(right.Carrier).CompatibilityRatio().Normalize();
 
     private static int CompareMagnitude(Ratio left, Ratio right) => left.CompareMagnitude(right);
 
@@ -696,15 +849,47 @@ public readonly record struct CarrierCommunicationState(
 
     private readonly record struct CarrierWeight(Carrier Carrier, Measure Weight);
 
-    private readonly record struct CarrierValueEmitter(Carrier Carrier, Ratio Value, Measure Weight);
+    private readonly record struct CarrierValueEmitter(Carrier Carrier, SupportProjectionRead ValueRead, Measure Weight)
+    {
+        public CarrierValueEmitter(Carrier carrier, ISupportProjection value, Measure weight)
+            : this(carrier, value.ToSupportRead(), weight)
+        {
+        }
 
-    private readonly record struct CarrierFeedbackEmitter(Carrier Carrier, Ratio Desired, Measure Weight);
+        public Ratio Value => ValueRead.CompatibilityRatio();
+    }
+
+    private readonly record struct CarrierFeedbackEmitter(Carrier Carrier, SupportProjectionRead DesiredRead, Measure Weight)
+    {
+        public CarrierFeedbackEmitter(Carrier carrier, ISupportProjection desired, Measure weight)
+            : this(carrier, desired.ToSupportRead(), weight)
+        {
+        }
+
+        public Ratio Desired => DesiredRead.CompatibilityRatio();
+    }
 
     private readonly record struct CarrierPublicationEmission(int SiteIndex, OrthogonalPublication Publication);
 
-    private readonly record struct CarrierValueEmission(int SourceIndex, Carrier Carrier, Ratio Value);
+    private readonly record struct CarrierValueEmission(int SourceIndex, Carrier Carrier, SupportProjectionRead ValueRead)
+    {
+        public CarrierValueEmission(int sourceIndex, Carrier carrier, ISupportProjection value)
+            : this(sourceIndex, carrier, value.ToSupportRead())
+        {
+        }
 
-    private readonly record struct CarrierFeedbackEmission(int SourceIndex, Carrier Carrier, Ratio Desired);
+        public Ratio Value => ValueRead.CompatibilityRatio();
+    }
+
+    private readonly record struct CarrierFeedbackEmission(int SourceIndex, Carrier Carrier, SupportProjectionRead DesiredRead)
+    {
+        public CarrierFeedbackEmission(int sourceIndex, Carrier carrier, ISupportProjection desired)
+            : this(sourceIndex, carrier, desired.ToSupportRead())
+        {
+        }
+
+        public Ratio Desired => DesiredRead.CompatibilityRatio();
+    }
 
     private readonly record struct CarrierListener(int SiteIndex, Measure Weight);
 
@@ -714,7 +899,7 @@ public readonly record struct CarrierCommunicationState(
 
         public RatioAccumulator Published;
 
-        public void Add(Ratio value) => Published.Add(value);
+        public void Add(ISupportProjection value) => Published.Add(value);
     }
 
     private sealed class FieldAccumulator
@@ -761,20 +946,24 @@ public readonly record struct CarrierCommunicationState(
     private struct RatioAccumulator
     {
         private bool _hasValue;
-        private Ratio _value;
+        private SupportProjectionRead _value;
 
-        public void Add(Ratio value)
+        public void Add(ISupportProjection value)
         {
             if (value.Potential == Measure.Zero)
             {
                 return;
             }
 
-            _value = _hasValue ? _value.Add(value).Normalize() : value.Normalize();
+            _value = _hasValue
+                ? new SupportProjectionRead(_value.CompatibilityRatio().Add(value.CompatibilityRatio()).Normalize())
+                : value.ToSupportRead();
             _hasValue = true;
         }
 
-        public Ratio ValueOrZero() => _hasValue ? _value.Normalize() : Ratio.Zero(Measure.Zero);
+        public ISupportProjection ValueOrZeroRead() => _hasValue ? _value : Ratio.Zero(Measure.Zero);
+
+        public Ratio ValueOrZero() => ValueOrZeroRead().CompatibilityRatio();
     }
 
     private static Ratio ComposeDesired(ImmutableArray<OrthogonalFeedback> feedbacks)

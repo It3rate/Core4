@@ -25,13 +25,30 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
     // TODO(core): Delete this compatibility alias once callers consume PositionRead directly.
     public Ratio Position => Placement.Projection;
 
-    public Ratio State => Kernel.Dominant;
+    public ISupportProjection StateRead => Kernel.DominantRead;
 
-    public Ratio Stiffness => Kernel.Stiffness;
+    // TODO(core): Delete this compatibility alias once callers consume StateRead directly.
+    public Ratio State => StateRead.CompatibilityRatio();
 
-    public Ratio RoutingGain => Kernel.RoutingGain;
+    public ISupportProjection StiffnessRead => Kernel.StiffnessRead;
 
-    public Ratio DominantBias => Kernel.DominantBias;
+    // TODO(core): Delete this compatibility alias once callers consume StiffnessRead directly.
+    public Ratio Stiffness => StiffnessRead.CompatibilityRatio();
+
+    public ISupportProjection RoutingGainRead => Kernel.RoutingGainRead;
+
+    // TODO(core): Delete this compatibility alias once callers consume RoutingGainRead directly.
+    public Ratio RoutingGain => RoutingGainRead.CompatibilityRatio();
+
+    public ISupportProjection DominantBiasRead => Kernel.DominantBiasRead;
+
+    // TODO(core): Delete this compatibility alias once callers consume DominantBiasRead directly.
+    public Ratio DominantBias => DominantBiasRead.CompatibilityRatio();
+
+    public ISupportProjection ResidualRead => Orthogonal.ResidualRead;
+
+    // TODO(core): Delete this compatibility alias once callers consume ResidualRead directly.
+    public Ratio Residual => ResidualRead.CompatibilityRatio();
 
     public Measure Potential => Kernel.Potential + Orthogonal.Potential;
 
@@ -44,45 +61,85 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
     // TODO(core): Delete this compatibility alias once callers consume OnRead directly.
     public Ratio On(Carrier carrier) => OnRead(carrier).CompatibilityRatio();
 
-    public Measure Location => On(Carrier).Whole;
+    public Measure Location => OnRead(Carrier).CompatibilityRatio().Whole;
 
     public Site Place(Placement placement) => new(placement, Kernel, Orthogonal);
 
-    public Site Anchor(Ratio state) => new(Placement, Kernel.Anchor(state), Orthogonal);
+    public Site AnchorRead(ISupportProjection state) => new(Placement, Kernel.AnchorRead(state), Orthogonal);
+
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public Site Anchor(Ratio state) => AnchorRead(state);
 
     public Site Focus(Measure energy) => new(Placement, Kernel.Focus(energy), Orthogonal);
 
-    public Site Resolve(Ratio state) => new(Placement, Kernel.Assert(state), Orthogonal);
+    public Site ResolveRead(ISupportProjection state) => new(Placement, Kernel.AssertRead(state), Orthogonal);
 
-    public Site Harden(Ratio stiffness) => new(Placement, Kernel.Harden(stiffness), Orthogonal);
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public Site Resolve(Ratio state) => ResolveRead(state);
 
-    public Site Route(Ratio gain) => new(Placement, Kernel.Route(gain), Orthogonal);
+    public Site HardenRead(ISupportProjection stiffness) => new(Placement, Kernel.HardenRead(stiffness), Orthogonal);
 
-    public Site BiasToDominant(Ratio bias) => new(Placement, Kernel.BiasToDominant(bias), Orthogonal);
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public Site Harden(Ratio stiffness) => HardenRead(stiffness);
+
+    public Site RouteRead(ISupportProjection gain) => new(Placement, Kernel.RouteRead(gain), Orthogonal);
+
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public Site Route(Ratio gain) => RouteRead(gain);
+
+    public Site BiasToDominantRead(ISupportProjection bias) => new(Placement, Kernel.BiasToDominantRead(bias), Orthogonal);
+
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public Site BiasToDominant(Ratio bias) => BiasToDominantRead(bias);
 
     public Site Pin() => Harden(new Ratio(Measure.One, Measure.One));
 
-    public Site Pin(Ratio stiffness) => Harden(stiffness);
+    public Site Pin(ISupportProjection stiffness) => HardenRead(stiffness);
 
-    public Site WithResidual(Ratio residual) => new(Placement, Kernel, Orthogonal.Resolve(residual));
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public Site Pin(Ratio stiffness) => HardenRead(stiffness);
+
+    public Site WithResidualRead(ISupportProjection residual) => new(Placement, Kernel, Orthogonal.ResolveRead(residual));
+
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public Site WithResidual(Ratio residual) => WithResidualRead(residual);
 
     public Site Connect(Flow flow) => new(Placement, Kernel, Orthogonal.Add(flow));
 
     public Site Connect(OrthogonalPublication publication) => new(Placement, Kernel, Orthogonal.Add(publication));
 
-    public Site Publish(ISupport support, Ratio value) => Connect(new Flow(support, value.Normalize(), Provenance.SelfDriven(value.Potential)));
+    public Site PublishRead(ISupport support, ISupportProjection value) =>
+        Connect(new Flow(support, value, Provenance.SelfDriven(value.Potential)));
 
-    public Site Request(ISupport support, Ratio value) => Connect(new Flow(support, value.Normalize(), Provenance.OtherDriven(value.Potential)));
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public Site Publish(ISupport support, Ratio value) => PublishRead(support, value);
 
-    public Site Feedback(ISupport support, Ratio desired) => Request(support, desired);
+    public Site RequestRead(ISupport support, ISupportProjection value) =>
+        Connect(new Flow(support, value, Provenance.OtherDriven(value.Potential)));
 
-    public Site Exchange(ISupport support, Ratio value, Provenance provenance) => Connect(new Flow(support, value.Normalize(), provenance));
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public Site Request(ISupport support, Ratio value) => RequestRead(support, value);
 
-    public Site PublishReference(ISupport support) => PublishReference(support, this, State);
+    public Site FeedbackRead(ISupport support, ISupportProjection desired) => RequestRead(support, desired);
 
-    public Site PublishReference(ISupport support, Site site) => PublishReference(support, site, site.State);
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public Site Feedback(ISupport support, Ratio desired) => FeedbackRead(support, desired);
 
-    public Site PublishReference(ISupport support, Site site, Ratio value) => Connect(OrthogonalPublication.Publish(support, site, value));
+    public Site ExchangeRead(ISupport support, ISupportProjection value, Provenance provenance) =>
+        Connect(new Flow(support, value, provenance));
+
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public Site Exchange(ISupport support, Ratio value, Provenance provenance) => ExchangeRead(support, value, provenance);
+
+    public Site PublishReference(ISupport support) => PublishReference(support, this, StateRead);
+
+    public Site PublishReference(ISupport support, Site site) => PublishReference(support, site, site.StateRead);
+
+    public Site PublishReference(ISupport support, Site site, ISupportProjection value) =>
+        Connect(OrthogonalPublication.Publish(support, site, value));
+
+    // TODO(core): Delete this compatibility overload once callers pass support-shaped reads directly.
+    public Site PublishReference(ISupport support, Site site, Ratio value) => PublishReference(support, site, (ISupportProjection)value);
 
     public Relation Relate(Site anchor) => new(Carrier, this, anchor);
 
