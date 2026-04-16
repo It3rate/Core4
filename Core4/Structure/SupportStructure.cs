@@ -36,9 +36,10 @@ internal readonly record struct LandmarkCoincidence(
     Ratio Commitment);
 
 /// <summary>
-/// The shared bottom-level frozen support family behind the current public support aliases. Public types such as
-/// carrier, relation, and basis still provide the ergonomic API, while this type holds the underlying landmark and
-/// coincidence picture those views are built from.
+/// The shared frozen measuring scaffold behind the current public support aliases. Conceptually this is the ruler:
+/// pinned landmarks, frozen coincidences, and fused sub-supports that together define how later samples can be read.
+/// Public types such as carrier, relation, and basis still provide the ergonomic API, while this type holds the
+/// underlying landmark and coincidence picture those views are built from.
 /// </summary>
 internal sealed class SupportStructure : ISupport
 {

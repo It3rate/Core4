@@ -5,9 +5,9 @@ using Core4.Numerics;
 namespace Core4.Structure;
 
 /// <summary>
-/// A basis-wide binding of live sites into a frozen basis. This is not a single local place; it is a read of one
-/// whole basis through one site per atomic relation slot. Atomic attachments expose a direct local projection through
-/// their basis; composite attachments also expose a higher-level fold that compares their ordered child reads without
+/// A frozen measuring scaffold with bound live samples. This is not a single local place; it is a read of one whole
+/// basis through one site per atomic relation slot. Atomic attachments expose a direct local projection through their
+/// basis; composite attachments also expose a higher-level fold that compares their ordered child reads without
 /// pretending the whole object is itself one atomic relation.
 /// Example: <c>var reading = basis.Attach(5, 4);</c>
 /// </summary>

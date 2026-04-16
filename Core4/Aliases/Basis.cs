@@ -5,9 +5,9 @@ using Core4.Structure;
 namespace Core4.Aliases;
 
 /// <summary>
-/// A frozen relation, or a frozen fusion of relations. In the support-first reading this is reusable calibration over
-/// shared support structure rather than a separate primitive species. Because a basis is also a support, placements
-/// can travel along it by ratio just like they do on a carrier.
+/// A reusable frozen measuring scaffold, whether atomic or fused. In the support-first reading this is reusable
+/// calibration over shared support structure rather than a separate primitive species. Because a basis is also a
+/// support, placements can travel along it by ratio just like they do on a carrier.
 /// Example: <c>var segment = Basis.Fuse(leftBasis, rightBasis); var point = segment.Place(new Ratio(1, 2));</c>
 /// </summary>
 public sealed class Basis : ISupport, ISupportFold
