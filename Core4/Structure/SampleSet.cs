@@ -23,6 +23,8 @@ public sealed class SampleSet
 
     public bool IsComposite => !IsAtomic;
 
+    public bool IsEmpty => _sites.IsEmpty;
+
     public Measure SiteCount => new(_sites.Length);
 
     public ImmutableArray<Site> Sites => _sites;
@@ -36,6 +38,32 @@ public sealed class SampleSet
     public ImmutableArray<Measure> Measures => _sites.Select(site => site.Location).ToImmutableArray();
 
     public ImmutableArray<Placement> Placements => _sites.Select(site => site.Placement).ToImmutableArray();
+
+    public SampleSet Select(Carrier carrier)
+    {
+        if (IsAtomic)
+        {
+            return Collect(_sites.Where(site => site.Carrier == carrier).ToImmutableArray());
+        }
+
+        var selectedInputs = ImmutableArray.CreateBuilder<SampleSet>();
+
+        foreach (var input in _inputs)
+        {
+            var selected = input.Select(carrier);
+            if (!selected.IsEmpty)
+            {
+                selectedInputs.Add(selected);
+            }
+        }
+
+        return selectedInputs.Count switch
+        {
+            0 => Collect(),
+            1 => selectedInputs[0],
+            _ => Compose(selectedInputs.ToImmutable())
+        };
+    }
 
     public static SampleSet Collect(params Site[] sites) => new([.. sites], ImmutableArray<SampleSet>.Empty);
 
@@ -55,7 +83,7 @@ public sealed class SampleSet
         return Compose(inputs.ToImmutableArray());
     }
 
-    private static SampleSet Compose(ImmutableArray<SampleSet> inputs)
+    internal static SampleSet Compose(ImmutableArray<SampleSet> inputs)
     {
         var sites = ImmutableArray.CreateBuilder<Site>();
 

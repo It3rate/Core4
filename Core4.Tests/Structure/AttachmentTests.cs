@@ -153,4 +153,72 @@ public sealed class AttachmentTests
         Assert.Equal(new Ratio(7, 10), attachment.ComponentProjectionReads()[0].AsRatio());
         Assert.Equal(new Ratio(8, 20), attachment.ComponentProjectionReads()[1].AsRatio());
     }
+
+    [Fact]
+    public void AttachmentPreservesCompositeSampleGroupingWhenShapeMatchesBasis()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+
+        var basis = Basis.Fuse(
+            Basis.Freeze(x, new Measure(0), new Measure(10)),
+            Basis.Freeze(y, new Measure(0), new Measure(20)));
+        var samples = SampleSet.Fuse(
+            SampleSet.Collect(Site.Open(x, new Measure(7))),
+            SampleSet.Collect(Site.Open(y, new Measure(8))));
+
+        var attachment = basis.Attach(samples);
+
+        Assert.True(attachment.Samples.IsComposite);
+        Assert.Equal(2, attachment.Samples.Inputs.Length);
+        Assert.Equal(new Measure(1), attachment.Recessive.Samples.SiteCount);
+        Assert.Equal(new Measure(1), attachment.Dominant.Samples.SiteCount);
+        Assert.Equal(new Measure(7), attachment.Recessive.Samples.Measures[0]);
+        Assert.Equal(new Measure(8), attachment.Dominant.Samples.Measures[0]);
+    }
+
+    [Fact]
+    public void AttachmentRebuildsCompositeSampleGroupingFromFlatSamplesWhenNeeded()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+
+        var basis = Basis.Fuse(
+            Basis.Freeze(x, new Measure(0), new Measure(10)),
+            Basis.Freeze(y, new Measure(0), new Measure(20)));
+        var flatSamples = SampleSet.Collect(
+            Site.Open(x, new Measure(7)),
+            Site.Open(y, new Measure(8)));
+
+        var attachment = basis.Attach(flatSamples);
+
+        Assert.True(attachment.Samples.IsComposite);
+        Assert.Equal(2, attachment.Samples.Inputs.Length);
+        Assert.Equal(new Measure(7), attachment.Recessive.Samples.Measures[0]);
+        Assert.Equal(new Measure(8), attachment.Dominant.Samples.Measures[0]);
+    }
+
+    [Fact]
+    public void AttachmentCanSelectCarrierLocalSampleSubset()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+
+        var basis = Basis.Fuse(
+            Basis.Freeze(x, new Measure(0), new Measure(10)),
+            Basis.Freeze(y, new Measure(0), new Measure(20)),
+            Basis.Freeze(x, new Measure(0), new Measure(30)));
+        var attachment = basis.Attach(
+            SampleSet.Fuse(
+                SampleSet.Collect(Site.Open(x, new Measure(7))),
+                SampleSet.Collect(Site.Open(y, new Measure(8))),
+                SampleSet.Collect(Site.Open(x, new Measure(9)))));
+
+        var xSamples = attachment.SelectSamples(x);
+
+        Assert.Equal(new Measure(2), xSamples.SiteCount);
+        Assert.True(xSamples.IsComposite);
+        Assert.Equal(new Measure(7), xSamples.Recessive.Measures[0]);
+        Assert.Equal(new Measure(9), xSamples.Dominant.Measures[0]);
+    }
 }

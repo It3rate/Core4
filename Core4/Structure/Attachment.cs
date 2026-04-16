@@ -6,7 +6,9 @@ namespace Core4.Structure;
 
 /// <summary>
 /// A frozen measuring scaffold with bound live samples. This is not a single local place; it is a read of one whole
-/// basis through one site per atomic relation slot. Atomic attachments expose a direct local projection through their
+/// basis through one site per atomic relation slot. The attachment itself stores only the reusable ruler and the
+/// aligned sample group; any child attachments are derived from that pair so the live binding stays one shared
+/// mechanism instead of a second parallel tree. Atomic attachments expose a direct local projection through their
 /// basis; composite attachments also expose a higher-level fold that compares their ordered child reads without
 /// pretending the whole object is itself one atomic relation.
 /// Example: <c>var reading = basis.Attach(5, 4);</c>
@@ -14,13 +16,11 @@ namespace Core4.Structure;
 public sealed class Attachment : ISupportFold
 {
     private readonly SampleSet _samples;
-    private readonly ImmutableArray<Attachment> _inputs;
 
-    private Attachment(Basis basis, SampleSet samples, ImmutableArray<Attachment> inputs)
+    private Attachment(Basis basis, SampleSet samples)
     {
         Basis = basis;
         _samples = samples;
-        _inputs = inputs;
     }
 
     public Basis Basis { get; }
@@ -39,15 +39,17 @@ public sealed class Attachment : ISupportFold
 
     public ImmutableArray<Site> Sites => Samples.Sites;
 
-    public ImmutableArray<Attachment> Inputs => _inputs;
+    public ImmutableArray<Attachment> Inputs => BuildInputs();
 
-    public Attachment Recessive => IsComposite ? _inputs[0] : this;
+    public Attachment Recessive => IsComposite ? Inputs[0] : this;
 
-    public Attachment Dominant => IsComposite ? _inputs[1] : this;
+    public Attachment Dominant => IsComposite ? Inputs[1] : this;
 
     public ImmutableArray<Measure> Measures => Samples.Measures;
 
     public ImmutableArray<Placement> Placements => Samples.Placements;
+
+    public SampleSet SelectSamples(Carrier carrier) => Samples.Select(carrier);
 
     // Compatibility projection for callers that still expect a single ratio-shaped read. Composite attachments do not
     // have one atomic projection, so they return unresolved tension and callers should prefer Fold or ComponentProjections.
@@ -170,33 +172,38 @@ public sealed class Attachment : ISupportFold
     {
         var structure = basis.Structure;
         var aligned = AlignSamples(structure, samples);
-
-        if (structure.IsAtomic)
-        {
-            return new Attachment(basis, aligned, ImmutableArray<Attachment>.Empty);
-        }
-
-        var inputs = ImmutableArray.CreateBuilder<Attachment>(structure.Inputs.Length);
-        var offset = 0;
-
-        foreach (var input in structure.Inputs)
-        {
-            var count = (int)input.RelationCount.Raw;
-            inputs.Add(Attach(new Basis(input), SampleSet.Collect(aligned.Sites.Slice(offset, count))));
-            offset += count;
-        }
-
-        return new Attachment(basis, aligned, inputs.MoveToImmutable());
+        return new Attachment(basis, aligned);
     }
 
     private bool IsSegmentPair() => IsAtomicPair && IsSameCarrierPair && IsOpposedPair && HasSharedOriginPerCarrier;
 
     private static SampleSet AlignSamples(SupportStructure structure, SampleSet samples)
     {
+        if (structure.IsAtomic)
+        {
+            return AlignAtomicSamples(structure, samples.Sites);
+        }
+
+        if (samples.IsComposite && samples.Inputs.Length == structure.Inputs.Length)
+        {
+            var alignedInputs = ImmutableArray.CreateBuilder<SampleSet>(structure.Inputs.Length);
+
+            for (var index = 0; index < structure.Inputs.Length; index++)
+            {
+                alignedInputs.Add(AlignSamples(structure.Inputs[index], samples.Inputs[index]));
+            }
+
+            return SampleSet.Compose(alignedInputs.MoveToImmutable());
+        }
+
+        return AlignSampleSlices(structure, samples.Sites);
+    }
+
+    private static SampleSet AlignAtomicSamples(SupportStructure structure, ImmutableArray<Site> sites)
+    {
         var count = (int)structure.RelationCount.Raw;
         var aligned = new Site[count];
         var defaults = structure.DefaultAttachmentSites();
-        var sites = samples.Sites;
 
         for (var index = 0; index < count; index++)
         {
@@ -210,6 +217,46 @@ public sealed class Attachment : ISupportFold
         }
 
         return SampleSet.Collect(aligned.ToImmutableArray());
+    }
+
+    private static SampleSet AlignSampleSlices(SupportStructure structure, ImmutableArray<Site> sites)
+    {
+        if (structure.IsAtomic)
+        {
+            return AlignAtomicSamples(structure, sites);
+        }
+
+        var inputs = ImmutableArray.CreateBuilder<SampleSet>(structure.Inputs.Length);
+        var offset = 0;
+
+        foreach (var input in structure.Inputs)
+        {
+            var count = (int)input.RelationCount.Raw;
+            var available = offset < sites.Length
+                ? sites.Slice(offset, Math.Min(count, sites.Length - offset))
+                : ImmutableArray<Site>.Empty;
+            inputs.Add(AlignSampleSlices(input, available));
+            offset += count;
+        }
+
+        return SampleSet.Compose(inputs.MoveToImmutable());
+    }
+
+    private ImmutableArray<Attachment> BuildInputs()
+    {
+        if (IsAtomic)
+        {
+            return ImmutableArray<Attachment>.Empty;
+        }
+
+        var inputs = ImmutableArray.CreateBuilder<Attachment>(Structure.Inputs.Length);
+
+        for (var index = 0; index < Structure.Inputs.Length; index++)
+        {
+            inputs.Add(new Attachment(new Basis(Structure.Inputs[index]), Samples.Inputs[index]));
+        }
+
+        return inputs.MoveToImmutable();
     }
 
     private static Measure Absolute(Measure value) => value.Raw < 0 ? -value : value;
