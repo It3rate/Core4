@@ -147,7 +147,13 @@ public sealed class Basis : ISupport
         ? Freeze(AtomicRelation.Flip())
         : Fuse(Recessive.Flip(), Dominant.Flip());
 
+    public Placement Place(Ratio ratio) => new(this, ratio.Normalize());
+
+    public Placement Place(ISupportProjection projection) => new(this, projection.AsRatio());
+
     public Ratio Locate(Ratio position, Carrier carrier) => _structure.Locate(position, carrier);
+
+    public Ratio Locate(ISupportProjection position, Carrier carrier) => Locate(position.AsRatio(), carrier);
 
     public Ratio Project(Site site) => IsAtomic
         ? AtomicRelation.Project(site)

@@ -19,7 +19,7 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
 
     public Carrier Carrier => Placement.PrimaryCarrier;
 
-    public Ratio Position => Placement.Ratio;
+    public Ratio Position => Placement.Projection;
 
     public Ratio State => Kernel.Dominant;
 

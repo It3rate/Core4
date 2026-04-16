@@ -3,11 +3,12 @@ using Core4.Numerics;
 namespace Core4.Structure;
 
 /// <summary>
-/// A location expressed as support plus ratio. Exact positions are just ratios whose denominator is the support's
-/// own unit, while more general positions can stay relative and dynamic.
+/// A location expressed as support plus a support-derived projection. The current compatibility projection is still
+/// <see cref="Ratio"/>, but the support-first direction is that placements store "how this support is being read"
+/// rather than assuming ratio is the only possible projection forever.
 /// Example: <c>var p = basis.Place(new Ratio(3, 10));</c>
 /// </summary>
-public readonly record struct Placement(ISupport Support, Ratio Ratio)
+public readonly record struct Placement(ISupport Support, Ratio Projection)
 {
     public static Placement Exact(Carrier carrier, Measure location) => new(
         carrier,
@@ -17,9 +18,14 @@ public readonly record struct Placement(ISupport Support, Ratio Ratio)
 
     public Measure SupportGrade => Support.SupportGrade;
 
-    public Measure Potential => Ratio.Potential;
+    // Compatibility alias while callers are moved toward projection-first naming.
+    public Ratio Ratio => Projection;
 
-    public Ratio On(Carrier carrier) => Support.Locate(Ratio.Normalize(), carrier).Normalize();
+    public Measure Potential => Projection.Potential;
 
-    public Placement Resolve(Ratio ratio) => new(Support, ratio.Normalize());
+    public Ratio On(Carrier carrier) => Support.Locate(Projection.Normalize(), carrier).Normalize();
+
+    public Placement Resolve(Ratio projection) => new(Support, projection.Normalize());
+
+    public Placement Resolve(ISupportProjection projection) => new(Support, projection.AsRatio());
 }

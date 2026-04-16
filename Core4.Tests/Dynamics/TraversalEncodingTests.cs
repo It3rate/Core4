@@ -8,6 +8,21 @@ namespace Core4.Tests.Dynamics;
 public sealed class TraversalEncodingTests
 {
     [Fact]
+    public void TraversalSignatureExposesPlacementProjectionAndPositionAlias()
+    {
+        Carrier x = 1;
+        var placement = new Placement(x, new Ratio(3, 10));
+        var signature = TraversalSignature.FromPlacement(
+            placement,
+            Measure.One,
+            new Ratio(Measure.One, Measure.One),
+            Provenance.SelfDriven(Measure.One));
+
+        Assert.Equal(placement.Projection, signature.Projection);
+        Assert.Equal(placement.Projection, signature.Position);
+    }
+
+    [Fact]
     public void TraversalSignatureSeparatesProjectionFromEquivalentReentry()
     {
         Carrier x = 1;

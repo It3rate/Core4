@@ -49,7 +49,11 @@ public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor
 
     public Placement Place(Ratio ratio) => new(this, ratio.Normalize());
 
+    public Placement Place(ISupportProjection projection) => new(this, projection.AsRatio());
+
     public Ratio Locate(Ratio position, Carrier carrier) => Structure.Locate(position, carrier);
+
+    public Ratio Locate(ISupportProjection position, Carrier carrier) => Locate(position.AsRatio(), carrier);
 
     public Basis Freeze() => Basis.Freeze(this);
 }

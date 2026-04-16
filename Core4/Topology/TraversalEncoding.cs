@@ -42,7 +42,9 @@ public readonly record struct TraversalSignature(
 
     public Measure Grade => Placement.SupportGrade;
 
-    public Ratio Position => Placement.Ratio.Normalize();
+    public Ratio Projection => Placement.Projection.Normalize();
+
+    public Ratio Position => Projection;
 
     public Ratio Calibration => Basis.Normalize();
 
@@ -55,7 +57,7 @@ public readonly record struct TraversalSignature(
     public Measure Potential => Placement.Potential + Calibration.Potential + Provenance.Potential;
 
     public bool SameProjection(TraversalSignature other) =>
-        Carrier == other.Carrier && Position == other.Position;
+        Carrier == other.Carrier && Projection == other.Projection;
 
     public bool Equivalent(TraversalSignature other) =>
         SameProjection(other)

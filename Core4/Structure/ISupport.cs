@@ -15,5 +15,9 @@ public interface ISupport
 
     Ratio Locate(Ratio position, Carrier carrier);
 
+    Ratio Locate(ISupportProjection position, Carrier carrier) => Locate(position.AsRatio(), carrier);
+
     Placement Place(Ratio ratio) => new(this, ratio.Normalize());
+
+    Placement Place(ISupportProjection projection) => new(this, projection.AsRatio());
 }

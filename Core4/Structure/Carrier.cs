@@ -26,7 +26,13 @@ public readonly record struct Carrier(long Id, CarrierDomain Domain) : ISupport
 
     public Placement At(Ratio ratio) => new(this, ratio.Normalize());
 
+    public Placement Place(Ratio ratio) => At(ratio);
+
+    public Placement Place(ISupportProjection projection) => At(projection.AsRatio());
+
     public Ratio Locate(Ratio position, Carrier carrier) => Structure.Locate(position, carrier);
+
+    public Ratio Locate(ISupportProjection position, Carrier carrier) => Locate(position.AsRatio(), carrier);
 
     public Carrier InDomain(CarrierDomain domain) => new(Id, domain);
 

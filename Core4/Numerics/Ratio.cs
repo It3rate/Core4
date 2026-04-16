@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Numerics;
+using Core4.Structure;
 
 namespace Core4.Numerics;
 
@@ -9,7 +10,7 @@ namespace Core4.Numerics;
 /// Denominator sign is preserved exactly; any fold into a positive denominator is an explicit lossy operation.
 /// Example: <c>var halfway = new Ratio(5, 10);</c>
 /// </summary>
-public readonly record struct Ratio(Measure Recessive, Measure Dominant)
+public readonly record struct Ratio(Measure Recessive, Measure Dominant) : ISupportProjection
 {
     public Measure Numerator => Recessive;
 
@@ -186,6 +187,8 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant)
     public Ratio FoldDenominator() => IsTension || Dominant.Raw >= 0
         ? this
         : new Ratio(-Recessive, -Dominant);
+
+    public Ratio AsRatio() => Normalize();
 
     public override string ToString() => string.Create(
         CultureInfo.InvariantCulture,
