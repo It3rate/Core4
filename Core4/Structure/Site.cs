@@ -39,7 +39,10 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
 
     public bool IsTension => Kernel.BoundCount + Orthogonal.BoundCount == Measure.Zero && Potential != Measure.Zero;
 
-    public Ratio On(Carrier carrier) => Placement.On(carrier);
+    public ISupportProjection OnRead(Carrier carrier) => Placement.OnRead(carrier);
+
+    // TODO(core): Delete this compatibility alias once callers consume OnRead directly.
+    public Ratio On(Carrier carrier) => OnRead(carrier).AsRatio();
 
     public Measure Location => On(Carrier).Whole;
 

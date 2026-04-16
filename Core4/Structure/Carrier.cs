@@ -31,7 +31,10 @@ public readonly record struct Carrier(long Id, CarrierDomain Domain) : ISupport
     // TODO(core): Delete this compatibility overload once callers pass support projections directly.
     public Placement Place(Ratio ratio) => Place((ISupportProjection)ratio);
 
-    public Ratio Locate(ISupportProjection position, Carrier carrier) => Structure.Locate(position, carrier);
+    public ISupportProjection LocateRead(ISupportProjection position, Carrier carrier) => Structure.LocateRead(position, carrier);
+
+    // TODO(core): Delete this compatibility alias once callers consume LocateRead directly.
+    public Ratio Locate(ISupportProjection position, Carrier carrier) => LocateRead(position, carrier).AsRatio();
 
     // TODO(core): Delete this compatibility overload once callers pass support projections directly.
     public Ratio Locate(Ratio position, Carrier carrier) => Locate((ISupportProjection)position, carrier);

@@ -26,7 +26,10 @@ public readonly record struct Placement(ISupport Support, ISupportProjection Pro
 
     public Measure Potential => ProjectionRead.Potential;
 
-    public Ratio On(Carrier carrier) => Support.Locate(ProjectionRead, carrier).Normalize();
+    public ISupportProjection OnRead(Carrier carrier) => Support.LocateRead(ProjectionRead, carrier);
+
+    // TODO(core): Delete this compatibility alias once callers consume OnRead directly.
+    public Ratio On(Carrier carrier) => OnRead(carrier).AsRatio().Normalize();
 
     // TODO(core): Delete this compatibility overload once callers resolve through support projections directly.
     public Placement Resolve(Ratio projection) => Resolve((ISupportProjection)projection);

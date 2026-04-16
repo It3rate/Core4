@@ -14,6 +14,7 @@ public sealed class RelationAndBasisTests
             Site.Open(x, new Measure(110)));
 
         var projectionRead = relation.ProjectRead(new Measure(107));
+        var locatedRead = relation.LocateRead(projectionRead, x);
         var projection = relation.Project(new Measure(107));
         var located = relation.Locate(projection, x);
 
@@ -25,6 +26,7 @@ public sealed class RelationAndBasisTests
         Assert.Equal(new Measure(10), relation.Potential);
         Assert.Equal(new Ratio(0, 1), relation.Stiffness);
         Assert.Equal(new Ratio(7, 10), projectionRead.AsRatio());
+        Assert.Equal(new Ratio(1070, 10), locatedRead.AsRatio());
         Assert.Equal(new Ratio(7, 10), projection);
         Assert.Equal(new Ratio(1070, 10), located);
         Assert.Equal(new Measure(107), located.Whole);
@@ -127,6 +129,7 @@ public sealed class RelationAndBasisTests
         var recessive = Basis.Freeze(x, new Measure(0), new Measure(-10));
         var dominant = Basis.Freeze(x, new Measure(0), new Measure(10));
         var segment = Basis.Fuse(recessive, dominant);
+        var midpointRead = segment.LocateRead(new Ratio(1, 2), x);
         var midpoint = segment.Locate(new Ratio(1, 2), x);
 
         Assert.True(segment.IsAtomicPair);
@@ -136,6 +139,7 @@ public sealed class RelationAndBasisTests
         Assert.Equal(new Measure(20), segment.Potential);
         Assert.Equal(new Ratio(10, 10), segment.Fold);
         Assert.Equal(new Ratio(10, 10), segment.Ratio);
+        Assert.Equal(new Ratio(0, 2), midpointRead.AsRatio());
         Assert.Equal(new Ratio(0, 2), midpoint);
         Assert.Equal(Measure.Zero, midpoint.Whole);
     }

@@ -25,10 +25,12 @@ public sealed class PlacementProjectionTests
         ISupportProjection projection = new Ratio(7, 10);
 
         var placement = x.Place(projection);
+        var locatedRead = x.LocateRead(projection, x);
         var located = x.Locate(projection, x);
 
         Assert.Equal(new Ratio(7, 10), projection.AsRatio());
         Assert.Equal(new Ratio(7, 10), placement.ProjectionRead.AsRatio());
+        Assert.Equal(new Ratio(7, 10), locatedRead.AsRatio());
         Assert.Equal(new Ratio(7, 10), placement.Projection);
         Assert.Equal(new Ratio(7, 10), located);
     }
@@ -41,10 +43,12 @@ public sealed class PlacementProjectionTests
         ISupportProjection projection = new ProxyProjection(new Ratio(new Measure(100), new Measure(107), new Measure(110)));
 
         var placement = support.Place(projection);
+        var locatedRead = support.LocateRead(projection, x);
         var located = support.Locate(projection, x);
 
         Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), placement.ProjectionRead.AsRatio());
         Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), placement.Projection);
+        Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), locatedRead.AsRatio());
         Assert.Equal(new Ratio(new Measure(100), new Measure(107), new Measure(110)), located);
     }
 
@@ -60,6 +64,7 @@ public sealed class PlacementProjectionTests
         Assert.Equal(new Ratio(9, 10), resolved.ProjectionRead.AsRatio());
         Assert.Equal(new Ratio(9, 10), resolved.Projection);
         Assert.Equal(new Ratio(9, 10), resolved.Ratio);
+        Assert.Equal(new Ratio(9, 10), resolved.OnRead(x).AsRatio());
     }
 
     private readonly record struct ProxyProjection(Ratio Value) : ISupportProjection

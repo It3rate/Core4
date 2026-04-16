@@ -13,10 +13,13 @@ public interface ISupport
 
     Measure SupportGrade { get; }
 
-    Ratio Locate(ISupportProjection position, Carrier carrier);
+    ISupportProjection LocateRead(ISupportProjection position, Carrier carrier);
+
+    // TODO(core): Delete this compatibility alias once callers consume LocateRead directly.
+    Ratio Locate(ISupportProjection position, Carrier carrier) => LocateRead(position, carrier).AsRatio();
 
     // TODO(core): Delete this compatibility overload once callers pass support projections directly.
-    Ratio Locate(Ratio position, Carrier carrier) => Locate((ISupportProjection)position, carrier);
+    Ratio Locate(Ratio position, Carrier carrier) => LocateRead(position, carrier).AsRatio();
 
     Placement Place(ISupportProjection projection) => new(this, projection);
 
