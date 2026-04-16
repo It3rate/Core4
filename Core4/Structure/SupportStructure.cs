@@ -171,6 +171,18 @@ internal sealed class SupportStructure : ISupport
         return relations.ToImmutable();
     }
 
+    public ImmutableArray<Site> DefaultAttachmentSites()
+    {
+        var sites = ImmutableArray.CreateBuilder<Site>(Spans.Length);
+
+        foreach (var span in Spans)
+        {
+            sites.Add(Site.Open(span.Carrier.At(span.OriginPosition)));
+        }
+
+        return sites.MoveToImmutable();
+    }
+
     public bool HasSharedOriginPerCarrier()
     {
         foreach (var carrier in SelectCarriers())
@@ -244,9 +256,7 @@ internal sealed class SupportStructure : ISupport
             return Ratio.Tension(site.Potential);
         }
 
-        var sitePosition = site.On(span.Carrier).Normalize();
-        var delta = sitePosition.Subtract(span.OriginPosition);
-        return delta.Divide(span.Span);
+        return ProjectSpan(span, site);
     }
 
     public Ratio Project(Measure measure)
@@ -257,6 +267,20 @@ internal sealed class SupportStructure : ISupport
         }
 
         return Project(Site.Open(Spans[0].Carrier, measure));
+    }
+
+    public ImmutableArray<Ratio> ProjectComponents(ImmutableArray<Site> sites)
+    {
+        var projections = ImmutableArray.CreateBuilder<Ratio>(Spans.Length);
+        var defaults = DefaultAttachmentSites();
+
+        for (var index = 0; index < Spans.Length; index++)
+        {
+            var site = index < sites.Length ? sites[index] : defaults[index];
+            projections.Add(ProjectSpan(Spans[index], site));
+        }
+
+        return projections.MoveToImmutable();
     }
 
     public SupportStructure Flip()
@@ -449,6 +473,13 @@ internal sealed class SupportStructure : ISupport
     private SupportSpan AtomicSpan() => Spans.IsEmpty
         ? throw new InvalidOperationException("This support does not expose an atomic span.")
         : Spans[0];
+
+    private static Ratio ProjectSpan(SupportSpan span, Site site)
+    {
+        var sitePosition = site.On(span.Carrier).Normalize();
+        var delta = sitePosition.Subtract(span.OriginPosition);
+        return delta.Divide(span.Span);
+    }
 
     private static Relation RelationFromSpan(SupportSpan span) => new(
         span.Carrier,

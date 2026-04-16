@@ -25,11 +25,13 @@ public sealed class Attachment : ISupportFold
 
     public Basis Basis { get; }
 
-    public bool IsAtomic => Basis.IsAtomic;
+    internal SupportStructure Structure => Basis.Structure;
 
-    public bool IsComposite => Basis.IsComposite;
+    public bool IsAtomic => Structure.IsAtomic;
 
-    public bool IsAtomicPair => Basis.IsAtomicPair;
+    public bool IsComposite => Structure.IsComposite;
+
+    public bool IsAtomicPair => Structure.IsAtomicPair();
 
     public Measure SiteCount => new(_sites.Length);
 
@@ -64,23 +66,23 @@ public sealed class Attachment : ISupportFold
     // Compatibility alias while callers move from ratio-as-primitive wording toward fold/support reads.
     public Ratio Ratio => Fold;
 
-    public Measure KernelCode => Basis.KernelCode();
+    public Measure KernelCode => Structure.KernelCode();
 
-    public bool IsSameCarrierPair => Basis.IsSameCarrierPair();
+    public bool IsSameCarrierPair => Structure.IsSameCarrierPair();
 
-    public bool IsAlignedPair => Basis.IsAlignedPair();
+    public bool IsAlignedPair => Structure.IsAlignedPair();
 
-    public bool IsOpposedPair => Basis.IsOpposedPair();
+    public bool IsOpposedPair => Structure.IsOpposedPair();
 
     public bool IsSelfPair => IsSameCarrierPair && IsAlignedPair;
 
-    public bool HasSharedOriginPerCarrier => Basis.HasSharedOriginPerCarrier();
+    public bool HasSharedOriginPerCarrier => Structure.HasSharedOriginPerCarrier();
 
     public bool TryGetProjection(out Ratio projection)
     {
         if (IsAtomic)
         {
-            projection = Basis.Project(_sites[0]).Normalize();
+            projection = Structure.Project(_sites[0]).Normalize();
             return true;
         }
 
@@ -89,16 +91,7 @@ public sealed class Attachment : ISupportFold
     }
 
     public ImmutableArray<Ratio> ComponentProjections()
-    {
-        var components = ImmutableArray.CreateBuilder<Ratio>(_sites.Length);
-
-        for (var index = 0; index < _sites.Length; index++)
-        {
-            components.Add(Basis.Relations[index].Project(_sites[index]));
-        }
-
-        return components.MoveToImmutable();
-    }
+        => Structure.ProjectComponents(_sites);
 
     public ImmutableArray<Ratio> Components() => ComponentProjections();
 
@@ -125,7 +118,7 @@ public sealed class Attachment : ISupportFold
 
     public Measure SegmentStart() => IsSegmentPair() ? Recessive.Sites[0].Location : Measure.Zero;
 
-    public Measure SegmentPivot() => IsSegmentPair() ? Recessive.Basis.AtomicRelation.Origin.Location : Measure.Zero;
+    public Measure SegmentPivot() => IsSegmentPair() ? Recessive.Structure.AtomicRelation.Origin.Location : Measure.Zero;
 
     public Measure SegmentEnd() => IsSegmentPair() ? Dominant.Sites[0].Location : Measure.Zero;
 
@@ -139,12 +132,12 @@ public sealed class Attachment : ISupportFold
 
     public static Attachment Attach(Basis basis, params Measure[] measures)
     {
-        var relations = basis.SelectRelations();
+        var defaults = basis.Structure.DefaultAttachmentSites();
         var sites = new Site[measures.Length];
 
         for (var index = 0; index < measures.Length; index++)
         {
-            var carrier = index < relations.Length ? relations[index].Carrier : new Carrier(0);
+            var carrier = index < defaults.Length ? defaults[index].Carrier : new Carrier(0);
             sites[index] = Site.Open(carrier, measures[index]);
         }
 
@@ -153,20 +146,21 @@ public sealed class Attachment : ISupportFold
 
     private static Attachment Attach(Basis basis, ImmutableArray<Site> sites)
     {
-        var aligned = AlignSites(basis, sites);
+        var structure = basis.Structure;
+        var aligned = AlignSites(structure, sites);
 
-        if (basis.IsAtomic)
+        if (structure.IsAtomic)
         {
             return new Attachment(basis, aligned, ImmutableArray<Attachment>.Empty);
         }
 
-        var inputs = ImmutableArray.CreateBuilder<Attachment>(basis.Inputs.Length);
+        var inputs = ImmutableArray.CreateBuilder<Attachment>(structure.Inputs.Length);
         var offset = 0;
 
-        foreach (var input in basis.Inputs)
+        foreach (var input in structure.Inputs)
         {
             var count = (int)input.RelationCount.Raw;
-            inputs.Add(Attach(input, aligned.Slice(offset, count)));
+            inputs.Add(Attach(new Basis(input), aligned.Slice(offset, count)));
             offset += count;
         }
 
@@ -175,10 +169,11 @@ public sealed class Attachment : ISupportFold
 
     private bool IsSegmentPair() => IsAtomicPair && IsSameCarrierPair && IsOpposedPair && HasSharedOriginPerCarrier;
 
-    private static ImmutableArray<Site> AlignSites(Basis basis, ImmutableArray<Site> sites)
+    private static ImmutableArray<Site> AlignSites(SupportStructure structure, ImmutableArray<Site> sites)
     {
-        var count = (int)basis.RelationCount.Raw;
+        var count = (int)structure.RelationCount.Raw;
         var aligned = new Site[count];
+        var defaults = structure.DefaultAttachmentSites();
 
         for (var index = 0; index < count; index++)
         {
@@ -188,8 +183,7 @@ public sealed class Attachment : ISupportFold
                 continue;
             }
 
-            var relation = basis.Relations[index];
-            aligned[index] = Site.Open(relation.Carrier, relation.Origin.Location);
+            aligned[index] = defaults[index];
         }
 
         return aligned.ToImmutableArray();

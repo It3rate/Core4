@@ -97,4 +97,25 @@ public sealed class AttachmentTests
         Assert.Equal(new Measure(98), attachment.Potential);
         Assert.Equal(new Ratio(98, 200), attachment.ResolvedCoefficient());
     }
+
+    [Fact]
+    public void CompositeAttachmentFillsMissingSitesFromExactSupportOrigins()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+
+        var left = Basis.Freeze(x, new Measure(0), new Measure(10));
+        var right = Basis.Freeze(
+            Site.Open(y.At(new Ratio(3, 2))),
+            Site.Open(y.At(new Ratio(7, 2))));
+        var fused = Basis.Fuse(left, right);
+
+        var attachment = fused.Attach(Site.Open(x, new Measure(7)));
+
+        Assert.Equal(new Measure(2), attachment.SiteCount);
+        Assert.Equal(y, attachment.Dominant.Sites[0].Carrier);
+        Assert.Equal(new Ratio(3, 2), attachment.Dominant.Sites[0].Position.Normalize());
+        Assert.Equal(Measure.Zero, attachment.Dominant.Potential);
+        Assert.Equal(Measure.Zero, attachment.ComponentProjections()[1].Potential);
+    }
 }
