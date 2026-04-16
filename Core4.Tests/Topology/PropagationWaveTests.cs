@@ -216,5 +216,26 @@ public sealed class PropagationWaveTests
         Assert.Equal(new Measure(3), frontier.ExactReentryPeriod);
     }
 
-    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
+    [Fact]
+    public void WaveAdvancesAcrossDistinctExactSitesThatShareWholeLocation()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x.At(new Ratio(new Measure(1), new Measure(4))));
+        var right = Site.Open(x.At(new Ratio(new Measure(3), new Measure(4))));
+
+        var wave = PropagationWave.Start(
+            ConnectedSiteTopology.FromRelations(new Relation(left, right)),
+            left);
+
+        var step = wave.Advance();
+
+        Assert.True(step.HasMotion);
+        var frontier = Assert.Single(step.After.Active);
+        Assert.True(SameNode(frontier.Site, right));
+        Assert.Equal(new Ratio(new Measure(3), new Measure(4)), frontier.Site.On(x).Normalize());
+    }
+
+    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier
+        && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
 }

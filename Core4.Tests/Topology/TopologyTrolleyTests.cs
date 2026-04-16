@@ -610,5 +610,23 @@ public sealed class TopologyTrolleyTests
         Assert.DoesNotContain(reverseObservation.ForwardContinuationsIn(-Measure.One), continuation => SameNode(continuation.To, cross));
     }
 
-    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
+    [Fact]
+    public void TrolleyContinuesAcrossDistinctExactSitesThatShareWholeLocation()
+    {
+        Carrier x = 1;
+
+        var left = Site.Open(x.At(new Ratio(new Measure(1), new Measure(4))));
+        var right = Site.Open(x.At(new Ratio(new Measure(3), new Measure(4))));
+
+        var trolley = TopologyTrolley.Start(
+            ConnectedSiteTopology.FromRelations(new Relation(left, right)),
+            left);
+
+        Assert.True(trolley.TryContinuePreferred(out var advanced));
+        Assert.True(SameNode(advanced.Site, right));
+        Assert.Equal(new Ratio(new Measure(3), new Measure(4)), advanced.Site.On(x).Normalize());
+    }
+
+    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier
+        && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
 }

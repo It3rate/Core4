@@ -196,7 +196,8 @@ public readonly record struct PropagationWave(
         frontiers.Add(frontier);
     }
 
-    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
+    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier
+        && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
 
     private static bool AllPeriodic(ImmutableArray<PropagationFrontier>.Builder frontiers)
     {

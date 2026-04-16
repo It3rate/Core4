@@ -174,7 +174,8 @@ public readonly record struct TopologyTrolley(
         return forks.ToImmutable();
     }
 
-    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
+    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier
+        && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
 
     private static TraversalSignature SignatureOf(Site site, Measure direction, Ratio calibration, Relation? ingress) =>
         TraversalSignature.FromSite(
@@ -571,5 +572,6 @@ public readonly record struct TopologyTrolleyObservation(
             : new Relation(carrier, right, left);
     }
 
-    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
+    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier
+        && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
 }
