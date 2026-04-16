@@ -21,7 +21,7 @@ public readonly record struct DominantOnlyDemoState(Measure Origin, Measure Domi
 
     public Site ValueSite => Site.Open(Carrier, ValueLocation);
 
-    public Basis Basis => Core4.Structure.Basis.Freeze(OriginSite, UnitSite);
+    public Basis Basis => Core4.Aliases.Basis.Freeze(OriginSite, UnitSite);
 
     public Ratio Reading => Basis.Project(ValueSite);
 

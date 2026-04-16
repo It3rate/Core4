@@ -1,6 +1,7 @@
 using Core4.Numerics;
+using Core4.Structure;
 
-namespace Core4.Structure;
+namespace Core4.Aliases;
 
 /// <summary>
 /// A live ordered coupling between two sites on a chosen carrier. In the support-first reading this is the lowest

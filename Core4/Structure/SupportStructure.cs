@@ -74,6 +74,10 @@ internal sealed class SupportStructure : ISupport
 
     public bool IsComposite => !IsAtomic;
 
+    public SupportStructure RecessiveInput => IsComposite ? Inputs[0] : this;
+
+    public SupportStructure DominantInput => IsComposite ? Inputs[1] : this;
+
     public Measure RelationCount => new(Spans.Length);
 
     public Measure CarrierCount => new(SelectCarriers().Length);
@@ -106,6 +110,8 @@ internal sealed class SupportStructure : ISupport
 
     public bool IsDominant => IsAtomic && Orientation.Raw > 0;
 
+    public Relation AtomicRelation => RelationFromSpan(AtomicSpan());
+
     public Ratio Locate(Ratio position, Carrier carrier)
     {
         var normalized = position.Normalize();
@@ -136,6 +142,33 @@ internal sealed class SupportStructure : ISupport
         }
 
         return carriers.ToImmutable();
+    }
+
+    public ImmutableArray<Relation> SelectRelations()
+    {
+        var relations = ImmutableArray.CreateBuilder<Relation>(Spans.Length);
+
+        foreach (var span in Spans)
+        {
+            relations.Add(RelationFromSpan(span));
+        }
+
+        return relations.MoveToImmutable();
+    }
+
+    public ImmutableArray<Relation> SelectRelations(Carrier carrier)
+    {
+        var relations = ImmutableArray.CreateBuilder<Relation>();
+
+        foreach (var span in Spans)
+        {
+            if (span.Carrier == carrier)
+            {
+                relations.Add(RelationFromSpan(span));
+            }
+        }
+
+        return relations.ToImmutable();
     }
 
     public bool HasSharedOriginPerCarrier()
@@ -206,12 +239,11 @@ internal sealed class SupportStructure : ISupport
 
     public Ratio Project(Site site)
     {
-        if (!IsAtomic || Spans.IsEmpty)
+        if (!IsAtomic || !TryGetAtomicSpan(out var span))
         {
             return Ratio.Tension(site.Potential);
         }
 
-        var span = Spans[0];
         var sitePosition = site.On(span.Carrier).Normalize();
         var delta = sitePosition.Subtract(span.OriginPosition);
         return delta.Divide(span.Span);
@@ -225,6 +257,23 @@ internal sealed class SupportStructure : ISupport
         }
 
         return Project(Site.Open(Spans[0].Carrier, measure));
+    }
+
+    public SupportStructure Flip()
+    {
+        if (IsAtomic)
+        {
+            return FromRelation(AtomicRelation.Flip());
+        }
+
+        var flipped = Fuse(RecessiveInput.Flip(), DominantInput.Flip());
+
+        for (var index = 2; index < Inputs.Length; index++)
+        {
+            flipped = Fuse(flipped, Inputs[index].Flip());
+        }
+
+        return flipped;
     }
 
     public static SupportStructure ForCarrier(Carrier carrier) => new(
@@ -354,14 +403,13 @@ internal sealed class SupportStructure : ISupport
 
     private Ratio LocateAtomic(Ratio position, Carrier carrier)
     {
-        if (Spans.IsEmpty)
+        if (!TryGetAtomicSpan(out var span))
         {
             return carrier == PrimaryCarrier
                 ? position.Normalize()
                 : Ratio.Tension(position.Potential);
         }
 
-        var span = AtomicSpan();
         return carrier == span.Carrier
             ? span.OriginPosition.Add(span.Span.Multiply(position)).Normalize()
             : Ratio.Tension(position.Potential);
@@ -380,15 +428,32 @@ internal sealed class SupportStructure : ISupport
         return left.AnchorPosition.Add(right.AnchorPosition.Subtract(left.AnchorPosition).Multiply(position)).Normalize();
     }
 
-    private Measure AtomicPotential() => Spans.IsEmpty ? Measure.Zero : Spans[0].Potential;
+    private Measure AtomicPotential() => TryGetAtomicSpan(out var span) ? span.Potential : Measure.Zero;
 
-    private Measure AtomicOrientation() => Spans.IsEmpty ? Measure.Zero : Spans[0].Orientation;
+    private Measure AtomicOrientation() => TryGetAtomicSpan(out var span) ? span.Orientation : Measure.Zero;
 
-    private Ratio AtomicStiffness() => Spans.IsEmpty ? Ratio.Zero(Measure.One) : Spans[0].Commitment;
+    private Ratio AtomicStiffness() => TryGetAtomicSpan(out var span) ? span.Commitment : Ratio.Zero(Measure.One);
+
+    private bool TryGetAtomicSpan(out SupportSpan span)
+    {
+        if (!Spans.IsEmpty)
+        {
+            span = Spans[0];
+            return true;
+        }
+
+        span = default;
+        return false;
+    }
 
     private SupportSpan AtomicSpan() => Spans.IsEmpty
         ? throw new InvalidOperationException("This support does not expose an atomic span.")
         : Spans[0];
+
+    private static Relation RelationFromSpan(SupportSpan span) => new(
+        span.Carrier,
+        Site.Open(span.Carrier.At(span.OriginPosition)).Harden(span.Commitment),
+        Site.Open(span.Carrier.At(span.AnchorPosition)).Harden(span.Commitment));
 
     private static long SideCode(Measure orientation)
     {

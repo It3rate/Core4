@@ -1,7 +1,8 @@
 using System.Collections.Immutable;
 using Core4.Numerics;
+using Core4.Structure;
 
-namespace Core4.Structure;
+namespace Core4.Aliases;
 
 /// <summary>
 /// A frozen relation, or a frozen fusion of relations. In the support-first reading this is reusable calibration over
@@ -11,26 +12,23 @@ namespace Core4.Structure;
 /// </summary>
 public sealed class Basis : ISupport, ISupportFold
 {
+    private readonly SupportStructure _structure;
     private readonly ImmutableArray<Basis> _inputs;
     private readonly ImmutableArray<Relation> _relations;
-    private readonly SupportStructure _structure;
 
-    private Basis(Relation relation)
+    internal Basis(SupportStructure structure)
     {
-        _inputs = ImmutableArray<Basis>.Empty;
-        _relations = ImmutableArray.Create(relation);
-        _structure = relation.Structure;
+        _structure = structure;
+        _inputs = _structure.Inputs.Select(static input => new Basis(input)).ToImmutableArray();
+        _relations = _structure.SelectRelations();
     }
 
-    private Basis(Basis recessive, Basis dominant)
+    private Basis(Relation relation) : this(relation.Structure)
     {
-        _inputs = ImmutableArray.Create(recessive, dominant);
+    }
 
-        var relations = ImmutableArray.CreateBuilder<Relation>(recessive._relations.Length + dominant._relations.Length);
-        relations.AddRange(recessive._relations);
-        relations.AddRange(dominant._relations);
-        _relations = relations.MoveToImmutable();
-        _structure = SupportStructure.Fuse(recessive._structure, dominant._structure);
+    private Basis(Basis recessive, Basis dominant) : this(SupportStructure.Fuse(recessive._structure, dominant._structure))
+    {
     }
 
     public bool IsAtomic => _structure.IsAtomic;
@@ -76,7 +74,7 @@ public sealed class Basis : ISupport, ISupportFold
 
     public bool IsDominant => _structure.IsDominant;
 
-    internal Relation AtomicRelation => _relations[0];
+    internal Relation AtomicRelation => _structure.AtomicRelation;
 
     public static Basis Freeze(Relation relation) => Freeze(relation, new Ratio(Measure.One, Measure.One));
 
@@ -135,9 +133,7 @@ public sealed class Basis : ISupport, ISupportFold
         return fused;
     }
 
-    public Basis Flip() => IsAtomic
-        ? Freeze(AtomicRelation.Flip())
-        : Fuse(Recessive.Flip(), Dominant.Flip());
+    public Basis Flip() => new(_structure.Flip());
 
     public Placement Place(Ratio ratio) => new(this, ratio.Normalize());
 
@@ -157,20 +153,7 @@ public sealed class Basis : ISupport, ISupportFold
 
     public ImmutableArray<Relation> SelectRelations() => _relations;
 
-    public ImmutableArray<Relation> SelectRelations(Carrier carrier)
-    {
-        var relations = ImmutableArray.CreateBuilder<Relation>();
-
-        foreach (var relation in _relations)
-        {
-            if (relation.Carrier == carrier)
-            {
-                relations.Add(relation);
-            }
-        }
-
-        return relations.ToImmutable();
-    }
+    public ImmutableArray<Relation> SelectRelations(Carrier carrier) => _structure.SelectRelations(carrier);
 
     public ImmutableArray<Carrier> SelectCarriers() => _structure.SelectCarriers();
 
