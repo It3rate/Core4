@@ -70,15 +70,31 @@ internal sealed class SupportStructure : ISupport
 
     public ImmutableArray<SupportStructure> Inputs { get; }
 
+    public bool IsAtomic => Inputs.IsEmpty;
+
+    public bool IsComposite => !IsAtomic;
+
     public Measure RelationCount => new(Spans.Length);
 
     public Measure CarrierCount => new(SelectCarriers().Length);
+
+    public Measure Potential => IsAtomic
+        ? AtomicPotential()
+        : IsSameCarrierPair() && IsOpposedPair() && HasSharedOriginPerCarrier()
+            ? Inputs[0].Potential + Inputs[1].Potential
+            : new Measure(checked(Inputs[0].Potential.Raw * Inputs[1].Potential.Raw));
+
+    public Ratio Fold => IsComposite
+        ? new Ratio(Inputs[0].Potential, Inputs[1].Potential).Normalize()
+        : Ratio.Tension(Potential);
+
+    public Measure Orientation => IsAtomic ? AtomicOrientation() : Measure.Zero;
 
     public Ratio Locate(Ratio position, Carrier carrier)
     {
         var normalized = position.Normalize();
 
-        if (Inputs.IsEmpty)
+        if (IsAtomic)
         {
             return LocateAtomic(normalized, carrier);
         }
@@ -219,11 +235,14 @@ internal sealed class SupportStructure : ISupport
         SupportStructure dominant,
         ImmutableArray<SupportStructure> remaining)
     {
-        var inputs = ImmutableArray.CreateBuilder<SupportStructure>(remaining.Length + 2);
-        inputs.Add(recessive);
-        inputs.Add(dominant);
-        inputs.AddRange(remaining);
-        return Compose(inputs.ToImmutable());
+        var fused = Fuse(recessive, dominant);
+
+        for (var index = 0; index < remaining.Length; index++)
+        {
+            fused = Fuse(fused, remaining[index]);
+        }
+
+        return fused;
     }
 
     private static SupportStructure Compose(ImmutableArray<SupportStructure> inputs)
@@ -321,6 +340,10 @@ internal sealed class SupportStructure : ISupport
 
         return left.AnchorPosition.Add(right.AnchorPosition.Subtract(left.AnchorPosition).Multiply(position)).Normalize();
     }
+
+    private Measure AtomicPotential() => Spans.IsEmpty ? Measure.Zero : Spans[0].Potential;
+
+    private Measure AtomicOrientation() => Spans.IsEmpty ? Measure.Zero : Spans[0].Orientation;
 
     private static long SideCode(Measure orientation)
     {

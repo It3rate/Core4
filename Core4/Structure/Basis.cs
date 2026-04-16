@@ -61,20 +61,14 @@ public sealed class Basis : ISupport, ISupportFold
 
     public Basis Dominant => IsComposite ? _inputs[1] : this;
 
-    public Measure Potential => IsAtomic
-        ? AtomicRelation.Potential
-        : IsSameCarrierPair() && IsOpposedPair() && HasSharedOriginPerCarrier()
-            ? Recessive.Potential + Dominant.Potential
-            : new Measure(checked(Recessive.Potential.Raw * Dominant.Potential.Raw));
+    public Measure Potential => _structure.Potential;
 
-    public Ratio Fold => IsComposite
-        ? new Ratio(Recessive.Potential, Dominant.Potential).Normalize()
-        : Ratio.Tension(Potential);
+    public Ratio Fold => _structure.Fold;
 
     // Compatibility alias while callers move from ratio-as-primitive wording toward fold/support reads.
     public Ratio Ratio => Fold;
 
-    public Measure Orientation => IsAtomic ? AtomicRelation.Orientation : Measure.Zero;
+    public Measure Orientation => _structure.Orientation;
 
     public Ratio Stiffness => IsAtomic
         ? AtomicRelation.Stiffness
