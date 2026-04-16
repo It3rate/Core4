@@ -172,6 +172,8 @@ public sealed class PropagationWaveTests
         Assert.Equal(new Ratio(new Measure(1), new Measure(2)), retained.Intensity);
 
         var move = Assert.Single(split.Moves);
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), move.TransmissionRead.AsRatio());
+        Assert.Equal(new Ratio(new Measure(1), new Measure(2)), move.RetentionRead.AsRatio());
         Assert.Equal(new Ratio(new Measure(1), new Measure(2)), move.Transmission);
         Assert.Equal(new Ratio(new Measure(1), new Measure(2)), move.Retention);
     }

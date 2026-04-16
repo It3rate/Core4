@@ -129,8 +129,8 @@ public readonly record struct PropagationWave(
                         moved.Trolley,
                         continuation.Relation,
                         observerPerspective,
-                        continuation.Transmission,
-                        continuation.Retention));
+                        continuation.TransmissionRead,
+                        continuation.RetentionRead));
                 }
 
                 if (continuation.RetentionRead.Potential != Measure.Zero)
@@ -313,9 +313,31 @@ public readonly record struct PropagationMove(
     TopologyTrolley Target,
     Relation Relation,
     Measure Perspective,
-    Ratio Transmission,
-    Ratio Retention)
+    SupportProjectionRead TransmissionRead,
+    SupportProjectionRead RetentionRead)
 {
+    public PropagationMove(
+        TopologyTrolley source,
+        TopologyTrolley target,
+        Relation relation,
+        Measure perspective,
+        ISupportProjection transmission,
+        ISupportProjection retention) : this(
+            source,
+            target,
+            relation,
+            perspective,
+            new SupportProjectionRead(transmission.CompatibilityRatio()),
+            new SupportProjectionRead(retention.CompatibilityRatio()))
+    {
+    }
+
+    // TODO(core): Delete this compatibility alias once callers consume TransmissionRead directly.
+    public Ratio Transmission => TransmissionRead.CompatibilityRatio();
+
+    // TODO(core): Delete this compatibility alias once callers consume RetentionRead directly.
+    public Ratio Retention => RetentionRead.CompatibilityRatio();
+
     public bool IsReturning => Perspective.Raw < 0L;
 }
 

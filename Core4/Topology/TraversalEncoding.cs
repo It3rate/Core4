@@ -92,29 +92,53 @@ public readonly record struct TraversalSignature(
         && Provenance.Direction == other.Provenance.Direction
         && Perspective.Sign == other.Perspective.Sign;
 
-    public Ratio ProjectionAgreement(TraversalSignature other) => SameProjection(other)
-        ? new Ratio(Measure.One, Measure.One)
-        : Ratio.Zero(Measure.One);
+    public ISupportProjection ProjectionAgreementRead(TraversalSignature other) => new SupportProjectionRead(
+        SameProjection(other)
+            ? new Ratio(Measure.One, Measure.One)
+            : Ratio.Zero(Measure.One));
 
-    public Ratio CalibrationAgreement(TraversalSignature other) => CompatibilityCalibration == other.CompatibilityCalibration
-        ? new Ratio(Measure.One, Measure.One)
-        : new Ratio(new Measure(CompatibilityCalibration.Sign.Raw * other.CompatibilityCalibration.Sign.Raw), Measure.One).Normalize();
+    // TODO(core): Delete this compatibility alias once callers consume ProjectionAgreementRead directly.
+    public Ratio ProjectionAgreement(TraversalSignature other) => ProjectionAgreementRead(other).CompatibilityRatio();
 
-    public Ratio ModifierAgreement(TraversalSignature other) => Modifier.Agreement(other.Modifier);
+    public ISupportProjection CalibrationAgreementRead(TraversalSignature other) => new SupportProjectionRead(
+        CompatibilityCalibration == other.CompatibilityCalibration
+            ? new Ratio(Measure.One, Measure.One)
+            : new Ratio(new Measure(CompatibilityCalibration.Sign.Raw * other.CompatibilityCalibration.Sign.Raw), Measure.One)
+                .Canonicalize());
 
-    public Ratio PerspectiveAgreement(TraversalSignature other) => new Ratio(
-        new Measure(Perspective.Sign.Raw * other.Perspective.Sign.Raw),
-        Measure.One).Normalize();
+    // TODO(core): Delete this compatibility alias once callers consume CalibrationAgreementRead directly.
+    public Ratio CalibrationAgreement(TraversalSignature other) => CalibrationAgreementRead(other).CompatibilityRatio();
 
-    public Ratio EffectiveAgreement(TraversalSignature other) => new Ratio(
-        new Measure(EffectiveDirection.Sign.Raw * other.EffectiveDirection.Sign.Raw),
-        Measure.One).Normalize();
+    public ISupportProjection ModifierAgreementRead(TraversalSignature other) => Modifier.AgreementRead(other.Modifier);
 
-    public Ratio ReentryAgreement(TraversalSignature other) => Equivalent(other)
-        ? new Ratio(Measure.One, Measure.One)
-        : SameProjection(other)
-            ? Ratio.Zero(Measure.One)
-            : new Ratio(-Measure.One, Measure.One).Normalize();
+    // TODO(core): Delete this compatibility alias once callers consume ModifierAgreementRead directly.
+    public Ratio ModifierAgreement(TraversalSignature other) => ModifierAgreementRead(other).CompatibilityRatio();
+
+    public ISupportProjection PerspectiveAgreementRead(TraversalSignature other) => new SupportProjectionRead(
+        new Ratio(
+            new Measure(Perspective.Sign.Raw * other.Perspective.Sign.Raw),
+            Measure.One).Canonicalize());
+
+    // TODO(core): Delete this compatibility alias once callers consume PerspectiveAgreementRead directly.
+    public Ratio PerspectiveAgreement(TraversalSignature other) => PerspectiveAgreementRead(other).CompatibilityRatio();
+
+    public ISupportProjection EffectiveAgreementRead(TraversalSignature other) => new SupportProjectionRead(
+        new Ratio(
+            new Measure(EffectiveDirection.Sign.Raw * other.EffectiveDirection.Sign.Raw),
+            Measure.One).Canonicalize());
+
+    // TODO(core): Delete this compatibility alias once callers consume EffectiveAgreementRead directly.
+    public Ratio EffectiveAgreement(TraversalSignature other) => EffectiveAgreementRead(other).CompatibilityRatio();
+
+    public ISupportProjection ReentryAgreementRead(TraversalSignature other) => new SupportProjectionRead(
+        Equivalent(other)
+            ? new Ratio(Measure.One, Measure.One)
+            : SameProjection(other)
+                ? Ratio.Zero(Measure.One)
+                : new Ratio(-Measure.One, Measure.One).Canonicalize());
+
+    // TODO(core): Delete this compatibility alias once callers consume ReentryAgreementRead directly.
+    public Ratio ReentryAgreement(TraversalSignature other) => ReentryAgreementRead(other).CompatibilityRatio();
 
     public static TraversalSignature FromPlacement(
         Placement placement,

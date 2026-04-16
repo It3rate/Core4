@@ -44,6 +44,9 @@ public sealed class TraversalEncodingTests
 
         Assert.True(forward.SameProjection(reflected));
         Assert.False(forward.Equivalent(reflected));
+        Assert.Equal(new Ratio(Measure.One, Measure.One), forward.ProjectionAgreementRead(reflected).AsRatio());
+        Assert.Equal(new Ratio(-Measure.One, Measure.One), forward.PerspectiveAgreementRead(reflected).AsRatio());
+        Assert.Equal(Ratio.Zero(Measure.One), forward.ReentryAgreementRead(reflected).AsRatio());
         Assert.Equal(new Ratio(Measure.One, Measure.One), forward.ProjectionAgreement(reflected));
         Assert.Equal(new Ratio(-Measure.One, Measure.One), forward.PerspectiveAgreement(reflected));
         Assert.Equal(Ratio.Zero(Measure.One), forward.ReentryAgreement(reflected));
@@ -70,7 +73,11 @@ public sealed class TraversalEncodingTests
         Assert.False(adopted.Equivalent(invertedState));
         Assert.Equal(new Ratio(Measure.One, Measure.One), adopted.Modifier.StateRead.AsRatio());
         Assert.Equal(new Ratio(-Measure.One, Measure.One), invertedState.Modifier.StateRead.AsRatio());
+        Assert.Equal(new Ratio(-Measure.One, Measure.One), adopted.CalibrationAgreementRead(invertedState).AsRatio());
         Assert.Equal(new Ratio(-Measure.One, Measure.One), adopted.Modifier.AgreementRead(invertedState.Modifier).AsRatio());
+        Assert.Equal(new Ratio(-Measure.One, Measure.One), adopted.ModifierAgreementRead(invertedState).AsRatio());
+        Assert.Equal(new Ratio(-Measure.One, Measure.One), adopted.PerspectiveAgreementRead(invertedState).AsRatio());
+        Assert.Equal(new Ratio(Measure.One, Measure.One), adopted.EffectiveAgreementRead(invertedState).AsRatio());
         Assert.Equal(new Ratio(-Measure.One, Measure.One), adopted.CalibrationAgreement(invertedState));
         Assert.Equal(new Ratio(-Measure.One, Measure.One), adopted.ModifierAgreement(invertedState));
         Assert.Equal(new Ratio(-Measure.One, Measure.One), adopted.PerspectiveAgreement(invertedState));
