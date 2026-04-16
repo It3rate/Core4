@@ -42,6 +42,7 @@ public sealed class AttachmentTests
         Assert.Equal(new Ratio(7, 10), attachment.Fold);
         Assert.Equal(attachment.Fold, attachment.Ratio);
         Assert.Equal(new Measure(7), attachment.Potential);
+        Assert.Equal(new Measure(1), attachment.Samples.SiteCount);
         Assert.Equal(new Measure(7), attachment.Measures[0]);
     }
 
@@ -128,5 +129,28 @@ public sealed class AttachmentTests
         Assert.Equal(new Ratio(3, 2), attachment.Dominant.Sites[0].Position.Normalize());
         Assert.Equal(Measure.Zero, attachment.Dominant.Potential);
         Assert.Equal(Measure.Zero, attachment.ComponentProjections()[1].Potential);
+    }
+
+    [Fact]
+    public void AttachmentCanBindSupportIndependentSampleSet()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+
+        var basis = Basis.Fuse(
+            Basis.Freeze(x, new Measure(0), new Measure(10)),
+            Basis.Freeze(y, new Measure(0), new Measure(20)));
+        var samples = SampleSet.Fuse(
+            SampleSet.Collect(Site.Open(x, new Measure(7))),
+            SampleSet.Collect(Site.Open(y, new Measure(8))));
+
+        var attachment = basis.Attach(samples);
+
+        Assert.Equal(samples.SiteCount, attachment.Samples.SiteCount);
+        Assert.Equal(new Measure(2), attachment.SiteCount);
+        Assert.Equal(x, attachment.Recessive.Sites[0].Carrier);
+        Assert.Equal(y, attachment.Dominant.Sites[0].Carrier);
+        Assert.Equal(new Ratio(7, 10), attachment.ComponentProjectionReads()[0].AsRatio());
+        Assert.Equal(new Ratio(8, 20), attachment.ComponentProjectionReads()[1].AsRatio());
     }
 }

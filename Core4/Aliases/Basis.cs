@@ -165,6 +165,8 @@ public sealed class Basis : ISupport, ISupportFold
 
     public Attachment Attach(params Measure[] measures) => Attachment.Attach(this, measures);
 
+    public Attachment Attach(SampleSet samples) => Attachment.Attach(this, samples);
+
     public ImmutableArray<Relation> SelectRelations() => _relations;
 
     public ImmutableArray<Relation> SelectRelations(Carrier carrier) => _structure.SelectRelations(carrier);

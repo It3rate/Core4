@@ -13,17 +13,19 @@ namespace Core4.Structure;
 /// </summary>
 public sealed class Attachment : ISupportFold
 {
-    private readonly ImmutableArray<Site> _sites;
+    private readonly SampleSet _samples;
     private readonly ImmutableArray<Attachment> _inputs;
 
-    private Attachment(Basis basis, ImmutableArray<Site> sites, ImmutableArray<Attachment> inputs)
+    private Attachment(Basis basis, SampleSet samples, ImmutableArray<Attachment> inputs)
     {
         Basis = basis;
-        _sites = sites;
+        _samples = samples;
         _inputs = inputs;
     }
 
     public Basis Basis { get; }
+
+    public SampleSet Samples => _samples;
 
     internal SupportStructure Structure => Basis.Structure;
 
@@ -33,9 +35,9 @@ public sealed class Attachment : ISupportFold
 
     public bool IsAtomicPair => Structure.IsAtomicPair();
 
-    public Measure SiteCount => new(_sites.Length);
+    public Measure SiteCount => Samples.SiteCount;
 
-    public ImmutableArray<Site> Sites => _sites;
+    public ImmutableArray<Site> Sites => Samples.Sites;
 
     public ImmutableArray<Attachment> Inputs => _inputs;
 
@@ -43,9 +45,9 @@ public sealed class Attachment : ISupportFold
 
     public Attachment Dominant => IsComposite ? _inputs[1] : this;
 
-    public ImmutableArray<Measure> Measures => _sites.Select(site => site.Location).ToImmutableArray();
+    public ImmutableArray<Measure> Measures => Samples.Measures;
 
-    public ImmutableArray<Placement> Placements => _sites.Select(site => site.Placement).ToImmutableArray();
+    public ImmutableArray<Placement> Placements => Samples.Placements;
 
     // Compatibility projection for callers that still expect a single ratio-shaped read. Composite attachments do not
     // have one atomic projection, so they return unresolved tension and callers should prefer Fold or ComponentProjections.
@@ -57,7 +59,7 @@ public sealed class Attachment : ISupportFold
     public Ratio Projection => ProjectionRead.AsRatio();
 
     public Measure Potential => IsAtomic
-        ? Absolute(Projection.Recessive + _sites[0].Potential)
+        ? Absolute(Projection.Recessive + Sites[0].Potential)
         : IsSameCarrierPair && IsOpposedPair && HasSharedOriginPerCarrier
             ? Recessive.Potential + Dominant.Potential
             : new Measure(checked(Recessive.Potential.Raw * Dominant.Potential.Raw));
@@ -88,7 +90,7 @@ public sealed class Attachment : ISupportFold
     {
         if (IsAtomic)
         {
-            projection = Structure.ProjectRead(_sites[0]);
+            projection = Structure.ProjectRead(Sites[0]);
             return true;
         }
 
@@ -105,7 +107,7 @@ public sealed class Attachment : ISupportFold
     }
 
     public ImmutableArray<ISupportProjection> ComponentProjectionReads()
-        => Structure.ProjectComponentReads(_sites);
+        => Structure.ProjectComponentReads(Sites);
 
     // TODO(core): Delete this compatibility alias once callers consume ComponentProjectionReads directly.
     public ImmutableArray<Ratio> ComponentProjections() => ComponentProjectionReads()
@@ -148,7 +150,7 @@ public sealed class Attachment : ISupportFold
         ? Recessive.Projection.Add(Dominant.Projection)
         : Ratio.Tension(Potential);
 
-    public static Attachment Attach(Basis basis, params Site[] sites) => Attach(basis, sites.ToImmutableArray());
+    public static Attachment Attach(Basis basis, params Site[] sites) => Attach(basis, SampleSet.Collect(sites));
 
     public static Attachment Attach(Basis basis, params Measure[] measures)
     {
@@ -161,13 +163,13 @@ public sealed class Attachment : ISupportFold
             sites[index] = Site.Open(carrier, measures[index]);
         }
 
-        return Attach(basis, sites.ToImmutableArray());
+        return Attach(basis, SampleSet.Collect(sites));
     }
 
-    private static Attachment Attach(Basis basis, ImmutableArray<Site> sites)
+    public static Attachment Attach(Basis basis, SampleSet samples)
     {
         var structure = basis.Structure;
-        var aligned = AlignSites(structure, sites);
+        var aligned = AlignSamples(structure, samples);
 
         if (structure.IsAtomic)
         {
@@ -180,7 +182,7 @@ public sealed class Attachment : ISupportFold
         foreach (var input in structure.Inputs)
         {
             var count = (int)input.RelationCount.Raw;
-            inputs.Add(Attach(new Basis(input), aligned.Slice(offset, count)));
+            inputs.Add(Attach(new Basis(input), SampleSet.Collect(aligned.Sites.Slice(offset, count))));
             offset += count;
         }
 
@@ -189,11 +191,12 @@ public sealed class Attachment : ISupportFold
 
     private bool IsSegmentPair() => IsAtomicPair && IsSameCarrierPair && IsOpposedPair && HasSharedOriginPerCarrier;
 
-    private static ImmutableArray<Site> AlignSites(SupportStructure structure, ImmutableArray<Site> sites)
+    private static SampleSet AlignSamples(SupportStructure structure, SampleSet samples)
     {
         var count = (int)structure.RelationCount.Raw;
         var aligned = new Site[count];
         var defaults = structure.DefaultAttachmentSites();
+        var sites = samples.Sites;
 
         for (var index = 0; index < count; index++)
         {
@@ -206,7 +209,7 @@ public sealed class Attachment : ISupportFold
             aligned[index] = defaults[index];
         }
 
-        return aligned.ToImmutableArray();
+        return SampleSet.Collect(aligned.ToImmutableArray());
     }
 
     private static Measure Absolute(Measure value) => value.Raw < 0 ? -value : value;
