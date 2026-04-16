@@ -5,6 +5,30 @@ namespace Core4.Tests.Numerics;
 public sealed class RatioTests
 {
     [Fact]
+    public void CompatibilityConstructorDefaultsOriginToZero()
+    {
+        var ratio = new Ratio(5, 10);
+
+        Assert.Equal(Measure.Zero, ratio.Origin);
+        Assert.Equal(new Measure(5), ratio.Value);
+        Assert.Equal(new Measure(10), ratio.UnitValue);
+        Assert.Equal(new Measure(5), ratio.Recessive);
+        Assert.Equal(new Measure(10), ratio.Dominant);
+    }
+
+    [Fact]
+    public void ExplicitOriginRetainsPinnedLocationsAndDerivedOffsets()
+    {
+        var ratio = new Ratio(new Measure(100), new Measure(103), new Measure(104));
+
+        Assert.Equal(new Measure(100), ratio.Origin);
+        Assert.Equal(new Measure(103), ratio.Value);
+        Assert.Equal(new Measure(104), ratio.UnitValue);
+        Assert.Equal(new Measure(3), ratio.Recessive);
+        Assert.Equal(new Measure(4), ratio.Dominant);
+    }
+
+    [Fact]
     public void ZeroAndTensionHelpersEncodeExpectedDominantState()
     {
         var resolvedZero = Ratio.Zero(new Measure(10));
@@ -36,6 +60,19 @@ public sealed class RatioTests
     }
 
     [Fact]
+    public void FoldDenominatorPreservesPinnedOrigin()
+    {
+        var ratio = new Ratio(new Measure(100), new Measure(105), new Measure(90));
+        var folded = ratio.FoldDenominator();
+
+        Assert.Equal(new Measure(100), folded.Origin);
+        Assert.Equal(new Measure(95), folded.Value);
+        Assert.Equal(new Measure(110), folded.UnitValue);
+        Assert.Equal(new Measure(-5), folded.Recessive);
+        Assert.Equal(new Measure(10), folded.Dominant);
+    }
+
+    [Fact]
     public void CanonicalizeReducesResolvedRatiosWithoutRelocatingSign()
     {
         Assert.Equal(new Ratio(3, 4), new Ratio(6, 8).Canonicalize());
@@ -43,6 +80,19 @@ public sealed class RatioTests
         Assert.Equal(new Ratio(0, 1), new Ratio(0, 10).Canonicalize());
         Assert.Equal(new Ratio(0, -1), new Ratio(0, -10).Canonicalize());
         Assert.Equal(new Ratio(5, 0), Ratio.Tension(new Measure(5)).Canonicalize());
+    }
+
+    [Fact]
+    public void CanonicalizePreservesPinnedOrigin()
+    {
+        var ratio = new Ratio(new Measure(100), new Measure(106), new Measure(108));
+        var canonical = ratio.Canonicalize();
+
+        Assert.Equal(new Measure(100), canonical.Origin);
+        Assert.Equal(new Measure(103), canonical.Value);
+        Assert.Equal(new Measure(104), canonical.UnitValue);
+        Assert.Equal(new Measure(3), canonical.Recessive);
+        Assert.Equal(new Measure(4), canonical.Dominant);
     }
 
     [Fact]
@@ -136,6 +186,24 @@ public sealed class RatioTests
         var right = new Ratio(new Measure(long.MaxValue - 1), new Measure(long.MaxValue - 2));
 
         Assert.True(left.CompareValue(right) < 0);
+    }
+
+    [Fact]
+    public void CompareValueIgnoresPinnedOriginWhenRelativeReadMatches()
+    {
+        var left = new Ratio(new Measure(100), new Measure(103), new Measure(104));
+        var right = new Ratio(new Measure(-50), new Measure(-47), new Measure(-46));
+
+        Assert.Equal(0, left.CompareValue(right));
+    }
+
+    [Fact]
+    public void SharedOriginArithmeticKeepsPinnedOrigin()
+    {
+        var left = new Ratio(new Measure(100), new Measure(102), new Measure(110));
+        var right = new Ratio(new Measure(100), new Measure(103), new Measure(110));
+
+        Assert.Equal(new Ratio(new Measure(100), new Measure(105), new Measure(110)), left.Add(right));
     }
 
     [Fact]

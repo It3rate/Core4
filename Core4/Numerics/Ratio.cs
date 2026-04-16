@@ -5,24 +5,47 @@ using Core4.Structure;
 namespace Core4.Numerics;
 
 /// <summary>
-/// An ordered recessive/dominant relation. This is the current machine-privileged read of a richer support-local
-/// structure: conceptually it stands in for value read through a chosen unit, while the producing support still
-/// carries the implicit origin/context. <c>m/0</c> carries unresolved tension, while <c>m/u</c> is a resolved
-/// relation against a denominator. Denominator sign is preserved exactly; any fold into a positive denominator is an
-/// explicit lossy operation.
-/// Example: <c>var halfway = new Ratio(5, 10);</c>
+/// An ordered support-local read stored as a pinned origin, a pinned unit location, and a current value location.
+/// This remains the current machine-privileged read of a richer support-local structure. The older
+/// recessive/dominant pair is preserved as a derived compatibility projection so the rest of the engine can keep
+/// transitioning without leaving Core4-native structure. <c>m/0</c> carries unresolved tension, while <c>m/u</c> is a
+/// resolved relation against a denominator. Denominator sign is preserved exactly; any fold into a positive
+/// denominator is an explicit lossy operation.
+/// Example: <c>var halfway = new Ratio(5, 10); var offsetHalfway = new Ratio(100, 105, 110);</c>
 /// </summary>
-public readonly record struct Ratio(Measure Recessive, Measure Dominant) : ISupportProjection
+public readonly record struct Ratio : ISupportProjection
 {
+    public Ratio(Measure recessive, Measure dominant)
+        : this(Measure.Zero, recessive, dominant)
+    {
+    }
+
+    public Ratio(Measure origin, Measure value, Measure unitValue)
+    {
+        Origin = origin;
+        Value = value;
+        UnitValue = unitValue;
+    }
+
+    public Measure Origin { get; init; }
+
+    public Measure Value { get; init; }
+
+    public Measure UnitValue { get; init; }
+
+    public Measure Recessive => Difference(Value, Origin);
+
+    public Measure Dominant => Difference(UnitValue, Origin);
+
     public Measure Numerator => Recessive;
 
     public Measure Denominator => Dominant;
 
     public Measure Potential => Recessive.Absolute;
 
-    public static Ratio Zero(Measure dominant) => new(Measure.Zero, dominant);
+    public static Ratio Zero(Measure dominant) => FromOffsets(Measure.Zero, Measure.Zero, dominant);
 
-    public static Ratio Tension(Measure energy) => new(energy, Measure.Zero);
+    public static Ratio Tension(Measure energy) => FromOffsets(Measure.Zero, energy, Measure.Zero);
 
     public bool IsResolved => Dominant.Raw != 0;
 
@@ -88,77 +111,97 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant) : ISupp
 
         if (normalizedFactor.IsTension)
         {
-            return Tension(Potential);
+            return FromOffsets(Origin, Potential, Measure.Zero);
         }
 
         if (IsTension)
         {
-            return Tension(ToMeasure((new BigInteger(Recessive.Raw) * normalizedFactor.Recessive.Raw) / normalizedFactor.Dominant.Raw));
+            return FromOffsets(
+                Origin,
+                ToMeasure((new BigInteger(Recessive.Raw) * normalizedFactor.Recessive.Raw) / normalizedFactor.Dominant.Raw),
+                Measure.Zero);
         }
 
-        return Multiply(normalizedFactor).Normalize();
+        return FromBigInteger(
+            new BigInteger(Recessive.Raw) * normalizedFactor.Recessive.Raw,
+            new BigInteger(Dominant.Raw) * normalizedFactor.Dominant.Raw,
+            Origin).Normalize();
     }
 
     public Ratio Add(Ratio other)
     {
+        var origin = SharedOriginOrZero(other);
+
         if (IsTension || other.IsTension)
         {
-            return Tension(ToMeasure(new BigInteger(Recessive.Raw) + other.Recessive.Raw));
+            return FromOffsets(origin, ToMeasure(new BigInteger(Recessive.Raw) + other.Recessive.Raw), Measure.Zero);
         }
 
         if (Dominant == other.Dominant)
         {
             return FromBigInteger(
                 new BigInteger(Recessive.Raw) + other.Recessive.Raw,
-                Dominant.Raw);
+                Dominant.Raw,
+                origin);
         }
 
         return FromBigInteger(
             (new BigInteger(Recessive.Raw) * other.Dominant.Raw) + (new BigInteger(other.Recessive.Raw) * Dominant.Raw),
-            new BigInteger(Dominant.Raw) * other.Dominant.Raw);
+            new BigInteger(Dominant.Raw) * other.Dominant.Raw,
+            origin);
     }
 
     public Ratio Subtract(Ratio other)
     {
+        var origin = SharedOriginOrZero(other);
+
         if (IsTension || other.IsTension)
         {
-            return Tension(ToMeasure(new BigInteger(Recessive.Raw) - other.Recessive.Raw));
+            return FromOffsets(origin, ToMeasure(new BigInteger(Recessive.Raw) - other.Recessive.Raw), Measure.Zero);
         }
 
         if (Dominant == other.Dominant)
         {
             return FromBigInteger(
                 new BigInteger(Recessive.Raw) - other.Recessive.Raw,
-                Dominant.Raw);
+                Dominant.Raw,
+                origin);
         }
 
         return FromBigInteger(
             (new BigInteger(Recessive.Raw) * other.Dominant.Raw) - (new BigInteger(other.Recessive.Raw) * Dominant.Raw),
-            new BigInteger(Dominant.Raw) * other.Dominant.Raw);
+            new BigInteger(Dominant.Raw) * other.Dominant.Raw,
+            origin);
     }
 
     public Ratio Multiply(Ratio other)
     {
+        var origin = SharedOriginOrZero(other);
+
         if (IsTension || other.IsTension)
         {
-            return Tension(ToMeasure(new BigInteger(Recessive.Raw) * other.Recessive.Raw));
+            return FromOffsets(origin, ToMeasure(new BigInteger(Recessive.Raw) * other.Recessive.Raw), Measure.Zero);
         }
 
         return FromBigInteger(
             new BigInteger(Recessive.Raw) * other.Recessive.Raw,
-            new BigInteger(Dominant.Raw) * other.Dominant.Raw);
+            new BigInteger(Dominant.Raw) * other.Dominant.Raw,
+            origin);
     }
 
     public Ratio Divide(Ratio other)
     {
+        var origin = SharedOriginOrZero(other);
+
         if (IsTension || other.IsTension || other.Recessive == Measure.Zero)
         {
-            return Tension(Potential);
+            return FromOffsets(origin, Potential, Measure.Zero);
         }
 
         return FromBigInteger(
             new BigInteger(Recessive.Raw) * other.Dominant.Raw,
-            new BigInteger(Dominant.Raw) * other.Recessive.Raw);
+            new BigInteger(Dominant.Raw) * other.Recessive.Raw,
+            origin);
     }
 
     /// <summary>
@@ -174,7 +217,7 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant) : ISupp
 
         if (Recessive.Raw == 0)
         {
-            return new Ratio(Measure.Zero, Dominant.Sign == Measure.Zero ? Measure.One : Dominant.Sign);
+            return FromOffsets(Origin, Measure.Zero, Dominant.Sign == Measure.Zero ? Measure.One : Dominant.Sign);
         }
 
         var numerator = Recessive.Absolute.Raw;
@@ -186,7 +229,8 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant) : ISupp
             return this;
         }
 
-        return new Ratio(
+        return FromOffsets(
+            Origin,
             new Measure(Recessive.Raw / gcd),
             new Measure(Dominant.Raw / gcd));
     }
@@ -203,13 +247,17 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant) : ISupp
     /// </summary>
     public Ratio FoldDenominator() => IsTension || Dominant.Raw >= 0
         ? this
-        : new Ratio(-Recessive, -Dominant);
+        : FromOffsets(Origin, -Recessive, -Dominant);
 
     public Ratio AsRatio() => Normalize();
 
     public override string ToString() => string.Create(
         CultureInfo.InvariantCulture,
         $"{Recessive.Raw}/{Dominant.Raw}");
+
+    private Measure SharedOriginOrZero(Ratio other) => Origin == other.Origin
+        ? Origin
+        : Measure.Zero;
 
     private static long GreatestCommonDivisor(long left, long right)
     {
@@ -223,16 +271,25 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant) : ISupp
         return left < 0 ? -left : left;
     }
 
-    private static Ratio FromBigInteger(BigInteger recessive, BigInteger dominant)
+    private static Ratio FromOffsets(Measure origin, Measure recessive, Measure dominant) => new(
+        origin,
+        AddOffset(origin, recessive),
+        AddOffset(origin, dominant));
+
+    private static Measure AddOffset(Measure origin, Measure offset) => ToMeasure(new BigInteger(origin.Raw) + offset.Raw);
+
+    private static Measure Difference(Measure value, Measure origin) => ToMeasure(new BigInteger(value.Raw) - origin.Raw);
+
+    private static Ratio FromBigInteger(BigInteger recessive, BigInteger dominant, Measure origin)
     {
         if (dominant.IsZero)
         {
-            return Tension(ToMeasure(BigInteger.Abs(recessive)));
+            return FromOffsets(origin, ToMeasure(BigInteger.Abs(recessive)), Measure.Zero);
         }
 
         if (Fits(recessive) && Fits(dominant))
         {
-            return new Ratio(new Measure((long)recessive), new Measure((long)dominant));
+            return FromOffsets(origin, new Measure((long)recessive), new Measure((long)dominant));
         }
 
         var gcd = BigInteger.GreatestCommonDivisor(BigInteger.Abs(recessive), BigInteger.Abs(dominant));
@@ -244,7 +301,7 @@ public readonly record struct Ratio(Measure Recessive, Measure Dominant) : ISupp
 
         if (Fits(recessive) && Fits(dominant))
         {
-            return new Ratio(new Measure((long)recessive), new Measure((long)dominant));
+            return FromOffsets(origin, new Measure((long)recessive), new Measure((long)dominant));
         }
 
         throw new OverflowException("Ratio magnitude exceeded the current Measure range even after exact reduction.");
