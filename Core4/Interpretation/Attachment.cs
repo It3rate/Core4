@@ -203,7 +203,7 @@ public sealed class Attachment : ISupportFold
 
     private static SampleSet AlignAtomicSamples(SupportStructure structure, ImmutableArray<Site> sites)
     {
-        var count = (int)structure.RelationCount.Raw;
+        var count = (int)structure.RelationCount().Raw;
         var aligned = new Site[count];
         var defaults = structure.DefaultAttachmentSites();
 
@@ -233,7 +233,7 @@ public sealed class Attachment : ISupportFold
 
         foreach (var input in structure.Inputs)
         {
-            var count = (int)input.RelationCount.Raw;
+            var count = (int)input.RelationCount().Raw;
             var available = offset < sites.Length
                 ? sites.Slice(offset, Math.Min(count, sites.Length - offset))
                 : ImmutableArray<Site>.Empty;

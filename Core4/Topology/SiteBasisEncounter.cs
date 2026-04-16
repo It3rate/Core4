@@ -16,9 +16,9 @@ public readonly record struct SiteBasisEncounter(
 {
     internal SupportStructure Structure => Basis.Structure;
 
-    public Measure Grade => Structure.SupportGrade;
+    public Measure Grade => Structure.SupportGrade();
 
-    public Measure RelationCount => Structure.RelationCount;
+    public Measure RelationCount => Structure.RelationCount();
 
     public ISupportFold CalibrationRead => Basis;
 

@@ -11,23 +11,13 @@ internal readonly record struct SupportLandmark(
     LandmarkId Id,
     Carrier Carrier,
     Ratio Position,
-    Ratio Commitment)
-{
-    public SupportLandmark Reidentify(LandmarkId id) => new(id, Carrier, Position.Normalize(), Commitment.Normalize());
-}
+    Ratio Commitment);
 
 internal readonly record struct SupportSpan(
     Carrier Carrier,
     Ratio OriginPosition,
     Ratio AnchorPosition,
-    Ratio Commitment)
-{
-    public Ratio Span => AnchorPosition.Subtract(OriginPosition).Normalize();
-
-    public Measure Potential => Span.Potential;
-
-    public Measure Orientation => Span.Recessive.Sign;
-}
+    Ratio Commitment);
 
 internal readonly record struct LandmarkCoincidence(
     LandmarkId Left,
@@ -44,14 +34,12 @@ internal sealed class SupportStructure
 {
     private SupportStructure(
         Carrier primaryCarrier,
-        Measure supportGrade,
         ImmutableArray<SupportLandmark> landmarks,
         ImmutableArray<SupportSpan> spans,
         ImmutableArray<LandmarkCoincidence> coincidences,
         ImmutableArray<SupportStructure> inputs)
     {
         PrimaryCarrier = primaryCarrier;
-        SupportGrade = supportGrade;
         Landmarks = landmarks;
         Spans = spans;
         Coincidences = coincidences;
@@ -59,8 +47,6 @@ internal sealed class SupportStructure
     }
 
     public Carrier PrimaryCarrier { get; }
-
-    public Measure SupportGrade { get; }
 
     public ImmutableArray<SupportLandmark> Landmarks { get; }
 
@@ -74,11 +60,8 @@ internal sealed class SupportStructure
 
     public bool IsComposite => !IsAtomic;
 
-    public Measure RelationCount => new(Spans.Length);
-
     public static SupportStructure ForCarrier(Carrier carrier) => new(
         carrier,
-        Measure.Zero,
         ImmutableArray<SupportLandmark>.Empty,
         ImmutableArray<SupportSpan>.Empty,
         ImmutableArray<LandmarkCoincidence>.Empty,
@@ -97,7 +80,6 @@ internal sealed class SupportStructure
 
         return new SupportStructure(
             carrier,
-            Measure.Zero,
             [
                 new SupportLandmark(0, carrier, normalizedOrigin, normalizedCommitment),
                 new SupportLandmark(1, carrier, normalizedAnchor, normalizedCommitment)
@@ -142,7 +124,7 @@ internal sealed class SupportStructure
 
             foreach (var landmark in input.Landmarks)
             {
-                var remapped = landmark.Reidentify(nextId++);
+                var remapped = Reidentify(landmark, nextId++);
                 remap[landmark.Id] = remapped.Id;
                 landmarks.Add(remapped);
                 flattened.Add((inputIndex, remapped));
@@ -182,17 +164,16 @@ internal sealed class SupportStructure
         }
 
         var primaryCarrier = inputs.Length == 0 ? new Carrier(0) : inputs[0].PrimaryCarrier;
-        var supportGrade = inputs.Length == 0
-            ? Measure.Zero
-            : new Measure(inputs.Max(input => input.SupportGrade.Raw) + 1L);
 
         return new SupportStructure(
             primaryCarrier,
-            supportGrade,
             landmarks.ToImmutable(),
             spans.ToImmutable(),
             coincidences.ToImmutable(),
             inputs);
     }
+
+    private static SupportLandmark Reidentify(SupportLandmark landmark, LandmarkId id) =>
+        new(id, landmark.Carrier, landmark.Position.Normalize(), landmark.Commitment.Normalize());
 }
 

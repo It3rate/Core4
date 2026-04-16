@@ -35,13 +35,13 @@ public sealed class Basis : ISupport, ISupportFold
 
     public bool IsAtomicPair => _structure.IsAtomicPair();
 
-    public Measure Grade => _structure.SupportGrade;
+    public Measure Grade => _structure.SupportGrade();
 
     public Carrier PrimaryCarrier => _structure.PrimaryCarrier;
 
-    public Measure SupportGrade => _structure.SupportGrade;
+    public Measure SupportGrade => _structure.SupportGrade();
 
-    public Measure RelationCount => _structure.RelationCount;
+    public Measure RelationCount => _structure.RelationCount();
 
     public Measure AttachmentArity => RelationCount;
 

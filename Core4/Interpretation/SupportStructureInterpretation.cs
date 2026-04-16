@@ -10,6 +10,12 @@ namespace Core4.Interpretation;
 /// </summary>
 internal static class SupportStructureInterpretation
 {
+    public static Measure SupportGrade(this SupportStructure structure) => structure.Inputs.IsEmpty
+        ? Measure.Zero
+        : new Measure(structure.Inputs.Max(static input => input.SupportGrade().Raw) + 1L);
+
+    public static Measure RelationCount(this SupportStructure structure) => new(structure.Spans.Length);
+
     public static Measure CarrierCount(this SupportStructure structure) => new(structure.SelectCarriers().Length);
 
     public static Ratio Stiffness(this SupportStructure structure) => structure.IsAtomic
@@ -29,7 +35,7 @@ internal static class SupportStructureInterpretation
     public static ISupportProjection SpanRead(this SupportStructure structure) =>
         new SupportProjectionRead(structure.Span());
 
-    public static Ratio Span(this SupportStructure structure) => structure.AtomicSpan().Span;
+    public static Ratio Span(this SupportStructure structure) => structure.AtomicSpan().Span();
 
     public static Measure Delta(this SupportStructure structure) => structure.Span().Recessive;
 
@@ -202,12 +208,12 @@ internal static class SupportStructureInterpretation
         && structure.Inputs[0].Spans[0].Carrier == structure.Inputs[1].Spans[0].Carrier;
 
     public static bool IsAlignedPair(this SupportStructure structure) => structure.IsAtomicPair()
-        && structure.Inputs[0].Spans[0].Orientation.Raw != 0
-        && structure.Inputs[0].Spans[0].Orientation == structure.Inputs[1].Spans[0].Orientation;
+        && structure.Inputs[0].Spans[0].Orientation().Raw != 0
+        && structure.Inputs[0].Spans[0].Orientation() == structure.Inputs[1].Spans[0].Orientation();
 
     public static bool IsOpposedPair(this SupportStructure structure) => structure.IsAtomicPair()
-        && structure.Inputs[0].Spans[0].Orientation.Raw != 0
-        && structure.Inputs[0].Spans[0].Orientation == -structure.Inputs[1].Spans[0].Orientation;
+        && structure.Inputs[0].Spans[0].Orientation().Raw != 0
+        && structure.Inputs[0].Spans[0].Orientation() == -structure.Inputs[1].Spans[0].Orientation();
 
     public static Measure KernelCode(this SupportStructure structure)
     {
@@ -216,8 +222,8 @@ internal static class SupportStructureInterpretation
             return Measure.Zero;
         }
 
-        var recessive = SideCode(structure.Inputs[0].Spans[0].Orientation);
-        var dominant = SideCode(structure.Inputs[1].Spans[0].Orientation);
+        var recessive = SideCode(structure.Inputs[0].Spans[0].Orientation());
+        var dominant = SideCode(structure.Inputs[1].Spans[0].Orientation());
 
         if (recessive < 0 || dominant < 0)
         {
@@ -289,7 +295,7 @@ internal static class SupportStructureInterpretation
         }
 
         return carrier == span.Carrier
-            ? span.OriginPosition.Add(span.Span.Multiply(position)).Normalize()
+            ? span.OriginPosition.Add(span.Span().Multiply(position)).Normalize()
             : Ratio.Tension(position.Potential);
     }
 
@@ -307,10 +313,10 @@ internal static class SupportStructureInterpretation
     }
 
     private static Measure AtomicPotential(this SupportStructure structure) =>
-        structure.TryGetAtomicSpan(out var span) ? span.Potential : Measure.Zero;
+        structure.TryGetAtomicSpan(out var span) ? span.Potential() : Measure.Zero;
 
     private static Measure AtomicOrientation(this SupportStructure structure) =>
-        structure.TryGetAtomicSpan(out var span) ? span.Orientation : Measure.Zero;
+        structure.TryGetAtomicSpan(out var span) ? span.Orientation() : Measure.Zero;
 
     private static Ratio AtomicStiffness(this SupportStructure structure) =>
         structure.TryGetAtomicSpan(out var span) ? span.Commitment : Ratio.Zero(Measure.One);
@@ -335,7 +341,7 @@ internal static class SupportStructureInterpretation
     {
         var sitePosition = site.On(span.Carrier).Normalize();
         var delta = sitePosition.Subtract(span.OriginPosition);
-        return delta.Divide(span.Span);
+        return delta.Divide(span.Span());
     }
 
     private static Relation RelationFromSpan(SupportSpan span) => new(
@@ -357,4 +363,10 @@ internal static class SupportStructureInterpretation
 
         return -1L;
     }
+
+    private static Ratio Span(this SupportSpan span) => span.AnchorPosition.Subtract(span.OriginPosition).Normalize();
+
+    private static Measure Potential(this SupportSpan span) => span.Span().Potential;
+
+    private static Measure Orientation(this SupportSpan span) => span.Span().Recessive.Sign;
 }
