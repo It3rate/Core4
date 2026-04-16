@@ -161,5 +161,6 @@ public readonly record struct SiteBasisEncounter(
         return false;
     }
 
-    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
+    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier
+        && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
 }

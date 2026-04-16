@@ -81,4 +81,28 @@ public sealed class CarrierChainTests
         Assert.Equal(new Ratio(0, 1), chains[0].Start.Position);
         Assert.Equal(new Ratio(10, 1), chains[1].Start.Position);
     }
+
+    [Fact]
+    public void CarrierChainKeepsDistinctExactNodesThatShareWholeLocation()
+    {
+        Carrier y = 2;
+        var first = new Relation(
+            Site.Open(y.At(new Ratio(new Measure(1), new Measure(4)))),
+            Site.Open(y.At(new Ratio(new Measure(2), new Measure(4)))));
+        var second = new Relation(
+            Site.Open(y.At(new Ratio(new Measure(3), new Measure(4)))),
+            Site.Open(y.At(new Ratio(new Measure(4), new Measure(4)))));
+
+        var chains = ConnectedSiteTopology.FromRelations(first, second).ChainsOn(y);
+
+        Assert.Equal(2, chains.Length);
+        Assert.Equal(new Measure(2), chains[0].NodeCount);
+        Assert.Equal(new Measure(1), chains[0].RelationCount);
+        Assert.Equal(new Ratio(new Measure(1), new Measure(4)), chains[0].Start.Position);
+        Assert.Equal(new Ratio(new Measure(2), new Measure(4)), chains[0].End.Position);
+        Assert.Equal(new Measure(2), chains[1].NodeCount);
+        Assert.Equal(new Measure(1), chains[1].RelationCount);
+        Assert.Equal(new Ratio(new Measure(3), new Measure(4)), chains[1].Start.Position);
+        Assert.Equal(new Ratio(new Measure(4), new Measure(4)), chains[1].End.Position);
+    }
 }

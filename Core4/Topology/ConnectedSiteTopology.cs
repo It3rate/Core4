@@ -560,10 +560,8 @@ public readonly record struct ConnectedSiteTopology(ImmutableArray<Site> Sites, 
     }
 
     private static int Compare(Ratio left, Ratio right)
-    {
-        var comparison = checked((left.Recessive.Raw * right.Dominant.Raw) - (right.Recessive.Raw * left.Dominant.Raw));
-        return comparison < 0 ? -1 : comparison > 0 ? 1 : 0;
-    }
+        => left.CompareValue(right);
 
-    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;
+    private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier
+        && left.On(left.Carrier).Normalize() == right.On(right.Carrier).Normalize();
 }
