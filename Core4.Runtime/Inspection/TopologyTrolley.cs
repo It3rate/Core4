@@ -298,7 +298,7 @@ public readonly record struct TopologyTrolleyContinuation(
 
             foreach (var agreement in BasisAgreements)
             {
-                if (!hasBest || Compare(agreement, best) > 0)
+                if (!hasBest || agreement.ComparePreference(best) > 0)
                 {
                     best = agreement;
                     hasBest = true;
@@ -307,39 +307,6 @@ public readonly record struct TopologyTrolleyContinuation(
 
             return best;
         }
-    }
-
-    private static int Compare(Ratio left, Ratio right)
-    {
-        var leftScaled = checked(left.Recessive.Raw * right.Dominant.Raw);
-        var rightScaled = checked(right.Recessive.Raw * left.Dominant.Raw);
-        return leftScaled.CompareTo(rightScaled);
-    }
-
-    private static int Compare(BasisEncounterAgreement left, BasisEncounterAgreement right)
-    {
-        var continuation = Compare(left.Continuation, right.Continuation);
-
-        if (continuation != 0)
-        {
-            return continuation;
-        }
-
-        var capability = Compare(left.Capability, right.Capability);
-
-        if (capability != 0)
-        {
-            return capability;
-        }
-
-        var commitment = Compare(left.Commitment, right.Commitment);
-
-        if (commitment != 0)
-        {
-            return commitment;
-        }
-
-        return Compare(left.Resolution, right.Resolution);
     }
 }
 
@@ -431,46 +398,29 @@ public readonly record struct TopologyTrolleyObservation(
         }
 
         var best = default(TopologyTrolleyContinuation);
-        var bestContinuation = new Ratio(-Measure.One, Measure.One);
-        var bestCapability = Ratio.Zero(Measure.One);
-        var bestCommitment = Ratio.Zero(Measure.One);
+        var bestAgreement = default(BasisEncounterAgreement);
         var hasBest = false;
         var ambiguous = false;
 
         foreach (var candidate in forward)
         {
-            var continuationRank = candidate.HasBasisAgreement
-                ? candidate.BestBasisAgreement.Continuation
-                : Ratio.Zero(Measure.One);
-            var capabilityRank = candidate.HasBasisAgreement
-                ? candidate.BestBasisAgreement.Capability
-                : Ratio.Zero(Measure.One);
-            var commitmentRank = candidate.HasBasisAgreement
-                ? candidate.BestBasisAgreement.Commitment
-                : Ratio.Zero(Measure.One);
-            var continuationComparison = Compare(continuationRank, bestContinuation);
-            var capabilityComparison = continuationComparison == 0
-                ? Compare(capabilityRank, bestCapability)
-                : 0;
-            var commitmentComparison = continuationComparison == 0 && capabilityComparison == 0
-                ? Compare(commitmentRank, bestCommitment)
-                : 0;
+            var candidateAgreement = candidate.HasBasisAgreement
+                ? candidate.BestBasisAgreement
+                : default;
+            var comparison = hasBest
+                ? candidateAgreement.CompareTraversalPreference(bestAgreement)
+                : 1;
 
-            if (!hasBest
-                || continuationComparison > 0
-                || (continuationComparison == 0 && capabilityComparison > 0)
-                || (continuationComparison == 0 && capabilityComparison == 0 && commitmentComparison > 0))
+            if (!hasBest || comparison > 0)
             {
                 best = candidate;
-                bestContinuation = continuationRank;
-                bestCapability = capabilityRank;
-                bestCommitment = commitmentRank;
+                bestAgreement = candidateAgreement;
                 hasBest = true;
                 ambiguous = false;
                 continue;
             }
 
-            if (continuationComparison == 0 && capabilityComparison == 0 && commitmentComparison == 0)
+            if (comparison == 0)
             {
                 ambiguous = true;
             }
@@ -484,13 +434,6 @@ public readonly record struct TopologyTrolleyObservation(
 
         continuation = best;
         return true;
-    }
-
-    private static int Compare(Ratio left, Ratio right)
-    {
-        var leftScaled = checked(left.Recessive.Raw * right.Dominant.Raw);
-        var rightScaled = checked(right.Recessive.Raw * left.Dominant.Raw);
-        return leftScaled.CompareTo(rightScaled);
     }
 
     private ImmutableArray<TopologyTrolleyContinuation> ReflectiveReturns()
@@ -588,7 +531,7 @@ public readonly record struct TopologyTrolleyObservation(
                 && !TryResolveClosureTarget(agreement.Encounter, out _)
                 && agreement.PreservesDirection)
             {
-                if (!hasSelected || Compare(agreement.Commitment, selected.Commitment) > 0)
+                if (!hasSelected || CompareRatio(agreement.Commitment, selected.Commitment) > 0)
                 {
                     selected = agreement;
                     hasSelected = true;
@@ -624,9 +567,16 @@ public readonly record struct TopologyTrolleyObservation(
     {
         var leftPosition = left.On(carrier).Normalize();
         var rightPosition = right.On(carrier).Normalize();
-        return Compare(leftPosition, rightPosition) <= 0
+        return CompareRatio(leftPosition, rightPosition) <= 0
             ? new Relation(carrier, left, right)
             : new Relation(carrier, right, left);
+    }
+
+    private static int CompareRatio(Ratio left, Ratio right)
+    {
+        var leftScaled = checked(left.Recessive.Raw * right.Dominant.Raw);
+        var rightScaled = checked(right.Recessive.Raw * left.Dominant.Raw);
+        return leftScaled.CompareTo(rightScaled);
     }
 
     private static bool SameNode(Site left, Site right) => left.Carrier == right.Carrier && left.Location == right.Location;

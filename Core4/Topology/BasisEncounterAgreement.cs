@@ -33,6 +33,37 @@ public readonly record struct BasisEncounterAgreement(
 
     public bool IsOneSided => Capability == new Ratio(Measure.One, new Measure(2));
 
+    public int ComparePreference(BasisEncounterAgreement other)
+    {
+        var traversal = CompareTraversalPreference(other);
+
+        if (traversal != 0)
+        {
+            return traversal;
+        }
+
+        return CompareRatio(Resolution, other.Resolution);
+    }
+
+    public int CompareTraversalPreference(BasisEncounterAgreement other)
+    {
+        var continuation = CompareRatio(Continuation, other.Continuation);
+
+        if (continuation != 0)
+        {
+            return continuation;
+        }
+
+        var capability = CompareRatio(Capability, other.Capability);
+
+        if (capability != 0)
+        {
+            return capability;
+        }
+
+        return CompareRatio(Commitment, other.Commitment);
+    }
+
     public static BasisEncounterAgreement Create(
         TraversalSignature signature,
         SiteBasisEncounter encounter,
@@ -65,5 +96,12 @@ public readonly record struct BasisEncounterAgreement(
         return high == Measure.Zero
             ? Ratio.Zero(Measure.One)
             : new Ratio(low, high).Normalize();
+    }
+
+    private static int CompareRatio(Ratio left, Ratio right)
+    {
+        var leftScaled = checked(left.Recessive.Raw * right.Dominant.Raw);
+        var rightScaled = checked(right.Recessive.Raw * left.Dominant.Raw);
+        return leftScaled.CompareTo(rightScaled);
     }
 }
