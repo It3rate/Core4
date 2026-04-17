@@ -8,7 +8,7 @@ namespace Core4.Aliases;
 /// support, placements can travel along it by ratio just like they do on a carrier.
 /// Example: <c>var segment = Basis.Fuse(leftBasis, rightBasis); var point = segment.Place(new Ratio(1, 2));</c>
 /// </summary>
-public sealed class Basis : ISupport, ISupportFold
+public sealed class Basis : ISupport, ISupportFold, IElement
 {
     private readonly SupportStructure _structure;
     private readonly ImmutableArray<Basis> _components;

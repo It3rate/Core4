@@ -7,7 +7,7 @@ namespace Core4.Interpretation;
 /// rather than assuming ratio is the only possible projection forever.
 /// Example: <c>var p = basis.Place(new Ratio(3, 10));</c>
 /// </summary>
-public readonly record struct Placement(ISupport Support, ISupportProjection ProjectionRead)
+public readonly record struct Placement(ISupport Support, ISupportProjection ProjectionRead) : IElement
 {
     public static Placement Exact(Carrier carrier, Measure location) => new(
         carrier,

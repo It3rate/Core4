@@ -7,7 +7,7 @@ namespace Core4.Aliases;
 /// reusable basis, while leaving it live keeps it available for negotiation or future dynamic motion.
 /// Example: <c>var relation = origin.Relate(anchor);</c>
 /// </summary>
-public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor) : ISupport
+public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor) : ISupport, IElement
 {
     public Relation(Site origin, Site anchor) : this(origin.Carrier, origin, anchor)
     {

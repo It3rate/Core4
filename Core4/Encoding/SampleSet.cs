@@ -9,7 +9,7 @@ namespace Core4.Encoding;
 /// type intentionally stays close to raw sample storage rather than accumulating read/filter helpers directly.
 /// Samples are observational/candidate structure for now rather than frozen topology.
 /// </summary>
-public sealed class SampleSet
+public sealed class SampleSet : IElement
 {
     private readonly ImmutableArray<Site> _sites;
     private readonly ImmutableArray<SampleSet> _groups;

@@ -31,7 +31,7 @@ internal readonly record struct LandmarkCoincidence(
 /// not own any larger connected network it may participate in, and richer network/topology views should be discovered
 /// by interpretation/traversal rather than stored here as universal authority.
 /// </summary>
-internal sealed class SupportStructure
+internal sealed class SupportStructure : IElement
 {
     private SupportStructure(
         ImmutableArray<SupportLandmark> landmarks,

@@ -8,7 +8,7 @@ namespace Core4.Encoding;
 /// carrier without one universal ruler already being chosen.
 /// Example: <c>var x = new Carrier(1); var point = x.At(10);</c>
 /// </summary>
-public readonly record struct Carrier(long Id, CarrierDomain Domain) : ISupport
+public readonly record struct Carrier(long Id, CarrierDomain Domain) : ISupport, IElement
 {
     public Carrier(long id) : this(id, new CarrierDomain(id))
     {

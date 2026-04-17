@@ -12,7 +12,7 @@ namespace Core4.Interpretation;
 /// pretending the whole object is itself one atomic relation.
 /// Example: <c>var reading = basis.Attach(5, 4);</c>
 /// </summary>
-public sealed class Attachment : ISupportFold
+public sealed class Attachment : ISupportFold, IElement
 {
     private readonly SampleSet _samples;
 

@@ -9,7 +9,7 @@ namespace Core4.State;
 /// already well-formed elsewhere.
 /// Example: <c>var site = Site.Open(x, 0).WithResidual(Ratio.Tension(10));</c>
 /// </summary>
-public readonly record struct Site(Placement Placement, AlignedKernel Kernel, OrthogonalReservoir Orthogonal)
+public readonly record struct Site(Placement Placement, AlignedKernel Kernel, OrthogonalReservoir Orthogonal) : IElement
 {
     public static Site Open(Carrier carrier, Measure location) => new(carrier.At(location), AlignedKernel.Open, OrthogonalReservoir.Open);
 

@@ -7,7 +7,7 @@ namespace Core4.Encoding;
 /// can change later without changing the engine vocabulary.
 /// Example: <c>var heat = new Measure(10);</c>
 /// </summary>
-public readonly record struct Measure(long Raw)
+public readonly record struct Measure(long Raw) : IElement
 {
     public static Measure Zero => new(0);
 
