@@ -116,8 +116,10 @@ Examples of the intended reading:
 - one carrier related to one measure can behave like a landmark-capable point
 - that landmark does not become a measurement origin until another measure
   relates through it
-- two points sharing one first reference can behave like two units with a common
-  origin
+- one second-order relation between two carrier-point relations on the same
+  carrier can behave like a unit candidate
+- one second-order relation between two carrier-point relations on different
+  carriers can behave like a join candidate
 - second-order relation-to-relation freezes can behave like directed segment,
   area, complex, or self-interaction depending on the underlying elements
 

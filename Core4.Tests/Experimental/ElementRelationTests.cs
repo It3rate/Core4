@@ -74,4 +74,42 @@ public sealed class ElementRelationTests
         Assert.True(fused.IsRepeated());
         Assert.True(point.SharesBase(alignedCarrier));
     }
+
+    [Fact]
+    public void ExperimentalRelationInspectionReadsSameCarrierPointPairAsUnitCandidate()
+    {
+        Carrier x = 1;
+        var origin = new ExperimentalRelation(x, Measure.Zero, new Ratio(Measure.One, Measure.One));
+        var unit = new ExperimentalRelation(x, new Measure(10), new Ratio(Measure.One, Measure.One));
+        var unitCandidate = new ExperimentalRelation(origin, unit, new Ratio(Measure.One, Measure.One));
+
+        Assert.True(unitCandidate.IsPointPair());
+        Assert.True(unitCandidate.IsSameCarrierPointPair());
+        Assert.False(unitCandidate.IsCrossCarrierPointPair());
+        Assert.True(unitCandidate.CanReadAsUnitCandidate());
+        Assert.False(unitCandidate.CanReadAsJoinCandidate());
+        Assert.Equal(new Measure(10), unitCandidate.AttachedOffset());
+        Assert.True(unitCandidate.TryGetCarrierPointPair(out var baseCarrier, out var baseLocation, out var attachedCarrier, out var attachedLocation));
+        Assert.Equal(x, baseCarrier);
+        Assert.Equal(x, attachedCarrier);
+        Assert.Equal(Measure.Zero, baseLocation);
+        Assert.Equal(new Measure(10), attachedLocation);
+    }
+
+    [Fact]
+    public void ExperimentalRelationInspectionReadsCrossCarrierPointPairAsJoinCandidate()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+        var xPoint = new ExperimentalRelation(x, new Measure(10), new Ratio(Measure.One, Measure.One));
+        var yPoint = new ExperimentalRelation(y, new Measure(10), new Ratio(Measure.One, Measure.One));
+        var joinCandidate = new ExperimentalRelation(xPoint, yPoint, new Ratio(Measure.One, Measure.One));
+
+        Assert.True(joinCandidate.IsPointPair());
+        Assert.False(joinCandidate.IsSameCarrierPointPair());
+        Assert.True(joinCandidate.IsCrossCarrierPointPair());
+        Assert.False(joinCandidate.CanReadAsUnitCandidate());
+        Assert.True(joinCandidate.CanReadAsJoinCandidate());
+        Assert.Equal(Measure.Zero, joinCandidate.AttachedOffset());
+    }
 }
