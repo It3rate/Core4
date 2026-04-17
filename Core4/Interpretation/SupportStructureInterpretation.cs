@@ -10,6 +10,26 @@ namespace Core4.Interpretation;
 /// </summary>
 internal static class SupportStructureInterpretation
 {
+    public static Carrier DefaultCarrier(this SupportStructure structure)
+    {
+        if (!structure.Spans.IsEmpty)
+        {
+            return structure.Spans[0].Carrier;
+        }
+
+        if (!structure.Landmarks.IsEmpty)
+        {
+            return structure.Landmarks[0].Carrier;
+        }
+
+        if (!structure.Components.IsEmpty)
+        {
+            return structure.Components[0].DefaultCarrier();
+        }
+
+        return new Carrier(0);
+    }
+
     public static Measure SupportGrade(this SupportStructure structure) => structure.Components.IsEmpty
         ? Measure.Zero
         : new Measure(structure.Components.Max(static component => component.SupportGrade().Raw) + 1L);
@@ -289,7 +309,7 @@ internal static class SupportStructureInterpretation
     {
         if (!structure.TryGetAtomicSpan(out var span))
         {
-            return carrier == structure.PrimaryCarrier
+            return carrier == structure.DefaultCarrier()
                 ? position.Normalize()
                 : Ratio.Tension(position.Potential);
         }

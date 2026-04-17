@@ -37,7 +37,10 @@ public sealed class Basis : ISupport, ISupportFold
 
     public Measure Grade => _structure.SupportGrade();
 
-    public Carrier PrimaryCarrier => _structure.PrimaryCarrier;
+    public Carrier DefaultCarrier => _structure.DefaultCarrier();
+
+    // TODO(core): Delete this compatibility alias once callers stop expecting supports to expose a single primary carrier.
+    public Carrier PrimaryCarrier => DefaultCarrier;
 
     public Measure SupportGrade => _structure.SupportGrade();
 

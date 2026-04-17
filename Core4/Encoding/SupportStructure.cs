@@ -34,20 +34,16 @@ internal readonly record struct LandmarkCoincidence(
 internal sealed class SupportStructure
 {
     private SupportStructure(
-        Carrier primaryCarrier,
         ImmutableArray<SupportLandmark> landmarks,
         ImmutableArray<SupportSpan> spans,
         ImmutableArray<LandmarkCoincidence> coincidences,
         ImmutableArray<SupportStructure> components)
     {
-        PrimaryCarrier = primaryCarrier;
         Landmarks = landmarks;
         Spans = spans;
         Coincidences = coincidences;
         Components = components;
     }
-
-    public Carrier PrimaryCarrier { get; }
 
     public ImmutableArray<SupportLandmark> Landmarks { get; }
 
@@ -73,7 +69,6 @@ internal sealed class SupportStructure
         var span = normalizedAnchor.Subtract(normalizedOrigin).Normalize();
 
         return new SupportStructure(
-            carrier,
             [
                 new SupportLandmark(0, carrier, normalizedOrigin, normalizedCommitment),
                 new SupportLandmark(1, carrier, normalizedAnchor, normalizedCommitment)
@@ -157,10 +152,7 @@ internal sealed class SupportStructure
             }
         }
 
-        var primaryCarrier = components.Length == 0 ? new Carrier(0) : components[0].PrimaryCarrier;
-
         return new SupportStructure(
-            primaryCarrier,
             landmarks.ToImmutable(),
             spans.ToImmutable(),
             coincidences.ToImmutable(),

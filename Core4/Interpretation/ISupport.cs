@@ -8,6 +8,8 @@ namespace Core4.Interpretation;
 /// </summary>
 public interface ISupport
 {
+    // TODO(core): Rename this to DefaultCarrier or ReferenceCarrier once callers stop assuming a support has one
+    // authoritative line. For now this remains the default carrier used when a support needs one reference axis.
     Carrier PrimaryCarrier { get; }
 
     Measure SupportGrade { get; }
