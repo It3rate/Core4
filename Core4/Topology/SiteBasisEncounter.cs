@@ -157,7 +157,7 @@ public readonly record struct SiteBasisEncounter(
         SiteLeg leg,
         out SiteBasisEncounter encounter)
     {
-        if (leg.Support is Basis basis && basis.PrimaryCarrier == carrier)
+        if (leg.Support is Basis basis && basis.DefaultCarrier == carrier)
         {
             encounter = FromPinnedBasis(site, carrier, basis, leg.Potential);
             return true;

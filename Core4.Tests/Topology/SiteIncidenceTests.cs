@@ -15,7 +15,7 @@ public sealed class SiteIncidenceTests
         var midpoint = relation.Place(new Ratio(1, 2));
         var onCarrier = midpoint.On(x);
 
-        Assert.Equal(x, midpoint.PrimaryCarrier);
+        Assert.Equal(x, midpoint.DefaultCarrier);
         Assert.Equal(Measure.Zero, midpoint.SupportGrade);
         Assert.Equal(new Ratio(10, 2), onCarrier);
         Assert.Equal(new Measure(5), onCarrier.Whole);

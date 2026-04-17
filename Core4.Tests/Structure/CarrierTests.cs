@@ -35,7 +35,7 @@ public sealed class CarrierTests
         var basis = relation.Freeze();
 
         Assert.Equal(temperature, relation.Carrier.Domain);
-        Assert.Equal(temperature, basis.PrimaryCarrier.Domain);
+        Assert.Equal(temperature, basis.DefaultCarrier.Domain);
         Assert.Single(basis.SelectCarriers());
         Assert.Equal(temperature, basis.SelectCarriers()[0].Domain);
     }

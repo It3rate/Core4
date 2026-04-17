@@ -13,7 +13,11 @@ public readonly record struct Placement(ISupport Support, ISupportProjection Pro
         carrier,
         new Ratio(location, Measure.One));
 
-    public Carrier PrimaryCarrier => Support.PrimaryCarrier;
+    public Carrier DefaultCarrier => Support.DefaultCarrier;
+
+    // TODO(core): Delete this compatibility alias once callers stop expecting placements to expose a single primary
+    // carrier. The real placement carrier surface is DefaultCarrier.
+    public Carrier PrimaryCarrier => DefaultCarrier;
 
     public Measure SupportGrade => Support.SupportGrade;
 

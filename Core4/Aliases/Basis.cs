@@ -39,7 +39,8 @@ public sealed class Basis : ISupport, ISupportFold
 
     public Carrier DefaultCarrier => _structure.DefaultCarrier();
 
-    // TODO(core): Delete this compatibility alias once callers stop expecting supports to expose a single primary carrier.
+    // TODO(core): Delete this compatibility alias once callers stop expecting supports to expose a single primary
+    // carrier. The real basis support surface is DefaultCarrier.
     public Carrier PrimaryCarrier => DefaultCarrier;
 
     public Measure SupportGrade => _structure.SupportGrade();

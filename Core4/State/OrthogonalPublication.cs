@@ -14,7 +14,7 @@ public sealed record OrthogonalPublication(ISupport Support, SupportProjectionRe
     {
     }
 
-    public Carrier Carrier => Support.PrimaryCarrier;
+    public Carrier Carrier => Support.DefaultCarrier;
 
     // TODO(core): Delete this compatibility alias once callers consume ValueRead directly.
     public Ratio Value => ValueRead.CompatibilityRatio();

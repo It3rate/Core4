@@ -33,7 +33,7 @@ public sealed record OrthogonalFeedback(
     {
     }
 
-    public Carrier Carrier => Support.PrimaryCarrier;
+    public Carrier Carrier => Support.DefaultCarrier;
 
     // TODO(core): Delete this compatibility alias once callers consume DesiredRead directly.
     public Ratio Desired => DesiredRead.CompatibilityRatio();

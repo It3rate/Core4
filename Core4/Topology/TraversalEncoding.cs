@@ -53,7 +53,7 @@ public readonly record struct TraversalSignature(
 {
     private Ratio CompatibilityCalibration => CalibrationRead.CompatibilityRatio();
 
-    public Carrier Carrier => Placement.PrimaryCarrier;
+    public Carrier Carrier => Placement.DefaultCarrier;
 
     public Measure Grade => Placement.SupportGrade;
 

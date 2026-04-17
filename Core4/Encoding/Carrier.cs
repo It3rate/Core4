@@ -14,7 +14,11 @@ public readonly record struct Carrier(long Id, CarrierDomain Domain) : ISupport
     {
     }
 
-    public Carrier PrimaryCarrier => this;
+    public Carrier DefaultCarrier => this;
+
+    // TODO(core): Delete this compatibility alias once callers stop expecting supports to expose a single primary
+    // carrier. The real carrier support surface is DefaultCarrier.
+    public Carrier PrimaryCarrier => DefaultCarrier;
 
     public Measure SupportGrade => Measure.Zero;
 

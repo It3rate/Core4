@@ -7,7 +7,7 @@ namespace Core4.Topology;
 /// </summary>
 public readonly record struct SiteLeg(ISupport Support, Measure Direction, Measure Potential)
 {
-    public Carrier Carrier => Support.PrimaryCarrier;
+    public Carrier Carrier => Support.DefaultCarrier;
 
     public bool IsIncoming => Direction.Raw < 0;
 

@@ -13,7 +13,11 @@ public readonly record struct Relation(Carrier Carrier, Site Origin, Site Anchor
     {
     }
 
-    public Carrier PrimaryCarrier => Carrier;
+    public Carrier DefaultCarrier => Carrier;
+
+    // TODO(core): Delete this compatibility alias once callers stop expecting supports to expose a single primary
+    // carrier. The real relation support surface is DefaultCarrier.
+    public Carrier PrimaryCarrier => DefaultCarrier;
 
     public Measure SupportGrade => Measure.Zero;
 

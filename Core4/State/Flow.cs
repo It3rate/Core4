@@ -14,7 +14,7 @@ public readonly record struct Flow(ISupport Support, SupportProjectionRead Value
     {
     }
 
-    public Carrier Carrier => Support.PrimaryCarrier;
+    public Carrier Carrier => Support.DefaultCarrier;
 
     // TODO(core): Delete this compatibility alias once callers consume ValueRead directly.
     public Ratio Value => ValueRead.CompatibilityRatio();

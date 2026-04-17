@@ -17,7 +17,7 @@ public readonly record struct Site(Placement Placement, AlignedKernel Kernel, Or
 
     public static Site Tension(Carrier carrier, Measure location, Measure energy) => Open(carrier, location).Focus(energy);
 
-    public Carrier Carrier => Placement.PrimaryCarrier;
+    public Carrier Carrier => Placement.DefaultCarrier;
 
     public ISupportProjection PositionRead => Placement.ProjectionRead;
 
