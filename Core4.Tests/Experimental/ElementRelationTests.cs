@@ -79,6 +79,7 @@ public sealed class ElementRelationTests
         Assert.Equal(Measure.One, pointSignature.FreezeOrder);
         Assert.Equal(Measure.Zero, pointSignature.CarrierPattern);
         Assert.Equal(Measure.Zero, pointSignature.BasePattern);
+        Assert.Equal(Measure.One, pointSignature.ReadPattern);
         Assert.Equal(Measure.Zero, pointSignature.AlignmentPattern);
         Assert.Equal(Measure.Zero, pointSignature.FusionPattern);
         Assert.Equal(new Measure(3), fusedSignature.ElementOrder.BaseOrder);
@@ -86,6 +87,7 @@ public sealed class ElementRelationTests
         Assert.Equal(new Measure(2), fusedSignature.FreezeOrder);
         Assert.Equal(Measure.Zero, fusedSignature.CarrierPattern);
         Assert.Equal(new Measure(2), fusedSignature.BasePattern);
+        Assert.Equal(Measure.Zero, fusedSignature.ReadPattern);
         Assert.Equal(Measure.Zero, fusedSignature.AlignmentPattern);
         Assert.Equal(Measure.Zero, fusedSignature.FusionPattern);
         Assert.Equal(new Measure(3), fusedSignature.Multiplicity);
@@ -115,6 +117,7 @@ public sealed class ElementRelationTests
         Assert.Equal(new Measure(2), signature.FreezeOrder);
         Assert.Equal(Measure.One, signature.CarrierPattern);
         Assert.Equal(new Measure(2), signature.BasePattern);
+        Assert.Equal(new Measure(4), signature.ReadPattern);
         Assert.Equal(Measure.Zero, signature.AlignmentPattern);
         Assert.Equal(Measure.Zero, signature.FusionPattern);
         Assert.Equal(Measure.One, signature.Multiplicity);
@@ -140,6 +143,7 @@ public sealed class ElementRelationTests
         Assert.Equal(new Measure(2), signature.FreezeOrder);
         Assert.Equal(new Measure(3), signature.CarrierPattern);
         Assert.Equal(Measure.One, signature.BasePattern);
+        Assert.Equal(new Measure(5), signature.ReadPattern);
         Assert.Equal(Measure.Zero, signature.AlignmentPattern);
         Assert.Equal(Measure.Zero, signature.FusionPattern);
     }
@@ -217,6 +221,7 @@ public sealed class ElementRelationTests
         Assert.True(segment.IsSameCarrierUnitCandidatePair());
         Assert.True(segment.SharesUnitBase());
         Assert.True(segment.CanReadAsDirectedSegmentCandidate());
+        Assert.Equal(new Measure(6), segment.Signature().ReadPattern);
         Assert.Equal(new Measure(2), segment.FusionPattern());
         Assert.Equal(new Measure(2), segment.Signature().FusionPattern);
 

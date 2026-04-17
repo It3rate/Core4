@@ -206,11 +206,27 @@ It currently carries:
 - `FreezeOrder`
 - `CarrierPattern`
 - `BasePattern`
+- `ReadPattern`
 - `AlignmentPattern`
 - `FusionPattern`
 - `Multiplicity`
 
 This preserves direction while still giving one ordered structural summary.
+
+`ReadPattern` is the current bridge between raw extraction and higher
+classification. It is where the experimental layer records whether the raw
+relation currently reads as:
+
+- a carrier-point
+- a carrier-alignment
+- a point-pair
+- a unit candidate
+- a join candidate
+- a unit-candidate pair
+
+The intent is that classification helpers increasingly read through this
+signature, while raw extraction helpers still return the underlying carriers,
+locations, and nested relations when that detail is actually needed.
 
 For now only three element families have canonical order:
 
