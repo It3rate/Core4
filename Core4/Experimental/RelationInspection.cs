@@ -22,11 +22,24 @@ public static class RelationInspection
     private static readonly Measure BasePatternDistinct = Measure.One;
     private static readonly Measure BasePatternShared = new(2);
 
+    private static readonly Measure AlignmentPatternUnknown = Measure.Zero;
+    private static readonly Measure AlignmentPatternSelf = Measure.One;
+    private static readonly Measure AlignmentPatternAligned = new(2);
+    private static readonly Measure AlignmentPatternOpposed = new(3);
+
+    private static readonly Measure FusionPatternUnknown = Measure.Zero;
+    private static readonly Measure FusionPatternSelf = Measure.One;
+    private static readonly Measure FusionPatternDirectedSegment = new(2);
+    private static readonly Measure FusionPatternArea = new(3);
+    private static readonly Measure FusionPatternComplex = new(4);
+
     public static RelationSignature Signature(this Relation relation) => new(
         relation.ElementOrder(),
         relation.FreezeOrder(),
         relation.CarrierPattern(),
         relation.BasePattern(),
+        relation.AlignmentPattern(),
+        relation.FusionPattern(),
         relation.Multiplicity);
 
     public static ElementOrderSignature ElementOrder(this Relation relation) => new(
@@ -145,6 +158,11 @@ public static class RelationInspection
         relation.TryGetCarrierPointPair(out var baseCarrier, out _, out var attachedCarrier, out _)
         && baseCarrier != attachedCarrier;
 
+    public static bool IsSameDomainCrossCarrierPointPair(this Relation relation) =>
+        relation.TryGetCarrierPointPair(out var baseCarrier, out _, out var attachedCarrier, out _)
+        && baseCarrier != attachedCarrier
+        && baseCarrier.Domain == attachedCarrier.Domain;
+
     public static bool CanReadAsUnitCandidate(this Relation relation) =>
         relation.TryGetCarrierPointPair(out var baseCarrier, out var baseLocation, out var attachedCarrier, out var attachedLocation)
         && baseCarrier == attachedCarrier
@@ -152,6 +170,205 @@ public static class RelationInspection
 
     public static bool CanReadAsJoinCandidate(this Relation relation) =>
         relation.IsCrossCarrierPointPair();
+
+    public static bool TryGetUnitCandidate(
+        this Relation relation,
+        out Carrier carrier,
+        out Measure originLocation,
+        out Measure attachedLocation,
+        out Measure attachedOffset)
+    {
+        if (relation.CanReadAsUnitCandidate()
+            && relation.TryGetCarrierPointPair(out carrier, out originLocation, out _, out attachedLocation))
+        {
+            attachedOffset = attachedLocation - originLocation;
+            return true;
+        }
+
+        carrier = default;
+        originLocation = default;
+        attachedLocation = default;
+        attachedOffset = default;
+        return false;
+    }
+
+    public static bool IsUnitCandidatePair(this Relation relation) =>
+        relation.Base is Relation baseUnit
+        && relation.Attached is Relation attachedUnit
+        && baseUnit.CanReadAsUnitCandidate()
+        && attachedUnit.CanReadAsUnitCandidate();
+
+    public static bool TryGetUnitCandidatePair(
+        this Relation relation,
+        out Relation baseUnit,
+        out Relation attachedUnit)
+    {
+        if (relation.Base is Relation baseRelation
+            && relation.Attached is Relation attachedRelation
+            && baseRelation.CanReadAsUnitCandidate()
+            && attachedRelation.CanReadAsUnitCandidate())
+        {
+            baseUnit = baseRelation;
+            attachedUnit = attachedRelation;
+            return true;
+        }
+
+        baseUnit = default;
+        attachedUnit = default;
+        return false;
+    }
+
+    public static bool IsSameCarrierUnitCandidatePair(this Relation relation) =>
+        relation.TryGetUnitCandidatePair(out var baseUnit, out var attachedUnit)
+        && baseUnit.TryGetUnitCandidate(out var baseCarrier, out _, out _, out _)
+        && attachedUnit.TryGetUnitCandidate(out var attachedCarrier, out _, out _, out _)
+        && baseCarrier == attachedCarrier;
+
+    public static bool IsCrossCarrierUnitCandidatePair(this Relation relation) =>
+        relation.TryGetUnitCandidatePair(out var baseUnit, out var attachedUnit)
+        && baseUnit.TryGetUnitCandidate(out var baseCarrier, out _, out _, out _)
+        && attachedUnit.TryGetUnitCandidate(out var attachedCarrier, out _, out _, out _)
+        && baseCarrier != attachedCarrier;
+
+    public static bool SharesUnitBase(this Relation relation) =>
+        relation.TryGetUnitCandidatePair(out var baseUnit, out var attachedUnit)
+        && (
+            Equals(baseUnit.Base, attachedUnit.Base)
+            || baseUnit.Base is Relation baseOrigin
+            && attachedUnit.Base is Relation attachedOrigin
+            && baseOrigin.TryGetCarrierPoint(out _, out var baseOriginLocation)
+            && attachedOrigin.TryGetCarrierPoint(out _, out var attachedOriginLocation)
+            && baseOriginLocation == attachedOriginLocation);
+
+    public static bool CanReadAsSelfInteractionCandidate(this Relation relation) =>
+        relation.TryGetUnitCandidatePair(out var baseUnit, out var attachedUnit)
+        && relation.SharesUnitBase()
+        && baseUnit.TryGetUnitCandidate(out var baseCarrier, out _, out _, out var baseOffset)
+        && attachedUnit.TryGetUnitCandidate(out var attachedCarrier, out _, out _, out var attachedOffset)
+        && baseCarrier == attachedCarrier
+        && baseOffset == attachedOffset;
+
+    public static bool CanReadAsDirectedSegmentCandidate(this Relation relation) =>
+        relation.TryGetUnitCandidatePair(out var baseUnit, out var attachedUnit)
+        && relation.SharesUnitBase()
+        && baseUnit.TryGetUnitCandidate(out var baseCarrier, out _, out _, out var baseOffset)
+        && attachedUnit.TryGetUnitCandidate(out var attachedCarrier, out _, out _, out var attachedOffset)
+        && baseCarrier == attachedCarrier
+        && baseOffset.Sign != Measure.Zero
+        && baseOffset.Sign == -attachedOffset.Sign;
+
+    public static bool CanReadAsAreaCandidate(this Relation relation) =>
+        relation.TryGetUnitCandidatePair(out var baseUnit, out var attachedUnit)
+        && relation.SharesUnitBase()
+        && baseUnit.TryGetUnitCandidate(out var baseCarrier, out _, out _, out var baseOffset)
+        && attachedUnit.TryGetUnitCandidate(out var attachedCarrier, out _, out _, out var attachedOffset)
+        && baseCarrier != attachedCarrier
+        && baseCarrier.Domain != attachedCarrier.Domain
+        && baseOffset.Sign != Measure.Zero
+        && baseOffset.Sign == attachedOffset.Sign;
+
+    public static bool CanReadAsComplexCandidate(this Relation relation) =>
+        relation.TryGetUnitCandidatePair(out var baseUnit, out var attachedUnit)
+        && relation.SharesUnitBase()
+        && baseUnit.TryGetUnitCandidate(out var baseCarrier, out _, out _, out var baseOffset)
+        && attachedUnit.TryGetUnitCandidate(out var attachedCarrier, out _, out _, out var attachedOffset)
+        && baseCarrier != attachedCarrier
+        && baseCarrier.Domain != attachedCarrier.Domain
+        && baseOffset.Sign != Measure.Zero
+        && baseOffset.Sign == -attachedOffset.Sign;
+
+    public static bool CanReadAsSelfCandidate(this Relation relation) =>
+        relation.TryGetCarrierPointPair(out var baseCarrier, out var baseLocation, out var attachedCarrier, out var attachedLocation)
+        && baseCarrier == attachedCarrier
+        && baseLocation == attachedLocation;
+
+    public static bool CanReadAsAlignedCandidate(this Relation relation)
+    {
+        if (!relation.TryGetCarrierPointPair(out var baseCarrier, out var baseLocation, out var attachedCarrier, out var attachedLocation))
+        {
+            return false;
+        }
+
+        if (!(baseCarrier == attachedCarrier || baseCarrier.Domain == attachedCarrier.Domain))
+        {
+            return false;
+        }
+
+        if (baseCarrier == attachedCarrier && baseLocation == attachedLocation)
+        {
+            return false;
+        }
+
+        var baseSign = baseLocation.Sign;
+        var attachedSign = attachedLocation.Sign;
+        return baseSign != Measure.Zero
+            && attachedSign != Measure.Zero
+            && baseSign == attachedSign;
+    }
+
+    public static bool CanReadAsOpposedCandidate(this Relation relation)
+    {
+        if (!relation.TryGetCarrierPointPair(out var baseCarrier, out var baseLocation, out var attachedCarrier, out var attachedLocation))
+        {
+            return false;
+        }
+
+        if (!(baseCarrier == attachedCarrier || baseCarrier.Domain == attachedCarrier.Domain))
+        {
+            return false;
+        }
+
+        var baseSign = baseLocation.Sign;
+        var attachedSign = attachedLocation.Sign;
+        return baseSign != Measure.Zero
+            && attachedSign != Measure.Zero
+            && baseSign == -attachedSign;
+    }
+
+    public static Measure AlignmentPattern(this Relation relation)
+    {
+        if (relation.CanReadAsSelfCandidate())
+        {
+            return AlignmentPatternSelf;
+        }
+
+        if (relation.CanReadAsAlignedCandidate())
+        {
+            return AlignmentPatternAligned;
+        }
+
+        if (relation.CanReadAsOpposedCandidate())
+        {
+            return AlignmentPatternOpposed;
+        }
+
+        return AlignmentPatternUnknown;
+    }
+
+    public static Measure FusionPattern(this Relation relation)
+    {
+        if (relation.CanReadAsSelfInteractionCandidate())
+        {
+            return FusionPatternSelf;
+        }
+
+        if (relation.CanReadAsDirectedSegmentCandidate())
+        {
+            return FusionPatternDirectedSegment;
+        }
+
+        if (relation.CanReadAsAreaCandidate())
+        {
+            return FusionPatternArea;
+        }
+
+        if (relation.CanReadAsComplexCandidate())
+        {
+            return FusionPatternComplex;
+        }
+
+        return FusionPatternUnknown;
+    }
 
     public static Measure AttachedOffset(this Relation relation) =>
         relation.TryGetCarrierPointPair(out var baseCarrier, out var baseLocation, out var attachedCarrier, out var attachedLocation)
@@ -188,6 +405,8 @@ public static class RelationInspection
                 return true;
             case Relation relation when relation.IsCarrierPointRelation():
                 carrier = (Carrier)relation.Base;
+                return true;
+            case Relation relation when relation.TryGetUnitCandidate(out carrier, out _, out _, out _):
                 return true;
             default:
                 carrier = default;

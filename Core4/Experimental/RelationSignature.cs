@@ -12,6 +12,8 @@ public readonly record struct RelationSignature(
     Measure FreezeOrder,
     Measure CarrierPattern,
     Measure BasePattern,
+    Measure AlignmentPattern,
+    Measure FusionPattern,
     Measure Multiplicity);
 
 /// <summary>

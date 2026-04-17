@@ -120,6 +120,11 @@ Examples of the intended reading:
   carrier can behave like a unit candidate
 - one second-order relation between two carrier-point relations on different
   carriers can behave like a join candidate
+- one relation between two unit candidates can further behave like a
+  directed-segment, area-like, complex-like, or self-interaction candidate
+  when the carrier/base/alignment conditions line up
+- same-carrier or same-domain comparable point pairs may also read as self,
+  aligned, or opposed depending on their attached locations
 - second-order relation-to-relation freezes can behave like directed segment,
   area, complex, or self-interaction depending on the underlying elements
 
@@ -201,6 +206,8 @@ It currently carries:
 - `FreezeOrder`
 - `CarrierPattern`
 - `BasePattern`
+- `AlignmentPattern`
+- `FusionPattern`
 - `Multiplicity`
 
 This preserves direction while still giving one ordered structural summary.
