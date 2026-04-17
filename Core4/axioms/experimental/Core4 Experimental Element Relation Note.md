@@ -31,7 +31,38 @@ The intended rule is:
 - one shared relation mechanism
 - named structures discovered from relation patterns
 
-## 2. Elements
+## 2. Invariance, Noise, And Freeze
+
+Under this experimental model, the deeper primitive is not "object" but
+observed invariance.
+
+The system first distinguishes:
+
+- things that appear ordered
+- things that appear noisy
+
+Order means some sequence or relation is observed to remain invariant across
+different contexts. That invariance is the stronger claim, because it survives
+changes of perspective and interpretation.
+
+Freezing, pinning, or fusing is the next claim layered on top of that:
+
+- something is being treated as invariant over time
+- but only to some degree of stickiness
+
+So a freeze is not magic permanence. It is a promise, or an observation, that a
+relation holds strongly enough to be reused before time and later tension erode
+it.
+
+In that sense:
+
+- conceptual ordering is the deeper invariance
+- freezing is temporal invariance with commitment
+
+This is why time can relax a freeze, but should not automatically destroy the
+underlying idea that some relations are more ordered than others.
+
+## 3. Elements
 
 At this stage an element is just:
 
@@ -54,7 +85,7 @@ In the current Core4 code, obvious candidates include:
 The important part is not that every current type is final. The important part
 is that freezing does not require a different endpoint type for every case.
 
-## 3. Relations
+## 4. Relations
 
 The experimental primitive relation is always:
 
@@ -73,7 +104,7 @@ the current intended reading:
 - relate toward the second thing
 - repeat the second-side relation some number of times
 
-## 4. Relation To Relation
+## 5. Relation To Relation
 
 A relation is itself an element.
 
@@ -96,7 +127,7 @@ It can be read as:
 The same simplification also helps sample attachment, support alignment, and
 carrier-instance alignment.
 
-## 5. Roles By Inspection
+## 6. Roles By Inspection
 
 The experimental layer should avoid directly storing labels like:
 
@@ -128,7 +159,7 @@ Examples of the intended reading:
 - second-order relation-to-relation freezes can behave like directed segment,
   area, complex, or self-interaction depending on the underlying elements
 
-## 6. Carrier Relations
+## 7. Carrier Relations
 
 This model also leaves room for carrier-to-carrier relations.
 
@@ -143,7 +174,7 @@ Examples:
 So carrier alignment does not need a special-case mechanism outside the same
 relation substrate.
 
-## 7. Samples
+## 8. Samples
 
 This model matches the current sample intuition well.
 
@@ -155,7 +186,7 @@ This model matches the current sample intuition well.
 This means sample and support can remain one ladder of structure rather than
 two disconnected ontologies.
 
-## 8. What This Experimental Layer Is Not Doing Yet
+## 9. What This Experimental Layer Is Not Doing Yet
 
 This stage is intentionally *not* trying to solve:
 
@@ -171,7 +202,7 @@ For now the goal is only to nail down the primitive shape:
 - ordered `Relation`
 - relation also being an `IElement`
 
-## 9. Immediate Open Questions
+## 10. Immediate Open Questions
 
 These remain open for later passes:
 
@@ -182,7 +213,7 @@ These remain open for later passes:
   Core4 numeric structure versus extra experimental relations
 - what the smallest useful inspection layer should look like
 
-## 10. Current Code Shape
+## 11. Current Code Shape
 
 The current experimental slice is intentionally tiny:
 
@@ -194,7 +225,7 @@ The current experimental slice is intentionally tiny:
 Everything else should be built outward from that only if inspection proves it
 is truly necessary.
 
-## 11. Current Signature Shape
+## 12. Current Signature Shape
 
 The experimental signature has been reduced back to primitive participation
 axes instead of interpreted pattern names.
