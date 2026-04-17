@@ -57,7 +57,7 @@ public sealed class ElementRelationTests
     }
 
     [Fact]
-    public void ExperimentalRelationInspectionDistinguishesCarrierPointAndSecondOrderPatterns()
+    public void ExperimentalRelationSignatureStaysOnPrimitiveParticipationAxes()
     {
         Carrier x = 1;
         Carrier y = 2;
@@ -75,27 +75,20 @@ public sealed class ElementRelationTests
         Assert.True(fused.IsRelationToRelation());
         Assert.True(fused.IsRepeated());
         Assert.True(point.SharesBase(alignedCarrier));
-        Assert.Equal(new ElementOrderSignature(Measure.One, new Measure(2)), pointSignature.ElementOrder);
-        Assert.Equal(Measure.One, pointSignature.FreezeOrder);
-        Assert.Equal(Measure.Zero, pointSignature.CarrierPattern);
-        Assert.Equal(Measure.Zero, pointSignature.BasePattern);
-        Assert.Equal(Measure.One, pointSignature.ReadPattern);
-        Assert.Equal(Measure.Zero, pointSignature.AlignmentPattern);
-        Assert.Equal(Measure.Zero, pointSignature.FusionPattern);
-        Assert.Equal(Measure.Zero, pointSignature.OperandShape.BaseFreezeOrder);
-        Assert.Equal(Measure.Zero, pointSignature.OperandShape.AttachedFreezeOrder);
-        Assert.Equal(new Measure(3), fusedSignature.ElementOrder.BaseOrder);
-        Assert.Equal(new Measure(3), fusedSignature.ElementOrder.AttachedOrder);
-        Assert.Equal(new Measure(2), fusedSignature.FreezeOrder);
-        Assert.Equal(Measure.Zero, fusedSignature.CarrierPattern);
-        Assert.Equal(new Measure(2), fusedSignature.BasePattern);
-        Assert.Equal(Measure.Zero, fusedSignature.ReadPattern);
-        Assert.Equal(Measure.Zero, fusedSignature.AlignmentPattern);
-        Assert.Equal(Measure.Zero, fusedSignature.FusionPattern);
-        Assert.Equal(Measure.One, fusedSignature.OperandShape.BaseFreezeOrder);
-        Assert.Equal(Measure.One, fusedSignature.OperandShape.AttachedFreezeOrder);
-        Assert.Equal(Measure.One, fusedSignature.OperandShape.BaseReadPattern);
-        Assert.Equal(new Measure(2), fusedSignature.OperandShape.AttachedReadPattern);
+
+        Assert.Equal(Code(RelationPolarity.Dominant), pointSignature.Polarity.Base);
+        Assert.Equal(Code(RelationPolarity.Dominant), pointSignature.Polarity.Attached);
+        Assert.Equal(Code(RelationMergeScope.Whole), pointSignature.MergeScope.Base);
+        Assert.Equal(Code(RelationMergeScope.Node), pointSignature.MergeScope.Attached);
+        Assert.Equal(Code(RelationNovelty.Unknown), pointSignature.CarrierRelation);
+        Assert.Equal(Code(RelationNovelty.Unknown), pointSignature.DomainRelation);
+
+        Assert.Equal(Code(RelationPolarity.Dominant), fusedSignature.Polarity.Base);
+        Assert.Equal(Code(RelationPolarity.Dominant), fusedSignature.Polarity.Attached);
+        Assert.Equal(Code(RelationMergeScope.Node), fusedSignature.MergeScope.Base);
+        Assert.Equal(Code(RelationMergeScope.Whole), fusedSignature.MergeScope.Attached);
+        Assert.Equal(Code(RelationNovelty.Existing), fusedSignature.CarrierRelation);
+        Assert.Equal(Code(RelationNovelty.Existing), fusedSignature.DomainRelation);
         Assert.Equal(new Measure(3), fusedSignature.Multiplicity);
     }
 
@@ -119,17 +112,12 @@ public sealed class ElementRelationTests
         Assert.Equal(x, attachedCarrier);
         Assert.Equal(Measure.Zero, baseLocation);
         Assert.Equal(new Measure(10), attachedLocation);
-        Assert.Equal(new ElementOrderSignature(new Measure(3), new Measure(3)), signature.ElementOrder);
-        Assert.Equal(new Measure(2), signature.FreezeOrder);
-        Assert.Equal(Measure.One, signature.CarrierPattern);
-        Assert.Equal(new Measure(2), signature.BasePattern);
-        Assert.Equal(new Measure(4), signature.ReadPattern);
-        Assert.Equal(Measure.Zero, signature.AlignmentPattern);
-        Assert.Equal(Measure.Zero, signature.FusionPattern);
-        Assert.Equal(Measure.One, signature.OperandShape.BaseFreezeOrder);
-        Assert.Equal(Measure.One, signature.OperandShape.AttachedFreezeOrder);
-        Assert.Equal(Measure.One, signature.OperandShape.BaseReadPattern);
-        Assert.Equal(Measure.One, signature.OperandShape.AttachedReadPattern);
+        Assert.Equal(Code(RelationPolarity.Dominant), signature.Polarity.Base);
+        Assert.Equal(Code(RelationPolarity.Dominant), signature.Polarity.Attached);
+        Assert.Equal(Code(RelationMergeScope.Node), signature.MergeScope.Base);
+        Assert.Equal(Code(RelationMergeScope.Node), signature.MergeScope.Attached);
+        Assert.Equal(Code(RelationNovelty.Existing), signature.CarrierRelation);
+        Assert.Equal(Code(RelationNovelty.Existing), signature.DomainRelation);
         Assert.Equal(Measure.One, signature.Multiplicity);
     }
 
@@ -150,16 +138,12 @@ public sealed class ElementRelationTests
         Assert.False(joinCandidate.CanReadAsUnitCandidate());
         Assert.True(joinCandidate.CanReadAsJoinCandidate());
         Assert.Equal(Measure.Zero, joinCandidate.AttachedOffset());
-        Assert.Equal(new Measure(2), signature.FreezeOrder);
-        Assert.Equal(new Measure(3), signature.CarrierPattern);
-        Assert.Equal(Measure.One, signature.BasePattern);
-        Assert.Equal(new Measure(5), signature.ReadPattern);
-        Assert.Equal(Measure.Zero, signature.AlignmentPattern);
-        Assert.Equal(Measure.Zero, signature.FusionPattern);
-        Assert.Equal(Measure.One, signature.OperandShape.BaseFreezeOrder);
-        Assert.Equal(Measure.One, signature.OperandShape.AttachedFreezeOrder);
-        Assert.Equal(Measure.One, signature.OperandShape.BaseReadPattern);
-        Assert.Equal(Measure.One, signature.OperandShape.AttachedReadPattern);
+        Assert.Equal(Code(RelationPolarity.Dominant), signature.Polarity.Base);
+        Assert.Equal(Code(RelationPolarity.Dominant), signature.Polarity.Attached);
+        Assert.Equal(Code(RelationMergeScope.Node), signature.MergeScope.Base);
+        Assert.Equal(Code(RelationMergeScope.Node), signature.MergeScope.Attached);
+        Assert.Equal(Code(RelationNovelty.New), signature.CarrierRelation);
+        Assert.Equal(Code(RelationNovelty.New), signature.DomainRelation);
     }
 
     [Fact]
@@ -180,7 +164,7 @@ public sealed class ElementRelationTests
             new ExperimentalRelation(x, new Measure(-10), new Ratio(Measure.One, Measure.One)),
             new ExperimentalRelation(x, new Measure(20), new Ratio(Measure.One, Measure.One)),
             new Ratio(Measure.One, Measure.One));
-        var crossDomainAligned = new ExperimentalRelation(
+        var sameDomainAligned = new ExperimentalRelation(
             new ExperimentalRelation(x, new Measure(10), new Ratio(Measure.One, Measure.One)),
             new ExperimentalRelation(y, new Measure(20), new Ratio(Measure.One, Measure.One)),
             new Ratio(Measure.One, Measure.One));
@@ -188,21 +172,23 @@ public sealed class ElementRelationTests
         Assert.True(self.CanReadAsSelfCandidate());
         Assert.False(self.CanReadAsAlignedCandidate());
         Assert.False(self.CanReadAsOpposedCandidate());
-        Assert.Equal(Measure.One, self.AlignmentPattern());
 
         Assert.False(aligned.CanReadAsSelfCandidate());
         Assert.True(aligned.CanReadAsAlignedCandidate());
         Assert.False(aligned.CanReadAsOpposedCandidate());
-        Assert.Equal(new Measure(2), aligned.AlignmentPattern());
+        Assert.Equal(Code(RelationPolarity.Dominant), aligned.Signature().Polarity.Base);
+        Assert.Equal(Code(RelationPolarity.Dominant), aligned.Signature().Polarity.Attached);
 
         Assert.False(opposed.CanReadAsSelfCandidate());
         Assert.False(opposed.CanReadAsAlignedCandidate());
         Assert.True(opposed.CanReadAsOpposedCandidate());
-        Assert.Equal(new Measure(3), opposed.AlignmentPattern());
+        Assert.Equal(Code(RelationPolarity.Recessive), opposed.Signature().Polarity.Base);
+        Assert.Equal(Code(RelationPolarity.Dominant), opposed.Signature().Polarity.Attached);
 
-        Assert.True(crossDomainAligned.IsSameDomainCrossCarrierPointPair());
-        Assert.True(crossDomainAligned.CanReadAsAlignedCandidate());
-        Assert.Equal(new Measure(2), crossDomainAligned.Signature().AlignmentPattern);
+        Assert.True(sameDomainAligned.IsSameDomainCrossCarrierPointPair());
+        Assert.True(sameDomainAligned.CanReadAsAlignedCandidate());
+        Assert.Equal(Code(RelationNovelty.New), sameDomainAligned.Signature().CarrierRelation);
+        Assert.Equal(Code(RelationNovelty.Existing), sameDomainAligned.Signature().DomainRelation);
     }
 
     [Fact]
@@ -235,32 +221,33 @@ public sealed class ElementRelationTests
         Assert.True(segment.IsSameCarrierUnitCandidatePair());
         Assert.True(segment.SharesUnitBase());
         Assert.True(segment.CanReadAsDirectedSegmentCandidate());
-        Assert.Equal(new Measure(6), segment.Signature().ReadPattern);
-        Assert.Equal(new Measure(2), segment.FusionPattern());
-        Assert.Equal(new Measure(2), segment.Signature().FusionPattern);
-        Assert.Equal(new Measure(2), segment.Signature().OperandShape.BaseFreezeOrder);
-        Assert.Equal(new Measure(2), segment.Signature().OperandShape.AttachedFreezeOrder);
-        Assert.Equal(new Measure(4), segment.Signature().OperandShape.BaseReadPattern);
-        Assert.Equal(new Measure(4), segment.Signature().OperandShape.AttachedReadPattern);
-        Assert.Equal(Measure.Zero, segment.Signature().OperandShape.BaseFusionPattern);
-        Assert.Equal(Measure.Zero, segment.Signature().OperandShape.AttachedFusionPattern);
+        Assert.Equal(Code(RelationPolarity.Recessive), segment.Signature().Polarity.Base);
+        Assert.Equal(Code(RelationPolarity.Dominant), segment.Signature().Polarity.Attached);
+        Assert.Equal(Code(RelationMergeScope.Whole), segment.Signature().MergeScope.Base);
+        Assert.Equal(Code(RelationMergeScope.Whole), segment.Signature().MergeScope.Attached);
+        Assert.Equal(Code(RelationNovelty.Existing), segment.Signature().CarrierRelation);
+        Assert.Equal(Code(RelationNovelty.Existing), segment.Signature().DomainRelation);
 
         Assert.True(self.CanReadAsSelfInteractionCandidate());
-        Assert.Equal(Measure.One, self.FusionPattern());
+        Assert.Equal(Code(RelationPolarity.Dominant), self.Signature().Polarity.Base);
+        Assert.Equal(Code(RelationPolarity.Dominant), self.Signature().Polarity.Attached);
 
         Assert.True(area.IsUnitCandidatePair());
         Assert.True(area.IsCrossCarrierUnitCandidatePair());
         Assert.True(area.SharesUnitBase());
         Assert.True(area.CanReadAsAreaCandidate());
-        Assert.Equal(new Measure(3), area.Signature().CarrierPattern);
-        Assert.Equal(new Measure(3), area.FusionPattern());
+        Assert.Equal(Code(RelationPolarity.Dominant), area.Signature().Polarity.Base);
+        Assert.Equal(Code(RelationPolarity.Dominant), area.Signature().Polarity.Attached);
+        Assert.Equal(Code(RelationNovelty.New), area.Signature().CarrierRelation);
+        Assert.Equal(Code(RelationNovelty.New), area.Signature().DomainRelation);
 
         Assert.True(complex.CanReadAsComplexCandidate());
-        Assert.Equal(new Measure(4), complex.FusionPattern());
+        Assert.Equal(Code(RelationPolarity.Dominant), complex.Signature().Polarity.Base);
+        Assert.Equal(Code(RelationPolarity.Recessive), complex.Signature().Polarity.Attached);
     }
 
     [Fact]
-    public void ExperimentalRelationInspectionSurfacesHigherOrderOperandShape()
+    public void ExperimentalRelationInspectionKeepsHigherOrderSignaturePrimitive()
     {
         Carrier x = 1;
         Carrier y = 2;
@@ -281,15 +268,18 @@ public sealed class ElementRelationTests
         var hybrid = new ExperimentalRelation(area, segment, new Ratio(Measure.One, Measure.One));
         var signature = hybrid.Signature();
 
-        Assert.Equal(new Measure(4), signature.FreezeOrder);
-        Assert.Equal(new Measure(5), signature.ElementOrder.BaseOrder);
-        Assert.Equal(new Measure(5), signature.ElementOrder.AttachedOrder);
-        Assert.Equal(new Measure(3), signature.OperandShape.BaseFreezeOrder);
-        Assert.Equal(new Measure(3), signature.OperandShape.AttachedFreezeOrder);
-        Assert.Equal(new Measure(6), signature.OperandShape.BaseReadPattern);
-        Assert.Equal(new Measure(6), signature.OperandShape.AttachedReadPattern);
-        Assert.Equal(new Measure(3), signature.OperandShape.BaseFusionPattern);
-        Assert.Equal(new Measure(2), signature.OperandShape.AttachedFusionPattern);
-        Assert.Equal(Measure.Zero, signature.FusionPattern);
+        Assert.Equal(new Measure(4), hybrid.FreezeOrder());
+        Assert.Equal(Code(RelationPolarity.Dominant), signature.Polarity.Base);
+        Assert.Equal(Code(RelationPolarity.Dominant), signature.Polarity.Attached);
+        Assert.Equal(Code(RelationMergeScope.Whole), signature.MergeScope.Base);
+        Assert.Equal(Code(RelationMergeScope.Whole), signature.MergeScope.Attached);
+        Assert.Equal(Code(RelationNovelty.Existing), signature.CarrierRelation);
+        Assert.Equal(Code(RelationNovelty.Existing), signature.DomainRelation);
+        Assert.False(hybrid.CanReadAsAreaCandidate());
+        Assert.False(hybrid.CanReadAsDirectedSegmentCandidate());
     }
+
+    private static RelationCode Code(RelationPolarity value) => RelationCode.Of(value);
+    private static RelationCode Code(RelationMergeScope value) => RelationCode.Of(value);
+    private static RelationCode Code(RelationNovelty value) => RelationCode.Of(value);
 }

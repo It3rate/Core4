@@ -3,35 +3,52 @@ using Core4.Encoding;
 namespace Core4.Experimental;
 
 /// <summary>
-/// A tuple-shaped numeric summary of one experimental relation. The first field preserves direction by carrying
-/// separate base/attached element orders, while the remaining fields describe recursive freeze depth, carrier
-/// compatibility, shared-base structure, higher-order operand shape, and repetition.
+/// Temporary enum-backed numeric code for experimental signature axes. This keeps the signature physically numeric
+/// while letting us adjust the small categorical ladders without hard-coding raw measures everywhere.
+/// </summary>
+public readonly record struct RelationCode(Measure Value)
+{
+    public static RelationCode Of(RelationPolarity value) => new(new((long)value));
+    public static RelationCode Of(RelationMergeScope value) => new(new((long)value));
+    public static RelationCode Of(RelationNovelty value) => new(new((long)value));
+
+    public static implicit operator Measure(RelationCode code) => code.Value;
+}
+
+/// <summary>
+/// Ordered participation pair for one experimental axis. Direction stays explicit instead of being packed into a
+/// single derived code so later folds can choose their own traversal order.
+/// </summary>
+public readonly record struct OrderedRelationCode(RelationCode Base, RelationCode Attached);
+
+/// <summary>
+/// Minimal primitive signature for one experimental relation. Named readings like unit, segment, area, or complex
+/// should be derived from these axes rather than stored here directly.
 /// </summary>
 public readonly record struct RelationSignature(
-    ElementOrderSignature ElementOrder,
-    Measure FreezeOrder,
-    Measure CarrierPattern,
-    Measure BasePattern,
-    Measure ReadPattern,
-    Measure AlignmentPattern,
-    Measure FusionPattern,
-    OperandShapeSignature OperandShape,
+    OrderedRelationCode Polarity,
+    OrderedRelationCode MergeScope,
+    RelationCode CarrierRelation,
+    RelationCode DomainRelation,
     Measure Multiplicity);
 
-/// <summary>
-/// Ordered numeric shape of the two relation ends. This stays separate instead of being packed so later structural
-/// axes can be added without losing which side was base and which side was attached.
-/// </summary>
-public readonly record struct ElementOrderSignature(Measure BaseOrder, Measure AttachedOrder);
+public enum RelationPolarity : long
+{
+    Recessive = -1,
+    Unknown = 0,
+    Dominant = 1,
+}
 
-/// <summary>
-/// Recursive shape summary of the two operands when they are themselves structured relations. This surfaces what kind
-/// of things are being fused without requiring a second full relation signature at the top level.
-/// </summary>
-public readonly record struct OperandShapeSignature(
-    Measure BaseFreezeOrder,
-    Measure AttachedFreezeOrder,
-    Measure BaseReadPattern,
-    Measure AttachedReadPattern,
-    Measure BaseFusionPattern,
-    Measure AttachedFusionPattern);
+public enum RelationMergeScope : long
+{
+    Node = -1,
+    Unknown = 0,
+    Whole = 1,
+}
+
+public enum RelationNovelty : long
+{
+    Existing = -1,
+    Unknown = 0,
+    New = 1
+}

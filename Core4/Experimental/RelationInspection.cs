@@ -3,100 +3,81 @@ using Core4.Encoding;
 namespace Core4.Experimental;
 
 /// <summary>
-/// Signature-backed classification over experimental relations. Raw extraction stays structural so the signature can
-/// remain a lossy numeric summary instead of becoming a second graph container.
+/// Primitive experimental inspection over ordered element relations. The signature stays small and numeric, while
+/// named readings remain derived views on top of the primitive participation axes.
 /// </summary>
 public static class RelationInspection
 {
-    private static readonly Measure UnknownOrder = Measure.Zero;
-    private static readonly Measure CarrierOrder = Measure.One;
-    private static readonly Measure MeasureOrder = new(2);
-    private static readonly Measure RelationOrderBase = new(3);
+    private static readonly RelationCode UnknownPolarity = RelationCode.Of(RelationPolarity.Unknown);
+    private static readonly RelationCode DominantPolarity = RelationCode.Of(RelationPolarity.Dominant);
+    private static readonly RelationCode RecessivePolarity = RelationCode.Of(RelationPolarity.Recessive);
 
-    private static readonly Measure CarrierPatternUnknown = Measure.Zero;
-    private static readonly Measure CarrierPatternSameCarrier = Measure.One;
-    private static readonly Measure CarrierPatternSameDomain = new(2);
-    private static readonly Measure CarrierPatternDifferentDomain = new(3);
+    private static readonly RelationCode UnknownMergeScope = RelationCode.Of(RelationMergeScope.Unknown);
+    private static readonly RelationCode WholeMergeScope = RelationCode.Of(RelationMergeScope.Whole);
+    private static readonly RelationCode NodeMergeScope = RelationCode.Of(RelationMergeScope.Node);
 
-    private static readonly Measure BasePatternUnknown = Measure.Zero;
-    private static readonly Measure BasePatternDistinct = Measure.One;
-    private static readonly Measure BasePatternShared = new(2);
-
-    private static readonly Measure ReadPatternUnknown = Measure.Zero;
-    private static readonly Measure ReadPatternCarrierPoint = Measure.One;
-    private static readonly Measure ReadPatternCarrierAlignment = new(2);
-    private static readonly Measure ReadPatternPointPair = new(3);
-    private static readonly Measure ReadPatternUnitCandidate = new(4);
-    private static readonly Measure ReadPatternJoinCandidate = new(5);
-    private static readonly Measure ReadPatternUnitCandidatePair = new(6);
-
-    private static readonly Measure AlignmentPatternUnknown = Measure.Zero;
-    private static readonly Measure AlignmentPatternSelf = Measure.One;
-    private static readonly Measure AlignmentPatternAligned = new(2);
-    private static readonly Measure AlignmentPatternOpposed = new(3);
-
-    private static readonly Measure FusionPatternUnknown = Measure.Zero;
-    private static readonly Measure FusionPatternSelf = Measure.One;
-    private static readonly Measure FusionPatternDirectedSegment = new(2);
-    private static readonly Measure FusionPatternArea = new(3);
-    private static readonly Measure FusionPatternComplex = new(4);
+    private static readonly RelationCode UnknownNovelty = RelationCode.Of(RelationNovelty.Unknown);
+    private static readonly RelationCode ExistingNovelty = RelationCode.Of(RelationNovelty.Existing);
+    private static readonly RelationCode NewNovelty = RelationCode.Of(RelationNovelty.New);
 
     public static RelationSignature Signature(this Relation relation) => new(
-        relation.ElementOrder(),
-        relation.FreezeOrder(),
-        relation.ComputeCarrierPattern(),
-        relation.ComputeBasePattern(),
-        relation.ComputeReadPattern(),
-        relation.ComputeAlignmentPattern(),
-        relation.ComputeFusionPattern(),
-        relation.OperandShape(),
+        relation.Polarity(),
+        relation.MergeScope(),
+        relation.CarrierRelation(),
+        relation.DomainRelation(),
         relation.Multiplicity);
 
-    public static ElementOrderSignature ElementOrder(this Relation relation) => new(
-        OrderOf(relation.Base),
-        OrderOf(relation.Attached));
+    public static OrderedRelationCode Polarity(this Relation relation) => new(
+        PolarityOf(relation.Base),
+        PolarityOf(relation.Attached));
+
+    public static OrderedRelationCode MergeScope(this Relation relation) => new(
+        MergeScopeOf(relation.Base),
+        MergeScopeOf(relation.Attached));
+
+    public static RelationCode CarrierRelation(this Relation relation)
+    {
+        if (!TryGetReferenceCarrierRaw(relation.Base, out var baseCarrier)
+            || !TryGetReferenceCarrierRaw(relation.Attached, out var attachedCarrier))
+        {
+            return UnknownNovelty;
+        }
+
+        return baseCarrier == attachedCarrier
+            ? ExistingNovelty
+            : NewNovelty;
+    }
+
+    public static RelationCode DomainRelation(this Relation relation)
+    {
+        if (!TryGetReferenceCarrierRaw(relation.Base, out var baseCarrier)
+            || !TryGetReferenceCarrierRaw(relation.Attached, out var attachedCarrier))
+        {
+            return UnknownNovelty;
+        }
+
+        return baseCarrier.Domain == attachedCarrier.Domain
+            ? ExistingNovelty
+            : NewNovelty;
+    }
 
     public static Measure FreezeOrder(this Relation relation) =>
         new(Math.Max(FreezeOrderOf(relation.Base).Raw, FreezeOrderOf(relation.Attached).Raw) + 1L);
 
-    public static Measure CarrierPattern(this Relation relation) =>
-        relation.Signature().CarrierPattern;
-
-    public static Measure BasePattern(this Relation relation) =>
-        relation.Signature().BasePattern;
-
-    public static Measure ReadPattern(this Relation relation) =>
-        relation.Signature().ReadPattern;
-
-    public static Measure AlignmentPattern(this Relation relation) =>
-        relation.Signature().AlignmentPattern;
-
-    public static Measure FusionPattern(this Relation relation) =>
-        relation.Signature().FusionPattern;
-
-    public static OperandShapeSignature OperandShape(this Relation relation) =>
-        new(
-            FreezeOrderOf(relation.Base),
-            FreezeOrderOf(relation.Attached),
-            ReadPatternOf(relation.Base),
-            ReadPatternOf(relation.Attached),
-            FusionPatternOf(relation.Base),
-            FusionPatternOf(relation.Attached));
-
     public static bool IsFirstOrder(this Relation relation) =>
-        relation.Signature().FreezeOrder == Measure.One;
+        relation.FreezeOrder() == Measure.One;
 
     public static bool IsSecondOrder(this Relation relation) =>
-        relation.Signature().FreezeOrder > Measure.One;
+        relation.FreezeOrder() > Measure.One;
 
     public static bool IsRelationToRelation(this Relation relation) =>
         relation.Base is Relation && relation.Attached is Relation;
 
     public static bool IsCarrierPointRelation(this Relation relation) =>
-        relation.ReadPattern() == ReadPatternCarrierPoint;
+        TryGetCarrierPointRaw(relation, out _, out _);
 
     public static bool IsCarrierAlignment(this Relation relation) =>
-        relation.ReadPattern() == ReadPatternCarrierAlignment;
+        TryGetCarrierAlignmentRaw(relation, out _, out _);
 
     public static bool TryGetCarrierPoint(this Relation relation, out Carrier carrier, out Measure location) =>
         TryGetCarrierPointRaw(relation, out carrier, out location);
@@ -104,13 +85,13 @@ public static class RelationInspection
     public static bool TryGetCarrierAlignment(this Relation relation, out Carrier @base, out Carrier attached) =>
         TryGetCarrierAlignmentRaw(relation, out @base, out attached);
 
-    public static bool IsPointPair(this Relation relation)
-    {
-        var readPattern = relation.ReadPattern();
-        return readPattern == ReadPatternPointPair
-            || readPattern == ReadPatternUnitCandidate
-            || readPattern == ReadPatternJoinCandidate;
-    }
+    public static bool IsPointPair(this Relation relation) =>
+        TryGetCarrierPointPairRaw(
+            relation,
+            out _,
+            out _,
+            out _,
+            out _);
 
     public static bool TryGetCarrierPointPair(
         this Relation relation,
@@ -127,25 +108,27 @@ public static class RelationInspection
 
     public static bool IsSameCarrierPointPair(this Relation relation) =>
         relation.IsPointPair()
-        && relation.CarrierPattern() == CarrierPatternSameCarrier;
+        && relation.CarrierRelation() == ExistingNovelty;
 
-    public static bool IsCrossCarrierPointPair(this Relation relation)
-    {
-        var carrierPattern = relation.CarrierPattern();
-        return relation.IsPointPair()
-            && (carrierPattern == CarrierPatternSameDomain
-                || carrierPattern == CarrierPatternDifferentDomain);
-    }
+    public static bool IsCrossCarrierPointPair(this Relation relation) =>
+        relation.IsPointPair()
+        && relation.CarrierRelation() == NewNovelty;
 
     public static bool IsSameDomainCrossCarrierPointPair(this Relation relation) =>
         relation.IsPointPair()
-        && relation.CarrierPattern() == CarrierPatternSameDomain;
+        && relation.CarrierRelation() == NewNovelty
+        && relation.DomainRelation() == ExistingNovelty;
 
     public static bool CanReadAsUnitCandidate(this Relation relation) =>
-        relation.ReadPattern() == ReadPatternUnitCandidate;
+        TryGetUnitCandidateRaw(
+            relation,
+            out _,
+            out _,
+            out _,
+            out _);
 
     public static bool CanReadAsJoinCandidate(this Relation relation) =>
-        relation.ReadPattern() == ReadPatternJoinCandidate;
+        relation.IsCrossCarrierPointPair();
 
     public static bool TryGetUnitCandidate(
         this Relation relation,
@@ -161,7 +144,7 @@ public static class RelationInspection
             out attachedOffset);
 
     public static bool IsUnitCandidatePair(this Relation relation) =>
-        relation.ReadPattern() == ReadPatternUnitCandidatePair;
+        TryGetUnitCandidatePairRaw(relation, out _, out _);
 
     public static bool TryGetUnitCandidatePair(
         this Relation relation,
@@ -171,40 +154,63 @@ public static class RelationInspection
 
     public static bool IsSameCarrierUnitCandidatePair(this Relation relation) =>
         relation.IsUnitCandidatePair()
-        && relation.CarrierPattern() == CarrierPatternSameCarrier;
+        && relation.CarrierRelation() == ExistingNovelty;
 
-    public static bool IsCrossCarrierUnitCandidatePair(this Relation relation)
-    {
-        var carrierPattern = relation.CarrierPattern();
-        return relation.IsUnitCandidatePair()
-            && (carrierPattern == CarrierPatternSameDomain
-                || carrierPattern == CarrierPatternDifferentDomain);
-    }
+    public static bool IsCrossCarrierUnitCandidatePair(this Relation relation) =>
+        relation.IsUnitCandidatePair()
+        && relation.CarrierRelation() == NewNovelty;
 
     public static bool SharesUnitBase(this Relation relation) =>
         relation.IsUnitCandidatePair()
-        && relation.BasePattern() == BasePatternShared;
+        && relation.TryGetUnitCandidatePair(out var baseUnit, out var attachedUnit)
+        && UnitBasesShareRaw(baseUnit, attachedUnit);
 
     public static bool CanReadAsSelfInteractionCandidate(this Relation relation) =>
-        relation.FusionPattern() == FusionPatternSelf;
+        relation.IsUnitCandidatePair()
+        && relation.SharesUnitBase()
+        && relation.CarrierRelation() == ExistingNovelty
+        && HaveSamePolarity(relation.Polarity());
 
     public static bool CanReadAsDirectedSegmentCandidate(this Relation relation) =>
-        relation.FusionPattern() == FusionPatternDirectedSegment;
+        relation.IsUnitCandidatePair()
+        && relation.SharesUnitBase()
+        && relation.CarrierRelation() == ExistingNovelty
+        && HaveOpposedPolarity(relation.Polarity());
 
     public static bool CanReadAsAreaCandidate(this Relation relation) =>
-        relation.FusionPattern() == FusionPatternArea;
+        relation.IsUnitCandidatePair()
+        && relation.SharesUnitBase()
+        && relation.CarrierRelation() == NewNovelty
+        && relation.DomainRelation() == NewNovelty
+        && HaveSamePolarity(relation.Polarity());
 
     public static bool CanReadAsComplexCandidate(this Relation relation) =>
-        relation.FusionPattern() == FusionPatternComplex;
+        relation.IsUnitCandidatePair()
+        && relation.SharesUnitBase()
+        && relation.CarrierRelation() == NewNovelty
+        && relation.DomainRelation() == NewNovelty
+        && HaveOpposedPolarity(relation.Polarity());
 
     public static bool CanReadAsSelfCandidate(this Relation relation) =>
-        relation.AlignmentPattern() == AlignmentPatternSelf;
+        TryGetCarrierPointPairRaw(
+            relation,
+            out var baseCarrier,
+            out var baseLocation,
+            out var attachedCarrier,
+            out var attachedLocation)
+        && baseCarrier == attachedCarrier
+        && baseLocation == attachedLocation;
 
     public static bool CanReadAsAlignedCandidate(this Relation relation) =>
-        relation.AlignmentPattern() == AlignmentPatternAligned;
+        relation.IsPointPair()
+        && relation.DomainRelation() == ExistingNovelty
+        && !relation.CanReadAsSelfCandidate()
+        && HaveSamePolarity(relation.Polarity());
 
     public static bool CanReadAsOpposedCandidate(this Relation relation) =>
-        relation.AlignmentPattern() == AlignmentPatternOpposed;
+        relation.IsPointPair()
+        && relation.DomainRelation() == ExistingNovelty
+        && HaveOpposedPolarity(relation.Polarity());
 
     public static Measure AttachedOffset(this Relation relation) =>
         TryGetCarrierPointPairRaw(
@@ -222,152 +228,6 @@ public static class RelationInspection
 
     public static bool SharesBase(this Relation relation, Relation other) =>
         Equals(relation.Base, other.Base);
-
-    private static Measure ComputeCarrierPattern(this Relation relation)
-    {
-        if (TryGetReferenceCarrierRaw(relation.Base, out var baseCarrier)
-            && TryGetReferenceCarrierRaw(relation.Attached, out var attachedCarrier))
-        {
-            if (baseCarrier == attachedCarrier)
-            {
-                return CarrierPatternSameCarrier;
-            }
-
-            return baseCarrier.Domain == attachedCarrier.Domain
-                ? CarrierPatternSameDomain
-                : CarrierPatternDifferentDomain;
-        }
-
-        return CarrierPatternUnknown;
-    }
-
-    private static Measure ComputeBasePattern(this Relation relation)
-    {
-        if (relation.Base is Relation baseRelation && relation.Attached is Relation attachedRelation)
-        {
-            return ElementsShareBase(baseRelation.Base, attachedRelation.Base)
-                ? BasePatternShared
-                : BasePatternDistinct;
-        }
-
-        return BasePatternUnknown;
-    }
-
-    private static Measure ComputeReadPattern(this Relation relation)
-    {
-        if (TryGetCarrierPointRaw(relation, out _, out _))
-        {
-            return ReadPatternCarrierPoint;
-        }
-
-        if (TryGetCarrierAlignmentRaw(relation, out _, out _))
-        {
-            return ReadPatternCarrierAlignment;
-        }
-
-        if (TryGetUnitCandidatePairRaw(relation, out _, out _))
-        {
-            return ReadPatternUnitCandidatePair;
-        }
-
-        if (TryGetCarrierPointPairRaw(
-            relation,
-            out var baseCarrier,
-            out var baseLocation,
-            out var attachedCarrier,
-            out var attachedLocation))
-        {
-            if (baseCarrier == attachedCarrier && baseLocation != attachedLocation)
-            {
-                return ReadPatternUnitCandidate;
-            }
-
-            if (baseCarrier != attachedCarrier)
-            {
-                return ReadPatternJoinCandidate;
-            }
-
-            return ReadPatternPointPair;
-        }
-
-        return ReadPatternUnknown;
-    }
-
-    private static Measure ComputeAlignmentPattern(this Relation relation)
-    {
-        if (!TryGetCarrierPointPairRaw(
-            relation,
-            out var baseCarrier,
-            out var baseLocation,
-            out var attachedCarrier,
-            out var attachedLocation))
-        {
-            return AlignmentPatternUnknown;
-        }
-
-        if (!(baseCarrier == attachedCarrier || baseCarrier.Domain == attachedCarrier.Domain))
-        {
-            return AlignmentPatternUnknown;
-        }
-
-        if (baseCarrier == attachedCarrier && baseLocation == attachedLocation)
-        {
-            return AlignmentPatternSelf;
-        }
-
-        var baseSign = baseLocation.Sign;
-        var attachedSign = attachedLocation.Sign;
-        if (baseSign == Measure.Zero || attachedSign == Measure.Zero)
-        {
-            return AlignmentPatternUnknown;
-        }
-
-        if (baseSign == attachedSign)
-        {
-            return AlignmentPatternAligned;
-        }
-
-        return baseSign == -attachedSign
-            ? AlignmentPatternOpposed
-            : AlignmentPatternUnknown;
-    }
-
-    private static Measure ComputeFusionPattern(this Relation relation)
-    {
-        if (!TryGetUnitCandidatePairRaw(relation, out var baseUnit, out var attachedUnit)
-            || !UnitBasesShareRaw(baseUnit, attachedUnit)
-            || !TryGetUnitCandidateRaw(baseUnit, out var baseCarrier, out _, out _, out var baseOffset)
-            || !TryGetUnitCandidateRaw(attachedUnit, out var attachedCarrier, out _, out _, out var attachedOffset))
-        {
-            return FusionPatternUnknown;
-        }
-
-        if (baseCarrier == attachedCarrier)
-        {
-            if (baseOffset == attachedOffset)
-            {
-                return FusionPatternSelf;
-            }
-
-            return baseOffset.Sign != Measure.Zero && baseOffset.Sign == -attachedOffset.Sign
-                ? FusionPatternDirectedSegment
-                : FusionPatternUnknown;
-        }
-
-        if (baseCarrier.Domain == attachedCarrier.Domain || baseOffset.Sign == Measure.Zero)
-        {
-            return FusionPatternUnknown;
-        }
-
-        if (baseOffset.Sign == attachedOffset.Sign)
-        {
-            return FusionPatternArea;
-        }
-
-        return baseOffset.Sign == -attachedOffset.Sign
-            ? FusionPatternComplex
-            : FusionPatternUnknown;
-    }
 
     private static bool TryGetCarrierPointRaw(Relation relation, out Carrier carrier, out Measure location)
     {
@@ -466,47 +326,57 @@ public static class RelationInspection
         return false;
     }
 
-    private static bool ElementsShareBase(IElement baseElement, IElement attachedElement)
+    private static bool UnitBasesShareRaw(Relation baseUnit, Relation attachedUnit)
     {
-        if (Equals(baseElement, attachedElement))
+        if (Equals(baseUnit.Base, attachedUnit.Base))
         {
             return true;
         }
 
-        return baseElement is Relation baseRelation
-            && attachedElement is Relation attachedRelation
-            && TryGetCarrierPointRaw(baseRelation, out _, out var baseLocation)
-            && TryGetCarrierPointRaw(attachedRelation, out _, out var attachedLocation)
-            && baseLocation == attachedLocation;
+        return baseUnit.Base is Relation baseOrigin
+            && attachedUnit.Base is Relation attachedOrigin
+            && TryGetCarrierPointRaw(baseOrigin, out _, out var baseOriginLocation)
+            && TryGetCarrierPointRaw(attachedOrigin, out _, out var attachedOriginLocation)
+            && baseOriginLocation == attachedOriginLocation;
     }
 
-    private static bool UnitBasesShareRaw(Relation baseUnit, Relation attachedUnit) =>
-        ElementsShareBase(baseUnit.Base, attachedUnit.Base);
+    private static bool HaveSamePolarity(OrderedRelationCode polarity) =>
+        IsKnownPolarity(polarity.Base)
+        && polarity.Base == polarity.Attached;
 
-    private static Measure OrderOf(IElement element) => element switch
+    private static bool HaveOpposedPolarity(OrderedRelationCode polarity) =>
+        IsKnownPolarity(polarity.Base)
+        && IsKnownPolarity(polarity.Attached)
+        && polarity.Base != polarity.Attached;
+
+    private static bool IsKnownPolarity(RelationCode polarity) =>
+        polarity != UnknownPolarity;
+
+    private static RelationCode PolarityOf(IElement element) => element switch
     {
-        Carrier => CarrierOrder,
-        Measure => MeasureOrder,
-        Relation relation => new(RelationOrderBase.Raw + relation.FreezeOrder().Raw - 1L),
-        _ => UnknownOrder
+        Measure measure => measure.Sign == -Measure.One ? RecessivePolarity : DominantPolarity,
+        Carrier => DominantPolarity,
+        Relation relation when TryGetUnitCandidateRaw(relation, out _, out _, out _, out var offset) =>
+            offset.Sign == -Measure.One ? RecessivePolarity : DominantPolarity,
+        Relation relation when TryGetCarrierPointRaw(relation, out _, out var location) =>
+            location.Sign == -Measure.One ? RecessivePolarity : DominantPolarity,
+        Relation relation => relation.Signature().Polarity.Attached,
+        _ => UnknownPolarity
+    };
+
+    private static RelationCode MergeScopeOf(IElement element) => element switch
+    {
+        Measure => NodeMergeScope,
+        Carrier => WholeMergeScope,
+        Relation relation when TryGetCarrierPointRaw(relation, out _, out _) => NodeMergeScope,
+        Relation => WholeMergeScope,
+        _ => UnknownMergeScope
     };
 
     private static Measure FreezeOrderOf(IElement element) => element switch
     {
         Relation relation => relation.FreezeOrder(),
         _ => Measure.Zero
-    };
-
-    private static Measure ReadPatternOf(IElement element) => element switch
-    {
-        Relation relation => relation.Signature().ReadPattern,
-        _ => ReadPatternUnknown
-    };
-
-    private static Measure FusionPatternOf(IElement element) => element switch
-    {
-        Relation relation => relation.Signature().FusionPattern,
-        _ => FusionPatternUnknown
     };
 
     private static bool TryGetReferenceCarrierRaw(IElement element, out Carrier carrier)
@@ -519,6 +389,8 @@ public static class RelationInspection
             case Relation relation when TryGetCarrierPointRaw(relation, out carrier, out _):
                 return true;
             case Relation relation when TryGetUnitCandidateRaw(relation, out carrier, out _, out _, out _):
+                return true;
+            case Relation relation when TryGetReferenceCarrierRaw(relation.Base, out carrier):
                 return true;
             default:
                 carrier = default;

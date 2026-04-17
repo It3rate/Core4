@@ -196,61 +196,107 @@ is truly necessary.
 
 ## 11. Current Signature Shape
 
-The first numeric signature is tuple-shaped rather than packed into one code.
+The experimental signature has been reduced back to primitive participation
+axes instead of interpreted pattern names.
 
 It currently carries:
 
-- `ElementOrder`
-  - `BaseOrder`
-  - `AttachedOrder`
-- `FreezeOrder`
-- `CarrierPattern`
-- `BasePattern`
-- `ReadPattern`
-- `AlignmentPattern`
-- `FusionPattern`
-- `OperandShape`
-  - `BaseFreezeOrder`
-  - `AttachedFreezeOrder`
-  - `BaseReadPattern`
-  - `AttachedReadPattern`
-  - `BaseFusionPattern`
-  - `AttachedFusionPattern`
+- `Polarity`
+  - `Base`
+  - `Attached`
+- `MergeScope`
+  - `Base`
+  - `Attached`
+- `CarrierRelation`
+- `DomainRelation`
 - `Multiplicity`
 
-This preserves direction while still giving one ordered structural summary.
+This keeps the relation summary small and ordered without storing labels like
+unit, join, segment, area, complex, or self-interaction directly in the
+signature.
 
-`ReadPattern` is the current bridge between raw extraction and higher
-classification. It is where the experimental layer records whether the raw
-relation currently reads as:
+### Polarity
 
-- a carrier-point
-- a carrier-alignment
-- a point-pair
-- a unit candidate
-- a join candidate
-- a unit-candidate pair
+`Polarity` is the ordered dominant/recessive participation of the two ends.
 
-The intent is that classification helpers increasingly read through this
-signature, while raw extraction helpers still return the underlying carriers,
-locations, and nested relations when that detail is actually needed.
+At the current stage it is recorded as:
 
-`OperandShape` is the next recursive layer above that. It records the read and
-fusion family of the two operands when they are themselves relations. This lets
-the experimental layer distinguish cases like:
+- `Unknown`
+- `Dominant`
+- `Recessive`
 
-- directed-segment-like fused with directed-segment-like
-- area-like fused with directed-segment-like
-- complex-like fused with area-like
+The ordered pair matters. This is the level where patterns like:
 
-without forcing the top-level relation to immediately invent a new named family
-for every higher-order combination.
+- `DD`
+- `DR`
+- `RD`
+- `RR`
 
-For now only three element families have canonical order:
+should eventually be explored numerically instead of being collapsed too early
+into named cases.
 
-- `Carrier`
-- `Measure`
-- experimental `Relation`
+### Merge Scope
 
-Other current `IElement` implementations are still treated as unknown-order
-until we intentionally fold them down into this structural substrate.
+`MergeScope` records whether each side is participating as a whole extent or as
+a node-like position.
+
+At the current stage it is recorded as:
+
+- `Unknown`
+- `Whole`
+- `Node`
+
+Again the ordered pair matters, so the signature can preserve distinctions like:
+
+- `WW`
+- `WN`
+- `NW`
+- `NN`
+
+without deciding too early what those must mean in every modality.
+
+### Carrier And Domain Relation
+
+`CarrierRelation` and `DomainRelation` do not try to carry the exact carrier or
+domain identity. They only describe novelty relative to the base context:
+
+- `Unknown`
+- `Existing`
+- `New`
+
+So the signature answers questions like:
+
+- does the attached side stay on an already-present carrier?
+- does it stay inside an already-present domain?
+- or does it introduce something new?
+
+Exact carrier/domain identity should still be inspected from the underlying
+elements themselves when needed.
+
+### Multiplicity
+
+`Multiplicity` remains on the relation edge and applies to the attached side.
+It is treated as part of participation in this specific freeze, not as a fixed
+intrinsic property of the element outside this relation.
+
+### Derived Readings
+
+Named readings like:
+
+- point
+- unit candidate
+- join
+- directed segment
+- area
+- complex
+- self-interaction
+
+should now be read as derived interpretations of:
+
+- raw structure
+- polarity
+- merge scope
+- carrier/domain novelty
+- shared-base conditions
+
+rather than as primitive signature fields in their own right.
