@@ -209,6 +209,13 @@ It currently carries:
 - `ReadPattern`
 - `AlignmentPattern`
 - `FusionPattern`
+- `OperandShape`
+  - `BaseFreezeOrder`
+  - `AttachedFreezeOrder`
+  - `BaseReadPattern`
+  - `AttachedReadPattern`
+  - `BaseFusionPattern`
+  - `AttachedFusionPattern`
 - `Multiplicity`
 
 This preserves direction while still giving one ordered structural summary.
@@ -227,6 +234,17 @@ relation currently reads as:
 The intent is that classification helpers increasingly read through this
 signature, while raw extraction helpers still return the underlying carriers,
 locations, and nested relations when that detail is actually needed.
+
+`OperandShape` is the next recursive layer above that. It records the read and
+fusion family of the two operands when they are themselves relations. This lets
+the experimental layer distinguish cases like:
+
+- directed-segment-like fused with directed-segment-like
+- area-like fused with directed-segment-like
+- complex-like fused with area-like
+
+without forcing the top-level relation to immediately invent a new named family
+for every higher-order combination.
 
 For now only three element families have canonical order:
 

@@ -82,6 +82,8 @@ public sealed class ElementRelationTests
         Assert.Equal(Measure.One, pointSignature.ReadPattern);
         Assert.Equal(Measure.Zero, pointSignature.AlignmentPattern);
         Assert.Equal(Measure.Zero, pointSignature.FusionPattern);
+        Assert.Equal(Measure.Zero, pointSignature.OperandShape.BaseFreezeOrder);
+        Assert.Equal(Measure.Zero, pointSignature.OperandShape.AttachedFreezeOrder);
         Assert.Equal(new Measure(3), fusedSignature.ElementOrder.BaseOrder);
         Assert.Equal(new Measure(3), fusedSignature.ElementOrder.AttachedOrder);
         Assert.Equal(new Measure(2), fusedSignature.FreezeOrder);
@@ -90,6 +92,10 @@ public sealed class ElementRelationTests
         Assert.Equal(Measure.Zero, fusedSignature.ReadPattern);
         Assert.Equal(Measure.Zero, fusedSignature.AlignmentPattern);
         Assert.Equal(Measure.Zero, fusedSignature.FusionPattern);
+        Assert.Equal(Measure.One, fusedSignature.OperandShape.BaseFreezeOrder);
+        Assert.Equal(Measure.One, fusedSignature.OperandShape.AttachedFreezeOrder);
+        Assert.Equal(Measure.One, fusedSignature.OperandShape.BaseReadPattern);
+        Assert.Equal(new Measure(2), fusedSignature.OperandShape.AttachedReadPattern);
         Assert.Equal(new Measure(3), fusedSignature.Multiplicity);
     }
 
@@ -120,6 +126,10 @@ public sealed class ElementRelationTests
         Assert.Equal(new Measure(4), signature.ReadPattern);
         Assert.Equal(Measure.Zero, signature.AlignmentPattern);
         Assert.Equal(Measure.Zero, signature.FusionPattern);
+        Assert.Equal(Measure.One, signature.OperandShape.BaseFreezeOrder);
+        Assert.Equal(Measure.One, signature.OperandShape.AttachedFreezeOrder);
+        Assert.Equal(Measure.One, signature.OperandShape.BaseReadPattern);
+        Assert.Equal(Measure.One, signature.OperandShape.AttachedReadPattern);
         Assert.Equal(Measure.One, signature.Multiplicity);
     }
 
@@ -146,6 +156,10 @@ public sealed class ElementRelationTests
         Assert.Equal(new Measure(5), signature.ReadPattern);
         Assert.Equal(Measure.Zero, signature.AlignmentPattern);
         Assert.Equal(Measure.Zero, signature.FusionPattern);
+        Assert.Equal(Measure.One, signature.OperandShape.BaseFreezeOrder);
+        Assert.Equal(Measure.One, signature.OperandShape.AttachedFreezeOrder);
+        Assert.Equal(Measure.One, signature.OperandShape.BaseReadPattern);
+        Assert.Equal(Measure.One, signature.OperandShape.AttachedReadPattern);
     }
 
     [Fact]
@@ -224,6 +238,12 @@ public sealed class ElementRelationTests
         Assert.Equal(new Measure(6), segment.Signature().ReadPattern);
         Assert.Equal(new Measure(2), segment.FusionPattern());
         Assert.Equal(new Measure(2), segment.Signature().FusionPattern);
+        Assert.Equal(new Measure(2), segment.Signature().OperandShape.BaseFreezeOrder);
+        Assert.Equal(new Measure(2), segment.Signature().OperandShape.AttachedFreezeOrder);
+        Assert.Equal(new Measure(4), segment.Signature().OperandShape.BaseReadPattern);
+        Assert.Equal(new Measure(4), segment.Signature().OperandShape.AttachedReadPattern);
+        Assert.Equal(Measure.Zero, segment.Signature().OperandShape.BaseFusionPattern);
+        Assert.Equal(Measure.Zero, segment.Signature().OperandShape.AttachedFusionPattern);
 
         Assert.True(self.CanReadAsSelfInteractionCandidate());
         Assert.Equal(Measure.One, self.FusionPattern());
@@ -237,5 +257,39 @@ public sealed class ElementRelationTests
 
         Assert.True(complex.CanReadAsComplexCandidate());
         Assert.Equal(new Measure(4), complex.FusionPattern());
+    }
+
+    [Fact]
+    public void ExperimentalRelationInspectionSurfacesHigherOrderOperandShape()
+    {
+        Carrier x = 1;
+        Carrier y = 2;
+
+        var originX = new ExperimentalRelation(x, Measure.Zero, new Ratio(Measure.One, Measure.One));
+        var leftX = new ExperimentalRelation(x, new Measure(-10), new Ratio(Measure.One, Measure.One));
+        var rightX = new ExperimentalRelation(x, new Measure(10), new Ratio(Measure.One, Measure.One));
+
+        var originY = new ExperimentalRelation(y, Measure.Zero, new Ratio(Measure.One, Measure.One));
+        var upY = new ExperimentalRelation(y, new Measure(20), new Ratio(Measure.One, Measure.One));
+
+        var leftUnit = new ExperimentalRelation(originX, leftX, new Ratio(Measure.One, Measure.One));
+        var rightUnit = new ExperimentalRelation(originX, rightX, new Ratio(Measure.One, Measure.One));
+        var upUnit = new ExperimentalRelation(originY, upY, new Ratio(Measure.One, Measure.One));
+
+        var segment = new ExperimentalRelation(leftUnit, rightUnit, new Ratio(Measure.One, Measure.One));
+        var area = new ExperimentalRelation(rightUnit, upUnit, new Ratio(Measure.One, Measure.One));
+        var hybrid = new ExperimentalRelation(area, segment, new Ratio(Measure.One, Measure.One));
+        var signature = hybrid.Signature();
+
+        Assert.Equal(new Measure(4), signature.FreezeOrder);
+        Assert.Equal(new Measure(5), signature.ElementOrder.BaseOrder);
+        Assert.Equal(new Measure(5), signature.ElementOrder.AttachedOrder);
+        Assert.Equal(new Measure(3), signature.OperandShape.BaseFreezeOrder);
+        Assert.Equal(new Measure(3), signature.OperandShape.AttachedFreezeOrder);
+        Assert.Equal(new Measure(6), signature.OperandShape.BaseReadPattern);
+        Assert.Equal(new Measure(6), signature.OperandShape.AttachedReadPattern);
+        Assert.Equal(new Measure(3), signature.OperandShape.BaseFusionPattern);
+        Assert.Equal(new Measure(2), signature.OperandShape.AttachedFusionPattern);
+        Assert.Equal(Measure.Zero, signature.FusionPattern);
     }
 }

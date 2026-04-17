@@ -49,6 +49,7 @@ public static class RelationInspection
         relation.ComputeReadPattern(),
         relation.ComputeAlignmentPattern(),
         relation.ComputeFusionPattern(),
+        relation.OperandShape(),
         relation.Multiplicity);
 
     public static ElementOrderSignature ElementOrder(this Relation relation) => new(
@@ -72,6 +73,15 @@ public static class RelationInspection
 
     public static Measure FusionPattern(this Relation relation) =>
         relation.Signature().FusionPattern;
+
+    public static OperandShapeSignature OperandShape(this Relation relation) =>
+        new(
+            FreezeOrderOf(relation.Base),
+            FreezeOrderOf(relation.Attached),
+            ReadPatternOf(relation.Base),
+            ReadPatternOf(relation.Attached),
+            FusionPatternOf(relation.Base),
+            FusionPatternOf(relation.Attached));
 
     public static bool IsFirstOrder(this Relation relation) =>
         relation.Signature().FreezeOrder == Measure.One;
@@ -485,6 +495,18 @@ public static class RelationInspection
     {
         Relation relation => relation.FreezeOrder(),
         _ => Measure.Zero
+    };
+
+    private static Measure ReadPatternOf(IElement element) => element switch
+    {
+        Relation relation => relation.Signature().ReadPattern,
+        _ => ReadPatternUnknown
+    };
+
+    private static Measure FusionPatternOf(IElement element) => element switch
+    {
+        Relation relation => relation.Signature().FusionPattern,
+        _ => FusionPatternUnknown
     };
 
     private static bool TryGetReferenceCarrierRaw(IElement element, out Carrier carrier)
