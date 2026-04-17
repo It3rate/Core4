@@ -39,4 +39,15 @@ public sealed class CarrierTests
         Assert.Single(basis.SelectCarriers());
         Assert.Equal(temperature, basis.SelectCarriers()[0].Domain);
     }
+
+    [Fact]
+    public void CarrierLocateUsesCarrierOrderDirectlyWithoutImplicitSupportScaffold()
+    {
+        Carrier x = 7;
+        Carrier y = 8;
+        ISupportProjection position = new Ratio(new Measure(3), new Measure(10));
+
+        Assert.Equal(new Ratio(new Measure(3), new Measure(10)), x.LocateRead(position, x).AsRatio());
+        Assert.Equal(Ratio.Tension(new Measure(3)), x.LocateRead(position, y).AsRatio());
+    }
 }

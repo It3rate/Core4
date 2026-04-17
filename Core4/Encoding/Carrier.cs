@@ -20,8 +20,6 @@ public readonly record struct Carrier(long Id, CarrierDomain Domain) : ISupport
 
     public static implicit operator Carrier(long id) => new(id);
 
-    internal SupportStructure Structure => SupportStructure.ForCarrier(this);
-
     public Placement At(Measure location) => Placement.Exact(this, location);
 
     public Placement At(Ratio ratio) => new(this, ratio.Normalize());
@@ -31,7 +29,10 @@ public readonly record struct Carrier(long Id, CarrierDomain Domain) : ISupport
     // TODO(core): Delete this compatibility overload once callers pass support projections directly.
     public Placement Place(Ratio ratio) => Place((ISupportProjection)ratio);
 
-    public ISupportProjection LocateRead(ISupportProjection position, Carrier carrier) => Structure.LocateRead(position, carrier);
+    public ISupportProjection LocateRead(ISupportProjection position, Carrier carrier) => new SupportProjectionRead(
+        carrier == this
+            ? position.AsRatio().Normalize()
+            : Ratio.Tension(position.Potential));
 
     // TODO(core): Delete this compatibility alias once callers consume LocateRead directly.
     public Ratio Locate(ISupportProjection position, Carrier carrier) => LocateRead(position, carrier).AsRatio();

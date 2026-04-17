@@ -61,13 +61,6 @@ internal sealed class SupportStructure
 
     public bool IsComposite => !IsAtomic;
 
-    public static SupportStructure ForCarrier(Carrier carrier) => new(
-        carrier,
-        ImmutableArray<SupportLandmark>.Empty,
-        ImmutableArray<SupportSpan>.Empty,
-        ImmutableArray<LandmarkCoincidence>.Empty,
-        ImmutableArray<SupportStructure>.Empty);
-
     public static SupportStructure FromSpan(
         Carrier carrier,
         Ratio originPosition,
