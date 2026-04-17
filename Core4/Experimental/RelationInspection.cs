@@ -8,11 +8,69 @@ namespace Core4.Experimental;
 /// </summary>
 public static class RelationInspection
 {
+    private static readonly Measure UnknownOrder = Measure.Zero;
+    private static readonly Measure CarrierOrder = Measure.One;
+    private static readonly Measure MeasureOrder = new(2);
+    private static readonly Measure RelationOrderBase = new(3);
+
+    private static readonly Measure CarrierPatternUnknown = Measure.Zero;
+    private static readonly Measure CarrierPatternSameCarrier = Measure.One;
+    private static readonly Measure CarrierPatternSameDomain = new(2);
+    private static readonly Measure CarrierPatternDifferentDomain = new(3);
+
+    private static readonly Measure BasePatternUnknown = Measure.Zero;
+    private static readonly Measure BasePatternDistinct = Measure.One;
+    private static readonly Measure BasePatternShared = new(2);
+
+    public static RelationSignature Signature(this Relation relation) => new(
+        relation.ElementOrder(),
+        relation.FreezeOrder(),
+        relation.CarrierPattern(),
+        relation.BasePattern(),
+        relation.Multiplicity);
+
+    public static ElementOrderSignature ElementOrder(this Relation relation) => new(
+        OrderOf(relation.Base),
+        OrderOf(relation.Attached));
+
+    public static Measure FreezeOrder(this Relation relation) =>
+        new(Math.Max(FreezeOrderOf(relation.Base).Raw, FreezeOrderOf(relation.Attached).Raw) + 1L);
+
+    public static Measure CarrierPattern(this Relation relation)
+    {
+        if (TryGetReferenceCarrier(relation.Base, out var baseCarrier)
+            && TryGetReferenceCarrier(relation.Attached, out var attachedCarrier))
+        {
+            if (baseCarrier == attachedCarrier)
+            {
+                return CarrierPatternSameCarrier;
+            }
+
+            return baseCarrier.Domain == attachedCarrier.Domain
+                ? CarrierPatternSameDomain
+                : CarrierPatternDifferentDomain;
+        }
+
+        return CarrierPatternUnknown;
+    }
+
+    public static Measure BasePattern(this Relation relation)
+    {
+        if (relation.Base is Relation baseRelation && relation.Attached is Relation attachedRelation)
+        {
+            return Equals(baseRelation.Base, attachedRelation.Base)
+                ? BasePatternShared
+                : BasePatternDistinct;
+        }
+
+        return BasePatternUnknown;
+    }
+
     public static bool IsFirstOrder(this Relation relation) =>
-        relation.Base is not Relation && relation.Attached is not Relation;
+        relation.Signature().FreezeOrder == Measure.One;
 
     public static bool IsSecondOrder(this Relation relation) =>
-        relation.Base is Relation || relation.Attached is Relation;
+        relation.Signature().FreezeOrder > Measure.One;
 
     public static bool IsRelationToRelation(this Relation relation) =>
         relation.Base is Relation && relation.Attached is Relation;
@@ -102,8 +160,38 @@ public static class RelationInspection
             : Measure.Zero;
 
     public static bool IsRepeated(this Relation relation) =>
-        relation.Multiplicity != Measure.One;
+        relation.Signature().Multiplicity != Measure.One;
 
     public static bool SharesBase(this Relation relation, Relation other) =>
         Equals(relation.Base, other.Base);
+
+    private static Measure OrderOf(IElement element) => element switch
+    {
+        Carrier => CarrierOrder,
+        Measure => MeasureOrder,
+        Relation relation => new(RelationOrderBase.Raw + relation.FreezeOrder().Raw - 1L),
+        _ => UnknownOrder
+    };
+
+    private static Measure FreezeOrderOf(IElement element) => element switch
+    {
+        Relation relation => relation.FreezeOrder(),
+        _ => Measure.Zero
+    };
+
+    private static bool TryGetReferenceCarrier(IElement element, out Carrier carrier)
+    {
+        switch (element)
+        {
+            case Carrier directCarrier:
+                carrier = directCarrier;
+                return true;
+            case Relation relation when relation.IsCarrierPointRelation():
+                carrier = (Carrier)relation.Base;
+                return true;
+            default:
+                carrier = default;
+                return false;
+        }
+    }
 }

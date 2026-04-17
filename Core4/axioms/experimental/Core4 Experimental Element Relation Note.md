@@ -184,6 +184,32 @@ The current experimental slice is intentionally tiny:
 - root `IElement`
 - `Core4.Experimental.Relation`
 - `Core4.Experimental.RelationInspection`
+- `Core4.Experimental.RelationSignature`
 
 Everything else should be built outward from that only if inspection proves it
 is truly necessary.
+
+## 11. Current Signature Shape
+
+The first numeric signature is tuple-shaped rather than packed into one code.
+
+It currently carries:
+
+- `ElementOrder`
+  - `BaseOrder`
+  - `AttachedOrder`
+- `FreezeOrder`
+- `CarrierPattern`
+- `BasePattern`
+- `Multiplicity`
+
+This preserves direction while still giving one ordered structural summary.
+
+For now only three element families have canonical order:
+
+- `Carrier`
+- `Measure`
+- experimental `Relation`
+
+Other current `IElement` implementations are still treated as unknown-order
+until we intentionally fold them down into this structural substrate.

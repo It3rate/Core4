@@ -64,6 +64,8 @@ public sealed class ElementRelationTests
         var point = new ExperimentalRelation(x, new Measure(10), new Ratio(Measure.One, Measure.One));
         var alignedCarrier = new ExperimentalRelation(x, y);
         var fused = new ExperimentalRelation(point, alignedCarrier, new Ratio(Measure.One, Measure.One), new Measure(3));
+        var pointSignature = point.Signature();
+        var fusedSignature = fused.Signature();
 
         Assert.True(point.IsFirstOrder());
         Assert.True(point.IsCarrierPointRelation());
@@ -73,6 +75,16 @@ public sealed class ElementRelationTests
         Assert.True(fused.IsRelationToRelation());
         Assert.True(fused.IsRepeated());
         Assert.True(point.SharesBase(alignedCarrier));
+        Assert.Equal(new ElementOrderSignature(Measure.One, new Measure(2)), pointSignature.ElementOrder);
+        Assert.Equal(Measure.One, pointSignature.FreezeOrder);
+        Assert.Equal(Measure.Zero, pointSignature.CarrierPattern);
+        Assert.Equal(Measure.Zero, pointSignature.BasePattern);
+        Assert.Equal(new Measure(3), fusedSignature.ElementOrder.BaseOrder);
+        Assert.Equal(new Measure(3), fusedSignature.ElementOrder.AttachedOrder);
+        Assert.Equal(new Measure(2), fusedSignature.FreezeOrder);
+        Assert.Equal(Measure.Zero, fusedSignature.CarrierPattern);
+        Assert.Equal(new Measure(2), fusedSignature.BasePattern);
+        Assert.Equal(new Measure(3), fusedSignature.Multiplicity);
     }
 
     [Fact]
@@ -82,6 +94,7 @@ public sealed class ElementRelationTests
         var origin = new ExperimentalRelation(x, Measure.Zero, new Ratio(Measure.One, Measure.One));
         var unit = new ExperimentalRelation(x, new Measure(10), new Ratio(Measure.One, Measure.One));
         var unitCandidate = new ExperimentalRelation(origin, unit, new Ratio(Measure.One, Measure.One));
+        var signature = unitCandidate.Signature();
 
         Assert.True(unitCandidate.IsPointPair());
         Assert.True(unitCandidate.IsSameCarrierPointPair());
@@ -94,6 +107,11 @@ public sealed class ElementRelationTests
         Assert.Equal(x, attachedCarrier);
         Assert.Equal(Measure.Zero, baseLocation);
         Assert.Equal(new Measure(10), attachedLocation);
+        Assert.Equal(new ElementOrderSignature(new Measure(3), new Measure(3)), signature.ElementOrder);
+        Assert.Equal(new Measure(2), signature.FreezeOrder);
+        Assert.Equal(Measure.One, signature.CarrierPattern);
+        Assert.Equal(new Measure(2), signature.BasePattern);
+        Assert.Equal(Measure.One, signature.Multiplicity);
     }
 
     [Fact]
@@ -104,6 +122,7 @@ public sealed class ElementRelationTests
         var xPoint = new ExperimentalRelation(x, new Measure(10), new Ratio(Measure.One, Measure.One));
         var yPoint = new ExperimentalRelation(y, new Measure(10), new Ratio(Measure.One, Measure.One));
         var joinCandidate = new ExperimentalRelation(xPoint, yPoint, new Ratio(Measure.One, Measure.One));
+        var signature = joinCandidate.Signature();
 
         Assert.True(joinCandidate.IsPointPair());
         Assert.False(joinCandidate.IsSameCarrierPointPair());
@@ -111,5 +130,8 @@ public sealed class ElementRelationTests
         Assert.False(joinCandidate.CanReadAsUnitCandidate());
         Assert.True(joinCandidate.CanReadAsJoinCandidate());
         Assert.Equal(Measure.Zero, joinCandidate.AttachedOffset());
+        Assert.Equal(new Measure(2), signature.FreezeOrder);
+        Assert.Equal(new Measure(3), signature.CarrierPattern);
+        Assert.Equal(Measure.One, signature.BasePattern);
     }
 }
