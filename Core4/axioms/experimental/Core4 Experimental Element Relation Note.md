@@ -34,16 +34,16 @@ The intended rule is:
 ## 2. Invariance, Noise, And Freeze
 
 Under this experimental model, the deeper primitive is not "object" but
-observed invariance.
+observed invariance. The default state is uncalibrated variance, not order.
 
 The system first distinguishes:
 
-- things that appear ordered
 - things that appear noisy
+- things that appear ordered
 
-Order means some sequence or relation is observed to remain invariant across
+Order means some relational attribute is observed to remain invariant across
 different contexts. That invariance is the stronger claim, because it survives
-changes of perspective and interpretation.
+changes of perspective and interpretation. Big is always larger than small.
 
 Freezing, pinning, or fusing is the next claim layered on top of that:
 
@@ -52,7 +52,7 @@ Freezing, pinning, or fusing is the next claim layered on top of that:
 
 So a freeze is not magic permanence. It is a promise, or an observation, that a
 relation holds strongly enough to be reused before time and later tension erode
-it.
+it. A big mountain may become a small hill, but not by tomorrow.
 
 In that sense:
 
@@ -60,7 +60,7 @@ In that sense:
 - freezing is temporal invariance with commitment
 
 This is why time can relax a freeze, but should not automatically destroy the
-underlying idea that some relations are more ordered than others.
+underlying idea of what it means to calibrate variance.
 
 ## 3. Elements
 
