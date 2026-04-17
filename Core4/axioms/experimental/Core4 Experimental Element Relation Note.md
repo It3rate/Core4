@@ -115,9 +115,14 @@ There is also a convenience constructor that takes:
 - one base element
 - then additional attached elements
 
-and defaults those participations to whole-scope attachment. That is only a
-surface convenience. Internally the relation still grows as an ordered chain of
-attachments.
+and defaults those participations to:
+
+- `Node` merge scope
+- commitment `1`
+- multiplicity `1`
+
+That is only a surface convenience. Internally the relation still grows as an
+ordered chain of attachments.
 
 Multiplicity still lives on the relation edge and applies to the attached side.
 This matches the current intended reading:
@@ -125,6 +130,14 @@ This matches the current intended reading:
 - start from the existing relation context
 - attach one more thing
 - repeat that attached participation some number of times
+
+So the current edge defaults are explicitly:
+
+- merge scope = `Node`
+- commitment = `1`
+- multiplicity = `1`
+
+while explicit whole-merge relations still need to ask for `Whole` directly.
 
 ## 5. Relation To Relation
 

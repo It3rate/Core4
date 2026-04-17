@@ -9,6 +9,10 @@ namespace Core4.Experimental;
 /// </summary>
 public sealed record Relation : IElement
 {
+    public static MergeScope DefaultMergeScope => MergeScope.Node;
+    public static Measure DefaultCommitment => Measure.One;
+    public static Measure DefaultMultiplicity => Measure.One;
+
     public ImmutableArray<RelationEntry> Entries { get; }
     public RelationSignature Signature { get; }
     internal ImmutableHashSet<Carrier> Carriers { get; }
@@ -20,7 +24,7 @@ public sealed record Relation : IElement
             : Entries[^1].Attached.Polarity;
 
     public Relation(IElement attached, MergeScope mergeScope)
-        : this(BuildState(attached, mergeScope, Measure.Zero, Measure.One))
+        : this(BuildState(attached, mergeScope, DefaultCommitment, DefaultMultiplicity))
     {
     }
 
@@ -52,8 +56,8 @@ public sealed record Relation : IElement
         Measure? commitment = null,
         Measure? multiplicity = null)
     {
-        var nextCommitment = commitment ?? Measure.Zero;
-        var nextMultiplicity = multiplicity ?? Measure.One;
+        var nextCommitment = commitment ?? DefaultCommitment;
+        var nextMultiplicity = multiplicity ?? DefaultMultiplicity;
         var nextEntry = new RelationEntry(attached, mergeScope, nextCommitment, nextMultiplicity);
         var elementCarriers = CarrierSetOf(attached);
         var carrierNovelty = NoveltyOfCarrierSet(elementCarriers, Carriers);
@@ -85,11 +89,11 @@ public sealed record Relation : IElement
 
     private static RelationState BuildState(IElement @base, params IElement[] attached)
     {
-        var relation = new Relation(BuildState(@base, MergeScope.Whole, Measure.Zero, Measure.One));
+        var relation = new Relation(BuildState(@base, DefaultMergeScope, DefaultCommitment, DefaultMultiplicity));
 
         foreach (var item in attached)
         {
-            relation = relation.Add(item, MergeScope.Whole);
+            relation = relation.Add(item, DefaultMergeScope);
         }
 
         return relation.State();
