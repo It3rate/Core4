@@ -85,24 +85,46 @@ In the current Core4 code, obvious candidates include:
 The important part is not that every current type is final. The important part
 is that freezing does not require a different endpoint type for every case.
 
+The experimental slice now uses its own self-contained primitives:
+
+- experimental `IElement`
+- experimental `Measure`
+- experimental `Carrier`
+- experimental `Relation`
+
+So the experiment no longer depends on the wider Core4 object set just to
+express the primitive freeze graph.
+
 ## 4. Relations
 
-The experimental primitive relation is always:
+The current experimental primitive relation is a small immutable chain.
 
-- ordered
-- `Base`
+It starts from one attached element plus merge scope, then grows by `Add(...)`
+calls that append:
+
 - `Attached`
+- `MergeScope`
 - `Commitment`
 - `Multiplicity`
 
-So every relation has a direction.
+So every relation remains ordered, but the order is now simply the order in
+which elements were attached to the relation.
 
-Multiplicity lives on the relation and applies to the `Attached` side. This matches
-the current intended reading:
+There is also a convenience constructor that takes:
 
-- start from origin/reference
-- relate toward the second thing
-- repeat the second-side relation some number of times
+- one base element
+- then additional attached elements
+
+and defaults those participations to whole-scope attachment. That is only a
+surface convenience. Internally the relation still grows as an ordered chain of
+attachments.
+
+Multiplicity still lives on the relation edge and applies to the attached side.
+This matches the current intended reading:
+
+- start from the existing relation context
+- attach one more thing
+- repeat that attached participation some number of times
 
 ## 5. Relation To Relation
 
@@ -158,6 +180,10 @@ Examples of the intended reading:
   aligned, or opposed depending on their attached locations
 - second-order relation-to-relation freezes can behave like directed segment,
   area, complex, or self-interaction depending on the underlying elements
+
+For the moment, that inspection layer has been intentionally stepped back.
+The current code only preserves primitive relation participation so we can make
+sure the substrate is right before naming too many derived patterns.
 
 ## 7. Carrier Relations
 
@@ -217,9 +243,10 @@ These remain open for later passes:
 
 The current experimental slice is intentionally tiny:
 
-- root `IElement`
+- `Core4.Experimental.IElement`
+- `Core4.Experimental.Measure`
+- `Core4.Experimental.Carrier`
 - `Core4.Experimental.Relation`
-- `Core4.Experimental.RelationInspection`
 - `Core4.Experimental.RelationSignature`
 
 Everything else should be built outward from that only if inspection proves it
@@ -227,107 +254,88 @@ is truly necessary.
 
 ## 12. Current Signature Shape
 
-The experimental signature has been reduced back to primitive participation
-axes instead of interpreted pattern names.
+The signature is now literally one participation tuple per attached element in
+the relation chain.
 
-It currently carries:
+Each entry currently carries:
 
 - `Polarity`
-  - `Base`
-  - `Attached`
 - `MergeScope`
-  - `Base`
-  - `Attached`
-- `CarrierRelation`
-- `DomainRelation`
+- `CarrierNovelty`
+- `DomainNovelty`
 - `Multiplicity`
 
-This keeps the relation summary small and ordered without storing labels like
-unit, join, segment, area, complex, or self-interaction directly in the
-signature.
+So the signature does not try to summarize the whole relation into one named
+pattern yet. It preserves the ordered participation history directly.
 
 ### Polarity
 
-`Polarity` is the ordered dominant/recessive participation of the two ends.
+Every experimental element exposes a polarity, even if it is neutral.
 
-At the current stage it is recorded as:
-
-- `Unknown`
-- `Dominant`
-- `Recessive`
-
-The ordered pair matters. This is the level where patterns like:
+The signature records the polarity of each attached element directly. This keeps
+room for later directional patterns like:
 
 - `DD`
 - `DR`
 - `RD`
 - `RR`
 
-should eventually be explored numerically instead of being collapsed too early
-into named cases.
+without requiring the relation itself to name those combinations up front.
 
 ### Merge Scope
 
-`MergeScope` records whether each side is participating as a whole extent or as
-a node-like position.
+Each attached element must declare whether it is entering the relation as:
 
-At the current stage it is recorded as:
-
-- `Unknown`
 - `Whole`
 - `Node`
 
-Again the ordered pair matters, so the signature can preserve distinctions like:
+There is currently no `Unknown` merge scope in the primitive relation. It is
+always an explicit participation choice for that edge.
 
-- `WW`
-- `WN`
-- `NW`
-- `NN`
+### Carrier And Domain Novelty
 
-without deciding too early what those must mean in every modality.
+For each attached element, the relation calculates whether that element brings:
 
-### Carrier And Domain Relation
+- a `New` carrier or an `Existing` carrier already seen earlier in the relation
+- a `New` domain or an `Existing` domain already seen earlier in the relation
 
-`CarrierRelation` and `DomainRelation` do not try to carry the exact carrier or
-domain identity. They only describe novelty relative to the base context:
+If an attached element introduces no carriers at all, its novelty now falls back
+to the current relation context:
 
-- `Unknown`
-- `Existing`
-- `New`
+- first element in an empty relation still reads as `New`
+- later carrier-less elements read as `Existing`
 
-So the signature answers questions like:
+This keeps novelty two-state instead of introducing a third "unknown" category.
 
-- does the attached side stay on an already-present carrier?
-- does it stay inside an already-present domain?
-- or does it introduce something new?
-
-Exact carrier/domain identity should still be inspected from the underlying
-elements themselves when needed.
+The relation also caches the carrier/domain sets it has already accumulated, so
+adding a new element does not need to recalculate the whole signature from
+scratch. When a nested relation is attached as one element, the outer relation
+uses the nested relation's cached carrier/domain context instead of rewalking
+all of its grandchildren.
 
 ### Multiplicity
 
 `Multiplicity` remains on the relation edge and applies to the attached side.
-It is treated as part of participation in this specific freeze, not as a fixed
-intrinsic property of the element outside this relation.
+It is stored per added element, not once for the whole relation.
 
-### Derived Readings
+### Deferred Inspection
 
 Named readings like:
 
 - point
-- unit candidate
+- unit
 - join
-- directed segment
+- segment
 - area
 - complex
 - self-interaction
 
-should now be read as derived interpretations of:
+are intentionally deferred for now.
 
-- raw structure
-- polarity
-- merge scope
-- carrier/domain novelty
-- shared-base conditions
+The current experiment is focused on:
 
-rather than as primitive signature fields in their own right.
+- getting the primitive elements right
+- getting ordered relation growth right
+- storing only the participation facts we are confident about
+
+before building a larger derived inspection layer on top.
