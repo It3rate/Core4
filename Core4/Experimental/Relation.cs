@@ -19,9 +19,11 @@ public sealed record Relation : IElement
     internal ImmutableHashSet<long> Domains { get; }
 
     public Measure Polarity =>
-        Entries.IsDefaultOrEmpty
-            ? Measure.Zero
-            : Entries[^1].Attached.Polarity;
+        TryGetUnitDelta(out var delta)
+            ? delta.Sign
+            : Entries.IsDefaultOrEmpty
+                ? Measure.Zero
+                : Entries[^1].Attached.Polarity;
 
     public Relation(IElement attached, MergeScope mergeScope)
         : this(BuildState(attached, mergeScope, DefaultCommitment, DefaultMultiplicity))
@@ -106,6 +108,33 @@ public sealed record Relation : IElement
         ImmutableHashSet<long>.Empty);
 
     private RelationState State() => new(Entries, Signature, Carriers, Domains);
+
+    private bool TryGetUnitDelta(out Measure delta)
+    {
+        if (Carriers.IsEmpty)
+        {
+            delta = Measure.Zero;
+            return false;
+        }
+
+        Measure? previous = null;
+        foreach (var entry in Entries)
+        {
+            if (entry.Attached is Measure measure)
+            {
+                if (previous is { } prior)
+                {
+                    delta = measure - prior;
+                    return delta != Measure.Zero;
+                }
+
+                previous = measure;
+            }
+        }
+
+        delta = Measure.Zero;
+        return false;
+    }
 
     private static ImmutableHashSet<Carrier> CarrierSetOf(IElement element) => element switch
     {

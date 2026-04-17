@@ -180,8 +180,10 @@ Instead those roles should come from inspection.
 Examples of the intended reading:
 
 - one carrier related to one measure can behave like a landmark-capable point
-- that landmark does not become a measurement origin until another measure
-  relates through it
+- that landmark does not become a measurement origin or unit by itself
+- a second measure on the same carrier is what gives the relation a unit delta
+- so values like `100 -> 200` may define a positive unit just as well as
+  `0 -> 100`
 - one second-order relation between two carrier-point relations on the same
   carrier can behave like a unit candidate
 - one second-order relation between two carrier-point relations on different
@@ -285,8 +287,25 @@ pattern yet. It preserves the ordered participation history directly.
 
 Every experimental element exposes a polarity, even if it is neutral.
 
-The signature records the polarity of each attached element directly. This keeps
-room for later directional patterns like:
+Bare measures and carriers are currently neutral. They do not declare their own
+dominant or recessive status.
+
+Polarity is instead meant to arise from calibrated relation direction. In the
+current experimental pass, the first concrete example of that is a carrier-local
+unit: if two measures on the same carrier define a positive delta, the unit
+reads as dominant; if they define a negative delta, it reads as recessive.
+
+That means `0` is not privileged as an origin. A unit can be formed from:
+
+- `100 -> 200`
+- `200 -> 100`
+- `-40 -> 60`
+
+just as naturally as from `0 -> 1`.
+
+The signature records the attached element polarity directly, while the relation
+itself may derive a nonzero polarity from its internal unit structure. This
+keeps room for later directional patterns like:
 
 - `DD`
 - `DR`

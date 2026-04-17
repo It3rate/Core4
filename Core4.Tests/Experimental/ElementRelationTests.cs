@@ -25,7 +25,7 @@ public sealed class ElementRelationTests
     [Fact]
     public void RelationStartsFromOneAttachedElementAndCalculatesSignatureImmediately()
     {
-        var carrier = new ExperimentalCarrier(7, Domain: 3, PolarityRaw: 1);
+        var carrier = new ExperimentalCarrier(7, Domain: 3);
         var relation = new ExperimentalRelation(carrier, MergeScope.Whole);
 
         Assert.Single(relation.Entries);
@@ -39,7 +39,7 @@ public sealed class ElementRelationTests
         Assert.Equal(ExperimentalRelation.DefaultCommitment, entry.Commitment);
         Assert.Equal(ExperimentalRelation.DefaultMultiplicity, entry.Multiplicity);
 
-        Assert.Equal(new ExperimentalMeasure(1), signature.Polarity);
+        Assert.Equal(ExperimentalMeasure.Zero, signature.Polarity);
         Assert.Equal(new ExperimentalMeasure((long)MergeScope.Whole), signature.MergeScope);
         Assert.Equal(new ExperimentalMeasure((long)Novelty.New), signature.CarrierNovelty);
         Assert.Equal(new ExperimentalMeasure((long)Novelty.New), signature.DomainNovelty);
@@ -51,7 +51,7 @@ public sealed class ElementRelationTests
     {
         var baseRelation = new ExperimentalRelation(new ExperimentalCarrier(1, Domain: 10), MergeScope.Whole);
         var nextRelation = baseRelation.Add(
-            new ExperimentalMeasure(12, PolarityRaw: -1),
+            new ExperimentalMeasure(12),
             MergeScope.Node,
             commitment: new ExperimentalMeasure(5),
             multiplicity: new ExperimentalMeasure(3));
@@ -64,12 +64,12 @@ public sealed class ElementRelationTests
         var appended = nextRelation.Entries[1];
         var appendedSignature = nextRelation.Signature.Entries[1];
 
-        Assert.Equal(new ExperimentalMeasure(12, -1), appended.Attached);
+        Assert.Equal(new ExperimentalMeasure(12), appended.Attached);
         Assert.Equal(MergeScope.Node, appended.MergeScope);
         Assert.Equal(new ExperimentalMeasure(5), appended.Commitment);
         Assert.Equal(new ExperimentalMeasure(3), appended.Multiplicity);
 
-        Assert.Equal(new ExperimentalMeasure(-1), appendedSignature.Polarity);
+        Assert.Equal(ExperimentalMeasure.Zero, appendedSignature.Polarity);
         Assert.Equal(new ExperimentalMeasure((long)MergeScope.Node), appendedSignature.MergeScope);
         Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), appendedSignature.CarrierNovelty);
         Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), appendedSignature.DomainNovelty);
@@ -79,9 +79,9 @@ public sealed class ElementRelationTests
     [Fact]
     public void RelationTracksCarrierAndDomainNoveltyAcrossAddedElements()
     {
-        var lineA = new ExperimentalCarrier(1, Domain: 100, PolarityRaw: 1);
-        var lineB = new ExperimentalCarrier(2, Domain: 100, PolarityRaw: -1);
-        var lineC = new ExperimentalCarrier(9, Domain: 300, PolarityRaw: 1);
+        var lineA = new ExperimentalCarrier(1, Domain: 100);
+        var lineB = new ExperimentalCarrier(2, Domain: 100);
+        var lineC = new ExperimentalCarrier(9, Domain: 300);
 
         var relation = new ExperimentalRelation(lineA, MergeScope.Whole)
             .Add(lineA, MergeScope.Node)
@@ -107,9 +107,11 @@ public sealed class ElementRelationTests
     public void RelationCanAttachAnotherRelationAsOneElement()
     {
         var left = new ExperimentalRelation(new ExperimentalCarrier(1, Domain: 10), MergeScope.Whole)
-            .Add(new ExperimentalMeasure(4, PolarityRaw: -1), MergeScope.Node);
+            .Add(new ExperimentalMeasure(4), MergeScope.Node)
+            .Add(new ExperimentalMeasure(1), MergeScope.Node);
         var right = new ExperimentalRelation(new ExperimentalCarrier(2, Domain: 10), MergeScope.Whole)
-            .Add(new ExperimentalMeasure(8, PolarityRaw: 1), MergeScope.Node);
+            .Add(new ExperimentalMeasure(8), MergeScope.Node)
+            .Add(new ExperimentalMeasure(20), MergeScope.Node);
         var fused = new ExperimentalRelation(left, MergeScope.Node)
             .Add(right, MergeScope.Whole, multiplicity: new ExperimentalMeasure(2));
 
@@ -151,32 +153,35 @@ public sealed class ElementRelationTests
     }
 
     [Fact]
-    public void OriginBuildsFromCarrierAndPinnedMeasure()
+    public void LandmarkBuildsFromCarrierAndPinnedMeasureWithoutBecomingUnit()
     {
         var carrier = new ExperimentalCarrier(1, Domain: 10);
-        var origin = new ExperimentalRelation(carrier, new ExperimentalMeasure(0));
+        var landmark = new ExperimentalRelation(carrier, new ExperimentalMeasure(100));
 
-        Assert.Equal(2, origin.Entries.Length);
-        Assert.Equal(ExperimentalRelation.DefaultMergeScope, origin.Entries[0].MergeScope);
-        Assert.Equal(ExperimentalRelation.DefaultMergeScope, origin.Entries[1].MergeScope);
-        Assert.Equal(ExperimentalRelation.DefaultCommitment, origin.Entries[0].Commitment);
-        Assert.Equal(ExperimentalRelation.DefaultCommitment, origin.Entries[1].Commitment);
-        Assert.Equal(new ExperimentalMeasure((long)Novelty.New), origin.Signature.Entries[0].CarrierNovelty);
-        Assert.Equal(new ExperimentalMeasure((long)Novelty.New), origin.Signature.Entries[0].DomainNovelty);
-        Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), origin.Signature.Entries[1].CarrierNovelty);
-        Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), origin.Signature.Entries[1].DomainNovelty);
+        Assert.Equal(2, landmark.Entries.Length);
+        Assert.Equal(ExperimentalMeasure.Zero, landmark.Polarity);
+        Assert.Equal(ExperimentalRelation.DefaultMergeScope, landmark.Entries[0].MergeScope);
+        Assert.Equal(ExperimentalRelation.DefaultMergeScope, landmark.Entries[1].MergeScope);
+        Assert.Equal(ExperimentalRelation.DefaultCommitment, landmark.Entries[0].Commitment);
+        Assert.Equal(ExperimentalRelation.DefaultCommitment, landmark.Entries[1].Commitment);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.New), landmark.Signature.Entries[0].CarrierNovelty);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.New), landmark.Signature.Entries[0].DomainNovelty);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), landmark.Signature.Entries[1].CarrierNovelty);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), landmark.Signature.Entries[1].DomainNovelty);
     }
 
     [Fact]
-    public void DominantAndRecessiveUnitsExtendOriginByPolarity()
+    public void DominantAndRecessiveUnitsCanBeBuiltWithoutUsingZeroAsOrigin()
     {
         var carrier = new ExperimentalCarrier(1, Domain: 10);
-        var dominantUnit = Unit(carrier, new ExperimentalMeasure(10, PolarityRaw: 1));
-        var recessiveUnit = Unit(carrier, new ExperimentalMeasure(-10, PolarityRaw: -1));
+        var dominantUnit = Unit(carrier, new ExperimentalMeasure(100), new ExperimentalMeasure(200));
+        var recessiveUnit = Unit(carrier, new ExperimentalMeasure(200), new ExperimentalMeasure(100));
 
         Assert.Equal(3, dominantUnit.Entries.Length);
-        Assert.Equal(new ExperimentalMeasure(1), dominantUnit.Signature.Entries[2].Polarity);
-        Assert.Equal(new ExperimentalMeasure(-1), recessiveUnit.Signature.Entries[2].Polarity);
+        Assert.Equal(new ExperimentalMeasure(1), dominantUnit.Polarity);
+        Assert.Equal(new ExperimentalMeasure(-1), recessiveUnit.Polarity);
+        Assert.Equal(ExperimentalMeasure.Zero, dominantUnit.Signature.Entries[1].Polarity);
+        Assert.Equal(ExperimentalMeasure.Zero, dominantUnit.Signature.Entries[2].Polarity);
         Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), dominantUnit.Signature.Entries[2].CarrierNovelty);
         Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), recessiveUnit.Signature.Entries[2].CarrierNovelty);
     }
@@ -185,8 +190,8 @@ public sealed class ElementRelationTests
     public void DirectedSegmentAndSelfInteractionReadAsWholeUnitMerges()
     {
         var carrier = new ExperimentalCarrier(1, Domain: 10);
-        var dominantUnit = Unit(carrier, new ExperimentalMeasure(10, PolarityRaw: 1));
-        var recessiveUnit = Unit(carrier, new ExperimentalMeasure(-10, PolarityRaw: -1));
+        var dominantUnit = Unit(carrier, new ExperimentalMeasure(100), new ExperimentalMeasure(200));
+        var recessiveUnit = Unit(carrier, new ExperimentalMeasure(200), new ExperimentalMeasure(100));
 
         var directedSegment = new ExperimentalRelation(recessiveUnit, MergeScope.Whole)
             .Add(dominantUnit, MergeScope.Whole);
@@ -209,10 +214,10 @@ public sealed class ElementRelationTests
         var x = new ExperimentalCarrier(1, Domain: 10);
         var y = new ExperimentalCarrier(2, Domain: 20);
 
-        var xDominant = Unit(x, new ExperimentalMeasure(10, PolarityRaw: 1));
-        var xRecessive = Unit(x, new ExperimentalMeasure(-10, PolarityRaw: -1));
-        var yDominant = Unit(y, new ExperimentalMeasure(20, PolarityRaw: 1));
-        var yRecessive = Unit(y, new ExperimentalMeasure(-20, PolarityRaw: -1));
+        var xDominant = Unit(x, new ExperimentalMeasure(100), new ExperimentalMeasure(200));
+        var xRecessive = Unit(x, new ExperimentalMeasure(200), new ExperimentalMeasure(100));
+        var yDominant = Unit(y, new ExperimentalMeasure(50), new ExperimentalMeasure(80));
+        var yRecessive = Unit(y, new ExperimentalMeasure(80), new ExperimentalMeasure(50));
 
         var area = new ExperimentalRelation(xDominant, MergeScope.Whole).Add(yDominant, MergeScope.Whole);
         var complex = new ExperimentalRelation(xDominant, MergeScope.Whole).Add(yRecessive, MergeScope.Whole);
@@ -239,8 +244,11 @@ public sealed class ElementRelationTests
         Assert.Equal(new ExperimentalMeasure((long)Novelty.New), antiArea.Signature.Entries[1].DomainNovelty);
     }
 
-    private static ExperimentalRelation Unit(ExperimentalCarrier carrier, ExperimentalMeasure unitMeasure) =>
-        new(carrier, ExperimentalMeasure.Zero, unitMeasure);
+    private static ExperimentalRelation Unit(
+        ExperimentalCarrier carrier,
+        ExperimentalMeasure originMeasure,
+        ExperimentalMeasure unitMeasure) =>
+        new(carrier, originMeasure, unitMeasure);
 
     private static void AssertPairPolarity(ExperimentalRelation relation, long @base, long attached)
     {
