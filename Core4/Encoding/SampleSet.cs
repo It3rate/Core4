@@ -7,6 +7,7 @@ namespace Core4.Encoding;
 /// persistent grouping of distinguishable live sample sites that can later be attached to different measuring
 /// scaffolds. Composite sample sets preserve child order while also carrying the flattened site order, but this
 /// type intentionally stays close to raw sample storage rather than accumulating read/filter helpers directly.
+/// Samples are observational/candidate structure for now rather than frozen topology.
 /// </summary>
 public sealed class SampleSet
 {
@@ -34,6 +35,10 @@ public sealed class SampleSet
     public SampleSet Recessive => IsComposite ? _groups[0] : this;
 
     public SampleSet Dominant => IsComposite ? _groups[1] : this;
+
+    // TODO(core): Allow sample groups to harden/promote into connected frozen structure when commitment becomes
+    // strong enough. That promotion should tolerate contradiction and partial/broken structure by surfacing tension
+    // instead of requiring samples to already form a perfect topology.
 
     public static SampleSet Collect(params Site[] sites) => new([.. sites], ImmutableArray<SampleSet>.Empty);
 

@@ -25,10 +25,11 @@ internal readonly record struct LandmarkCoincidence(
     Ratio Commitment);
 
 /// <summary>
-/// The shared frozen measuring scaffold behind the current public support aliases. Conceptually this is the ruler:
-/// pinned landmarks, frozen coincidences, and fused sub-supports that together define how later samples can be read.
-/// Public types such as carrier, relation, and basis still provide the ergonomic API, while this type holds the
-/// underlying landmark and coincidence picture those views are built from.
+/// The shared frozen local measuring scaffold behind the current public support aliases. Conceptually this is one
+/// ruler-like calibration complex on one or more carriers: pinned landmarks, frozen coincidences, and fused local
+/// components that together define how nearby samples can be read. This type is intentionally downward-facing; it does
+/// not own any larger connected network it may participate in, and richer network/topology views should be discovered
+/// by interpretation/traversal rather than stored here as universal authority.
 /// </summary>
 internal sealed class SupportStructure
 {

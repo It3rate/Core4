@@ -3,8 +3,9 @@ using System.Globalization;
 namespace Core4.Encoding;
 
 /// <summary>
-/// A primitive support: one concrete ordered carrier instance inside some semantic domain. Different carrier instances
-/// may belong to the same domain without already agreeing on origin, scale, or calibration.
+/// One concrete ordered carrier instance inside some semantic domain. A carrier is identity/order substrate, not the
+/// owner of all local structure on that line: many local supports and many sample observations may coexist on the same
+/// carrier without one universal ruler already being chosen.
 /// Example: <c>var x = new Carrier(1); var point = x.At(10);</c>
 /// </summary>
 public readonly record struct Carrier(long Id, CarrierDomain Domain) : ISupport

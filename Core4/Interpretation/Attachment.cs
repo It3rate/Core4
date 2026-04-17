@@ -5,8 +5,8 @@ namespace Core4.Interpretation;
 
 /// <summary>
 /// A frozen measuring scaffold with bound live samples. This is not a single local place; it is a read of one whole
-/// basis through one site per atomic relation slot. The attachment itself stores only the reusable ruler and the
-/// aligned sample group; any child attachments are derived from that pair so the live binding stays one shared
+/// local support through one site per atomic relation slot. The attachment itself stores only the reusable ruler and
+/// the aligned sample group; any child attachments are derived from that pair so the live binding stays one shared
 /// mechanism instead of a second parallel tree. Atomic attachments expose a direct local projection through their
 /// basis; composite attachments also expose a higher-level fold that compares their ordered child reads without
 /// pretending the whole object is itself one atomic relation.
@@ -50,7 +50,8 @@ public sealed class Attachment : ISupportFold
 
     // TODO(core): Keep this as the narrow attachment-side entry point for now. Later sample operations should be
     // able to select, filter, sort, and regroup by richer criteria, possibly using different support structures,
-    // before deciding whether the result remains a SampleSet or hardens into a new attachment.
+    // before deciding whether the result remains a SampleSet, hardens into a new attachment, or promotes into
+    // connected frozen structure.
     public SampleSet SelectSamples(Carrier carrier) => Samples.Select(carrier);
 
     // Compatibility projection for callers that still expect a single ratio-shaped read. Composite attachments do not
