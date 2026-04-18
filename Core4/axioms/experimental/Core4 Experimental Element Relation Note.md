@@ -105,7 +105,7 @@ calls that append:
 - `Attached`
 - `MergeScope`
 - `Commitment`
-- `Multiplicity`
+- optional `Transform`
 
 So every relation remains ordered, but the order is now simply the order in
 which elements were attached to the relation.
@@ -124,12 +124,14 @@ and defaults those participations to:
 That is only a surface convenience. Internally the relation still grows as an
 ordered chain of attachments.
 
-Multiplicity still lives on the relation edge and applies to the attached side.
+Multiplicity still exists, but it is now treated as construction-time sugar
+rather than final stored structure.
+
 This matches the current intended reading:
 
 - start from the existing relation context
 - attach one more thing
-- repeat that attached participation some number of times
+- optionally repeat that attached participation some number of times
 
 So the current edge defaults are explicitly:
 
@@ -138,6 +140,9 @@ So the current edge defaults are explicitly:
 - multiplicity = `1`
 
 while explicit whole-merge relations still need to ask for `Whole` directly.
+If multiplicity is greater than `1`, the current experimental builder expands
+that into repeated relation participations instead of storing a single edge with
+a multiplicity count on it.
 
 ## 5. Relation To Relation
 
@@ -275,10 +280,10 @@ the relation chain.
 Each entry currently carries:
 
 - `Polarity`
+- `Transform`
 - `MergeScope`
 - `CarrierNovelty`
 - `DomainNovelty`
-- `Multiplicity`
 
 So the signature does not try to summarize the whole relation into one named
 pattern yet. It preserves the ordered participation history directly.
@@ -324,6 +329,26 @@ Each attached element must declare whether it is entering the relation as:
 There is currently no `Unknown` merge scope in the primitive relation. It is
 always an explicit participation choice for that edge.
 
+### Transform
+
+Each attached element may also carry an optional transform element.
+
+This is the current minimal representation of:
+
+- reuse under inversion
+- reuse under orthogonal change
+- reuse under some later inspection or generative action
+
+The important point is that transform is not stored as an enum operation. It is
+itself another element, usually something small and numeric such as a measure.
+
+At the current experimental stage:
+
+- reusing the same element already preserves source lineage by reference
+- `Transform` captures only the extra "reuse under transform" part
+
+So the primitive relation does not need a separate stored source pointer yet.
+
 ### Carrier And Domain Novelty
 
 For each attached element, the relation calculates whether that element brings:
@@ -347,8 +372,18 @@ all of its grandchildren.
 
 ### Multiplicity
 
-`Multiplicity` remains on the relation edge and applies to the attached side.
-It is stored per added element, not once for the whole relation.
+`Multiplicity` remains available on the builder surface, but it no longer
+persists as final structure on each edge.
+
+If multiplicity is greater than `1`, relation construction expands that
+participation into repeated entries. This keeps the final structure closer to
+the real lineage:
+
+- one repeated relation
+- another repeated relation
+- another repeated relation
+
+rather than one opaque edge carrying only a count.
 
 ### Deferred Inspection
 

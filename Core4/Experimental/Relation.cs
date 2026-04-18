@@ -5,7 +5,8 @@ namespace Core4.Experimental;
 /// <summary>
 /// Minimal experimental relation chain. It starts from one attached element and grows by adding more attached
 /// elements. Signature entries are calculated immediately so the raw participation pattern is available without a
-/// separate inspection layer.
+/// separate inspection layer. Multiplicity is treated as construction-time expansion rather than stored final
+/// structure, while optional transforms stay explicit on each attached participation.
 /// </summary>
 public sealed record Relation : IElement
 {
@@ -23,7 +24,7 @@ public sealed record Relation : IElement
             ? delta.Sign
             : Entries.IsDefaultOrEmpty
                 ? Measure.Zero
-                : Entries[^1].Attached.Polarity;
+                : AppliedPolarityOf(Entries[^1].Attached, Entries[^1].Transform);
 
     public Relation(IElement attached, MergeScope mergeScope)
         : this(BuildState(attached, mergeScope, DefaultCommitment, DefaultMultiplicity))
@@ -55,27 +56,24 @@ public sealed record Relation : IElement
     public Relation Add(
         IElement attached,
         MergeScope mergeScope,
+        IElement? transform = null,
         Measure? commitment = null,
         Measure? multiplicity = null)
     {
         var nextCommitment = commitment ?? DefaultCommitment;
         var nextMultiplicity = multiplicity ?? DefaultMultiplicity;
-        var nextEntry = new RelationEntry(attached, mergeScope, nextCommitment, nextMultiplicity);
-        var elementCarriers = CarrierSetOf(attached);
-        var carrierNovelty = NoveltyOfCarrierSet(elementCarriers, Carriers);
-        var domainNovelty = NoveltyOfDomainSet(elementCarriers, Domains);
-        var nextSignatureEntry = new RelationSignatureEntry(
-            attached.Polarity,
-            new((long)mergeScope),
-            new((long)carrierNovelty),
-            new((long)domainNovelty),
-            nextMultiplicity);
+        if (nextMultiplicity.Raw <= 0)
+        {
+            return this;
+        }
 
-        return new(
-            Entries.Add(nextEntry),
-            new(Signature.Entries.Add(nextSignatureEntry)),
-            Carriers.Union(elementCarriers),
-            Domains.Union(elementCarriers.Select(carrier => carrier.Domain)));
+        var relation = this;
+        for (long repeat = 0; repeat < nextMultiplicity.Raw; repeat++)
+        {
+            relation = relation.Append(attached, mergeScope, transform, nextCommitment);
+        }
+
+        return relation;
     }
 
     private static RelationState BuildState(
@@ -85,7 +83,7 @@ public sealed record Relation : IElement
         Measure multiplicity)
     {
         var relation = Empty();
-        var built = relation.Add(attached, mergeScope, commitment, multiplicity);
+        var built = relation.Add(attached, mergeScope, commitment: commitment, multiplicity: multiplicity);
         return built.State();
     }
 
@@ -108,6 +106,30 @@ public sealed record Relation : IElement
         ImmutableHashSet<long>.Empty);
 
     private RelationState State() => new(Entries, Signature, Carriers, Domains);
+
+    private Relation Append(
+        IElement attached,
+        MergeScope mergeScope,
+        IElement? transform,
+        Measure commitment)
+    {
+        var nextEntry = new RelationEntry(attached, mergeScope, commitment, transform);
+        var elementCarriers = CarrierContextOf(attached, transform);
+        var carrierNovelty = NoveltyOfCarrierSet(elementCarriers, Carriers);
+        var domainNovelty = NoveltyOfDomainSet(elementCarriers, Domains);
+        var nextSignatureEntry = new RelationSignatureEntry(
+            AppliedPolarityOf(attached, transform),
+            TransformValueOf(transform),
+            new((long)mergeScope),
+            new((long)carrierNovelty),
+            new((long)domainNovelty));
+
+        return new(
+            Entries.Add(nextEntry),
+            new(Signature.Entries.Add(nextSignatureEntry)),
+            Carriers.Union(elementCarriers),
+            Domains.Union(elementCarriers.Select(carrier => carrier.Domain)));
+    }
 
     private bool TryGetUnitDelta(out Measure delta)
     {
@@ -141,6 +163,36 @@ public sealed record Relation : IElement
         Carrier carrier => ImmutableHashSet.Create(carrier),
         Relation relation => relation.Carriers,
         _ => ImmutableHashSet<Carrier>.Empty
+    };
+
+    private static ImmutableHashSet<Carrier> CarrierContextOf(IElement attached, IElement? transform)
+    {
+        var carriers = CarrierSetOf(attached);
+        if (transform is null)
+        {
+            return carriers;
+        }
+
+        return carriers.Union(CarrierSetOf(transform));
+    }
+
+    private static Measure AppliedPolarityOf(IElement attached, IElement? transform)
+    {
+        var polarity = attached.Polarity;
+        if (polarity == Measure.Zero || transform is null)
+        {
+            return polarity;
+        }
+
+        var transformPolarity = TransformValueOf(transform).Sign;
+        return transformPolarity == Measure.Zero ? polarity : polarity * transformPolarity;
+    }
+
+    private static Measure TransformValueOf(IElement? transform) => transform switch
+    {
+        null => Measure.Zero,
+        Measure measure => measure,
+        _ => transform.Polarity
     };
 
     private static Novelty NoveltyOfCarrierSet(
@@ -188,7 +240,7 @@ public readonly record struct RelationEntry(
     IElement Attached,
     MergeScope MergeScope,
     Measure Commitment,
-    Measure Multiplicity);
+    IElement? Transform);
 
 internal readonly record struct RelationState(
     ImmutableArray<RelationEntry> Entries,

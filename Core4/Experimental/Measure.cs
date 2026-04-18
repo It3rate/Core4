@@ -19,6 +19,7 @@ public readonly record struct Measure(long Raw) : IElement
 
     public static Measure operator +(Measure left, Measure right) => new(left.Raw + right.Raw);
     public static Measure operator -(Measure left, Measure right) => new(left.Raw - right.Raw);
+    public static Measure operator *(Measure left, Measure right) => new(left.Raw * right.Raw);
     public static Measure operator -(Measure value) => new(-value.Raw);
 
     public static implicit operator Measure(long raw) => new(raw);

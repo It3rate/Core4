@@ -4,14 +4,15 @@ namespace Core4.Experimental;
 
 /// <summary>
 /// Per-element participation tuple calculated as the relation is constructed. The attached element contributes its own
-/// polarity, requested merge scope, carrier/domain novelty relative to the elements already present, and multiplicity.
+/// polarity, optional transform value, requested merge scope, and carrier/domain novelty relative to the elements
+/// already present.
 /// </summary>
 public readonly record struct RelationSignatureEntry(
     Measure Polarity,
+    Measure Transform,
     Measure MergeScope,
     Measure CarrierNovelty,
-    Measure DomainNovelty,
-    Measure Multiplicity);
+    Measure DomainNovelty);
 
 /// <summary>
 /// Signature over the full ordered relation chain. One entry exists for each element added to the relation.
