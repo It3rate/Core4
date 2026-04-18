@@ -371,3 +371,170 @@ The current experiment is focused on:
 - storing only the participation facts we are confident about
 
 before building a larger derived inspection layer on top.
+
+## 13. Construction, Repetition, And Transform Lineage
+
+The next conceptual layer is not a bigger pattern taxonomy. It is construction
+lineage.
+
+Two visible structures may carry the same final numbers while still being
+different objects because they were constructed differently.
+
+The important distinction is not only:
+
+- what values are present
+
+but also:
+
+- whether a relation is new
+- whether a relation is repeated
+- whether a relation is repeated under transform
+- whether a relation is built from a prior result
+
+This is the difference between:
+
+- three equal-looking siblings placed side by side
+- one invariant relation repeated three times
+- one invariant relation repeated after inversion
+- one invariant relation repeated after orthogonal rotation
+- one relation built recursively from an earlier result
+
+### Node To Node
+
+Relating two nodes gives a jump or delta-like structure.
+
+Example:
+
+- pin a landmark on a carrier
+- relate a second landmark to it as `Node`
+
+This gives a discrete offset.
+
+If that participation is repeated, the repetition is additive in character:
+
+- one jump
+- another jump
+- another jump
+
+Even if the jumps happen to have equal values, they are still side-by-side
+unless the construction explicitly says they are the same repeated relation.
+
+### Node To Whole To Node
+
+If the relation to the second landmark is taken as `Whole`, the reading changes.
+
+The relation is no longer only a jump between endpoints. It is a full transform
+over the interval.
+
+Repeating that kind of whole participation is compositional rather than merely
+additive. This is the seed of multiplication, powers, scaling, and growth.
+
+So the same primitive relation tools can produce two very different behaviors:
+
+- `Node` repetition behaves like repeated deltas or additive accumulation
+- `Whole` repetition behaves like repeated transforms or generative composition
+
+### Reuse Versus Equality
+
+Equal-looking units are not automatically the same unit.
+
+There is an important difference between:
+
+- copying a unit
+- repeating the same unit
+- deriving a new unit from an existing unit under transform
+
+This difference matters even when the visible values match exactly.
+
+For example:
+
+- `A * B * C` where `A`, `B`, and `C` happen to be equal
+- `A^3`
+
+may land on the same visible values in special cases, but they are not the same
+lineage. The second one preserves invariant reuse. The first one does not.
+
+### Transform Reuse
+
+Some important structures arise not from mere duplication, but from repeating
+an existing relation under transform.
+
+Examples:
+
+- directed segment = unit repeated with inversion
+- area-like structure = unit repeated under orthogonal transform
+- complex-like structure = unit repeated under orthogonal transform with
+  opposed orientation
+- self-interaction or power = whole relation repeated against itself
+
+So a directed segment is not merely "two equal and opposite values." It is a
+unit repeated with inversion. Likewise an area is not merely "two lengths." It
+is a repeated unit under an orthogonal change of participation.
+
+This remains true at higher grades as well. A folded object may behave like one
+degree of freedom, but its lineage still depends on whether it came from:
+
+- repeated same basis
+- repeated transformed basis
+- copied equal-looking basis
+- recursive reference to earlier result structure
+
+### Recursive Reuse
+
+The relation substrate should also leave room for structures that reference
+results, not only inputs.
+
+This is where richer growth systems come from:
+
+- powers
+- chained expansions
+- logarithmic inspection of repeated whole transforms
+- additive recurrences like Fibonacci-style `(n-1) + n`
+
+Again the important distinction is structural:
+
+- direct sibling participation
+- exact repetition
+- transformed repetition
+- result-referential repetition
+
+These are not the same object, even when they can collapse to the same visible
+numbers after folding.
+
+### Shared Origin Versus Football-Field Construction
+
+A related distinction is origin lineage.
+
+Two opposed units on the same carrier do not automatically form a true directed
+segment. If they do not share the same origin lineage, they are closer to a
+football-field style dual-coordinate structure than to one shared-origin
+segment.
+
+So there is a real difference between:
+
+- same reused origin
+- distinct origins explicitly joined
+- distinct origins merely equal in value
+
+The current experimental code does not fully encode this lineage yet. The note
+captures it here because this distinction will matter once derived inspection
+and fold behavior grow more precise.
+
+### What The Current Code Captures Versus What It Does Not
+
+The current primitive experimental relation already captures:
+
+- ordered participation
+- `Node` versus `Whole`
+- multiplicity
+- carrier and domain novelty
+- relation-local polarity
+
+What it does not yet fully capture is the stronger lineage question:
+
+- whether an equal-looking relation is a true repeat
+- whether it is a transformed repeat
+- whether it is a fresh sibling
+- whether it is built from prior result structure
+
+That is likely the next major conceptual seam after the current primitive pass.
