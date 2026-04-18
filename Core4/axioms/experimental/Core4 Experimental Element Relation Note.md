@@ -289,6 +289,76 @@ Each entry currently carries:
 So the signature does not try to summarize the whole relation into one named
 pattern yet. It preserves the ordered participation history directly.
 
+### Signature As Local Surface View
+
+A signature should be read as the exposed local participation view of a
+structure at one boundary.
+
+It is not the whole structure. It is what that structure presents to a
+neighboring participant from the current level.
+
+So a signature should contain:
+
+- what is directly visible at that boundary
+- what degrees of freedom are exposed there
+- what lineage or unit behavior is available there
+- what inputs and outputs can sensibly couple at that level
+
+and it should intentionally hide:
+
+- deeper internal construction details
+- lower-level reused substructure
+- hidden carrier snaps or basis choices that have already been resolved below
+  the current boundary
+
+This means a structure may have many valid signatures at different depths or
+from different local positions. A top-level signature is not "the" signature of
+the whole object in every possible sense. It is one surface reading.
+
+So for example:
+
+- one level may see `pressure`
+- another may see `force` and `area`
+- another may see width and height or radius
+- another may see reused units, aspects, or carrier lineage
+
+Each of those is a signature from a different local structural view.
+
+### Signature Versus Structure And Runtime
+
+This experiment now treats three related layers separately:
+
+- `Structure` = the full relation content
+- `Signature` = the exposed local view of that structure at one boundary
+- `Runtime` = parameterized or tension-bearing structure in motion
+
+So fold is better understood as a structure-to-structure transform whose input
+and output structures each have their own signatures. The signature is a useful
+surface reading of that transform, but it is not the transform substrate by
+itself.
+
+### Trolley View
+
+It is fair to say that a trolley, at any one local position, sees a signature.
+
+More precisely:
+
+- a single trolley instance sees the signature exposed at its current local
+  boundary
+- if it moves across, inward, outward, or along a branch, it may arrive at a
+  different local signature
+- deeper inspection is therefore not "more of the same signature," but a move
+  to another structural surface with its own exposed local view
+
+At runtime the trolley also carries values, tension, and continuation state, so
+what it experiences is a parameterized signature rather than a purely static
+one. But structurally the right mental model is still:
+
+- one trolley position
+- one currently exposed local signature
+
+with motion required to see something else.
+
 ### Polarity
 
 Every experimental element exposes a polarity, even if it is neutral.
