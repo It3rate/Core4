@@ -240,6 +240,62 @@ public sealed class ElementRelationTests
     }
 
     [Fact]
+    public void StandardObjectRecipesBuildDirectedAndSelfStructuresByReusingOneUnit()
+    {
+        var carrier = new ExperimentalCarrier(1, Domain: 10);
+        var unit = Unit(carrier, new ExperimentalMeasure(100), new ExperimentalMeasure(200));
+
+        var directed = DirectedFrom(unit);
+        var self = SelfFrom(unit);
+
+        Assert.Equal(2, directed.Entries.Length);
+        Assert.Same(unit, directed.Entries[0].Attached);
+        Assert.Same(unit, directed.Entries[1].Attached);
+        Assert.Null(directed.Entries[0].Transform);
+        Assert.Equal(new ExperimentalMeasure(-1), directed.Entries[1].Transform);
+        Assert.Equal(new ExperimentalMeasure(1), directed.Signature.Entries[0].Polarity);
+        Assert.Equal(new ExperimentalMeasure(-1), directed.Signature.Entries[1].Polarity);
+
+        Assert.Equal(2, self.Entries.Length);
+        Assert.Same(unit, self.Entries[0].Attached);
+        Assert.Same(unit, self.Entries[1].Attached);
+        Assert.Null(self.Entries[0].Transform);
+        Assert.Null(self.Entries[1].Transform);
+        Assert.Equal(new ExperimentalMeasure(1), self.Signature.Entries[0].Polarity);
+        Assert.Equal(new ExperimentalMeasure(1), self.Signature.Entries[1].Polarity);
+    }
+
+    [Fact]
+    public void StandardObjectRecipesBuildAreaAndComplexFromReusedCarrierLocalUnits()
+    {
+        var widthUnit = Unit(new ExperimentalCarrier(1, Domain: 10), new ExperimentalMeasure(100), new ExperimentalMeasure(200));
+        var heightUnit = Unit(new ExperimentalCarrier(2, Domain: 10), new ExperimentalMeasure(50), new ExperimentalMeasure(80));
+
+        var area = AreaFrom(widthUnit, heightUnit);
+        var complex = ComplexFrom(widthUnit, heightUnit);
+
+        Assert.Equal(2, area.Entries.Length);
+        Assert.Same(widthUnit, area.Entries[0].Attached);
+        Assert.Same(heightUnit, area.Entries[1].Attached);
+        Assert.Null(area.Entries[0].Transform);
+        Assert.Null(area.Entries[1].Transform);
+        Assert.Equal(new ExperimentalMeasure(1), area.Signature.Entries[0].Polarity);
+        Assert.Equal(new ExperimentalMeasure(1), area.Signature.Entries[1].Polarity);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.New), area.Signature.Entries[1].CarrierNovelty);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), area.Signature.Entries[1].DomainNovelty);
+
+        Assert.Equal(2, complex.Entries.Length);
+        Assert.Same(widthUnit, complex.Entries[0].Attached);
+        Assert.Same(heightUnit, complex.Entries[1].Attached);
+        Assert.Null(complex.Entries[0].Transform);
+        Assert.Equal(new ExperimentalMeasure(-1), complex.Entries[1].Transform);
+        Assert.Equal(new ExperimentalMeasure(1), complex.Signature.Entries[0].Polarity);
+        Assert.Equal(new ExperimentalMeasure(-1), complex.Signature.Entries[1].Polarity);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.New), complex.Signature.Entries[1].CarrierNovelty);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), complex.Signature.Entries[1].DomainNovelty);
+    }
+
+    [Fact]
     public void TwoCarrierWholeMergesCoverAreaComplexAntiComplexAndAntiArea()
     {
         var x = new ExperimentalCarrier(1, Domain: 10);
@@ -279,7 +335,19 @@ public sealed class ElementRelationTests
         ExperimentalCarrier carrier,
         ExperimentalMeasure originMeasure,
         ExperimentalMeasure unitMeasure) =>
-        new(carrier, originMeasure, unitMeasure);
+        new ExperimentalRelation(carrier, originMeasure, unitMeasure);
+
+    private static ExperimentalRelation DirectedFrom(ExperimentalRelation unit) =>
+        new ExperimentalRelation(unit, MergeScope.Whole).Add(unit, MergeScope.Whole, transform: new ExperimentalMeasure(-1));
+
+    private static ExperimentalRelation SelfFrom(ExperimentalRelation unit) =>
+        new ExperimentalRelation(unit, MergeScope.Whole).Add(unit, MergeScope.Whole);
+
+    private static ExperimentalRelation AreaFrom(ExperimentalRelation widthUnit, ExperimentalRelation heightUnit) =>
+        new ExperimentalRelation(widthUnit, MergeScope.Whole).Add(heightUnit, MergeScope.Whole);
+
+    private static ExperimentalRelation ComplexFrom(ExperimentalRelation widthUnit, ExperimentalRelation heightUnit) =>
+        new ExperimentalRelation(widthUnit, MergeScope.Whole).Add(heightUnit, MergeScope.Whole, transform: new ExperimentalMeasure(-1));
 
     private static void AssertPairPolarity(ExperimentalRelation relation, long @base, long attached)
     {
