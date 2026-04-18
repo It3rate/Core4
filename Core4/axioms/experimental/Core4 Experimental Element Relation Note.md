@@ -518,6 +518,12 @@ This distinction does not require a second primitive mechanism. It falls out of
 the same relation substrate depending on whether one endpoint has first been
 privileged as a reusable pinned site.
 
+The current experimental code does not yet make landmark motion propagate
+through those couplings automatically. That kind of "move one end and the other
+rebalances to preserve the interval" behavior likely belongs in a later
+runtime/tension layer rather than as special-case methods on the immutable
+primitive relation itself.
+
 ### Reuse Versus Equality
 
 Equal-looking units are not automatically the same unit.

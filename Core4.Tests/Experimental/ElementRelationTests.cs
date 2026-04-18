@@ -245,6 +245,23 @@ public sealed class ElementRelationTests
     }
 
     [Fact]
+    public void RepeatedSameTimeCarrierParticipationReadsAsOneCarrierLineage()
+    {
+        var distanceUnit = Unit(new ExperimentalCarrier(1, Domain: 10), new ExperimentalMeasure(100), new ExperimentalMeasure(200));
+        var timeUnit = Unit(new ExperimentalCarrier(2, Domain: 20), new ExperimentalMeasure(1), new ExperimentalMeasure(2));
+
+        var accelerationLike = new ExperimentalRelation(distanceUnit, MergeScope.Whole)
+            .Add(timeUnit, MergeScope.Whole)
+            .Add(timeUnit, MergeScope.Whole);
+
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.New), accelerationLike.Signature.Entries[0].CarrierNovelty);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.New), accelerationLike.Signature.Entries[1].CarrierNovelty);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), accelerationLike.Signature.Entries[2].CarrierNovelty);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.New), accelerationLike.Signature.Entries[1].DomainNovelty);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), accelerationLike.Signature.Entries[2].DomainNovelty);
+    }
+
+    [Fact]
     public void StandardObjectRecipesBuildDirectedAndSelfStructuresByReusingOneUnit()
     {
         var carrier = new ExperimentalCarrier(1, Domain: 10);
@@ -298,6 +315,51 @@ public sealed class ElementRelationTests
         Assert.Equal(new ExperimentalMeasure(-1), complex.Signature.Entries[1].Polarity);
         Assert.Equal(new ExperimentalMeasure((long)Novelty.New), complex.Signature.Entries[1].CarrierNovelty);
         Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), complex.Signature.Entries[1].DomainNovelty);
+    }
+
+    [Fact]
+    public void ComplexLikeStructuresDifferentiateSharedUnitOrthogonalsFromIndependentUnits()
+    {
+        var distanceUnit = Unit(new ExperimentalCarrier(1, Domain: 10), new ExperimentalMeasure(100), new ExperimentalMeasure(200));
+        var directionCarrier = new ExperimentalCarrier(2, Domain: 20);
+        var horizontal = Landmark(directionCarrier, new ExperimentalMeasure(0));
+        var vertical = Landmark(directionCarrier, new ExperimentalMeasure(90));
+
+        var sharedUnitComplex = new ExperimentalRelation(distanceUnit, MergeScope.Whole, aspect: horizontal)
+            .Add(distanceUnit, MergeScope.Whole, transform: new ExperimentalMeasure(-1), aspect: vertical);
+
+        var orthogonalIndependentComplex = new ExperimentalRelation(
+            Unit(new ExperimentalCarrier(3, Domain: 10), new ExperimentalMeasure(100), new ExperimentalMeasure(200)),
+            MergeScope.Whole)
+            .Add(
+                Unit(new ExperimentalCarrier(4, Domain: 10), new ExperimentalMeasure(100), new ExperimentalMeasure(200)),
+                MergeScope.Whole,
+                transform: new ExperimentalMeasure(-1));
+
+        var coincidentOriginByValueComplex = new ExperimentalRelation(
+            Unit(new ExperimentalCarrier(5, Domain: 10), new ExperimentalMeasure(0), new ExperimentalMeasure(10)),
+            MergeScope.Whole)
+            .Add(
+                Unit(new ExperimentalCarrier(6, Domain: 10), new ExperimentalMeasure(0), new ExperimentalMeasure(10)),
+                MergeScope.Whole,
+                transform: new ExperimentalMeasure(-1));
+
+        Assert.Same(distanceUnit, sharedUnitComplex.Entries[0].Attached);
+        Assert.Same(distanceUnit, sharedUnitComplex.Entries[1].Attached);
+        Assert.Same(horizontal, sharedUnitComplex.Entries[0].Aspect);
+        Assert.Same(vertical, sharedUnitComplex.Entries[1].Aspect);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), sharedUnitComplex.Signature.Entries[1].CarrierNovelty);
+
+        Assert.NotSame(orthogonalIndependentComplex.Entries[0].Attached, orthogonalIndependentComplex.Entries[1].Attached);
+        Assert.Null(orthogonalIndependentComplex.Entries[0].Aspect);
+        Assert.Null(orthogonalIndependentComplex.Entries[1].Aspect);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.New), orthogonalIndependentComplex.Signature.Entries[1].CarrierNovelty);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), orthogonalIndependentComplex.Signature.Entries[1].DomainNovelty);
+
+        Assert.NotSame(coincidentOriginByValueComplex.Entries[0].Attached, coincidentOriginByValueComplex.Entries[1].Attached);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.New), coincidentOriginByValueComplex.Signature.Entries[1].CarrierNovelty);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), coincidentOriginByValueComplex.Signature.Entries[1].DomainNovelty);
+        Assert.Equal(new ExperimentalMeasure(-1), coincidentOriginByValueComplex.Signature.Entries[1].Transform);
     }
 
     [Fact]
