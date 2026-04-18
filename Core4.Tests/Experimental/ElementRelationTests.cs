@@ -38,6 +38,7 @@ public sealed class ElementRelationTests
         Assert.Equal(MergeScope.Whole, entry.MergeScope);
         Assert.Equal(ExperimentalRelation.DefaultCommitment, entry.Commitment);
         Assert.Null(entry.Transform);
+        Assert.Null(entry.Aspect);
 
         Assert.Equal(ExperimentalMeasure.Zero, signature.Polarity);
         Assert.Equal(ExperimentalMeasure.Zero, signature.Transform);
@@ -70,6 +71,7 @@ public sealed class ElementRelationTests
             Assert.Equal(MergeScope.Node, appended.MergeScope);
             Assert.Equal(new ExperimentalMeasure(5), appended.Commitment);
             Assert.Null(appended.Transform);
+            Assert.Null(appended.Aspect);
 
             Assert.Equal(ExperimentalMeasure.Zero, appendedSignature.Polarity);
             Assert.Equal(ExperimentalMeasure.Zero, appendedSignature.Transform);
@@ -150,7 +152,9 @@ public sealed class ElementRelationTests
 
         Assert.Equal(2, transformed.Entries.Length);
         Assert.Null(transformed.Entries[0].Transform);
+        Assert.Null(transformed.Entries[0].Aspect);
         Assert.Equal(new ExperimentalMeasure(-1), transformed.Entries[1].Transform);
+        Assert.Null(transformed.Entries[1].Aspect);
 
         Assert.Equal(new ExperimentalMeasure(1), transformed.Signature.Entries[0].Polarity);
         Assert.Equal(ExperimentalMeasure.Zero, transformed.Signature.Entries[0].Transform);
@@ -172,6 +176,7 @@ public sealed class ElementRelationTests
             Assert.Equal(ExperimentalRelation.DefaultMergeScope, entry.MergeScope);
             Assert.Equal(ExperimentalRelation.DefaultCommitment, entry.Commitment);
             Assert.Null(entry.Transform);
+            Assert.Null(entry.Aspect);
         });
         Assert.Equal(ExperimentalMeasure.Zero, relation.Signature.Entries[0].Transform);
         Assert.Equal(ExperimentalMeasure.Zero, relation.Signature.Entries[1].Transform);
@@ -296,6 +301,38 @@ public sealed class ElementRelationTests
     }
 
     [Fact]
+    public void StandardObjectRecipesCanReuseOneDistanceUnitUnderSnappedDirectionalAspects()
+    {
+        var distanceUnit = Unit(new ExperimentalCarrier(1, Domain: 10), new ExperimentalMeasure(100), new ExperimentalMeasure(200));
+        var directionCarrier = new ExperimentalCarrier(2, Domain: 20);
+        var horizontal = Landmark(directionCarrier, new ExperimentalMeasure(0));
+        var vertical = Landmark(directionCarrier, new ExperimentalMeasure(90));
+
+        var area = new ExperimentalRelation(distanceUnit, MergeScope.Whole, aspect: horizontal)
+            .Add(distanceUnit, MergeScope.Whole, aspect: vertical);
+        var complex = new ExperimentalRelation(distanceUnit, MergeScope.Whole, aspect: horizontal)
+            .Add(distanceUnit, MergeScope.Whole, transform: new ExperimentalMeasure(-1), aspect: vertical);
+
+        Assert.Same(distanceUnit, area.Entries[0].Attached);
+        Assert.Same(distanceUnit, area.Entries[1].Attached);
+        Assert.Same(horizontal, area.Entries[0].Aspect);
+        Assert.Same(vertical, area.Entries[1].Aspect);
+        Assert.Equal(new ExperimentalMeasure(1), area.Signature.Entries[0].Polarity);
+        Assert.Equal(new ExperimentalMeasure(1), area.Signature.Entries[1].Polarity);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.New), area.Signature.Entries[0].CarrierNovelty);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), area.Signature.Entries[1].CarrierNovelty);
+
+        Assert.Same(distanceUnit, complex.Entries[0].Attached);
+        Assert.Same(distanceUnit, complex.Entries[1].Attached);
+        Assert.Same(horizontal, complex.Entries[0].Aspect);
+        Assert.Same(vertical, complex.Entries[1].Aspect);
+        Assert.Equal(new ExperimentalMeasure(1), complex.Signature.Entries[0].Polarity);
+        Assert.Equal(new ExperimentalMeasure(-1), complex.Signature.Entries[1].Polarity);
+        Assert.Equal(new ExperimentalMeasure(-1), complex.Signature.Entries[1].Transform);
+        Assert.Equal(new ExperimentalMeasure((long)Novelty.Existing), complex.Signature.Entries[1].CarrierNovelty);
+    }
+
+    [Fact]
     public void TwoCarrierWholeMergesCoverAreaComplexAntiComplexAndAntiArea()
     {
         var x = new ExperimentalCarrier(1, Domain: 10);
@@ -336,6 +373,11 @@ public sealed class ElementRelationTests
         ExperimentalMeasure originMeasure,
         ExperimentalMeasure unitMeasure) =>
         new ExperimentalRelation(carrier, originMeasure, unitMeasure);
+
+    private static ExperimentalRelation Landmark(
+        ExperimentalCarrier carrier,
+        ExperimentalMeasure location) =>
+        new ExperimentalRelation(carrier, location);
 
     private static ExperimentalRelation DirectedFrom(ExperimentalRelation unit) =>
         new ExperimentalRelation(unit, MergeScope.Whole).Add(unit, MergeScope.Whole, transform: new ExperimentalMeasure(-1));

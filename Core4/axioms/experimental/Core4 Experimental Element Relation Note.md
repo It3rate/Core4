@@ -106,6 +106,7 @@ calls that append:
 - `MergeScope`
 - `Commitment`
 - optional `Transform`
+- optional `Aspect`
 
 So every relation remains ordered, but the order is now simply the order in
 which elements were attached to the relation.
@@ -349,6 +350,27 @@ At the current experimental stage:
 
 So the primitive relation does not need a separate stored source pointer yet.
 
+### Aspect
+
+Each attached element may also carry an optional aspect element.
+
+Aspect is the current minimal way to say:
+
+- this same lineage is participating in a different snapped context
+- this same unit is being used through a different directional or structural
+  selection
+- this participation should keep its shared lineage while still remaining
+  distinguishable from another use of that lineage
+
+At the current experimental stage, aspect is intentionally weak:
+
+- it is just another element
+- it contributes carrier and domain context
+- it does not yet imply a full inspection or path language
+
+This keeps the primitive core small while still giving the same unit or same
+carrier a way to participate differently in different structures.
+
 ### Carrier And Domain Novelty
 
 For each attached element, the relation calculates whether that element brings:
@@ -469,6 +491,33 @@ So the same primitive relation tools can produce two very different behaviors:
 - `Node` repetition behaves like repeated deltas or additive accumulation
 - `Whole` repetition behaves like repeated transforms or generative composition
 
+### Anchored Interval Versus Sliding Interval
+
+There is also an important distinction between:
+
+- pinning one landmark as a privileged origin and relating another landmark to
+  it
+- relating one landmark to another without first privileging either one as an
+  origin
+
+The first case gives an anchored interval or unit candidate:
+
+- position is stabilized through the chosen origin
+- later values can be read relative to that pinned place
+
+The second case gives a sliding interval:
+
+- the length is frozen
+- but the absolute position is not
+- the pair can move together while preserving the same delta
+
+So not every invariant interval is automatically an origin-based unit. Some are
+better read as movable windows, kernels, offsets, or span-preserving couplings.
+
+This distinction does not require a second primitive mechanism. It falls out of
+the same relation substrate depending on whether one endpoint has first been
+privileged as a reusable pinned site.
+
 ### Reuse Versus Equality
 
 Equal-looking units are not automatically the same unit.
@@ -564,6 +613,8 @@ The current primitive experimental relation already captures:
 - multiplicity
 - carrier and domain novelty
 - relation-local polarity
+- optional transform lineage
+- optional aspect participation
 
 What it does not yet fully capture is the stronger lineage question:
 
@@ -573,3 +624,118 @@ What it does not yet fully capture is the stronger lineage question:
 - whether it is built from prior result structure
 
 That is likely the next major conceptual seam after the current primitive pass.
+
+## 14. Lineage, Participation, And Snapped Landmarks
+
+The current experiment now needs one more distinction:
+
+- lineage
+- participation instance
+- snapped landmark
+
+These are not the same thing.
+
+### Lineage
+
+Lineage is the broad kind of freedom:
+
+- distance
+- time
+- direction
+- temperature
+
+It is the thing that persists even when structures reuse it in many contexts.
+
+### Participation Instance
+
+A participation instance is one use of a lineage inside a structure.
+
+Examples:
+
+- house width
+- store-trip distance
+- horizontal distance inside one area
+- vertical distance inside that same area
+
+These may all draw from the same lineage while still being different uses.
+
+The current minimal experimental hook for this is `Aspect` on the relation
+entry. The aspect does not replace the carrier lineage. It qualifies how that
+carrier or unit is participating in the current relation.
+
+### Snapped Landmarks
+
+A snapped landmark is a common frozen point on some lineage.
+
+The important correction is that a "4-way direction" is not best modeled as a
+carrier with only four ticks. It is better modeled as:
+
+- one real directional lineage
+- with whatever fine resolution we want
+- plus common frozen landmarks at places like `0`, `90`, `180`, and `270`
+
+Then a structure can snap to those landmarks while still leaving room for finer
+directional resolution later.
+
+This is similar to common bolt sizes:
+
+- the measurable space can be finer
+- but some standard landmarks are common and heavily reused
+
+### Width And Height
+
+Under this model, width and height can be described as:
+
+- the same distance lineage
+- reused through different directional snaps
+
+So a pure same-metric area does not require two unrelated distance carriers.
+It can be expressed as one distance unit reused with different directional
+aspects.
+
+That still leaves room for a broader fused model where two independent distance
+units are combined. The difference is structural:
+
+- same lineage reused under different snaps
+- versus distinct lineages or independently built units that only happen to be
+  compatible
+
+### Miles Per Hour
+
+`mph` is a different case.
+
+It still involves multiple lineages:
+
+- distance lineage
+- time lineage
+
+Those are not merely different snaps of one shared lineage. They are different
+lineages participating together before fold and normalization.
+
+So:
+
+- width/height often means same lineage plus different aspect
+- `mph` means distinct lineages with different fold roles
+
+### Access By Path
+
+The current note also leaves room for later path-like access such as:
+
+- second distance participation
+- vertical distance participation
+- nested relation path traversal
+
+That is probably an inspection concern rather than a primitive storage concern.
+The current minimal structure only needs to preserve the participation context
+so that a later inspection layer can walk it.
+
+In practice that likely means:
+
+- keep lineage on `Carrier`
+- keep participation context on relation entries
+- let later inspection expose path-like selection over those entries and nested
+  relations
+
+This is the main reason `Aspect` is the minimal useful addition right now. It
+preserves contextual participation without forcing a path system into the
+primitive substrate too early.

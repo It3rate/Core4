@@ -26,8 +26,8 @@ public sealed record Relation : IElement
                 ? Measure.Zero
                 : AppliedPolarityOf(Entries[^1].Attached, Entries[^1].Transform);
 
-    public Relation(IElement attached, MergeScope mergeScope)
-        : this(BuildState(attached, mergeScope, DefaultCommitment, DefaultMultiplicity))
+    public Relation(IElement attached, MergeScope mergeScope, IElement? aspect = null)
+        : this(BuildState(attached, mergeScope, aspect, DefaultCommitment, DefaultMultiplicity))
     {
     }
 
@@ -57,6 +57,7 @@ public sealed record Relation : IElement
         IElement attached,
         MergeScope mergeScope,
         IElement? transform = null,
+        IElement? aspect = null,
         Measure? commitment = null,
         Measure? multiplicity = null)
     {
@@ -70,7 +71,7 @@ public sealed record Relation : IElement
         var relation = this;
         for (long repeat = 0; repeat < nextMultiplicity.Raw; repeat++)
         {
-            relation = relation.Append(attached, mergeScope, transform, nextCommitment);
+            relation = relation.Append(attached, mergeScope, transform, aspect, nextCommitment);
         }
 
         return relation;
@@ -79,17 +80,18 @@ public sealed record Relation : IElement
     private static RelationState BuildState(
         IElement attached,
         MergeScope mergeScope,
+        IElement? aspect,
         Measure commitment,
         Measure multiplicity)
     {
         var relation = Empty();
-        var built = relation.Add(attached, mergeScope, commitment: commitment, multiplicity: multiplicity);
+        var built = relation.Add(attached, mergeScope, aspect: aspect, commitment: commitment, multiplicity: multiplicity);
         return built.State();
     }
 
     private static RelationState BuildState(IElement @base, params IElement[] attached)
     {
-        var relation = new Relation(BuildState(@base, DefaultMergeScope, DefaultCommitment, DefaultMultiplicity));
+        var relation = new Relation(BuildState(@base, DefaultMergeScope, null, DefaultCommitment, DefaultMultiplicity));
 
         foreach (var item in attached)
         {
@@ -111,10 +113,11 @@ public sealed record Relation : IElement
         IElement attached,
         MergeScope mergeScope,
         IElement? transform,
+        IElement? aspect,
         Measure commitment)
     {
-        var nextEntry = new RelationEntry(attached, mergeScope, commitment, transform);
-        var elementCarriers = CarrierContextOf(attached, transform);
+        var nextEntry = new RelationEntry(attached, mergeScope, commitment, transform, aspect);
+        var elementCarriers = CarrierContextOf(attached, transform, aspect);
         var carrierNovelty = NoveltyOfCarrierSet(elementCarriers, Carriers);
         var domainNovelty = NoveltyOfDomainSet(elementCarriers, Domains);
         var nextSignatureEntry = new RelationSignatureEntry(
@@ -165,15 +168,20 @@ public sealed record Relation : IElement
         _ => ImmutableHashSet<Carrier>.Empty
     };
 
-    private static ImmutableHashSet<Carrier> CarrierContextOf(IElement attached, IElement? transform)
+    private static ImmutableHashSet<Carrier> CarrierContextOf(IElement attached, IElement? transform, IElement? aspect)
     {
         var carriers = CarrierSetOf(attached);
-        if (transform is null)
+        if (transform is not null)
         {
-            return carriers;
+            carriers = carriers.Union(CarrierSetOf(transform));
         }
 
-        return carriers.Union(CarrierSetOf(transform));
+        if (aspect is not null)
+        {
+            carriers = carriers.Union(CarrierSetOf(aspect));
+        }
+
+        return carriers;
     }
 
     private static Measure AppliedPolarityOf(IElement attached, IElement? transform)
@@ -240,7 +248,8 @@ public readonly record struct RelationEntry(
     IElement Attached,
     MergeScope MergeScope,
     Measure Commitment,
-    IElement? Transform);
+    IElement? Transform,
+    IElement? Aspect);
 
 internal readonly record struct RelationState(
     ImmutableArray<RelationEntry> Entries,
