@@ -682,6 +682,39 @@ This is similar to common bolt sizes:
 - the measurable space can be finer
 - but some standard landmarks are common and heavily reused
 
+### Snaps Versus Categories
+
+Snapping should not be read as loss of the underlying carrier resolution.
+
+A carrier may remain high-resolution while later structures classify ranges of
+that carrier into broader frozen regions.
+
+So there is a useful distinction between:
+
+- a precise landmark on a rich substrate
+- a common snapped landmark that many structures reuse
+- a broad category whose whole interior maps to one classification tick
+
+This means a category like:
+
+- `horizontal`
+- `vertical`
+- wrench size families
+- even broad cases like `apple` / `not apple`
+
+does not require the underlying carrier itself to become coarse.
+
+Instead:
+
+- the carrier can stay fine-grained
+- broad categories can still be pinned over it
+- these categories can be accessed by a low resolution, four tick enumerator
+- confidence is usually strongest near the center of a category
+- tension or uncertainty tends to rise near category boundaries
+
+So "low resolution category" should usually mean broad frozen regions over a
+rich substrate, not a poor carrier with too few expressible values.
+
 ### Width And Height
 
 Under this model, width and height can be described as:
