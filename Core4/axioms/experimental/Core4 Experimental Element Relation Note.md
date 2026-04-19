@@ -446,8 +446,6 @@ So the same lineage or same unit may participate as:
 - extent-wide
 - jump-like
 - continuous
-- sequential
-- simultaneous
 
 depending on the current local relation or fold stage.
 
@@ -477,8 +475,8 @@ Those should not be collapsed too early because they likely distinguish:
 - span or segment hardening
 - point shifted by span
 - span shifted or re-anchored to point
-- sequential accumulation
-- simultaneous co-integration
+- additive accumulation
+- multiplicative co-integration
 
 ### Transform
 
@@ -618,14 +616,14 @@ At a low grade, two points can be:
 
 At a higher grade, two spans can be:
 
-- related while remaining externally distinct, which reads sequentially
-- fused whole to whole, which reads as simultaneous co-integration
+- related while remaining externally distinct
+- fused whole to whole
 
 This gives the current intended ladder:
 
 - point related to point = jump-like or teleport-like offset
 - point fused with point = span or segment candidate
-- span related to span = additive or sequential family
+- span related to span = additive or unfused family
 - span fused with span = multiplicative or compositional family
 
 This should not be read as four unrelated primitives. It is one repeating bond
@@ -634,9 +632,21 @@ distinction:
 - relate = keep the sides distinct while coupling them
 - fuse = let the sides co-integrate through the bond
 
-In this sense "parallel" does not mean geometric parallelism. It means the two
-sides are running or integrating at the same time through the bond, rather than
-one after the other.
+The important correction is that sequential and simultaneous are probably not
+different mechanisms in the system.
+
+Instead, the current intuition is:
+
+- all execution is alternating local integration
+- the two sides take turns
+- a point-like participation only has one available value or tick to integrate
+- a span-like participation has many local ticks to integrate
+
+So the felt difference between "teleport" and "continuous" is not a second
+execution engine. It is the difference between:
+
+- one local value collapsing the integration immediately
+- many local values making the same alternating process appear continuous
 
 ### Node To Node
 
@@ -676,6 +686,19 @@ So the same primitive relation tools can produce two very different behaviors:
 This still does not mean every whole-to-whole fusion is scalar multiplication.
 It means multiplication should live in this fused family rather than in the
 boundary-only family.
+
+At the execution level, this can still be read as alternating turns rather than
+true simultaneous update.
+
+For example, if two extents are fused:
+
+- one side contributes a local tick
+- the other side contributes the next local tick
+- each local piece is stretched or compressed through the bond
+- the result appends into the growing total
+
+So "fused" should not be read as a different clock. It is a different local
+bond rule applied during the same alternating integration process.
 
 ### Mixed Local Bonds
 
@@ -975,8 +998,8 @@ Bond mode answers different questions:
 
 - are the sides meeting boundary to boundary
 - are they meeting through their whole extents
-- are they integrating sequentially
-- are they integrating simultaneously
+- are they only appending
+- are they also stretching or compressing through fusion
 
 So a complex-like or 2D object can be built from:
 
@@ -1009,8 +1032,26 @@ mistaken for the canonical structure of fused whole-to-whole participation.
 The current suspicion is:
 
 - ratio-like division is one later projection of structure
-- multiplication-like behavior should arise from simultaneous co-integration in
-  fold
+- multiplication-like behavior should arise from fused co-integration in fold
+
+More precisely, the current structural intuition is:
+
+- related operation = one side is expanded by the whole other value in one jump
+  and appended to the total
+- fused operation = local ticks from each side meet through the bond, stretch or
+  compress each other, and append into the total
+
+This gives the current family reading:
+
+- related + normal = additive scaling or addition
+- related + inverse = removing or subtraction
+- fused + normal = multiplicative stretching
+- fused + inverse = divisive or compressive stretching
+
+So addition and multiplication are not different in the sense of one being
+"append" and the other being "integration." Both append to a total. The key
+difference is whether local ticking also fuses through the bond before that
+append.
 
 So this note does not yet claim that Core4 multiplication has been fully
 identified. It only sharpens where it most likely belongs:
