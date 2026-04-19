@@ -269,6 +269,7 @@ The current experimental slice is intentionally tiny:
 - `Core4.Experimental.Carrier`
 - `Core4.Experimental.Relation`
 - `Core4.Experimental.RelationSignature`
+- `Core4.Experimental.RelationFold`
 
 Everything else should be built outward from that only if inspection proves it
 is truly necessary.
@@ -337,6 +338,37 @@ and output structures each have their own signatures. The signature is a useful
 surface reading of that transform, but it is not the transform substrate by
 itself.
 
+### Fold As Ordered Structural Transform
+
+The next layer above primitive relation is `RelationFold`.
+
+A fold is not:
+
+- a bigger signature
+- a runtime rebalance rule
+- a path or trolley API
+
+It is one ordered `Relation` whose attached elements are themselves full
+`Relation` structures.
+
+So a fold currently preserves:
+
+- first stage = input structure
+- later stage(s) = output or intermediate structures
+- per-stage `Whole` / `Node` participation, transform, commitment, and aspect
+- object-reference reuse when the same structure is repeated
+
+This means normalization should not be introduced as a second primitive
+mechanism. It is one use of fold where a later relation stage is being treated
+as the reusable normalized structure.
+
+This keeps the layers separate:
+
+- `Relation` = primitive structure
+- `RelationSignature` = local surface reading
+- `RelationFold` = structure-to-structure transform
+- runtime rebalance = later tension layer
+
 ### Trolley View
 
 It is fair to say that a trolley, at any one local position, sees a signature.
@@ -399,6 +431,54 @@ Each attached element must declare whether it is entering the relation as:
 
 There is currently no `Unknown` merge scope in the primitive relation. It is
 always an explicit participation choice for that edge.
+
+### Merge Scope As Local Bond Mode
+
+`Node` and `Whole` should not be read as permanent labels for the whole
+structure.
+
+They are better read as local participation modes describing how one side is
+meeting the current bond.
+
+So the same lineage or same unit may participate as:
+
+- boundary-only
+- extent-wide
+- jump-like
+- continuous
+- sequential
+- simultaneous
+
+depending on the current local relation or fold stage.
+
+This is important because the current intuition is not:
+
+- "this object is a Node object forever"
+- "this object is a Whole object forever"
+
+but rather:
+
+- this attachment is meeting the current bond at its boundary
+- this attachment is meeting the current bond through its whole extent
+
+The current primitive still stores merge scope per participation entry.
+
+The richer meaning likely appears one layer up when two participations are read
+together through a local bond or fold:
+
+- `Node` to `Node`
+- `Node` to `Whole`
+- `Whole` to `Node`
+- `Whole` to `Whole`
+
+Those should not be collapsed too early because they likely distinguish:
+
+- jump
+- span or segment hardening
+- point shifted by span
+- span shifted or re-anchored to point
+- sequential accumulation
+- simultaneous co-integration
 
 ### Transform
 
@@ -526,6 +606,38 @@ This is the difference between:
 - one invariant relation repeated after orthogonal rotation
 - one relation built recursively from an earlier result
 
+### Relate Versus Fuse At Each Grade
+
+The same structural distinction appears at multiple grades.
+
+At a low grade, two points can be:
+
+- related boundary to boundary, which reads like a jump or delta
+- fused strongly enough that the space between them hardens into a span or
+  segment candidate
+
+At a higher grade, two spans can be:
+
+- related while remaining externally distinct, which reads sequentially
+- fused whole to whole, which reads as simultaneous co-integration
+
+This gives the current intended ladder:
+
+- point related to point = jump-like or teleport-like offset
+- point fused with point = span or segment candidate
+- span related to span = additive or sequential family
+- span fused with span = multiplicative or compositional family
+
+This should not be read as four unrelated primitives. It is one repeating bond
+distinction:
+
+- relate = keep the sides distinct while coupling them
+- fuse = let the sides co-integrate through the bond
+
+In this sense "parallel" does not mean geometric parallelism. It means the two
+sides are running or integrating at the same time through the bond, rather than
+one after the other.
+
 ### Node To Node
 
 Relating two nodes gives a jump or delta-like structure.
@@ -546,12 +658,12 @@ If that participation is repeated, the repetition is additive in character:
 Even if the jumps happen to have equal values, they are still side-by-side
 unless the construction explicitly says they are the same repeated relation.
 
-### Node To Whole To Node
+### Whole To Whole
 
-If the relation to the second landmark is taken as `Whole`, the reading changes.
+If the participation is taken as `Whole`, the reading changes.
 
 The relation is no longer only a jump between endpoints. It is a full transform
-over the interval.
+over the extent being coupled.
 
 Repeating that kind of whole participation is compositional rather than merely
 additive. This is the seed of multiplication, powers, scaling, and growth.
@@ -560,6 +672,29 @@ So the same primitive relation tools can produce two very different behaviors:
 
 - `Node` repetition behaves like repeated deltas or additive accumulation
 - `Whole` repetition behaves like repeated transforms or generative composition
+
+This still does not mean every whole-to-whole fusion is scalar multiplication.
+It means multiplication should live in this fused family rather than in the
+boundary-only family.
+
+### Mixed Local Bonds
+
+The mixed cases should remain meaningful as well.
+
+Current intuition:
+
+- `Node` to `Whole` can read like a point being shifted by a span
+- `Whole` to `Node` can read like a span being shifted or re-anchored to a
+  point
+
+These mixed cases are important because they let the same substrate express:
+
+- pure jump
+- pure continuous span
+- jump into span
+- span into point
+
+without introducing a second primitive mechanism.
 
 ### Anchored Interval Versus Sliding Interval
 
@@ -825,6 +960,65 @@ So:
 
 - width/height often means same lineage plus different aspect
 - `mph` means distinct lineages with different fold roles
+
+### Orthogonality Versus Bond Mode
+
+Orthogonality still matters independently of relate versus fuse.
+
+Orthogonality answers questions like:
+
+- which freedoms are independent
+- which participations are aligned versus orthogonal
+- which aspect or lineage a participation belongs to
+
+Bond mode answers different questions:
+
+- are the sides meeting boundary to boundary
+- are they meeting through their whole extents
+- are they integrating sequentially
+- are they integrating simultaneously
+
+So a complex-like or 2D object can be built from:
+
+- two jump-like participations
+- two continuous participations
+- one jump-like participation and one continuous participation
+
+This is important for examples like:
+
+- race handicap or head-start style offset, where one participation may behave
+  like a discrete jump while another remains a continuous running span
+- prior work versus next work, where both participations may remain continuous
+  while still being distinguished by orientation, aspect, or fold role
+
+So orthogonality should not be collapsed into "jump versus continuous." They
+are separate distinctions.
+
+### Multiplication Versus Ratio Projection
+
+One open question remains around multiplication-like fold.
+
+The current Core4 system still often exposes a ratio-like projection shaped as:
+
+- numerator
+- denominator
+
+That is useful as a compatibility or measurement read, but it should not be
+mistaken for the canonical structure of fused whole-to-whole participation.
+
+The current suspicion is:
+
+- ratio-like division is one later projection of structure
+- multiplication-like behavior should arise from simultaneous co-integration in
+  fold
+
+So this note does not yet claim that Core4 multiplication has been fully
+identified. It only sharpens where it most likely belongs:
+
+- not in boundary-only relation
+- not in symbolic operator tagging
+- but in fused whole participation whose later projections may still be read in
+  several ways, including ratio-like ones
 
 ### Access By Path
 
