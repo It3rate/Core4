@@ -369,6 +369,36 @@ This keeps the layers separate:
 - `RelationFold` = structure-to-structure transform
 - runtime rebalance = later tension layer
 
+### Fold Output Versus Linked Output
+
+Fold always produces a new output stage.
+
+That does not mean every fold is only a one-shot calculation.
+
+The current distinction is more like:
+
+- snapshot fold = produce an output stage without preserving a live reuse link
+- linked fold = produce an output stage while preserving the fold relation so
+  later input changes can retune the output
+
+So a fold may be:
+
+- input to output directly, when read as a boundary-only or one-shot result
+- input to fusion to output, when the fused scaffold is preserved strongly
+  enough to keep the output linked
+
+This means the output is still new structure, but it may continue to inherit
+its behavior from preserved fold lineage.
+
+That looks very similar to reused units:
+
+- one-shot use gives a result without preserving live dependency
+- reused live structure keeps later changes coupled through the preserved bond
+
+So the current suspicion is that operational linkage and reused unit linkage
+are not two different mechanisms. They are likely the same reuse mechanism seen
+at different structural grades.
+
 ### Trolley View
 
 It is fair to say that a trolley, at any one local position, sees a signature.
@@ -699,6 +729,19 @@ For example, if two extents are fused:
 
 So "fused" should not be read as a different clock. It is a different local
 bond rule applied during the same alternating integration process.
+
+This also helps with the apparent tension between `Node` and `Whole`.
+
+- whole exposure means expose the full available extent to the bond
+- node exposure means expose only the boundary participation to the bond
+
+Neither one says whether the fold must update "all at once."
+
+If the exposed structure has only one available piece, then even a whole
+exposure may collapse in one step.
+
+If the exposed structure has many local pieces, then whole exposure naturally
+appears piecewise under the same fold semantics.
 
 ### Mixed Local Bonds
 
@@ -1052,6 +1095,96 @@ So addition and multiplication are not different in the sense of one being
 "append" and the other being "integration." Both append to a total. The key
 difference is whether local ticking also fuses through the bond before that
 append.
+
+### Raw Measure Tick Basis
+
+It is fair to say that even a raw measure exposes a primitive tick basis.
+
+So a non-calibrated structure may still participate multiplicatively.
+
+The difference is not that raw measure has no basis at all. The difference is
+that raw measure lacks a stronger frozen external calibration such as a
+stabilized reusable unit.
+
+So:
+
+- raw measure can still present a tick count or local repetition basis
+- calibration makes that basis reusable and interpretable across more contexts
+- multiplication-like fold may therefore act on non-calibrated structure, even
+  if the result is weaker or more local than calibrated multiplication
+
+### Host Basis And Inserted Structure
+
+The cleanest current reading of multiplication-like fold is:
+
+- the first operand provides the host basis
+- the second operand provides the inserted structure
+
+So if a value calibrated as `6` exposes six basis units, then `6 * 2` means:
+
+- take the six host basis units from the first operand
+- resolve each one through a whole copy of the second operand
+
+This is why "replace each basis unit with the second operand" is a useful
+physical picture.
+
+It may be even safer to say:
+
+- each host basis unit is filled by
+- or resolved through
+
+the second operand, because the first operand still contributes the host count,
+layout, and lineage.
+
+This same idea should scale beyond simple segment count:
+
+- segment basis units may be filled by another segment
+- area basis units may be filled by another structure
+- volume basis units may be filled by another structure
+
+The main structural operation is still basis substitution through fold.
+
+### Inverse Compression
+
+The inverse fused case can be read as compression rather than insertion.
+
+For example, if `6` is being resolved through inverse fusion by `2`, the fold
+can be read as:
+
+- walk the host extent of `6`
+- collapse it in runs of the partner extent `2`
+- append one output basis unit per resolved run
+
+This yields `3`.
+
+So division-like fold need not be described primarily as numerator over
+denominator. It can be described as inverse basis compression through the
+partner extent.
+
+### Equal Result, Different Structure
+
+`6 * 2` and `2 * 6` may collapse to the same visible scalar result while still
+remaining different structures.
+
+The difference is not only order. It is host versus inserted role.
+
+Examples:
+
+- six host cells filled by twos
+- two host cells filled by sixes
+
+Those are not the same construction even if one projection later collapses them
+to the same visible value.
+
+This distinction matters because many later cases will depend on structure:
+
+- aspect or orientation
+- orthogonality
+- later reuse and retuning
+- higher-grade fold behavior
+
+The same caution also applies to addition-like results. Equal visible totals do
+not automatically imply identical construction lineage.
 
 So this note does not yet claim that Core4 multiplication has been fully
 identified. It only sharpens where it most likely belongs:
