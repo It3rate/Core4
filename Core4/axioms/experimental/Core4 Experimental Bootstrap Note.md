@@ -1,360 +1,192 @@
 # Core4 Experimental Bootstrap Note
 
-This note captures a newer bootstrap picture for the experimental relation
-model.
+This note rewrites the bootstrap picture around the current minimal experiment.
 
-It is intentionally separate from the earlier element relation note because it
-sharpens several meanings more aggressively and may temporarily contradict older
-phrasing.
+It intentionally stays close to what is currently concrete in code:
 
-The goal here is not to finalize every consequence. The goal is to state the
-smallest physical picture that currently seems capable of generating:
+- `Measure`
+- binary `Relation`
+- external `RelationFold`
+
+The goal is not to fully explain every future grade. The goal is to state the
+smallest physical picture that currently seems consistent.
+
+## 1. Current Concrete Bootstrap Pass
+
+The current bootstrap pass assumes only three concrete things:
+
+- a `Measure` is one occupied site on an ordered substrate
+- a `Relation` is one ordered pair of `IElement`s
+- `RelationFold.Fold(left, right)` reduces two elements by recursively reading
+  them down to leaf measures and then smearing them together
+
+Nothing else should be treated as primitive yet.
+
+In particular, this pass does not take as primitive:
+
+- signature
+- operation objects
+- path APIs
+- node/whole flags
+- precomputed extent caches
+
+Those may emerge later if they prove necessary, but they are not part of the
+bootstrap floor.
+
+## 2. Ordered Substrate
+
+Before anything is related, the substrate is just ordered occupied sites.
+
+For the current concrete pass, those sites are still represented by `long`
+values through `Measure`.
+
+The important correction is:
+
+- a measure is not pinned to a globally fixed universe
+- it is only locally stable enough to participate in relation
+
+So the whole substrate may slide while the relation remains lawful internally.
+
+That is why the current concrete pass can use a shared offset on `Measure`
+without changing the folded relation result.
+
+## 3. Relation
+
+The primitive relation act is:
+
+- choose `A`
+- choose `B`
+- relate `A -> B` in that order
+
+`Relation` itself stores only:
+
+- `Left`
+- `Right`
+
+It does not store:
+
+- precomputed denominator
+- precomputed magnitude
+- precomputed grade label
+
+All of that is deferred to fold.
+
+This is important because the same stored relation may later be read as:
 
 - basis
 - value
-- operation
-- fold
-- power and root behavior
-- orientation and inverse orientation
+- calibration
+- addition-like append
+- multiplication-like smear
 
-from one shared ordered integration substrate.
+depending on how fold encounters it.
 
-## 1. Bootstrap Stance
+## 4. Fold Is External
 
-Before anything is related or committed, a carrier presents a field of value
-potentials.
+The current bootstrap pass treats fold as an external act:
 
-For the current concrete engine pass, those potentials are still encoded as
-`long` values.
+- `RelationFold.Fold(left, right)`
 
-Nothing deeper than ordered potential is assumed yet.
+This is deliberate.
 
-The first primitive act is:
+The relation should stay as raw structure. The reduction logic should remain
+outside it while the mechanics are still being discovered.
 
-- choose one potential as `A`
-- choose another potential as `B`
-- relate `A -> B` in that order
+So fold currently acts more like:
 
-This ordered relation is the bootstrap act.
+- read left
+- read right
+- keep descending until leaves
+- smear what was found
 
-## 2. Ordered Extent And Tick Matter
+There is no `TryFold`, no invalid case, and no grade check that halts the
+process. Every structure reduces to something meaningful, even if the meaning is
+still provisional.
 
-Relating `A -> B` creates a directed extent.
+## 5. The Temporary Fold Projection
 
-The important correction is that this does not require pinning either endpoint
-to a globally fixed substrate location.
+For the current bootstrap testing pass, fold projects to:
 
-At bootstrap grade, the claim is only:
+- `(numerator, denominator)`
 
-- these two potentials are stable relative to each other
-- their ordered extent can be reused
-- their mutual structure does not change unless later instructed to do so
+This pair is not the final ontology.
 
-So the origin does not need to be:
+It is only the current visible surface of the mechanical process.
 
-- at zero
-- globally fixed
-- constant relative to the raw carrier substrate
+The current working readings are:
 
-The whole relation may slide on the substrate while still remaining perfectly
-lawful internally.
+- `(0, 0)` = open or coincident site with no partition matter
+- `(m, 0)` = unpartitioned claim or point-like participation
+- `(m, u)` = value resolved through a partitioned basis
 
-This means later structures may also be:
+This does not mean the system fundamentally "is" fractions. It means the
+current fold experiment can be inspected through that shape.
 
-- stable internally
-- while still moving relative to the wider substrate
+## 6. Grade 0: Measure To Measure
 
-That is the intended physical picture for cases like:
-
-- a distance relation on a moving Earth
-- a support structure moving relative to a carrier background
-- a trolley traversing one structure while that structure itself moves relative
-  to another structure
-
-At bootstrap grade, the distance between the two raw values determines the
-structural partition count.
-
-So:
-
-- if `A != B`, interior tick matter exists between them
-- if `A < B`, the relation is oriented in the dominant or expansive direction
-- if `A > B`, the relation is oriented in the recessive or inverted direction
-- if `A = B`, no interior tick matter is created
-
-This means the earliest partition count is structural rather than chosen.
-
-At this grade, extent and raw partition count coincide physically even if later
-grades may reuse, override, or reinterpret that partitioning.
-
-## 3. Open Site, Point Claim, And Calibrated Basis
-
-The cleanest current bootstrap ladder is:
-
-- `0/0` = open site or unresolved coincidence
-- `m/0` = committed magnitude with no disclosed interior flow
-- `m/u` = committed magnitude resolved through a known basis
-
-This gives three importantly different cases.
-
-### `0/0`
-
-`0/0` does not yet claim a usable magnitude on the current carrier. It is an
-open site, unresolved coincidence, or available place where relation may later
-harden.
-
-### `m/0`
-
-`m/0` is a point claim.
-
-It says:
-
-- this much value is present
-- the value is committed strongly enough to name
-- but its interior tick matter, flow orientation, or support structure is not
-  yet disclosed on this carrier
-
-So a point is not automatically orthogonal.
-
-It is better read as:
-
-- unresolved on this carrier's internal flow
-- not yet committed to dominant or recessive traversal
-- present in magnitude without disclosed interior partition
-
-This may still be carrier-local. For example, a point on a mass carrier may
-still claim mass value while leaving its internal support unresolved.
-
-### `m/u`
-
-`m/u` is a resolved value through a known basis.
-
-This means:
-
-- the magnitude is present
-- the basis is present
-- the value can be read through the basis partitions and orientation
-
-So `m/u` is where the system can start speaking in a stronger calibrated way.
-
-## 4. Grade 0 And Grade 1
-
-At bootstrap grade, ordered raw relation gives the seed basis.
-
-Examples:
-
-- `4/0` = point claim of magnitude `4`
-- `4/4` = unit in the dominant orientation with four structural partitions
-- `-4/-4` = unit in the recessive orientation with four structural partitions
-
-The current intended reading is:
-
-- `4/4` projects to value `1`
-- `8/4` projects to value `2`
-- `2/4` projects to value `0.5`
-- `-8/4` projects to value `-2`
-- `-8/-4` projects to value `-2i`
-- `2/-4` projects to value `0.5i`
-
-These projected values are not the same thing as the structure itself.
-
-So:
-
-- `8/4` is not merely "the number two"
-- it is also an extent `8` resolved through partition basis `4`
-
-This distinction matters because structural partition count should remain
-available for later fold, fusion, and repetition.
-
-## 5. Orientation
-
-An inverted basis is not a separate species. It is the same basis with inverted
-orientation.
-
-This is intended to remain true across grades.
-
-So:
-
-- dominant basis traverses in the expansive direction
-- recessive basis traverses in the contractive or inverted direction
-
-The sign does not merely say "negative value." It also tells the system how the
-basis is embedded and traversed.
-
-This is why:
-
-- `4/4` and `-4/-4` can both project to one unit of magnitude
-- while still remaining structurally different bases
-
-### Inverted Denominator Action
-
-The current working intuition is that an inverted denominator does not only mark
-an opposite side of the carrier. It actively inverts whatever resolved
-structure it acts on during fold.
-
-So an `i`-oriented basis should be read as:
-
-- operate through inverted orientation
-- and invert the current resolved structure as it is taken up
-
-This is the current physical picture behind the familiar cycle:
-
-- `1`
-- `i`
-- `-1`
-- `-i`
-
-When multiplying by `i`, each new inverted participation acts on the whole
-currently resolved value, not only on the original raw measure.
-
-So for an expression like `2i * 3i`, the current intended reading is:
-
-- the first inverted value establishes an inverted host
-- the second inverted value acts on that whole resolved host
-- in doing so, it inverts both value placement and basis orientation again
-- the final dominant projection lands at `-6`
-
-This is not yet a fully formalized algorithm. It is a physical working model:
-
-- each `i` inverts what it acts upon
-- repeated inverted fold therefore flips both placement and denominator
-  perspective in sequence
-
-That is the current reason the cycle should emerge naturally from fold rather
-than from a separate symbolic multiplication table.
-
-## 6. Higher Grade Partitioning
-
-Partitions continue into higher grades.
-
-If one resolved structure is fused with another, the higher-grade structure
-inherits the partition availability of its ingredients.
-
-Example:
-
-- one `8/4` vertical structure has eight extent units resolved through four
-  basis units
-- one `8/4` horizontal structure does likewise
-- if these are fused into a squared unit, the resulting structure carries the
-  product of those partition opportunities
-
-So partition count is not only for 1D reading. It scales upward with grade.
-
-## 7. Operations Are Relations Read As Integration
-
-The current bootstrap suspicion is:
-
-- there is not a separate primitive for "operation"
-- operations are relations read as integration rules
-
-So addition, multiplication, fusion, and basis creation are not separate
-species. They are different uses of the same ordered relation substrate.
-
-The current physical reading is:
-
-- an operation says integrate these operands
-- using this many partitions
-- repeated this many times
-
-If the same structure is reused later, then the operation can also stay linked
-rather than becoming only a one-shot result.
-
-## 8. Operation Core: Partitions And Repeats
-
-The current smallest plausible operation core is:
-
-- partitions
-- repeats
-
-### Partitions
-
-Partitions specify how the integration is exposed.
-
-The current intended reading is:
-
-- operation denominator `0` = do not mix interiors
-- operation denominator `1` = whole exposure
-- operation denominator greater than `1` = expose that many integration steps or
-  ticks
-- operation sign = orientation of that exposure
-
-The stronger correction now is:
-
-- denominator `0` is the only primitive additive exposure
-- any direct fold between two already partitioned operands is not additive
-- it is already in the multiplicative family because partitioned interiors are
-  being related to partitioned interiors
-
-So an operation with zero partitions means:
-
-- append whole resolved values
-- do not mix interiors during the operation itself
-- preserve or reuse the existing basis rather than duplicating it
-
-That is the current best physical reading of addition-like behavior.
-
-If one wants addition over partitioned values, the additive step does not come
-from directly folding two partitioned interiors together. It comes from a
-zero-partition operation over already resolved values, or equivalently from
-temporarily collapsing one side to a point-like claim for the duration of the
-append.
-
-### Repeats
-
-Repeats specify how many times the integration acts.
-
-The current intended reading is:
-
-- repeat `1` = one pass
-- repeat greater than `1` = power-like repeated integration
-- fractional repeats = root-like integration
+At grade 0, both leaves are raw measures.
 
 For example:
 
-- `8/4` repeated `12/4` times can project to cubed behavior
-- `8/4` repeated `2/4` times can project to square-root behavior
+- `10 -> 20`
 
-The current suspicion is that repeat may itself be ratio-shaped:
+At first, only the endpoints are occupied matter. The interior is not yet
+materialized as committed structure.
 
-- numerator = repeat count
-- denominator = root degree or repeat subdivision
+When fold runs, it walks every tick between the two endpoints. Since the partner
+side contributes exactly one occupied site of matter at this grade, each walked
+tick is filled without extra expansion or contraction.
 
-Compression of that repeat ratio may sometimes be a lawful optimization.
+So:
 
-However, the unreduced repeat schedule may still matter structurally, so this
-is not fully settled yet.
+- `10 -> 20` folds to `(10, 10)`
+- `20 -> 10` folds to `(-10, -10)`
+- `10 -> 10` folds to `(0, 0)`
 
-## 9. Partition Precedence
+At this earliest grade:
 
-The current best precedence rule is:
+- extent and partition count coincide
+- denominator is just the walked extent
+- a raw segment is the first partitioned basis
 
-1. explicit operation partitions
-2. else reused basis partitions
-3. else raw tick fallback from operand extent
+## 7. Unpartitioned Participation
 
-This keeps the system readable while still allowing operations to override a
-reused basis when needed.
+An unpartitioned object is any folded value with denominator `0`.
 
-## 10. Addition As Zero-Mixing Integration
+This is the key point that now needs to be stated very strongly:
 
-Addition-like behavior is now best read as:
+- unpartitioned participation is the only primitive additive participation
 
-- integrate with operation denominator `0`
-- append resolved values
-- do not mix interiors
-- keep one shared denominator rather than multiplying denominators
+So:
 
-So if two values are joined without interior mixing, the result is one new
-related value that accumulates both claims while preserving their lack of fused
-interior.
+- if an object folds to `(m, 0)`, it has magnitude but no interior partition
+  matter available for direct interior-to-interior smearing
+- it may still be resolved later through another basis
+- but by itself it is not already a partitioned interior
 
-This means primitive addition is narrower than it first appears:
+This is the natural home of:
 
-- direct partitioned-plus-partitioned fold is not addition
-- addition requires a zero-partition fold
-- so a partitioned value must first be presented additively, rather than
-  interior-to-interior
+- point claims
+- unresolved magnitudes
+- additive append
 
-This is why a familiar case like:
+## 8. Addition Requires Unpartitioned Participation
+
+The stronger bootstrap claim is:
+
+- addition is not the default fold
+- addition requires one or both participations to be unpartitioned
+
+That means:
+
+- `(a, 0)` folded with `(b, 0)` appends to `(a + b, 0)`
+- `(a, 0)` folded through a shared partitioned basis can be read as additive
+  presentation on that basis
+- but two already partitioned interiors do not directly add
+
+This is why familiar arithmetic should be read carefully.
+
+For example:
 
 - `1/2 + 1/2`
 
@@ -366,168 +198,212 @@ than:
 
 - `2/4`
 
-The denominator is not being counted twice, because addition does not duplicate
-or fuse the basis. It appends claims on one shared basis.
+because addition does not duplicate the denominator.
 
-If two partitioned values do not already share a usable denominator, then any
-normalization step required to make them appendable is already a
-multiplication-like preparation. So mismatched-denominator addition is not a
-single primitive act at bootstrap grade. It is:
+The denominator is the shared basis that the claims are being appended on.
+
+So if partitioned values appear to add, the natural reading is not:
+
+- partitioned interior plus partitioned interior directly
+
+The natural reading is:
+
+- one shared basis
+- one or more unpartitioned claims being appended on that basis
+
+or equivalently:
+
+- one side has been presented additively rather than interior-to-interior
+
+## 9. Two Partitioned Objects Fold Multiplicatively
+
+This is the other strong claim:
+
+- if both participations are already partitioned, direct fold is in the
+  multiplicative family
+
+That is not a flaw. It is the natural consequence of what is meeting what.
+
+The moment partitioned interior meets partitioned interior:
+
+- ticks meet ticks
+- smearing begins
+- basis is being substituted or scaled
+
+So direct partitioned-to-partitioned fold should not be read as addition by
+default.
+
+It should be read as multiplication-like interaction.
+
+This also means:
+
+- two fully partitioned objects cannot be directly added at bootstrap grade
+
+That sounds restrictive only if one assumes addition should be the default. In
+this picture, it should not be.
+
+## 10. Why Denominator Normalization Already Looks Multiplicative
+
+This also clarifies why fraction normalization feels like multiplication before
+addition.
+
+If two partitioned operands do not already share a usable denominator, then any
+step required to make them appendable must:
+
+- scale one side
+- or scale both
+- or rebuild them on a shared basis
+
+That is already multiplicative work.
+
+So mismatched-denominator addition is not one primitive bootstrap act. It is:
 
 1. multiplicative normalization or calibration work
-2. then zero-partition append
+2. then additive append through unpartitioned participation
 
-This picture also helps with count-like structures:
+This is why "just add two partitioned objects" is not the natural bootstrap
+read.
 
-- separate members may be related into one collection-like result
-- without yet being fused into one continuous extent
+## 11. The Mechanical Smear Rule
 
-That does not prove count nouns and mass nouns are the same distinction, but it
-does suggest a close structural analogy:
+The current experimental fold uses an explicit smear loop rather than a closed
+formula.
 
-- relating without fusion preserves separateness
-- fusion creates shared interior
+At the current concrete pass:
 
-## 11. Multiplication As Basis Substitution
+- leaf `Measure -> Measure` walks the raw ticks directly
+- higher-grade fold first reads each side into `(numerator, denominator)`
+- then smears those results by looping host ticks and partner ticks
 
-The cleanest current reading of multiplication-like behavior is:
+This is important because it keeps the physical picture visible:
 
-- take every unit proportion of the first operand
-- replace or fill it with the whole of the second operand
+- host basis = what exposes the ticks being filled
+- partner structure = what is inserted into each exposed tick
 
-More carefully:
-
-- the first operand provides the host basis
-- the second operand provides the inserted structure
-
-So `6 * 2` means:
-
-- start from the six host basis units of the first operand
-- integrate the whole second operand into each host basis unit
-- append the resulting fused structure into the new output
-
-This is done at tick level, not only at whole-unit level. But the unit-level
-reading is still the clearest physical summary.
-
-The stronger bootstrap claim is:
-
-- any direct fold between two partitioned operands is in this multiplicative
-  family
-- even if the projected arithmetic later resembles normalization or comparison
-- because the moment partitioned interiors meet partitioned interiors, smearing
-  has already begun
-
-So addition should not be used as the default reading of partitioned-to-
-partitioned fold. Multiplication is the default direct reading there.
-
-The inverse fused case can be read as compression:
+So multiplication-like fold is not merely "multiply numerators." It is:
 
 - walk the host basis
-- collapse it in runs of the partner structure
-- append one output unit per resolved run
+- walk the partner interior
+- accumulate what each host tick receives
 
-This yields division-like behavior without requiring ordinary symbolic
-numerator/denominator logic as the primitive explanation.
+## 12. Grade 1 Reading
 
-## 12. Linked Fold Versus Snapshot Fold
+Once a point-like claim is read through a unit-like basis, it becomes a resolved
+value:
 
-Fold always produces a new output stage.
+- point-like claim: `(8, 0)`
+- shared unit: `(4, 4)`
+- resolved value: `(8, 4)`
 
-But the output may be:
+Then if another resolved value with the same basis participates:
 
-- a snapshot result
-- or a linked result that keeps the fold relation alive
+- `(8, 4)` with `(12, 4)`
 
-So there is a real difference between:
+direct fold is multiplicative, not additive.
 
-- one-shot calculation
-- link calculation
+In the current concrete mechanical pass this reads as:
 
-In the link case:
+- every host partition receives the partner proportion
+- the result becomes `(24, 4)`
 
-- the fold relation is preserved
-- later changes to reused input can retune the output
+which projects to `6`.
 
-This likely uses the same reuse mechanism as reused units, only lifted to the
-grade of operation rather than only basis.
+So the current bootstrap read is:
 
-## 13. Structural Equality Versus Projected Equality
+- partitioned with partitioned = multiplication-like smear
+- unpartitioned with unpartitioned = addition-like append
+- unpartitioned with partitioned = additive presentation or resolution through a
+  shared basis
 
-Two constructions may project to the same visible value while still remaining
-different structures.
+## 13. Reuse And Sliding Substrate
 
-Examples:
+Because relations store only references and fold rereads the leaves every time:
 
-- `6 * 2`
-- `2 * 6`
+- reused substructure stays live
+- later substrate offset changes are seen automatically
+- no extent is precomputed into the relation itself
 
-may project to the same scalar output while still differing structurally in:
+This is useful because it keeps the physical picture honest:
 
-- host basis
-- inserted structure
-- aspect or orientation
-- reuse and retuning behavior
-- later higher-grade fusion
+- the structure remains what it is
+- the fold result is always a current reading of that structure
 
-This is why projection equality should not erase construction lineage.
+## 14. What This Currently Clarifies
 
-## 14. What Still Feels Open
+This rewrite sharpens several earlier ambiguities.
 
-Several important questions remain open.
+### Addition
 
-### Repeat Semantics
+Addition is now best read as:
 
-The exact meaning of rational repeats still needs tightening.
+- zero-partition append
+- shared-basis accumulation
+- no interior-to-interior smearing
 
-Questions:
+### Multiplication
 
-- when is compression of repeat ratios purely an optimization
-- when does the expanded repeat schedule still matter structurally
-- how exactly do roots, inverse repeats, and contraction line up
+Multiplication is now best read as:
 
-### Point, Carrier, And Flow
+- direct partitioned-to-partitioned fold
+- host/partner smearing
+- interior meeting interior
 
-`m/0` currently reads well as "present magnitude, unresolved interior flow."
+### Normalization
 
-But an open question remains:
+Normalization is now best read as:
 
-- does a point already commit to carrier family while withholding orientation
-- or can it remain even looser than that
+- multiplicative preparation
+- not primitive addition itself
 
-### Selection And Reuse Windows
+## 15. What Still Feels Open
 
-The current bootstrap picture explains:
+Several things are still not settled.
 
-- basis
-- value
-- operation
-- linked reuse
+### Unpartitioned With Partitioned
 
-It does not yet fully explain:
+This currently reads well as:
 
-- selection of what survives into the next step
-- sliding windows
-- recurrence like Fibonacci-style reuse
-- trolley movement across preserved operation structure
+- additive presentation
+- or resolution through an existing basis
 
-Those likely require one more layer above the current bootstrap encoding.
+But the exact split between those two readings is still not fully formalized.
 
-## 15. Current Working Summary
+### Host Choice
 
-The current bootstrap model is:
+The current mechanical pass still chooses a host basis by partition availability.
 
-- carriers present ordered long-valued potentials
-- ordered relation `A -> B` creates extent and possibly tick matter
-- `0/0` is open
-- `m/0` is present magnitude with unresolved interior flow
-- `m/u` is resolved magnitude through a known basis
-- operations are relations read as integration rules
-- operation core is partitions plus repeats
-- denominator `0` means the one primitive additive exposure
+That seems reasonable, but it is still a choice that may need tightening.
+
+### Remainders And Exactness
+
+The current smear loop still uses integer pieces in the concrete experiment.
+
+So if a numerator is not cleanly divisible by its partition count, more exact
+remainder handling will be needed later.
+
+### Inverse Orientation
+
+The deeper treatment of recessive or inverted denominators is still open beyond
+the current early intuition.
+
+## 16. Current Working Summary
+
+The current bootstrap picture is:
+
+- a `Measure` is one occupied substrate site
+- a `Relation` is one ordered pair of `IElement`s
+- fold is external and recursive
+- grade-0 measure-to-measure fold materializes a partitioned basis
+- unpartitioned participation is the only primitive additive participation
+- addition requires one or both sides to be unpartitioned
 - direct partitioned-to-partitioned fold is multiplicative by default
-- addition is zero-partition append on a shared basis
-- multiplication is basis substitution or filled host integration
-- fold always produces new output, but reuse can keep it linked
+- mismatched-denominator "addition" already contains multiplicative
+  normalization work
 
-This is probably not yet final, but it feels like a coherent physical
-bootstrap.
+This feels substantially more coherent than the earlier wording.
+
+It is still not final, but it now states much more clearly that:
+
+- addition is not the default
+- multiplication is not an extra case
+- partition matter is the decisive seam
