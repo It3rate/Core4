@@ -1,6 +1,7 @@
 using BootstrapMeasure = Core4.Experimental.Bootstrap.Measure;
 using BootstrapRelationFold = Core4.Experimental.Bootstrap.RelationFold;
 using BootstrapRelation = Core4.Experimental.Bootstrap.Relation;
+using BootstrapPartitionStep = Core4.Experimental.Bootstrap.PartitionStep;
 
 namespace Core4.Tests.Experimental.Bootstrap;
 
@@ -14,12 +15,13 @@ public sealed class BootstrapRelationTests
         {
             var start = new BootstrapMeasure(10);
             var end = new BootstrapMeasure(14);
+            var fold = new BootstrapRelationFold(start, end);
 
-            Assert.Equal((4L, 4L), BootstrapRelationFold.Fold(start, end));
+            Assert.Equal((4L, 4L), Read(fold));
 
             BootstrapMeasure.Offset = 100;
 
-            Assert.Equal((4L, 4L), BootstrapRelationFold.Fold(start, end));
+            Assert.Equal((4L, 4L), Read(fold));
         }
         finally
         {
@@ -32,7 +34,7 @@ public sealed class BootstrapRelationTests
     {
         var point = new BootstrapMeasure(10);
 
-        Assert.Equal((0L, 0L), BootstrapRelationFold.Fold(point, point));
+        Assert.Equal((0L, 0L), Read(new BootstrapRelationFold(point, point)));
     }
 
     [Fact]
@@ -43,8 +45,8 @@ public sealed class BootstrapRelationTests
         var recessiveStart = new BootstrapMeasure(20);
         var recessiveEnd = new BootstrapMeasure(10);
 
-        Assert.Equal((10L, 10L), BootstrapRelationFold.Fold(dominantStart, dominantEnd));
-        Assert.Equal((-10L, -10L), BootstrapRelationFold.Fold(recessiveStart, recessiveEnd));
+        Assert.Equal((10L, 10L), Read(new BootstrapRelationFold(dominantStart, dominantEnd)));
+        Assert.Equal((-10L, -10L), Read(new BootstrapRelationFold(recessiveStart, recessiveEnd)));
     }
 
     [Fact]
@@ -56,7 +58,7 @@ public sealed class BootstrapRelationTests
 
         Assert.Equal((8L, 0L), Fold(leftPoint));
         Assert.Equal((12L, 0L), Fold(rightPoint));
-        Assert.Equal((20L, 0L), BootstrapRelationFold.Fold(leftPoint, rightPoint));
+        Assert.Equal((20L, 0L), Read(new BootstrapRelationFold(leftPoint, rightPoint)));
     }
 
     [Fact]
@@ -68,7 +70,7 @@ public sealed class BootstrapRelationTests
 
         Assert.Equal((8L, 0L), Fold(point));
         Assert.Equal((4L, 4L), Fold(unit));
-        Assert.Equal((8L, 4L), BootstrapRelationFold.Fold(point, unit));
+        Assert.Equal((8L, 4L), Read(new BootstrapRelationFold(point, unit)));
     }
 
     [Fact]
@@ -81,7 +83,30 @@ public sealed class BootstrapRelationTests
 
         Assert.Equal((8L, 4L), Fold(two));
         Assert.Equal((12L, 4L), Fold(three));
-        Assert.Equal((24L, 4L), BootstrapRelationFold.Fold(two, three));
+        Assert.Equal((24L, 4L), Read(new BootstrapRelationFold(two, three)));
+    }
+
+    [Fact]
+    public void PartitionIteratorCountsByCeilingButIteratesByUnitSize()
+    {
+        var open = new BootstrapRelation(new BootstrapMeasure(0), new BootstrapMeasure(0));
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var value = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(26), open), unit);
+        var partitions = value.Partitions().ToArray();
+
+        Assert.Equal(7, value.PartitionCount);
+        Assert.Equal(
+            new[]
+            {
+                new BootstrapPartitionStep(0, 4),
+                new BootstrapPartitionStep(4, 4),
+                new BootstrapPartitionStep(8, 4),
+                new BootstrapPartitionStep(12, 4),
+                new BootstrapPartitionStep(16, 4),
+                new BootstrapPartitionStep(20, 4),
+                new BootstrapPartitionStep(24, 2),
+            },
+            partitions);
     }
 
     [Fact]
@@ -93,9 +118,9 @@ public sealed class BootstrapRelationTests
             var start = new BootstrapMeasure(10);
             var end = new BootstrapMeasure(14);
             var unit = new BootstrapRelation(start, end);
-            var reused = new BootstrapRelation(unit, unit);
+            var reused = new BootstrapRelationFold(unit, unit);
 
-            Assert.Equal((4L, 4L), Fold(reused));
+            Assert.Equal((4L, 4L), Read(reused));
 
             BootstrapMeasure.Offset = 50;
 
@@ -104,7 +129,7 @@ public sealed class BootstrapRelationTests
 
             Assert.Same(reusedLeft, reusedRight);
             Assert.Equal((4L, 4L), Fold(reusedLeft));
-            Assert.Equal((4L, 4L), Fold(reused));
+            Assert.Equal((4L, 4L), Read(reused));
             Assert.Equal(60, Assert.IsType<BootstrapMeasure>(reusedLeft.Left).Raw);
             Assert.Equal(64, Assert.IsType<BootstrapMeasure>(reusedLeft.Right).Raw);
         }
@@ -125,6 +150,25 @@ public sealed class BootstrapRelationTests
         Assert.Same(right, parent.Right);
     }
 
+    [Fact]
+    public void FoldResultIsItselfAnElementWithNumeratorAndDenominator()
+    {
+        var fold = new BootstrapRelationFold(new BootstrapMeasure(10), new BootstrapMeasure(14));
+
+        Assert.IsAssignableFrom<Core4.Experimental.Bootstrap.IElement>(fold);
+        Assert.Equal((4L, 4L), Read(fold));
+        Assert.Equal((4L, 0L), ReadElement(fold.Numerator));
+        Assert.Equal((4L, 0L), ReadElement(fold.Denominator));
+    }
+
     private static (long Numerator, long Denominator) Fold(BootstrapRelation relation) =>
-        BootstrapRelationFold.Fold(relation.Left, relation.Right);
+        Read(new BootstrapRelationFold(relation.Left, relation.Right));
+
+    private static (long Numerator, long Denominator) Read(BootstrapRelationFold fold) =>
+        (Assert.IsType<BootstrapMeasure>(fold.Numerator).Raw, Assert.IsType<BootstrapMeasure>(fold.Denominator).Raw);
+
+    private static (long Numerator, long Denominator) ReadElement(Core4.Experimental.Bootstrap.IElement element) =>
+        element is BootstrapRelationFold fold
+            ? Read(fold)
+            : (Assert.IsType<BootstrapMeasure>(element).Raw, 0);
 }
