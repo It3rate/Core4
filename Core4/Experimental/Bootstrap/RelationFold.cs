@@ -6,89 +6,38 @@ public sealed class RelationFold : IElement
     {
         Left = left;
         Right = right;
-
-        var reduced = Reduce(left, right);
-        Numerator = Measure.Fixed(ToLong(reduced.Numerator));
-        Denominator = Measure.Fixed(ToLong(reduced.Denominator));
+        Reduced = Fold(left, right);
     }
 
     public IElement Left { get; }
     public IElement Right { get; }
-    public IElement Numerator { get; }
-    public IElement Denominator { get; }
+    public IElement Numerator => Reduced.Left;
+    public IElement Denominator => Reduced.Right;
 
-    public Relation Reduced => new(Numerator, Denominator);
+    public Relation Reduced { get; }
 
-    public long PartitionCount => ElementProjection.Of(this).PartitionCount;
+    public long PartitionCount => PartitionCountOf(RawOf(Numerator), RawOf(Denominator));
 
-    public IEnumerable<PartitionStep> Partitions() => ElementProjection.Of(this).Partitions();
+    public IEnumerable<PartitionStep> Partitions() => PartitionsOf(RawOf(Numerator), RawOf(Denominator));
 
     public override string ToString() => $"({Numerator}/{Denominator})";
 
-    private static ElementProjection Reduce(IElement left, IElement right)
+    internal static long PartitionCountOf(long numerator, long denominator)
     {
-        if (left is Measure leftMeasure && right is Measure rightMeasure)
-        {
-            return ReduceMeasures(leftMeasure, rightMeasure);
-        }
-
-        var leftProjection = ElementProjection.Of(left);
-        var rightProjection = ElementProjection.Of(right);
-
-        if (rightProjection.Denominator == 0)
-        {
-            var denominator = leftProjection.Denominator == 0 ? 0 : leftProjection.Denominator;
-            return new(leftProjection.Numerator + rightProjection.Numerator, denominator);
-        }
-
-        var accumulated = 0d;
-        var partnerValue = (double)rightProjection.Numerator / rightProjection.Denominator;
-        foreach (var partition in left.Partitions())
-        {
-            accumulated += partition.Width * partnerValue;
-        }
-
-        var resultDenominator = leftProjection.Denominator == 0 ? rightProjection.Denominator : leftProjection.Denominator;
-        return new(ToLong(accumulated), resultDenominator);
+        var unitSize = denominator == 0 ? 1 : Math.Abs(denominator);
+        return numerator == 0 ? 0 : (Math.Abs(numerator) + unitSize - 1) / unitSize;
     }
 
-    private static ElementProjection ReduceMeasures(Measure left, Measure right)
+    internal static IEnumerable<PartitionStep> PartitionsOf(long numerator, long denominator)
     {
-        var extent = right.Raw - left.Raw;
-        var direction = Math.Sign(extent);
-        var partitions = Math.Abs(extent);
-        long filled = 0;
-
-        for (long tick = 0; tick < partitions; tick++)
-        {
-            filled += direction;
-        }
-
-        return new(filled, extent);
-    }
-
-    private static long ToLong(double value) => (long)Math.Round(value, MidpointRounding.AwayFromZero);
-}
-
-internal readonly record struct ElementProjection(long Numerator, long Denominator)
-{
-    public long UnitSize => Denominator == 0 ? 1 : Math.Abs(Denominator);
-
-    public long PartitionCount =>
-        Numerator == 0
-            ? 0
-            : (Math.Abs(Numerator) + UnitSize - 1) / UnitSize;
-
-    public IEnumerable<PartitionStep> Partitions()
-    {
-        if (Numerator == 0)
+        if (numerator == 0)
         {
             yield break;
         }
 
-        var magnitude = Math.Abs(Numerator);
-        var unitSize = UnitSize;
-        var direction = Math.Sign(Numerator);
+        var unitSize = denominator == 0 ? 1 : Math.Abs(denominator);
+        var magnitude = Math.Abs(numerator);
+        var direction = Math.Sign(numerator);
 
         for (long start = 0; start < magnitude; start += unitSize)
         {
@@ -102,19 +51,58 @@ internal readonly record struct ElementProjection(long Numerator, long Denominat
         }
     }
 
-    public static ElementProjection Of(IElement element) => element switch
+    private static Relation Fold(IElement op0, IElement op1)
     {
-        Measure measure => new(measure.Raw, 0),
-        Relation relation => Of(new RelationFold(relation.Left, relation.Right)),
-        RelationFold fold => new(ReadScalar(fold.Numerator), ReadScalar(fold.Denominator)),
-        _ => new(0, 0)
-    };
+        if (op0 is Measure leftMeasure && op1 is Measure rightMeasure)
+        {
+            return FoldMeasures(leftMeasure, rightMeasure);
+        }
 
-    private static long ReadScalar(IElement element) => element switch
+        var num0 = RawOf(op0.Numerator);
+        var den0 = RawOf(op0.Denominator);
+        var num1 = RawOf(op1.Numerator);
+        var den1 = RawOf(op1.Denominator);
+
+        if (den1 == 0)
+        {
+            return ReducedValue(num0 + num1, den0 == 0 ? 0 : den0);
+        }
+
+        var result = 0d;
+        var ratio1 = (double)num1 / den1;
+        foreach (var partition in op0.Partitions())
+        {
+            result += partition.Width * ratio1;
+        }
+
+        return ReducedValue(ToLong(result), den0 == 0 ? den1 : den0);
+    }
+
+    private static Relation FoldMeasures(Measure left, Measure right)
+    {
+        var extent = right.Raw - left.Raw;
+        var direction = Math.Sign(extent);
+        var partitions = Math.Abs(extent);
+        long filled = 0;
+
+        for (long tick = 0; tick < partitions; tick++)
+        {
+            filled += direction;
+        }
+
+        return ReducedValue(filled, extent);
+    }
+
+    private static Relation ReducedValue(long numerator, long denominator) =>
+        new(Measure.Fixed(numerator), Measure.Fixed(denominator));
+
+    private static long RawOf(IElement element) => element switch
     {
         Measure measure => measure.Raw,
-        RelationFold fold => Of(fold).Numerator,
-        Relation relation => Of(new RelationFold(relation.Left, relation.Right)).Numerator,
+        RelationFold fold => RawOf(fold.Numerator),
+        Relation relation => RawOf(relation.Numerator),
         _ => 0
     };
+
+    private static long ToLong(double value) => (long)Math.Round(value, MidpointRounding.AwayFromZero);
 }
