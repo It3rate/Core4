@@ -277,15 +277,26 @@ The current intended reading is:
   ticks
 - operation sign = orientation of that exposure
 
-The key correction is that denominator `0` applies to the operation, not
-necessarily to the operands.
+The stronger correction now is:
+
+- denominator `0` is the only primitive additive exposure
+- any direct fold between two already partitioned operands is not additive
+- it is already in the multiplicative family because partitioned interiors are
+  being related to partitioned interiors
 
 So an operation with zero partitions means:
 
 - append whole resolved values
 - do not mix interiors during the operation itself
+- preserve or reuse the existing basis rather than duplicating it
 
 That is the current best physical reading of addition-like behavior.
+
+If one wants addition over partitioned values, the additive step does not come
+from directly folding two partitioned interiors together. It comes from a
+zero-partition operation over already resolved values, or equivalently from
+temporarily collapsing one side to a point-like claim for the duration of the
+append.
 
 ### Repeats
 
@@ -330,10 +341,41 @@ Addition-like behavior is now best read as:
 - integrate with operation denominator `0`
 - append resolved values
 - do not mix interiors
+- keep one shared denominator rather than multiplying denominators
 
 So if two values are joined without interior mixing, the result is one new
 related value that accumulates both claims while preserving their lack of fused
 interior.
+
+This means primitive addition is narrower than it first appears:
+
+- direct partitioned-plus-partitioned fold is not addition
+- addition requires a zero-partition fold
+- so a partitioned value must first be presented additively, rather than
+  interior-to-interior
+
+This is why a familiar case like:
+
+- `1/2 + 1/2`
+
+should structurally read more like:
+
+- `2/2`
+
+than:
+
+- `2/4`
+
+The denominator is not being counted twice, because addition does not duplicate
+or fuse the basis. It appends claims on one shared basis.
+
+If two partitioned values do not already share a usable denominator, then any
+normalization step required to make them appendable is already a
+multiplication-like preparation. So mismatched-denominator addition is not a
+single primitive act at bootstrap grade. It is:
+
+1. multiplicative normalization or calibration work
+2. then zero-partition append
 
 This picture also helps with count-like structures:
 
@@ -366,6 +408,17 @@ So `6 * 2` means:
 
 This is done at tick level, not only at whole-unit level. But the unit-level
 reading is still the clearest physical summary.
+
+The stronger bootstrap claim is:
+
+- any direct fold between two partitioned operands is in this multiplicative
+  family
+- even if the projected arithmetic later resembles normalization or comparison
+- because the moment partitioned interiors meet partitioned interiors, smearing
+  has already begun
+
+So addition should not be used as the default reading of partitioned-to-
+partitioned fold. Multiplication is the default direct reading there.
 
 The inverse fused case can be read as compression:
 
@@ -470,7 +523,9 @@ The current bootstrap model is:
 - `m/u` is resolved magnitude through a known basis
 - operations are relations read as integration rules
 - operation core is partitions plus repeats
-- denominator `0` means do not mix interiors
+- denominator `0` means the one primitive additive exposure
+- direct partitioned-to-partitioned fold is multiplicative by default
+- addition is zero-partition append on a shared basis
 - multiplication is basis substitution or filled host integration
 - fold always produces new output, but reuse can keep it linked
 
