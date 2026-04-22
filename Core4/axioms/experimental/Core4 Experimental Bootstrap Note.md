@@ -41,6 +41,36 @@ This ordered relation is the bootstrap act.
 
 Relating `A -> B` creates a directed extent.
 
+The important correction is that this does not require pinning either endpoint
+to a globally fixed substrate location.
+
+At bootstrap grade, the claim is only:
+
+- these two potentials are stable relative to each other
+- their ordered extent can be reused
+- their mutual structure does not change unless later instructed to do so
+
+So the origin does not need to be:
+
+- at zero
+- globally fixed
+- constant relative to the raw carrier substrate
+
+The whole relation may slide on the substrate while still remaining perfectly
+lawful internally.
+
+This means later structures may also be:
+
+- stable internally
+- while still moving relative to the wider substrate
+
+That is the intended physical picture for cases like:
+
+- a distance relation on a moving Earth
+- a support structure moving relative to a carrier background
+- a trolley traversing one structure while that structure itself moves relative
+  to another structure
+
 At bootstrap grade, the distance between the two raw values determines the
 structural partition count.
 
@@ -154,6 +184,43 @@ This is why:
 
 - `4/4` and `-4/-4` can both project to one unit of magnitude
 - while still remaining structurally different bases
+
+### Inverted Denominator Action
+
+The current working intuition is that an inverted denominator does not only mark
+an opposite side of the carrier. It actively inverts whatever resolved
+structure it acts on during fold.
+
+So an `i`-oriented basis should be read as:
+
+- operate through inverted orientation
+- and invert the current resolved structure as it is taken up
+
+This is the current physical picture behind the familiar cycle:
+
+- `1`
+- `i`
+- `-1`
+- `-i`
+
+When multiplying by `i`, each new inverted participation acts on the whole
+currently resolved value, not only on the original raw measure.
+
+So for an expression like `2i * 3i`, the current intended reading is:
+
+- the first inverted value establishes an inverted host
+- the second inverted value acts on that whole resolved host
+- in doing so, it inverts both value placement and basis orientation again
+- the final dominant projection lands at `-6`
+
+This is not yet a fully formalized algorithm. It is a physical working model:
+
+- each `i` inverts what it acts upon
+- repeated inverted fold therefore flips both placement and denominator
+  perspective in sequence
+
+That is the current reason the cycle should emerge naturally from fold rather
+than from a separate symbolic multiplication table.
 
 ## 6. Higher Grade Partitioning
 
