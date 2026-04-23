@@ -10,6 +10,19 @@ public sealed class RelationFold : IElement
         Numerator = Measure.Fixed(folded.Numerator);
         Denominator = Measure.Fixed(folded.ResolvedDenominator);
         Reduced = Reduce(left, right, Numerator, Denominator);
+        Collapsed = CollapseOneGrade(this);
+        Projected = CollapseFully(this);
+    }
+
+    private RelationFold(IElement left, IElement right, long numerator, long denominator, IElement reduced)
+    {
+        Left = left;
+        Right = right;
+        Numerator = Measure.Fixed(numerator);
+        Denominator = Measure.Fixed(denominator);
+        Reduced = reduced;
+        Collapsed = CollapseOneGrade(this);
+        Projected = CollapseFully(this);
     }
 
     public IElement Left { get; }
@@ -18,6 +31,10 @@ public sealed class RelationFold : IElement
     public IElement Denominator { get; }
 
     public IElement Reduced { get; }
+
+    public IElement Collapsed { get; }
+
+    public IElement Projected { get; }
 
     public long PartitionCount => PartitionCountFor(this);
 
@@ -220,6 +237,84 @@ public sealed class RelationFold : IElement
         return PartitionsOf(folded.Numerator, folded.ResolvedDenominator);
     }
 
+    private static IElement CollapseFully(IElement element)
+    {
+        var current = element;
+
+        while (TryCollapseOneGrade(current, out var collapsed))
+        {
+            current = collapsed;
+        }
+
+        return current;
+    }
+
+    private static IElement CollapseOneGrade(IElement element) =>
+        TryCollapseOneGrade(element, out var collapsed)
+            ? collapsed
+            : element;
+
+    private static bool TryCollapseOneGrade(IElement element, out IElement collapsed)
+    {
+        switch (element)
+        {
+            case RelationFold fold:
+                return TryCollapseOneGrade(fold.Reduced, out collapsed);
+
+            case Relation relation:
+                var leftCollapsed = TryCollapseOneGrade(relation.Left, out var newLeft);
+                var rightCollapsed = TryCollapseOneGrade(relation.Right, out var newRight);
+
+                if (leftCollapsed || rightCollapsed)
+                {
+                    collapsed = new Relation(leftCollapsed ? newLeft : relation.Left, rightCollapsed ? newRight : relation.Right);
+                    return true;
+                }
+
+                if (TryCollapsePair(relation.Left, relation.Right, out var pairCollapsed))
+                {
+                    collapsed = pairCollapsed;
+                    return true;
+                }
+
+                collapsed = relation;
+                return false;
+
+            default:
+                collapsed = element;
+                return false;
+        }
+    }
+
+    private static bool TryCollapsePair(IElement left, IElement right, out IElement collapsed)
+    {
+        if (left is not RelationFold && right is not RelationFold)
+        {
+            collapsed = Measure.Fixed(0);
+            return false;
+        }
+
+        var leftValue = Read(left);
+        var rightValue = Read(right);
+        var unitMagnitude = CollapseUnitMagnitude(leftValue, rightValue);
+
+        if (unitMagnitude == 0)
+        {
+            var zeroPartitionSum = leftValue.Numerator + rightValue.Numerator;
+            collapsed = new RelationFold(left, right, zeroPartitionSum, 0, new Relation(Measure.Fixed(zeroPartitionSum), Measure.Fixed(0)));
+            return true;
+        }
+
+        var collapsedNumerator = CollapseNumerator(leftValue, rightValue, unitMagnitude);
+        collapsed = new RelationFold(
+            left,
+            right,
+            collapsedNumerator,
+            unitMagnitude,
+            new Relation(Measure.Fixed(collapsedNumerator), Measure.Fixed(unitMagnitude)));
+        return true;
+    }
+
     private static bool TryBuildContributionMatrix(IElement left, IElement right, out IElement contributionMatrix)
     {
         if (TryGetResolvedBranchPair(left, out var leftA, out var leftB) &&
@@ -287,6 +382,30 @@ public sealed class RelationFold : IElement
 
     private static bool IsResolvedContribution(IElement element) => Read(element).ResolvedDenominator != 0;
 
+    private static long CollapseUnitMagnitude(FoldValue left, FoldValue right)
+    {
+        var leftUnit = Math.Abs(left.ResolvedDenominator);
+        var rightUnit = Math.Abs(right.ResolvedDenominator);
+
+        return (leftUnit, rightUnit) switch
+        {
+            (0, 0) => 0,
+            (0, > 0) => rightUnit,
+            (> 0, 0) => leftUnit,
+            _ => LeastCommonMultiple(leftUnit, rightUnit)
+        };
+    }
+
+    private static long CollapseNumerator(FoldValue left, FoldValue right, long unitMagnitude) =>
+        CollapseContribution(left, unitMagnitude) + CollapseContribution(right, unitMagnitude);
+
+    private static long CollapseContribution(FoldValue value, long unitMagnitude) => value.Denominator switch
+    {
+        null => value.Numerator * unitMagnitude,
+        0 => value.Numerator * unitMagnitude,
+        var denominator => value.Numerator * (unitMagnitude / denominator.Value)
+    };
+
     private static long RawOf(IElement element) => element switch
     {
         Measure measure => measure.Raw,
@@ -319,6 +438,19 @@ public sealed class RelationFold : IElement
     }
 
     private static long ToLong(double value) => (long)Math.Round(value, MidpointRounding.AwayFromZero);
+
+    private static long GreatestCommonDivisor(long left, long right)
+    {
+        while (right != 0)
+        {
+            (left, right) = (right, left % right);
+        }
+
+        return Math.Abs(left);
+    }
+
+    private static long LeastCommonMultiple(long left, long right) =>
+        left == 0 || right == 0 ? 0 : Math.Abs(left / GreatestCommonDivisor(left, right) * right);
 
     private readonly record struct FoldValue(long Numerator, long? Denominator)
     {

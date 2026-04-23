@@ -510,6 +510,32 @@ public sealed class BootstrapRelationTests
     }
 
     [Fact]
+    public void ClosedDirectedSegmentLikeFoldCanCollapseRepeatedlyBackThroughLowerGrades()
+    {
+        var carrier = new BootstrapCarrier(10);
+        var open = BootstrapRelation.Open();
+        var expansiveUnit = new BootstrapRelation(new BootstrapMeasure(10, carrier), new BootstrapMeasure(14, carrier));
+        var contractiveUnit = new BootstrapRelation(new BootstrapMeasure(14, carrier), new BootstrapMeasure(10, carrier));
+
+        var a = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(8, carrier), open), expansiveUnit);
+        var b = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(12, carrier), open), contractiveUnit);
+        var c = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(16, carrier), open), expansiveUnit);
+        var d = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(20, carrier), open), contractiveUnit);
+        var fold = new BootstrapRelationFold(new BootstrapRelation(a, b), new BootstrapRelation(c, d));
+
+        var collapsed = Assert.IsType<BootstrapRelation>(fold.Collapsed);
+        var aligned = Assert.IsType<BootstrapRelation>(collapsed.Left);
+        var orthogonal = Assert.IsType<BootstrapRelation>(collapsed.Right);
+        var projected = Assert.IsType<BootstrapRelationFold>(fold.Projected);
+
+        Assert.Equal((24L, 4L), Read(Assert.IsType<BootstrapRelationFold>(aligned.Left)));
+        Assert.Equal((-32L, 4L), Read(Assert.IsType<BootstrapRelationFold>(aligned.Right)));
+        Assert.Equal((-12L, 4L), Read(Assert.IsType<BootstrapRelationFold>(orthogonal.Left)));
+        Assert.Equal((4L, 4L), Read(Assert.IsType<BootstrapRelationFold>(orthogonal.Right)));
+        Assert.Equal((-16L, 4L), Read(projected));
+    }
+
+    [Fact]
     public void ClosedOrthogonalLikeFoldPreservesAlignedAndCrossCarrierContributions()
     {
         var horizontal = new BootstrapCarrier(10);
@@ -534,6 +560,33 @@ public sealed class BootstrapRelationTests
         Assert.Equal((60L, 4L), Read(Assert.IsType<BootstrapRelationFold>(aligned.Right)));
         Assert.Equal((40L, 4L), Read(Assert.IsType<BootstrapRelationFold>(orthogonal.Left)));
         Assert.Equal((48L, 4L), Read(Assert.IsType<BootstrapRelationFold>(orthogonal.Right)));
+    }
+
+    [Fact]
+    public void ClosedOrthogonalLikeFoldCanCollapseRepeatedlyBackThroughLowerGrades()
+    {
+        var horizontal = new BootstrapCarrier(10);
+        var vertical = new BootstrapCarrier(20);
+        var open = BootstrapRelation.Open();
+        var horizontalUnit = new BootstrapRelation(new BootstrapMeasure(10, horizontal), new BootstrapMeasure(14, horizontal));
+        var verticalUnit = new BootstrapRelation(new BootstrapMeasure(30, vertical), new BootstrapMeasure(34, vertical));
+
+        var a = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(8, horizontal), open), horizontalUnit);
+        var b = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(12, vertical), open), verticalUnit);
+        var c = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(16, horizontal), open), horizontalUnit);
+        var d = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(20, vertical), open), verticalUnit);
+        var fold = new BootstrapRelationFold(new BootstrapRelation(a, b), new BootstrapRelation(c, d));
+
+        var collapsed = Assert.IsType<BootstrapRelation>(fold.Collapsed);
+        var aligned = Assert.IsType<BootstrapRelation>(collapsed.Left);
+        var orthogonal = Assert.IsType<BootstrapRelation>(collapsed.Right);
+        var projected = Assert.IsType<BootstrapRelationFold>(fold.Projected);
+
+        Assert.Equal((24L, 4L), Read(Assert.IsType<BootstrapRelationFold>(aligned.Left)));
+        Assert.Equal((32L, 4L), Read(Assert.IsType<BootstrapRelationFold>(aligned.Right)));
+        Assert.Equal((28L, 4L), Read(Assert.IsType<BootstrapRelationFold>(orthogonal.Left)));
+        Assert.Equal((28L, 4L), Read(Assert.IsType<BootstrapRelationFold>(orthogonal.Right)));
+        Assert.Equal((112L, 4L), Read(projected));
     }
 
     private static (long Numerator, long Denominator) Fold(BootstrapRelation relation) =>
