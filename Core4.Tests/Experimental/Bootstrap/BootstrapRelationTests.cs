@@ -282,6 +282,29 @@ public sealed class BootstrapRelationTests
     }
 
     [Fact]
+    public void OpenTransformTraversesByItsClosedBasisInsteadOfItsProjectedZeroMagnitude()
+    {
+        var open = BootstrapRelation.Open();
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var transform = new BootstrapRelation(open, unit);
+        var fold = new BootstrapRelationFold(open, unit);
+
+        Assert.Equal(
+            new[]
+            {
+                new BootstrapPartitionStep(0, 4),
+            },
+            transform.Partitions().ToArray());
+
+        Assert.Equal(
+            new[]
+            {
+                new BootstrapPartitionStep(0, 4),
+            },
+            fold.Partitions().ToArray());
+    }
+
+    [Fact]
     public void PartialApplicationBehavesLikeANewTransformWithFewerOpenSites()
     {
         var open = BootstrapRelation.Open();
@@ -295,6 +318,23 @@ public sealed class BootstrapRelationTests
         Assert.Equal(1, BootstrapRelation.OpenSiteCount(reduced));
         Assert.Equal(1, BootstrapRelation.OpenSiteCount(partiallyApplied));
         Assert.Equal(8, Assert.IsType<BootstrapMeasure>(Assert.IsType<BootstrapRelation>(reduced.Left).Left).Raw);
+    }
+
+    [Fact]
+    public void PartiallyAppliedTransformTraversesByItsClosedStructuralSide()
+    {
+        var open = BootstrapRelation.Open();
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var transform = new BootstrapRelation(new BootstrapRelation(open, unit), open);
+        var partiallyApplied = BootstrapRelation.Apply(transform, new BootstrapMeasure(8));
+
+        Assert.Equal(
+            new[]
+            {
+                new BootstrapPartitionStep(0, 4),
+                new BootstrapPartitionStep(4, 4),
+            },
+            partiallyApplied.Partitions().ToArray());
     }
 
     private static (long Numerator, long Denominator) Fold(BootstrapRelation relation) =>

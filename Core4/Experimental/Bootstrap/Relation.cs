@@ -10,9 +10,9 @@ public sealed class Relation : IElement
 
     public static Relation Open() => new(Measure.Fixed(0), Measure.Fixed(0));
 
-    public static IElement Compose(IElement left, IElement right) => Combine(left, right);
+    public static IElement Compose(IElement left, IElement right) => CombineStructural(left, right);
 
-    public static IElement Apply(IElement transform, IElement input) => Combine(transform, input);
+    public static IElement Apply(IElement transform, IElement input) => CombineStructural(transform, input);
 
     public static int OpenSiteCount(IElement element) => CountOpenSites(element);
 
@@ -25,7 +25,7 @@ public sealed class Relation : IElement
 
     public override string ToString() => $"({Left} -> {Right})";
 
-    private static IElement Combine(IElement left, IElement right)
+    internal static IElement CombineStructural(IElement left, IElement right)
     {
         var leftOpenSites = CountOpenSites(left);
         var rightOpenSites = CountOpenSites(right);
@@ -80,6 +80,9 @@ public sealed class Relation : IElement
                 return false;
         }
     }
+
+    internal static bool IsOpenSite(IElement element) =>
+        element is Relation relation && IsOpenSite(relation);
 
     private static bool IsOpenSite(Relation relation) =>
         IsZeroMeasure(relation.Left) && IsZeroMeasure(relation.Right);

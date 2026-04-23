@@ -19,9 +19,9 @@ public sealed class RelationFold : IElement
 
     public IElement Reduced { get; }
 
-    public long PartitionCount => PartitionCountOf(RawOf(Numerator), RawOf(Denominator));
+    public long PartitionCount => PartitionCountFor(this);
 
-    public IEnumerable<PartitionStep> Partitions() => PartitionsOf(RawOf(Numerator), RawOf(Denominator));
+    public IEnumerable<PartitionStep> Partitions() => PartitionsFor(this);
 
     public override string ToString() => $"({Numerator}/{Denominator})";
 
@@ -30,6 +30,8 @@ public sealed class RelationFold : IElement
         var unitSize = denominator == 0 ? 1 : Math.Abs(denominator);
         return numerator == 0 ? 0 : (Math.Abs(numerator) + unitSize - 1) / unitSize;
     }
+
+    internal static long PartitionCountFor(IElement element) => PartitionsFor(element).LongCount();
 
     internal static IEnumerable<PartitionStep> PartitionsOf(long numerator, long denominator)
     {
@@ -62,6 +64,14 @@ public sealed class RelationFold : IElement
         }
     }
 
+    internal static IEnumerable<PartitionStep> PartitionsFor(IElement element) => element switch
+    {
+        Measure measure => PartitionsOf(measure.Raw, 0),
+        RelationFold fold => PartitionsForReduced(fold.Reduced, fold.Numerator, fold.Denominator),
+        Relation relation => PartitionsForRelation(relation),
+        _ => Array.Empty<PartitionStep>()
+    };
+
     private static FoldValue Fold(IElement op0, IElement op1)
     {
         var left = Read(op0);
@@ -89,9 +99,79 @@ public sealed class RelationFold : IElement
     }
 
     private static IElement Reduce(IElement left, IElement right, IElement numerator, IElement denominator) =>
-        Relation.OpenSiteCount(left) + Relation.OpenSiteCount(right) > 0
+        ShouldPreserveOpenStructure(left, right)
             ? new Relation(left, right)
-            : new Relation(numerator, denominator);
+            : ReduceClosedStructure(left, right, numerator, denominator);
+
+    private static bool ShouldPreserveOpenStructure(IElement left, IElement right)
+    {
+        var leftOpenSites = Relation.OpenSiteCount(left);
+        var rightOpenSites = Relation.OpenSiteCount(right);
+
+        if (leftOpenSites == 0 && rightOpenSites == 0)
+        {
+            return false;
+        }
+
+        if (leftOpenSites > 0 && rightOpenSites == 0 && !Relation.IsOpenSite(left))
+        {
+            return false;
+        }
+
+        if (rightOpenSites > 0 && leftOpenSites == 0 && !Relation.IsOpenSite(right))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static IElement ReduceClosedStructure(IElement left, IElement right, IElement numerator, IElement denominator)
+    {
+        var leftOpenSites = Relation.OpenSiteCount(left);
+        var rightOpenSites = Relation.OpenSiteCount(right);
+
+        if (leftOpenSites > 0 || rightOpenSites > 0)
+        {
+            return Relation.CombineStructural(left, right);
+        }
+
+        return new Relation(numerator, denominator);
+    }
+
+    private static IEnumerable<PartitionStep> PartitionsForReduced(IElement reduced, IElement numerator, IElement denominator)
+    {
+        if (Relation.OpenSiteCount(reduced) == 0)
+        {
+            return PartitionsOf(RawOf(numerator), RawOf(denominator));
+        }
+
+        return PartitionsFor(reduced);
+    }
+
+    private static IEnumerable<PartitionStep> PartitionsForRelation(Relation relation)
+    {
+        var leftOpenSites = Relation.OpenSiteCount(relation.Left);
+        var rightOpenSites = Relation.OpenSiteCount(relation.Right);
+
+        if (leftOpenSites == 0 && rightOpenSites == 0)
+        {
+            var folded = Fold(relation.Left, relation.Right);
+            return PartitionsOf(folded.Numerator, folded.ResolvedDenominator);
+        }
+
+        if (leftOpenSites > 0 && rightOpenSites == 0)
+        {
+            return PartitionsFor(relation.Right);
+        }
+
+        if (rightOpenSites > 0 && leftOpenSites == 0)
+        {
+            return PartitionsFor(relation.Left);
+        }
+
+        return PartitionsFor(relation.Left).Concat(PartitionsFor(relation.Right));
+    }
 
     private static long RawOf(IElement element) => element switch
     {
