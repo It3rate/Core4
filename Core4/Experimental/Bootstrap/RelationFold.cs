@@ -7,19 +7,19 @@ public sealed class RelationFold : IElement
         Left = left;
         Right = right;
         var folded = Fold(left, right);
-        Numerator = Measure.Fixed(folded.Numerator);
-        Denominator = Measure.Fixed(folded.ResolvedDenominator);
-        Reduced = Reduce(left, right, Numerator, Denominator);
+        First = Measure.Fixed(folded.First);
+        Second = Measure.Fixed(folded.ResolvedSecond);
+        Reduced = Reduce(left, right, First, Second);
         Collapsed = CollapseOneGrade(this);
         Projected = CollapseFully(this);
     }
 
-    private RelationFold(IElement left, IElement right, long numerator, long denominator, IElement reduced)
+    private RelationFold(IElement left, IElement right, long first, long second, IElement reduced)
     {
         Left = left;
         Right = right;
-        Numerator = Measure.Fixed(numerator);
-        Denominator = Measure.Fixed(denominator);
+        First = Measure.Fixed(first);
+        Second = Measure.Fixed(second);
         Reduced = reduced;
         Collapsed = CollapseOneGrade(this);
         Projected = CollapseFully(this);
@@ -27,8 +27,8 @@ public sealed class RelationFold : IElement
 
     public IElement Left { get; }
     public IElement Right { get; }
-    public IElement Numerator { get; }
-    public IElement Denominator { get; }
+    public IElement First { get; }
+    public IElement Second { get; }
 
     public IElement Reduced { get; }
 
@@ -40,29 +40,29 @@ public sealed class RelationFold : IElement
 
     public IEnumerable<PartitionStep> Partitions() => PartitionsFor(this);
 
-    public override string ToString() => $"({Numerator}/{Denominator})";
+    public override string ToString() => $"({First}|{Second})";
 
-    internal static long PartitionCountOf(long numerator, long denominator)
+    internal static long PartitionCountOf(long first, long second)
     {
-        var unitSize = denominator == 0 ? 1 : Math.Abs(denominator);
-        return numerator == 0 ? 0 : (Math.Abs(numerator) + unitSize - 1) / unitSize;
+        var unitSize = second == 0 ? 1 : Math.Abs(second);
+        return first == 0 ? 0 : (Math.Abs(first) + unitSize - 1) / unitSize;
     }
 
     internal static long PartitionCountFor(IElement element) => PartitionsFor(element).LongCount();
 
-    internal static IEnumerable<PartitionStep> PartitionsOf(long numerator, long denominator)
+    internal static IEnumerable<PartitionStep> PartitionsOf(long first, long second)
     {
-        if (numerator == 0)
+        if (first == 0)
         {
             yield break;
         }
 
-        var unitSize = denominator == 0 ? 1 : Math.Abs(denominator);
-        var flowDirection = denominator == 0 ? Math.Sign(numerator) : Math.Sign(denominator);
-        var totalWidth = Math.Abs(numerator);
+        var unitSize = second == 0 ? 1 : Math.Abs(second);
+        var flowDirection = second == 0 ? Math.Sign(first) : Math.Sign(second);
+        var totalWidth = Math.Abs(first);
         var leadWidth = totalWidth % unitSize;
         var firstWidth = leadWidth == 0 ? unitSize : leadWidth;
-        var runStart = flowDirection >= 0 ? Math.Min(0, numerator) : Math.Max(0, numerator);
+        var runStart = flowDirection >= 0 ? Math.Min(0, first) : Math.Max(0, first);
         var emitted = 0L;
         var currentStart = runStart;
 
@@ -84,41 +84,48 @@ public sealed class RelationFold : IElement
     internal static IEnumerable<PartitionStep> PartitionsFor(IElement element) => element switch
     {
         Measure measure => PartitionsOf(measure.Raw, 0),
-        RelationFold fold => PartitionsForReduced(fold.Reduced, fold.Numerator, fold.Denominator),
+        RelationFold fold => PartitionsForReduced(fold.Reduced, fold.First, fold.Second),
         Relation relation => PartitionsForRelation(relation),
         _ => Array.Empty<PartitionStep>()
     };
 
-    private static FoldValue Fold(IElement op0, IElement op1)
+    private static RelationState Fold(IElement op0, IElement op1)
     {
         var left = Read(op0);
         var right = Read(op1);
 
-        if (left.Denominator is null && right.Denominator is null)
+        if (left.IsRaw && right.IsRaw)
         {
-            var extent = right.Numerator - left.Numerator;
-            return new(extent, extent);
+            var extent = right.First - left.First;
+            return extent == 0
+                ? new(0, 0)
+                : new(extent, Math.Sign(extent));
         }
 
-        if (right.Denominator == 0)
+        if (!left.IsPartitioned && right.IsPartitioned)
         {
-            return new(left.Numerator + right.Numerator, left.ResolvedDenominator);
+            return new(left.First, right.First);
+        }
+
+        if (right.IsUnbound)
+        {
+            return new(left.First + right.First, left.ResolvedSecond);
         }
 
         var result = 0d;
-        var ratio1 = right.Proportion;
+        var partnerContribution = right.ContributionPerPartition;
         foreach (var partition in FoldPartitionsFor(op0))
         {
-            result += partition.Width * ratio1;
+            result += partition.Width * partnerContribution;
         }
 
-        return new(ToLong(result), MergeDenominator(left, right));
+        return new(ToLong(result), MergeSecond(left, right));
     }
 
-    private static IElement Reduce(IElement left, IElement right, IElement numerator, IElement denominator) =>
+    private static IElement Reduce(IElement left, IElement right, IElement first, IElement second) =>
         ShouldPreserveOpenStructure(left, right)
             ? new Relation(left, right)
-            : ReduceClosedStructure(left, right, numerator, denominator);
+            : ReduceClosedStructure(left, right, first, second);
 
     private static bool ShouldPreserveOpenStructure(IElement left, IElement right)
     {
@@ -145,7 +152,7 @@ public sealed class RelationFold : IElement
         return true;
     }
 
-    private static IElement ReduceClosedStructure(IElement left, IElement right, IElement numerator, IElement denominator)
+    private static IElement ReduceClosedStructure(IElement left, IElement right, IElement first, IElement second)
     {
         var reducedLeft = ReduceElement(left);
         var reducedRight = ReduceElement(right);
@@ -167,7 +174,7 @@ public sealed class RelationFold : IElement
             return new Relation(reducedLeft, reducedRight);
         }
 
-        return new Relation(numerator, denominator);
+        return new Relation(first, second);
     }
 
     private static bool IsComposite(IElement element) => element is Relation or RelationFold;
@@ -181,12 +188,12 @@ public sealed class RelationFold : IElement
 
     private static IEnumerable<PartitionStep> PartitionsForReduced(
         IElement reduced,
-        IElement numerator,
-        IElement denominator)
+        IElement first,
+        IElement second)
     {
         if (!ShouldTraverseReducedStructure(reduced))
         {
-            return PartitionsOf(RawOf(numerator), RawOf(denominator));
+            return PartitionsOf(RawOf(first), RawOf(second));
         }
 
         return PartitionsForPreservedStructure(reduced);
@@ -200,7 +207,7 @@ public sealed class RelationFold : IElement
         if (leftOpenSites == 0 && rightOpenSites == 0)
         {
             var folded = Fold(relation.Left, relation.Right);
-            return PartitionsOf(folded.Numerator, folded.ResolvedDenominator);
+            return PartitionsOf(folded.First, folded.ResolvedSecond);
         }
 
         if (leftOpenSites > 0 && rightOpenSites == 0)
@@ -219,7 +226,7 @@ public sealed class RelationFold : IElement
     private static IEnumerable<PartitionStep> FoldPartitionsFor(IElement element) => element switch
     {
         Measure measure => PartitionsOf(measure.Raw, 0),
-        RelationFold fold => PartitionsOf(RawOf(fold.Numerator), RawOf(fold.Denominator)),
+        RelationFold fold => PartitionsOf(RawOf(fold.First), RawOf(fold.Second)),
         Relation relation => FoldPartitionsForRelation(relation),
         _ => Array.Empty<PartitionStep>()
     };
@@ -234,7 +241,7 @@ public sealed class RelationFold : IElement
     private static IEnumerable<PartitionStep> FoldPartitionsForRelation(Relation relation)
     {
         var folded = Fold(relation.Left, relation.Right);
-        return PartitionsOf(folded.Numerator, folded.ResolvedDenominator);
+        return PartitionsOf(folded.First, folded.ResolvedSecond);
     }
 
     private static IElement CollapseFully(IElement element)
@@ -259,6 +266,10 @@ public sealed class RelationFold : IElement
         switch (element)
         {
             case RelationFold fold:
+                // One more destructive lowering is possible here: throw away the paired
+                // structure and emit only a pure ratio-like floating-point read.
+                // That would erase flow direction, support, and resolution provenance,
+                // so bootstrap intentionally stops before that collapse for now.
                 return TryCollapseOneGrade(fold.Reduced, out collapsed);
 
             case Relation relation:
@@ -300,7 +311,7 @@ public sealed class RelationFold : IElement
 
         if (unitMagnitude == 0)
         {
-            var zeroPartitionSum = leftValue.Numerator + rightValue.Numerator;
+            var zeroPartitionSum = leftValue.First + rightValue.First;
             collapsed = new RelationFold(left, right, zeroPartitionSum, 0, new Relation(Measure.Fixed(zeroPartitionSum), Measure.Fixed(0)));
             return true;
         }
@@ -378,14 +389,14 @@ public sealed class RelationFold : IElement
         reduced is Relation relation && (IsComposite(relation.Left) || IsComposite(relation.Right));
 
     private static bool IsResolvedComposite(IElement element) =>
-        element is RelationFold fold && RawOf(fold.Denominator) != 0;
+        element is RelationFold fold && RawOf(fold.Second) != 0;
 
-    private static bool IsResolvedContribution(IElement element) => Read(element).ResolvedDenominator != 0;
+    private static bool IsResolvedContribution(IElement element) => Read(element).ResolvedSecond != 0;
 
-    private static long CollapseUnitMagnitude(FoldValue left, FoldValue right)
+    private static long CollapseUnitMagnitude(RelationState left, RelationState right)
     {
-        var leftUnit = Math.Abs(left.ResolvedDenominator);
-        var rightUnit = Math.Abs(right.ResolvedDenominator);
+        var leftUnit = Math.Abs(left.ResolvedSecond);
+        var rightUnit = Math.Abs(right.ResolvedSecond);
 
         return (leftUnit, rightUnit) switch
         {
@@ -396,45 +407,45 @@ public sealed class RelationFold : IElement
         };
     }
 
-    private static long CollapseNumerator(FoldValue left, FoldValue right, long unitMagnitude) =>
+    private static long CollapseNumerator(RelationState left, RelationState right, long unitMagnitude) =>
         CollapseContribution(left, unitMagnitude) + CollapseContribution(right, unitMagnitude);
 
-    private static long CollapseContribution(FoldValue value, long unitMagnitude) => value.Denominator switch
+    private static long CollapseContribution(RelationState value, long unitMagnitude) => value.Second switch
     {
-        null => value.Numerator * unitMagnitude,
-        0 => value.Numerator * unitMagnitude,
-        var denominator => value.Numerator * (unitMagnitude / denominator.Value)
+        null => value.First * unitMagnitude,
+        0 => value.First * unitMagnitude,
+        var second => value.First * (unitMagnitude / second.Value)
     };
 
     private static long RawOf(IElement element) => element switch
     {
         Measure measure => measure.Raw,
-        RelationFold fold => RawOf(fold.Numerator),
-        Relation relation => RawOf(new RelationFold(relation.Left, relation.Right).Numerator),
+        RelationFold fold => RawOf(fold.First),
+        Relation relation => RawOf(new RelationFold(relation.Left, relation.Right).First),
         _ => 0
     };
 
-    private static FoldValue Read(IElement element) => element switch
+    private static RelationState Read(IElement element) => element switch
     {
         Measure measure => new(measure.Raw, null),
-        RelationFold fold => new(RawOf(fold.Numerator), RawOf(fold.Denominator)),
+        RelationFold fold => new(RawOf(fold.First), RawOf(fold.Second)),
         Relation relation => Fold(relation.Left, relation.Right),
         _ => new(0, null)
     };
 
-    private static long MergeDenominator(FoldValue left, FoldValue right)
+    private static long MergeSecond(RelationState left, RelationState right)
     {
-        if (left.Denominator is long leftDenominator && leftDenominator != 0)
+        if (left.Second is long leftSecond && leftSecond != 0)
         {
-            return leftDenominator;
+            return leftSecond;
         }
 
-        if (right.Denominator is long rightDenominator && rightDenominator != 0)
+        if (right.Second is long rightSecond && rightSecond != 0)
         {
-            return rightDenominator;
+            return rightSecond;
         }
 
-        return left.ResolvedDenominator;
+        return left.ResolvedSecond;
     }
 
     private static long ToLong(double value) => (long)Math.Round(value, MidpointRounding.AwayFromZero);
@@ -452,15 +463,25 @@ public sealed class RelationFold : IElement
     private static long LeastCommonMultiple(long left, long right) =>
         left == 0 || right == 0 ? 0 : Math.Abs(left / GreatestCommonDivisor(left, right) * right);
 
-    private readonly record struct FoldValue(long Numerator, long? Denominator)
+    private readonly record struct RelationState(long First, long? Second)
     {
-        public long ResolvedDenominator => Denominator ?? 0;
+        public bool IsRaw => Second is null;
 
-        public double Proportion => Denominator switch
+        public bool IsUnbound => Second == 0;
+
+        public bool IsPartitioned => Second is long second && second != 0;
+
+        public bool IsSameFlow => IsPartitioned && Math.Sign(First) == Math.Sign(Second!.Value);
+
+        public bool IsOpposedFlow => IsPartitioned && Math.Sign(First) != Math.Sign(Second!.Value);
+
+        public long ResolvedSecond => Second ?? 0;
+
+        public double ContributionPerPartition => Second switch
         {
-            null => Numerator,
-            0 => Numerator,
-            var value => (double)Numerator / value.Value
+            null => First,
+            0 => First,
+            var value => (double)First / value.Value
         };
     }
 }
