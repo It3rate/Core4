@@ -275,9 +275,12 @@ public sealed class BootstrapRelationTests
         var fold = new BootstrapRelationFold(open, unit);
 
         var reduced = Assert.IsType<BootstrapRelation>(fold.Reduced);
+        var reducedLeft = Assert.IsType<BootstrapRelationFold>(reduced.Left);
+        var reducedRight = Assert.IsType<BootstrapRelationFold>(reduced.Right);
+
         Assert.Equal(1, BootstrapRelation.OpenSiteCount(reduced));
-        Assert.Same(open, reduced.Left);
-        Assert.Same(unit, reduced.Right);
+        Assert.Equal((0L, 0L), Read(reducedLeft));
+        Assert.Equal((4L, 4L), Read(reducedRight));
         Assert.Equal((0L, 4L), Read(fold));
     }
 
@@ -315,9 +318,11 @@ public sealed class BootstrapRelationTests
         var fold = new BootstrapRelationFold(outer.Left, outer.Right);
 
         var reduced = Assert.IsType<BootstrapRelation>(fold.Reduced);
+        var reducedLeft = Assert.IsType<BootstrapRelationFold>(reduced.Left);
+
         Assert.Equal(1, BootstrapRelation.OpenSiteCount(reduced));
         Assert.Equal(1, BootstrapRelation.OpenSiteCount(partiallyApplied));
-        Assert.Equal(8, Assert.IsType<BootstrapMeasure>(Assert.IsType<BootstrapRelation>(reduced.Left).Left).Raw);
+        Assert.Equal((8L, 4L), Read(reducedLeft));
     }
 
     [Fact]
@@ -335,6 +340,49 @@ public sealed class BootstrapRelationTests
                 new BootstrapPartitionStep(4, 4),
             },
             partiallyApplied.Partitions().ToArray());
+    }
+
+    [Fact]
+    public void ClosedGradeTwoFoldKeepsReducedChildStructure()
+    {
+        var open = BootstrapRelation.Open();
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var two = new BootstrapRelation(new BootstrapRelation(new BootstrapMeasure(8), open), unit);
+        var three = new BootstrapRelation(new BootstrapRelation(new BootstrapMeasure(12), open), unit);
+        var fold = new BootstrapRelationFold(two, three);
+
+        var reduced = Assert.IsType<BootstrapRelation>(fold.Reduced);
+        var reducedLeft = Assert.IsType<BootstrapRelationFold>(reduced.Left);
+        var reducedRight = Assert.IsType<BootstrapRelationFold>(reduced.Right);
+
+        Assert.Equal((24L, 4L), Read(fold));
+        Assert.Equal(0, BootstrapRelation.OpenSiteCount(reduced));
+        Assert.Equal((8L, 4L), Read(reducedLeft));
+        Assert.Equal((12L, 4L), Read(reducedRight));
+    }
+
+    [Fact]
+    public void ClosedGradeTwoFoldTraversesByItsReducedChildStructure()
+    {
+        var open = BootstrapRelation.Open();
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var two = new BootstrapRelation(new BootstrapRelation(new BootstrapMeasure(8), open), unit);
+        var three = new BootstrapRelation(new BootstrapRelation(new BootstrapMeasure(12), open), unit);
+        var fold = new BootstrapRelationFold(two, three);
+        var reduced = Assert.IsType<BootstrapRelation>(fold.Reduced);
+
+        var expected = new[]
+        {
+            new BootstrapPartitionStep(0, 4),
+            new BootstrapPartitionStep(4, 4),
+            new BootstrapPartitionStep(0, 4),
+            new BootstrapPartitionStep(4, 4),
+            new BootstrapPartitionStep(8, 4),
+        };
+
+        Assert.Equal(5, fold.PartitionCount);
+        Assert.Equal(expected, fold.Partitions().ToArray());
+        Assert.Equal(expected, reduced.Partitions().ToArray());
     }
 
     private static (long Numerator, long Denominator) Fold(BootstrapRelation relation) =>

@@ -90,7 +90,7 @@ public sealed class RelationFold : IElement
 
         var result = 0d;
         var ratio1 = right.Proportion;
-        foreach (var partition in op0.Partitions())
+        foreach (var partition in FoldPartitionsFor(op0))
         {
             result += partition.Width * ratio1;
         }
@@ -105,20 +105,22 @@ public sealed class RelationFold : IElement
 
     private static bool ShouldPreserveOpenStructure(IElement left, IElement right)
     {
-        var leftOpenSites = Relation.OpenSiteCount(left);
-        var rightOpenSites = Relation.OpenSiteCount(right);
+        var reducedLeft = ReduceElement(left);
+        var reducedRight = ReduceElement(right);
+        var leftOpenSites = Relation.OpenSiteCount(reducedLeft);
+        var rightOpenSites = Relation.OpenSiteCount(reducedRight);
 
         if (leftOpenSites == 0 && rightOpenSites == 0)
         {
             return false;
         }
 
-        if (leftOpenSites > 0 && rightOpenSites == 0 && !Relation.IsOpenSite(left))
+        if (leftOpenSites > 0 && rightOpenSites == 0 && !Relation.IsOpenSite(reducedLeft))
         {
             return false;
         }
 
-        if (rightOpenSites > 0 && leftOpenSites == 0 && !Relation.IsOpenSite(right))
+        if (rightOpenSites > 0 && leftOpenSites == 0 && !Relation.IsOpenSite(reducedRight))
         {
             return false;
         }
@@ -128,25 +130,44 @@ public sealed class RelationFold : IElement
 
     private static IElement ReduceClosedStructure(IElement left, IElement right, IElement numerator, IElement denominator)
     {
-        var leftOpenSites = Relation.OpenSiteCount(left);
-        var rightOpenSites = Relation.OpenSiteCount(right);
+        var reducedLeft = ReduceElement(left);
+        var reducedRight = ReduceElement(right);
+        var leftOpenSites = Relation.OpenSiteCount(reducedLeft);
+        var rightOpenSites = Relation.OpenSiteCount(reducedRight);
 
         if (leftOpenSites > 0 || rightOpenSites > 0)
         {
-            return Relation.CombineStructural(left, right);
+            return Relation.CombineStructural(reducedLeft, reducedRight);
+        }
+
+        if (ShouldPreserveClosedComposite(reducedLeft, reducedRight))
+        {
+            return new Relation(reducedLeft, reducedRight);
         }
 
         return new Relation(numerator, denominator);
     }
 
-    private static IEnumerable<PartitionStep> PartitionsForReduced(IElement reduced, IElement numerator, IElement denominator)
+    private static bool IsComposite(IElement element) => element is Relation or RelationFold;
+
+    private static IElement ReduceElement(IElement element) => element switch
     {
-        if (Relation.OpenSiteCount(reduced) == 0)
+        RelationFold fold => fold,
+        Relation relation => new RelationFold(relation.Left, relation.Right),
+        _ => element
+    };
+
+    private static IEnumerable<PartitionStep> PartitionsForReduced(
+        IElement reduced,
+        IElement numerator,
+        IElement denominator)
+    {
+        if (!ShouldTraverseReducedStructure(reduced))
         {
             return PartitionsOf(RawOf(numerator), RawOf(denominator));
         }
 
-        return PartitionsFor(reduced);
+        return PartitionsForPreservedStructure(reduced);
     }
 
     private static IEnumerable<PartitionStep> PartitionsForRelation(Relation relation)
@@ -172,6 +193,39 @@ public sealed class RelationFold : IElement
 
         return PartitionsFor(relation.Left).Concat(PartitionsFor(relation.Right));
     }
+
+    private static IEnumerable<PartitionStep> FoldPartitionsFor(IElement element) => element switch
+    {
+        Measure measure => PartitionsOf(measure.Raw, 0),
+        RelationFold fold => PartitionsOf(RawOf(fold.Numerator), RawOf(fold.Denominator)),
+        Relation relation => FoldPartitionsForRelation(relation),
+        _ => Array.Empty<PartitionStep>()
+    };
+
+    private static IEnumerable<PartitionStep> PartitionsForPreservedStructure(IElement element) => element switch
+    {
+        Relation relation => PartitionsForPreservedStructure(relation.Left).Concat(PartitionsForPreservedStructure(relation.Right)),
+        RelationFold fold when ShouldTraverseReducedStructure(fold.Reduced) => PartitionsForPreservedStructure(fold.Reduced),
+        _ => PartitionsFor(element)
+    };
+
+    private static IEnumerable<PartitionStep> FoldPartitionsForRelation(Relation relation)
+    {
+        var folded = Fold(relation.Left, relation.Right);
+        return PartitionsOf(folded.Numerator, folded.ResolvedDenominator);
+    }
+
+    private static bool ShouldTraverseReducedStructure(IElement reduced) =>
+        Relation.OpenSiteCount(reduced) > 0 || HasCompositeChildren(reduced);
+
+    private static bool ShouldPreserveClosedComposite(IElement reducedLeft, IElement reducedRight) =>
+        IsResolvedComposite(reducedLeft) && IsResolvedComposite(reducedRight);
+
+    private static bool HasCompositeChildren(IElement reduced) =>
+        reduced is Relation relation && (IsComposite(relation.Left) || IsComposite(relation.Right));
+
+    private static bool IsResolvedComposite(IElement element) =>
+        element is RelationFold fold && RawOf(fold.Denominator) != 0;
 
     private static long RawOf(IElement element) => element switch
     {

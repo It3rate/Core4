@@ -47,7 +47,7 @@ public sealed class Relation : IElement
     {
         Relation relation when IsOpenSite(relation) => 1,
         Relation relation => CountOpenSites(relation.Left) + CountOpenSites(relation.Right),
-        RelationFold fold => CountOpenSites(fold.Left) + CountOpenSites(fold.Right),
+        RelationFold fold => CountOpenSites(fold.Reduced),
         _ => 0
     };
 
