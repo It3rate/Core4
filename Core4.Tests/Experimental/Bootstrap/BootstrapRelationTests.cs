@@ -87,7 +87,7 @@ public sealed class BootstrapRelationTests
     }
 
     [Fact]
-    public void PartitionIteratorCountsByCeilingButIteratesByUnitSize()
+    public void PartitionIteratorUsesNaturalFlowAndPlacesPartialWidthFirst()
     {
         var open = new BootstrapRelation(new BootstrapMeasure(0), new BootstrapMeasure(0));
         var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
@@ -98,15 +98,49 @@ public sealed class BootstrapRelationTests
         Assert.Equal(
             new[]
             {
-                new BootstrapPartitionStep(0, 4),
-                new BootstrapPartitionStep(4, 4),
-                new BootstrapPartitionStep(8, 4),
-                new BootstrapPartitionStep(12, 4),
-                new BootstrapPartitionStep(16, 4),
-                new BootstrapPartitionStep(20, 4),
-                new BootstrapPartitionStep(24, 2),
+                new BootstrapPartitionStep(0, 2),
+                new BootstrapPartitionStep(2, 4),
+                new BootstrapPartitionStep(6, 4),
+                new BootstrapPartitionStep(10, 4),
+                new BootstrapPartitionStep(14, 4),
+                new BootstrapPartitionStep(18, 4),
+                new BootstrapPartitionStep(22, 4),
             },
             partitions);
+    }
+
+    [Fact]
+    public void PositiveUnitStartsAtLeftmostSideOfNegativeRun()
+    {
+        var open = new BootstrapRelation(new BootstrapMeasure(0), new BootstrapMeasure(0));
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var value = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(-10), open), unit);
+
+        Assert.Equal(
+            new[]
+            {
+                new BootstrapPartitionStep(-10, 2),
+                new BootstrapPartitionStep(-8, 4),
+                new BootstrapPartitionStep(-4, 4),
+            },
+            value.Partitions().ToArray());
+    }
+
+    [Fact]
+    public void NegativeUnitStartsAtRightmostSideAndFlowsLeft()
+    {
+        var open = new BootstrapRelation(new BootstrapMeasure(0), new BootstrapMeasure(0));
+        var inverseUnit = new BootstrapRelation(new BootstrapMeasure(14), new BootstrapMeasure(10));
+        var value = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(10), open), inverseUnit);
+
+        Assert.Equal(
+            new[]
+            {
+                new BootstrapPartitionStep(10, -2),
+                new BootstrapPartitionStep(8, -4),
+                new BootstrapPartitionStep(4, -4),
+            },
+            value.Partitions().ToArray());
     }
 
     [Fact]

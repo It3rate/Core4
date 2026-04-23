@@ -39,18 +39,26 @@ public sealed class RelationFold : IElement
         }
 
         var unitSize = denominator == 0 ? 1 : Math.Abs(denominator);
-        var magnitude = Math.Abs(numerator);
-        var direction = Math.Sign(numerator);
+        var flowDirection = denominator == 0 ? Math.Sign(numerator) : Math.Sign(denominator);
+        var totalWidth = Math.Abs(numerator);
+        var leadWidth = totalWidth % unitSize;
+        var firstWidth = leadWidth == 0 ? unitSize : leadWidth;
+        var runStart = flowDirection >= 0 ? Math.Min(0, numerator) : Math.Max(0, numerator);
+        var emitted = 0L;
+        var currentStart = runStart;
 
-        for (long start = 0; start < magnitude; start += unitSize)
+        while (emitted < totalWidth)
         {
-            var width = Math.Min(unitSize, magnitude - start);
-            if (width <= 0)
+            var widthMagnitude = emitted == 0 ? firstWidth : Math.Min(unitSize, totalWidth - emitted);
+            if (widthMagnitude <= 0)
             {
                 yield break;
             }
 
-            yield return new(direction * start, direction * width);
+            var width = flowDirection * widthMagnitude;
+            yield return new(currentStart, width);
+            currentStart += width;
+            emitted += widthMagnitude;
         }
     }
 
