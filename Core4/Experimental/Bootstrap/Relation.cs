@@ -11,10 +11,6 @@ public sealed class Relation : IElement
     public IElement Left { get; }
     public IElement Right { get; }
 
-    public IElement Numerator => new RelationFold(Left, Right).Numerator;
-
-    public IElement Denominator => new RelationFold(Left, Right).Denominator;
-
     public long PartitionCount => new RelationFold(Left, Right).PartitionCount;
 
     public IEnumerable<PartitionStep> Partitions() => new RelationFold(Left, Right).Partitions();

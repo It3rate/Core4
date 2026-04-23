@@ -6,13 +6,16 @@ public sealed class RelationFold : IElement
     {
         Left = left;
         Right = right;
-        Reduced = Fold(left, right);
+        var reduced = Fold(left, right);
+        Numerator = Measure.Fixed(reduced.Numerator);
+        Denominator = Measure.Fixed(reduced.ResolvedDenominator);
+        Reduced = new Relation(Numerator, Denominator);
     }
 
     public IElement Left { get; }
     public IElement Right { get; }
-    public IElement Numerator => Reduced.Left;
-    public IElement Denominator => Reduced.Right;
+    public IElement Numerator { get; }
+    public IElement Denominator { get; }
 
     public Relation Reduced { get; }
 
@@ -51,58 +54,74 @@ public sealed class RelationFold : IElement
         }
     }
 
-    private static Relation Fold(IElement op0, IElement op1)
+    private static FoldValue Fold(IElement op0, IElement op1)
     {
-        if (op0 is Measure leftMeasure && op1 is Measure rightMeasure)
+        var left = Read(op0);
+        var right = Read(op1);
+
+        if (left.Denominator is null && right.Denominator is null)
         {
-            return FoldMeasures(leftMeasure, rightMeasure);
+            var extent = right.Numerator - left.Numerator;
+            return new(extent, extent);
         }
 
-        var num0 = RawOf(op0.Numerator);
-        var den0 = RawOf(op0.Denominator);
-        var num1 = RawOf(op1.Numerator);
-        var den1 = RawOf(op1.Denominator);
-
-        if (den1 == 0)
+        if (right.Denominator == 0)
         {
-            return ReducedValue(num0 + num1, den0 == 0 ? 0 : den0);
+            return new(left.Numerator + right.Numerator, left.ResolvedDenominator);
         }
 
         var result = 0d;
-        var ratio1 = (double)num1 / den1;
+        var ratio1 = right.Proportion;
         foreach (var partition in op0.Partitions())
         {
             result += partition.Width * ratio1;
         }
 
-        return ReducedValue(ToLong(result), den0 == 0 ? den1 : den0);
+        return new(ToLong(result), MergeDenominator(left, right));
     }
-
-    private static Relation FoldMeasures(Measure left, Measure right)
-    {
-        var extent = right.Raw - left.Raw;
-        var direction = Math.Sign(extent);
-        var partitions = Math.Abs(extent);
-        long filled = 0;
-
-        for (long tick = 0; tick < partitions; tick++)
-        {
-            filled += direction;
-        }
-
-        return ReducedValue(filled, extent);
-    }
-
-    private static Relation ReducedValue(long numerator, long denominator) =>
-        new(Measure.Fixed(numerator), Measure.Fixed(denominator));
 
     private static long RawOf(IElement element) => element switch
     {
         Measure measure => measure.Raw,
         RelationFold fold => RawOf(fold.Numerator),
-        Relation relation => RawOf(relation.Numerator),
+        Relation relation => RawOf(new RelationFold(relation.Left, relation.Right).Numerator),
         _ => 0
     };
 
+    private static FoldValue Read(IElement element) => element switch
+    {
+        Measure measure => new(measure.Raw, null),
+        RelationFold fold => new(RawOf(fold.Numerator), RawOf(fold.Denominator)),
+        Relation relation => Fold(relation.Left, relation.Right),
+        _ => new(0, null)
+    };
+
+    private static long MergeDenominator(FoldValue left, FoldValue right)
+    {
+        if (left.Denominator is long leftDenominator && leftDenominator != 0)
+        {
+            return leftDenominator;
+        }
+
+        if (right.Denominator is long rightDenominator && rightDenominator != 0)
+        {
+            return rightDenominator;
+        }
+
+        return left.ResolvedDenominator;
+    }
+
     private static long ToLong(double value) => (long)Math.Round(value, MidpointRounding.AwayFromZero);
+
+    private readonly record struct FoldValue(long Numerator, long? Denominator)
+    {
+        public long ResolvedDenominator => Denominator ?? 0;
+
+        public double Proportion => Denominator switch
+        {
+            null => Numerator,
+            0 => Numerator,
+            var value => (double)Numerator / value.Value
+        };
+    }
 }
