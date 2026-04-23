@@ -2,6 +2,10 @@
 
 This note rewrites the bootstrap picture around the current minimal experiment.
 
+For the newer higher-grade fold and repeated-collapse layer, see:
+
+- `Core4 Experimental Bootstrap Higher Grade Fold Note.md`
+
 It intentionally stays close to what is currently concrete in code:
 
 - `Measure`
