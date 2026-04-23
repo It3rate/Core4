@@ -140,6 +140,11 @@ public sealed class RelationFold : IElement
             return Relation.CombineStructural(reducedLeft, reducedRight);
         }
 
+        if (TryBuildContributionMatrix(left, right, out var contributionMatrix))
+        {
+            return contributionMatrix;
+        }
+
         if (ShouldPreserveClosedComposite(reducedLeft, reducedRight))
         {
             return new Relation(reducedLeft, reducedRight);
@@ -215,6 +220,59 @@ public sealed class RelationFold : IElement
         return PartitionsOf(folded.Numerator, folded.ResolvedDenominator);
     }
 
+    private static bool TryBuildContributionMatrix(IElement left, IElement right, out IElement contributionMatrix)
+    {
+        if (TryGetResolvedBranchPair(left, out var leftA, out var leftB) &&
+            TryGetResolvedBranchPair(right, out var rightA, out var rightB))
+        {
+            var aligned = new Relation(new RelationFold(leftA, rightA), new RelationFold(leftB, rightB));
+            var orthogonal = new Relation(new RelationFold(leftA, rightB), new RelationFold(leftB, rightA));
+            contributionMatrix = new Relation(aligned, orthogonal);
+            return true;
+        }
+
+        contributionMatrix = Measure.Fixed(0);
+        return false;
+    }
+
+    private static bool TryGetResolvedBranchPair(IElement element, out IElement branchA, out IElement branchB)
+    {
+        switch (element)
+        {
+            case Relation relation:
+                return TryGetResolvedBranchPair(relation.Left, relation.Right, out branchA, out branchB);
+
+            case RelationFold { Reduced: Relation relation }:
+                return TryGetResolvedBranchPair(relation.Left, relation.Right, out branchA, out branchB);
+
+            default:
+                branchA = Measure.Fixed(0);
+                branchB = Measure.Fixed(0);
+                return false;
+        }
+    }
+
+    private static bool TryGetResolvedBranchPair(
+        IElement left,
+        IElement right,
+        out IElement branchA,
+        out IElement branchB)
+    {
+        var normalizedLeft = ReduceElement(left);
+        var normalizedRight = ReduceElement(right);
+
+        if (IsResolvedContribution(normalizedLeft) && IsResolvedContribution(normalizedRight))
+        {
+            branchA = normalizedLeft;
+            branchB = normalizedRight;
+            return true;
+        }
+
+        branchA = Measure.Fixed(0);
+        branchB = Measure.Fixed(0);
+        return false;
+    }
+
     private static bool ShouldTraverseReducedStructure(IElement reduced) =>
         Relation.OpenSiteCount(reduced) > 0 || HasCompositeChildren(reduced);
 
@@ -226,6 +284,8 @@ public sealed class RelationFold : IElement
 
     private static bool IsResolvedComposite(IElement element) =>
         element is RelationFold fold && RawOf(fold.Denominator) != 0;
+
+    private static bool IsResolvedContribution(IElement element) => Read(element).ResolvedDenominator != 0;
 
     private static long RawOf(IElement element) => element switch
     {

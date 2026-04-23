@@ -1,6 +1,7 @@
 using BootstrapMeasure = Core4.Experimental.Bootstrap.Measure;
 using BootstrapRelationFold = Core4.Experimental.Bootstrap.RelationFold;
 using BootstrapRelation = Core4.Experimental.Bootstrap.Relation;
+using BootstrapCarrier = Core4.Experimental.Bootstrap.Carrier;
 using BootstrapPartitionStep = Core4.Experimental.Bootstrap.PartitionStep;
 
 namespace Core4.Tests.Experimental.Bootstrap;
@@ -461,10 +462,78 @@ public sealed class BootstrapRelationTests
             new[]
             {
                 new BootstrapPartitionStep(0, 4),
+                new BootstrapPartitionStep(0, 4),
+                new BootstrapPartitionStep(0, 4),
                 new BootstrapPartitionStep(4, 4),
                 new BootstrapPartitionStep(0, 4),
             },
             partiallyApplied.Partitions().ToArray());
+    }
+
+    [Fact]
+    public void MeasureCanCarryBootstrapCarrierIdentity()
+    {
+        var horizontal = new BootstrapCarrier(10);
+        var vertical = new BootstrapCarrier(20);
+        var x = new BootstrapMeasure(8, horizontal);
+        var y = new BootstrapMeasure(8, vertical);
+
+        Assert.Equal(horizontal, x.Carrier);
+        Assert.Equal(vertical, y.Carrier);
+        Assert.NotEqual(x.Carrier, y.Carrier);
+    }
+
+    [Fact]
+    public void ClosedDirectedSegmentLikeFoldPreservesAllFourBranchContributions()
+    {
+        var carrier = new BootstrapCarrier(10);
+        var open = BootstrapRelation.Open();
+        var expansiveUnit = new BootstrapRelation(new BootstrapMeasure(10, carrier), new BootstrapMeasure(14, carrier));
+        var contractiveUnit = new BootstrapRelation(new BootstrapMeasure(14, carrier), new BootstrapMeasure(10, carrier));
+
+        var a = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(8, carrier), open), expansiveUnit);
+        var b = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(12, carrier), open), contractiveUnit);
+        var c = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(16, carrier), open), expansiveUnit);
+        var d = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(20, carrier), open), contractiveUnit);
+        var left = new BootstrapRelation(a, b);
+        var right = new BootstrapRelation(c, d);
+        var fold = new BootstrapRelationFold(left, right);
+
+        var reduced = Assert.IsType<BootstrapRelation>(fold.Reduced);
+        var aligned = Assert.IsType<BootstrapRelation>(reduced.Left);
+        var orthogonal = Assert.IsType<BootstrapRelation>(reduced.Right);
+
+        Assert.Equal((32L, 4L), Read(Assert.IsType<BootstrapRelationFold>(aligned.Left)));
+        Assert.Equal((60L, -4L), Read(Assert.IsType<BootstrapRelationFold>(aligned.Right)));
+        Assert.Equal((-40L, 4L), Read(Assert.IsType<BootstrapRelationFold>(orthogonal.Left)));
+        Assert.Equal((-48L, -4L), Read(Assert.IsType<BootstrapRelationFold>(orthogonal.Right)));
+    }
+
+    [Fact]
+    public void ClosedOrthogonalLikeFoldPreservesAlignedAndCrossCarrierContributions()
+    {
+        var horizontal = new BootstrapCarrier(10);
+        var vertical = new BootstrapCarrier(20);
+        var open = BootstrapRelation.Open();
+        var horizontalUnit = new BootstrapRelation(new BootstrapMeasure(10, horizontal), new BootstrapMeasure(14, horizontal));
+        var verticalUnit = new BootstrapRelation(new BootstrapMeasure(30, vertical), new BootstrapMeasure(34, vertical));
+
+        var a = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(8, horizontal), open), horizontalUnit);
+        var b = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(12, vertical), open), verticalUnit);
+        var c = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(16, horizontal), open), horizontalUnit);
+        var d = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(20, vertical), open), verticalUnit);
+        var left = new BootstrapRelation(a, b);
+        var right = new BootstrapRelation(c, d);
+        var fold = new BootstrapRelationFold(left, right);
+
+        var reduced = Assert.IsType<BootstrapRelation>(fold.Reduced);
+        var aligned = Assert.IsType<BootstrapRelation>(reduced.Left);
+        var orthogonal = Assert.IsType<BootstrapRelation>(reduced.Right);
+
+        Assert.Equal((32L, 4L), Read(Assert.IsType<BootstrapRelationFold>(aligned.Left)));
+        Assert.Equal((60L, 4L), Read(Assert.IsType<BootstrapRelationFold>(aligned.Right)));
+        Assert.Equal((40L, 4L), Read(Assert.IsType<BootstrapRelationFold>(orthogonal.Left)));
+        Assert.Equal((48L, 4L), Read(Assert.IsType<BootstrapRelationFold>(orthogonal.Right)));
     }
 
     private static (long Numerator, long Denominator) Fold(BootstrapRelation relation) =>
