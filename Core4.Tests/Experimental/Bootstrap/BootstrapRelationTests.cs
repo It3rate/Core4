@@ -385,6 +385,88 @@ public sealed class BootstrapRelationTests
         Assert.Equal(expected, reduced.Partitions().ToArray());
     }
 
+    [Fact]
+    public void ClosedGradeThreeFoldKeepsNestedReducedStructure()
+    {
+        var open = BootstrapRelation.Open();
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var two = new BootstrapRelation(new BootstrapRelation(new BootstrapMeasure(8), open), unit);
+        var three = new BootstrapRelation(new BootstrapRelation(new BootstrapMeasure(12), open), unit);
+        var four = new BootstrapRelation(new BootstrapRelation(new BootstrapMeasure(16), open), unit);
+        var six = new BootstrapRelationFold(two, three);
+        var twentyFour = new BootstrapRelationFold(six, four);
+
+        var reduced = Assert.IsType<BootstrapRelation>(twentyFour.Reduced);
+        var reducedLeft = Assert.IsType<BootstrapRelationFold>(reduced.Left);
+        var reducedRight = Assert.IsType<BootstrapRelationFold>(reduced.Right);
+        var reducedLeftStructure = Assert.IsType<BootstrapRelation>(reducedLeft.Reduced);
+
+        Assert.Equal((96L, 4L), Read(twentyFour));
+        Assert.Equal((24L, 4L), Read(reducedLeft));
+        Assert.Equal((16L, 4L), Read(reducedRight));
+        Assert.Equal(0, BootstrapRelation.OpenSiteCount(reduced));
+        Assert.IsType<BootstrapRelationFold>(reducedLeftStructure.Left);
+        Assert.IsType<BootstrapRelationFold>(reducedLeftStructure.Right);
+    }
+
+    [Fact]
+    public void ClosedGradeThreeFoldTraversesByAllNestedResolvedChildren()
+    {
+        var open = BootstrapRelation.Open();
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var two = new BootstrapRelation(new BootstrapRelation(new BootstrapMeasure(8), open), unit);
+        var three = new BootstrapRelation(new BootstrapRelation(new BootstrapMeasure(12), open), unit);
+        var four = new BootstrapRelation(new BootstrapRelation(new BootstrapMeasure(16), open), unit);
+        var six = new BootstrapRelationFold(two, three);
+        var twentyFour = new BootstrapRelationFold(six, four);
+        var reduced = Assert.IsType<BootstrapRelation>(twentyFour.Reduced);
+
+        var expected = new[]
+        {
+            new BootstrapPartitionStep(0, 4),
+            new BootstrapPartitionStep(4, 4),
+            new BootstrapPartitionStep(0, 4),
+            new BootstrapPartitionStep(4, 4),
+            new BootstrapPartitionStep(8, 4),
+            new BootstrapPartitionStep(0, 4),
+            new BootstrapPartitionStep(4, 4),
+            new BootstrapPartitionStep(8, 4),
+            new BootstrapPartitionStep(12, 4),
+        };
+
+        Assert.Equal(9, twentyFour.PartitionCount);
+        Assert.Equal(expected, twentyFour.Partitions().ToArray());
+        Assert.Equal(expected, reduced.Partitions().ToArray());
+    }
+
+    [Fact]
+    public void HigherGradePartialApplicationKeepsOneOpenSiteBeforeTopLevelFoldClosesIt()
+    {
+        var open = BootstrapRelation.Open();
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var transform = new BootstrapRelation(
+            new BootstrapRelation(new BootstrapRelation(open, unit), unit),
+            new BootstrapRelation(new BootstrapRelation(open, unit), unit));
+
+        var partiallyApplied = BootstrapRelation.Apply(transform, new BootstrapMeasure(8));
+        var outer = Assert.IsType<BootstrapRelation>(partiallyApplied);
+        var left = Assert.IsType<BootstrapRelation>(outer.Left);
+        var fold = new BootstrapRelationFold(outer.Left, outer.Right);
+        var reduced = Assert.IsType<BootstrapRelation>(fold.Reduced);
+
+        Assert.Equal(1, BootstrapRelation.OpenSiteCount(partiallyApplied));
+        Assert.Equal(0, BootstrapRelation.OpenSiteCount(reduced));
+        Assert.Equal((8L, 4L), Fold(left));
+        Assert.Equal(
+            new[]
+            {
+                new BootstrapPartitionStep(0, 4),
+                new BootstrapPartitionStep(4, 4),
+                new BootstrapPartitionStep(0, 4),
+            },
+            partiallyApplied.Partitions().ToArray());
+    }
+
     private static (long Numerator, long Denominator) Fold(BootstrapRelation relation) =>
         Read(new BootstrapRelationFold(relation.Left, relation.Right));
 
