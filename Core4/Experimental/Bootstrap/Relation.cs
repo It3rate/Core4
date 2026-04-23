@@ -8,6 +8,14 @@ public sealed class Relation : IElement
         Right = right;
     }
 
+    public static Relation Open() => new(Measure.Fixed(0), Measure.Fixed(0));
+
+    public static IElement Compose(IElement left, IElement right) => Combine(left, right);
+
+    public static IElement Apply(IElement transform, IElement input) => Combine(transform, input);
+
+    public static int OpenSiteCount(IElement element) => CountOpenSites(element);
+
     public IElement Left { get; }
     public IElement Right { get; }
 
@@ -16,4 +24,66 @@ public sealed class Relation : IElement
     public IEnumerable<PartitionStep> Partitions() => new RelationFold(Left, Right).Partitions();
 
     public override string ToString() => $"({Left} -> {Right})";
+
+    private static IElement Combine(IElement left, IElement right)
+    {
+        var leftOpenSites = CountOpenSites(left);
+        var rightOpenSites = CountOpenSites(right);
+
+        if (leftOpenSites > 0 && rightOpenSites == 0 && TryFillFirstOpenSite(left, right, out var leftApplied))
+        {
+            return leftApplied;
+        }
+
+        if (rightOpenSites > 0 && leftOpenSites == 0 && TryFillFirstOpenSite(right, left, out var rightApplied))
+        {
+            return rightApplied;
+        }
+
+        return new Relation(left, right);
+    }
+
+    private static int CountOpenSites(IElement element) => element switch
+    {
+        Relation relation when IsOpenSite(relation) => 1,
+        Relation relation => CountOpenSites(relation.Left) + CountOpenSites(relation.Right),
+        RelationFold fold => CountOpenSites(fold.Left) + CountOpenSites(fold.Right),
+        _ => 0
+    };
+
+    private static bool TryFillFirstOpenSite(IElement structure, IElement input, out IElement applied)
+    {
+        switch (structure)
+        {
+            case Relation relation when IsOpenSite(relation):
+                applied = input;
+                return true;
+
+            case Relation relation when TryFillFirstOpenSite(relation.Left, input, out var newLeft):
+                applied = new Relation(newLeft, relation.Right);
+                return true;
+
+            case Relation relation when TryFillFirstOpenSite(relation.Right, input, out var newRight):
+                applied = new Relation(relation.Left, newRight);
+                return true;
+
+            case RelationFold fold when TryFillFirstOpenSite(fold.Left, input, out var newFoldLeft):
+                applied = new RelationFold(newFoldLeft, fold.Right);
+                return true;
+
+            case RelationFold fold when TryFillFirstOpenSite(fold.Right, input, out var newFoldRight):
+                applied = new RelationFold(fold.Left, newFoldRight);
+                return true;
+
+            default:
+                applied = structure;
+                return false;
+        }
+    }
+
+    private static bool IsOpenSite(Relation relation) =>
+        IsZeroMeasure(relation.Left) && IsZeroMeasure(relation.Right);
+
+    private static bool IsZeroMeasure(IElement element) =>
+        element is Measure measure && measure.Raw == 0;
 }

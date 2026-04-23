@@ -52,7 +52,7 @@ public sealed class BootstrapRelationTests
     [Fact]
     public void ZeroPartitionPointClaimsAppendWithoutMixing()
     {
-        var open = new BootstrapRelation(new BootstrapMeasure(0), new BootstrapMeasure(0));
+        var open = BootstrapRelation.Open();
         var leftPoint = new BootstrapRelation(new BootstrapMeasure(8), open);
         var rightPoint = new BootstrapRelation(new BootstrapMeasure(12), open);
 
@@ -64,7 +64,7 @@ public sealed class BootstrapRelationTests
     [Fact]
     public void PointClaimCanBeResolvedThroughSharedUnit()
     {
-        var open = new BootstrapRelation(new BootstrapMeasure(0), new BootstrapMeasure(0));
+        var open = BootstrapRelation.Open();
         var point = new BootstrapRelation(new BootstrapMeasure(8), open);
         var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
 
@@ -76,7 +76,7 @@ public sealed class BootstrapRelationTests
     [Fact]
     public void SharedBasisSmearingProducesMultiplicationLikeResult()
     {
-        var open = new BootstrapRelation(new BootstrapMeasure(0), new BootstrapMeasure(0));
+        var open = BootstrapRelation.Open();
         var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
         var two = new BootstrapRelation(new BootstrapRelation(new BootstrapMeasure(8), open), unit);
         var three = new BootstrapRelation(new BootstrapRelation(new BootstrapMeasure(12), open), unit);
@@ -89,7 +89,7 @@ public sealed class BootstrapRelationTests
     [Fact]
     public void PartitionIteratorUsesNaturalFlowAndPlacesPartialWidthFirst()
     {
-        var open = new BootstrapRelation(new BootstrapMeasure(0), new BootstrapMeasure(0));
+        var open = BootstrapRelation.Open();
         var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
         var value = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(26), open), unit);
         var partitions = value.Partitions().ToArray();
@@ -112,7 +112,7 @@ public sealed class BootstrapRelationTests
     [Fact]
     public void PositiveUnitStartsAtLeftmostSideOfNegativeRun()
     {
-        var open = new BootstrapRelation(new BootstrapMeasure(0), new BootstrapMeasure(0));
+        var open = BootstrapRelation.Open();
         var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
         var value = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(-10), open), unit);
 
@@ -129,7 +129,7 @@ public sealed class BootstrapRelationTests
     [Fact]
     public void NegativeUnitStartsAtRightmostSideAndFlowsLeft()
     {
-        var open = new BootstrapRelation(new BootstrapMeasure(0), new BootstrapMeasure(0));
+        var open = BootstrapRelation.Open();
         var inverseUnit = new BootstrapRelation(new BootstrapMeasure(14), new BootstrapMeasure(10));
         var value = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(10), open), inverseUnit);
 
@@ -141,6 +141,75 @@ public sealed class BootstrapRelationTests
                 new BootstrapPartitionStep(4, -4),
             },
             value.Partitions().ToArray());
+    }
+
+    [Fact]
+    public void OpenSiteCountIsDerivedFromStructure()
+    {
+        var open = BootstrapRelation.Open();
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var nested = new BootstrapRelation(new BootstrapRelation(open, unit), new BootstrapRelation(open, open));
+
+        Assert.Equal(1, BootstrapRelation.OpenSiteCount(open));
+        Assert.Equal(0, BootstrapRelation.OpenSiteCount(unit));
+        Assert.Equal(3, BootstrapRelation.OpenSiteCount(nested));
+    }
+
+    [Fact]
+    public void ApplyFillsTheFirstOpenSiteInsteadOfCreatingPeerComposition()
+    {
+        var open = BootstrapRelation.Open();
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var transform = new BootstrapRelation(open, unit);
+        var applied = BootstrapRelation.Apply(transform, new BootstrapMeasure(8));
+
+        var appliedRelation = Assert.IsType<BootstrapRelation>(applied);
+        Assert.Equal((8L, 4L), Fold(appliedRelation));
+        Assert.Equal(0, BootstrapRelation.OpenSiteCount(appliedRelation));
+        Assert.Equal(8, Assert.IsType<BootstrapMeasure>(appliedRelation.Left).Raw);
+    }
+
+    [Fact]
+    public void ComposeAlsoAutoDetectsAndFillsAnOpenSite()
+    {
+        var open = BootstrapRelation.Open();
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var transform = new BootstrapRelation(open, unit);
+        var composed = BootstrapRelation.Compose(transform, new BootstrapMeasure(8));
+
+        var composedRelation = Assert.IsType<BootstrapRelation>(composed);
+        Assert.Equal((8L, 4L), Fold(composedRelation));
+        Assert.Equal(0, BootstrapRelation.OpenSiteCount(composedRelation));
+    }
+
+    [Fact]
+    public void ApplyFallsBackToPeerCompositionWhenNoOpenSiteExists()
+    {
+        var left = new BootstrapMeasure(10);
+        var right = new BootstrapMeasure(14);
+        var applied = BootstrapRelation.Apply(left, right);
+
+        var relation = Assert.IsType<BootstrapRelation>(applied);
+        Assert.Same(left, relation.Left);
+        Assert.Same(right, relation.Right);
+        Assert.Equal((4L, 4L), Fold(relation));
+    }
+
+    [Fact]
+    public void ApplyCanFillNestedGradeTwoOpenStructure()
+    {
+        var open = BootstrapRelation.Open();
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var transform = new BootstrapRelation(new BootstrapRelation(open, unit), unit);
+        var applied = BootstrapRelation.Apply(transform, new BootstrapMeasure(8));
+
+        var outer = Assert.IsType<BootstrapRelation>(applied);
+        var inner = Assert.IsType<BootstrapRelation>(outer.Left);
+
+        Assert.Equal(0, BootstrapRelation.OpenSiteCount(applied));
+        Assert.Equal((8L, 4L), Fold(outer));
+        Assert.Equal(8, Assert.IsType<BootstrapMeasure>(inner.Left).Raw);
+        Assert.Same(unit, outer.Right);
     }
 
     [Fact]
@@ -193,6 +262,39 @@ public sealed class BootstrapRelationTests
         Assert.Equal((4L, 4L), Read(fold));
         Assert.Equal((4L, 0L), ReadElement(fold.Numerator));
         Assert.Equal((4L, 0L), ReadElement(fold.Denominator));
+        var reduced = Assert.IsType<BootstrapRelation>(fold.Reduced);
+        Assert.Equal(4, Assert.IsType<BootstrapMeasure>(reduced.Left).Raw);
+        Assert.Equal(4, Assert.IsType<BootstrapMeasure>(reduced.Right).Raw);
+    }
+
+    [Fact]
+    public void FoldKeepsOpenStructureAsReducedInsteadOfFlatteningItAway()
+    {
+        var open = BootstrapRelation.Open();
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var fold = new BootstrapRelationFold(open, unit);
+
+        var reduced = Assert.IsType<BootstrapRelation>(fold.Reduced);
+        Assert.Equal(1, BootstrapRelation.OpenSiteCount(reduced));
+        Assert.Same(open, reduced.Left);
+        Assert.Same(unit, reduced.Right);
+        Assert.Equal((0L, 4L), Read(fold));
+    }
+
+    [Fact]
+    public void PartialApplicationBehavesLikeANewTransformWithFewerOpenSites()
+    {
+        var open = BootstrapRelation.Open();
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var transform = new BootstrapRelation(new BootstrapRelation(open, unit), open);
+        var partiallyApplied = BootstrapRelation.Apply(transform, new BootstrapMeasure(8));
+        var outer = Assert.IsType<BootstrapRelation>(partiallyApplied);
+        var fold = new BootstrapRelationFold(outer.Left, outer.Right);
+
+        var reduced = Assert.IsType<BootstrapRelation>(fold.Reduced);
+        Assert.Equal(1, BootstrapRelation.OpenSiteCount(reduced));
+        Assert.Equal(1, BootstrapRelation.OpenSiteCount(partiallyApplied));
+        Assert.Equal(8, Assert.IsType<BootstrapMeasure>(Assert.IsType<BootstrapRelation>(reduced.Left).Left).Raw);
     }
 
     private static (long Numerator, long Denominator) Fold(BootstrapRelation relation) =>

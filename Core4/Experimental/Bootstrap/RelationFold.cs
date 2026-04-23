@@ -6,10 +6,10 @@ public sealed class RelationFold : IElement
     {
         Left = left;
         Right = right;
-        var reduced = Fold(left, right);
-        Numerator = Measure.Fixed(reduced.Numerator);
-        Denominator = Measure.Fixed(reduced.ResolvedDenominator);
-        Reduced = new Relation(Numerator, Denominator);
+        var folded = Fold(left, right);
+        Numerator = Measure.Fixed(folded.Numerator);
+        Denominator = Measure.Fixed(folded.ResolvedDenominator);
+        Reduced = Reduce(left, right, Numerator, Denominator);
     }
 
     public IElement Left { get; }
@@ -17,7 +17,7 @@ public sealed class RelationFold : IElement
     public IElement Numerator { get; }
     public IElement Denominator { get; }
 
-    public Relation Reduced { get; }
+    public IElement Reduced { get; }
 
     public long PartitionCount => PartitionCountOf(RawOf(Numerator), RawOf(Denominator));
 
@@ -87,6 +87,11 @@ public sealed class RelationFold : IElement
 
         return new(ToLong(result), MergeDenominator(left, right));
     }
+
+    private static IElement Reduce(IElement left, IElement right, IElement numerator, IElement denominator) =>
+        Relation.OpenSiteCount(left) + Relation.OpenSiteCount(right) > 0
+            ? new Relation(left, right)
+            : new Relation(numerator, denominator);
 
     private static long RawOf(IElement element) => element switch
     {
