@@ -47,6 +47,15 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         return crystallized;
     }
 
+    public static Carrier Crystallize(IElement source, IElement variable, IElement? frozen, params TickSurfaceEntry[] surface)
+    {
+        var lineage = FirstCarrierOf(source);
+        var crystallization = BuildCrystallization(source, variable, frozen, surface);
+        var crystallized = new Carrier(Interlocked.Decrement(ref nextCrystallizedId), lineage.Id);
+        crystallizedSources[crystallized] = crystallization;
+        return crystallized;
+    }
+
     public static bool TryGetSource(Carrier carrier, out IElement source)
     {
         if (crystallizedSources.TryGetValue(carrier, out var crystallization))
@@ -89,6 +98,30 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         if (crystallizedSources.TryGetValue(carrier, out var crystallization))
         {
             surface = crystallization.Surface;
+            return true;
+        }
+
+        surface = Array.Empty<TickSurfaceEntry>();
+        return false;
+    }
+
+    public static bool TryGetVariableTickSurface(Carrier carrier, out TickSurfaceEntry[] surface)
+    {
+        if (crystallizedSources.TryGetValue(carrier, out var crystallization))
+        {
+            surface = crystallization.VariableSurface;
+            return true;
+        }
+
+        surface = Array.Empty<TickSurfaceEntry>();
+        return false;
+    }
+
+    public static bool TryGetFrozenTickSurface(Carrier carrier, out TickSurfaceEntry[] surface)
+    {
+        if (crystallizedSources.TryGetValue(carrier, out var crystallization))
+        {
+            surface = crystallization.FrozenSurface;
             return true;
         }
 
@@ -164,10 +197,22 @@ public readonly record struct Carrier(long Id, long Domain = 0)
     {
         return source switch
         {
-            Relation relation => new(source, relation.Left, relation.Right, surface),
-            RelationFold fold => new(source, fold.Left, fold.Right, surface),
-            _ => new(source, source, null, surface)
+            Relation relation => BuildCrystallization(source, relation.Left, relation.Right, surface),
+            RelationFold fold => BuildCrystallization(source, fold.Left, fold.Right, surface),
+            _ => BuildCrystallization(source, source, null, surface)
         };
+    }
+
+    private static Crystallization BuildCrystallization(IElement source, IElement variable, IElement? frozen, TickSurfaceEntry[] surface)
+    {
+        var totalSurface = surface.Length == 0 ? BuildTickSurface(source) : surface;
+        return new(
+            source,
+            variable,
+            frozen,
+            totalSurface,
+            BuildSignedTickSurface(variable, totalSurface),
+            frozen is null ? Array.Empty<TickSurfaceEntry>() : BuildSignedTickSurface(frozen, totalSurface));
     }
 
     private static TickSurfaceEntry[] BuildTickSurface(IElement source)
@@ -175,6 +220,20 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         var surface = new List<TickSurfaceEntry>();
         CollectTickSurface(source, surface);
         return surface.ToArray();
+    }
+
+    private static TickSurfaceEntry[] BuildSignedTickSurface(IElement source, TickSurfaceEntry[] totalSurface)
+    {
+        var localSurface = BuildTickSurface(source);
+        for (var i = 0; i < localSurface.Length; i++)
+        {
+            localSurface[i] = localSurface[i] with
+            {
+                SignedRepeatCount = ResolveSignedRepeatCount(localSurface[i].Carrier, localSurface[i].RepeatCount, totalSurface)
+            };
+        }
+
+        return localSurface;
     }
 
     private static void CollectTickSurface(IElement element, List<TickSurfaceEntry> surface)
@@ -209,6 +268,19 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         }
 
         surface.Add(new(carrier));
+    }
+
+    private static long ResolveSignedRepeatCount(Carrier carrier, long repeatCount, TickSurfaceEntry[] totalSurface)
+    {
+        foreach (var entry in totalSurface)
+        {
+            if (entry.Carrier == carrier)
+            {
+                return entry.SignedRepeatCount < 0 ? -repeatCount : repeatCount;
+            }
+        }
+
+        return repeatCount;
     }
 
     private static void CollectProjectionFactors(IElement element, Dictionary<Carrier, ProjectionFactor> factors)
@@ -271,7 +343,9 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         IElement Source,
         IElement Variable,
         IElement? Frozen,
-        TickSurfaceEntry[] Surface);
+        TickSurfaceEntry[] Surface,
+        TickSurfaceEntry[] VariableSurface,
+        TickSurfaceEntry[] FrozenSurface);
 
     private readonly record struct ProjectionFactor(int Count, double Product);
 }

@@ -638,6 +638,89 @@ public sealed class BootstrapRelationTests
     }
 
     [Fact]
+    public void ExplicitCrystallizationKeepsSignedVariableAndFrozenSurfaces()
+    {
+        var miles = new BootstrapCarrier(10);
+        var hours = new BootstrapCarrier(20);
+        var distance = new BootstrapMeasure(60, miles);
+        var time = new BootstrapMeasure(2, hours);
+        var speed = BootstrapCarrier.Crystallize(
+            new BootstrapRelation(distance, time),
+            distance,
+            time,
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(miles, 1),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(hours, -1));
+
+        Assert.True(BootstrapCarrier.TryGetVariableTickSurface(speed, out var variableSurface));
+        Assert.True(BootstrapCarrier.TryGetFrozenTickSurface(speed, out var frozenSurface));
+        Assert.Equal(
+            new[]
+            {
+                new Core4.Experimental.Bootstrap.TickSurfaceEntry(miles, 1),
+            },
+            variableSurface);
+        Assert.Equal(
+            new[]
+            {
+                new Core4.Experimental.Bootstrap.TickSurfaceEntry(hours, -1),
+            },
+            frozenSurface);
+    }
+
+    [Fact]
+    public void ExplicitCrystallizationKeepsRepeatedContractiveFrozenSurface()
+    {
+        var meters = new BootstrapCarrier(10);
+        var seconds = new BootstrapCarrier(20);
+        var distance = new BootstrapMeasure(8, meters);
+        var timeBasis = new BootstrapRelation(
+            new BootstrapMeasure(2, seconds),
+            new BootstrapMeasure(3, seconds));
+        var acceleration = BootstrapCarrier.Crystallize(
+            new BootstrapRelation(distance, timeBasis),
+            distance,
+            timeBasis,
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(meters, 1),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, -2));
+
+        Assert.True(BootstrapCarrier.TryGetFrozenTickSurface(acceleration, out var frozenSurface));
+        Assert.Equal(
+            new[]
+            {
+                new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, -2),
+            },
+            frozenSurface);
+    }
+
+    [Fact]
+    public void ExplicitCrystallizationCanKeepWholeSourceVariable()
+    {
+        var kilowatts = new BootstrapCarrier(10);
+        var hours = new BootstrapCarrier(20);
+        var energyShape = new BootstrapRelation(
+            new BootstrapMeasure(30, kilowatts),
+            new BootstrapMeasure(2, hours));
+        var energy = BootstrapCarrier.Crystallize(
+            energyShape,
+            energyShape,
+            null,
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(kilowatts, 1),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(hours, 1));
+
+        Assert.True(BootstrapCarrier.TryGetVariableSource(energy, out var variable));
+        Assert.False(BootstrapCarrier.TryGetFrozenSource(energy, out _));
+        Assert.True(BootstrapCarrier.TryGetVariableTickSurface(energy, out var variableSurface));
+        Assert.Same(energyShape, variable);
+        Assert.Equal(
+            new[]
+            {
+                new Core4.Experimental.Bootstrap.TickSurfaceEntry(kilowatts, 1),
+                new Core4.Experimental.Bootstrap.TickSurfaceEntry(hours, 1),
+            },
+            variableSurface);
+    }
+
+    [Fact]
     public void CanonicalProjectorCanProjectCompatibleQuotientInput()
     {
         var miles = new BootstrapCarrier(10);

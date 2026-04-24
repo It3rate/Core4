@@ -508,6 +508,8 @@ At the current bootstrap code seam:
 - automatic crystallization records carrier participation and repeat counts
 - explicit crystallization may also provide signed surface participation when it
   is already known which sides are expansive or contractive
+- explicit crystallization may separately preserve signed variable and frozen
+  sub-surfaces when the condensed machine is already known strongly enough
 - the current canonical projector is intentionally shallow and only projects
   inputs that already match that signed carrier surface directly
 
