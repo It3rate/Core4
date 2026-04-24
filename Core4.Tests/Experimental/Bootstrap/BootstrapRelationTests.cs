@@ -485,6 +485,40 @@ public sealed class BootstrapRelationTests
     }
 
     [Fact]
+    public void CarrierCanBeCrystallizedFromStructureAndRecoverItsSource()
+    {
+        var miles = new BootstrapCarrier(10);
+        var hours = new BootstrapCarrier(20);
+        var speedShape = new BootstrapRelation(
+            new BootstrapMeasure(60, miles),
+            new BootstrapMeasure(2, hours));
+
+        var speed = BootstrapCarrier.Crystallize(speedShape);
+
+        Assert.NotEqual(miles, speed);
+        Assert.NotEqual(hours, speed);
+        Assert.Equal(miles.Id, speed.Domain);
+        Assert.True(BootstrapCarrier.TryGetSource(speed, out var source));
+        Assert.Same(speedShape, source);
+    }
+
+    [Fact]
+    public void CrystallizedCarrierCanBeUsedAsItsOwnStartingCarrier()
+    {
+        var miles = new BootstrapCarrier(10);
+        var hours = new BootstrapCarrier(20);
+        var speedShape = new BootstrapRelation(
+            new BootstrapMeasure(60, miles),
+            new BootstrapMeasure(2, hours));
+        var speed = BootstrapCarrier.Crystallize(speedShape);
+        var speedReading = new BootstrapMeasure(30, speed);
+
+        Assert.Equal(speed, speedReading.Carrier);
+        Assert.True(BootstrapCarrier.TryGetSource(speedReading.Carrier, out var source));
+        Assert.Same(speedShape, source);
+    }
+
+    [Fact]
     public void ClosedDirectedSegmentLikeFoldPreservesAllFourBranchContributions()
     {
         var carrier = new BootstrapCarrier(10);
