@@ -438,6 +438,71 @@ It is only:
 
 - the local floor of the new carrier that has just been created
 
+## 13B. Carrier Identity Versus Tick Surface
+
+The current direction now suggests that every usable carrier should be treated
+as crystallized to some degree.
+
+What differs is not whether the carrier has a tick, but how much of that tick's
+surface and provenance are currently available.
+
+So a carrier may range from:
+
+- opaque carrier with only identity and name
+- partially described carrier with a known condensed tick surface
+- richly described carrier with preserved provenance of how its tick was
+  crystallized
+
+This is important because the system may begin on a carrier like:
+
+- speed
+- pressure
+- energy
+
+without requiring the current layer to reopen lower construction details such
+as:
+
+- distance and time under speed
+- force and distance under work
+
+Those lower details may exist and may still be recoverable, but the carrier is
+already valid even when that provenance is absent at the current layer.
+
+This also suggests that several things should not be stored as permanent global
+properties of a carrier itself:
+
+- expansive versus contractive role
+- free versus frozen role
+- branch ordering role
+
+Those belong to a specific use of the carrier in a specific condensation or
+relation surface.
+
+For example:
+
+- `hour` may participate contractively in `mph`
+- the same `hour` may participate expansively in `kWh`
+
+So the carrier stays the same while the participation surface changes.
+
+The carrier itself should likely hold only stable identity-level content such
+as:
+
+- identity
+- optional name
+- optional provenance reference
+- optional condensed tick source
+
+while the surface of one use still records things like:
+
+- free versus frozen
+- expansive versus contractive
+- repeated participation count
+
+Repeated carriers may later be compressed into one repeated surface entry
+instead of listing every participation separately, but that should be treated as
+a later refinement rather than a bootstrap requirement.
+
 ## 14. What This Currently Clarifies
 
 This rewrite sharpens several earlier ambiguities.

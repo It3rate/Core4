@@ -5,6 +5,11 @@ namespace Core4.Experimental.Bootstrap;
 
 // A bootstrap carrier is the current accessible floor of resolution.
 // It may be primitive like distance, or already condensed like speed.
+// TODO: Keep carrier identity itself small and stable. Usage-local surface such
+// as free/frozen role, expansive/contractive role, and repeated participation
+// likely belongs to the crystallized tick surface rather than to Carrier
+// globally. Some carriers may remain intentionally opaque and expose only
+// identity plus optional provenance.
 public readonly record struct Carrier(long Id, long Domain = 0)
 {
     private static readonly ConcurrentDictionary<Carrier, Crystallization> crystallizedSources = new();
