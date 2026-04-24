@@ -61,6 +61,61 @@ Instead:
 
 So grade increase is structural recursion, not a case split.
 
+## 2A. Condensing Into A Carrier Tick Is Not Collapse
+
+The bootstrap pass also needs one more distinction that sits near higher-grade
+fold but should not be collapsed into it.
+
+That distinction is:
+
+- condensing structure into a carrier tick
+
+This is not the same act as:
+
+- preserving a richer fold result
+- collapsing that result to a lower-grade read
+
+Collapse says:
+
+- read richer structure through a lower-grade view
+
+Carrier-tick condensation says:
+
+- freeze some stable construction as one new opaque tick
+- create a new carrier whose local floor is that tick
+- then count future structures by that new tick
+
+This matters because the resulting carrier may be simpler than the structure
+that created it.
+
+For example:
+
+- `mph` may be treated as its own one-dimensional carrier
+- `meters per second squared` may be treated as its own carrier
+- `liters per 100 kilometers` may be treated as its own carrier
+
+Those carriers do not need to re-express their full lower provenance every time
+they are used.
+
+They only need:
+
+- a frozen condensed tick
+- a stable way to project values into that tick count
+
+But the larger system may still preserve outside that local carrier:
+
+- unit shape
+- carrier lineage
+- historical construction
+
+So carrier condensation should be read as:
+
+- creating a new accessible floor
+
+not as:
+
+- deleting the structure that produced it
+
 ## 3. Closed Branch-Composite Fold
 
 Once two closed operands each present two already resolved branches, fold does
@@ -329,6 +384,24 @@ to pay more explicit attention to:
 - orthogonal carrier
 - domain lineage
 
+### Carrier-Tick Condensation
+
+The current bootstrap code still does not have an explicit act for condensing a
+stable structure into one new carrier tick.
+
+That means the notes are now slightly ahead of the code here.
+
+The missing act is not ordinary fold.
+
+It is:
+
+- choosing a stable construction pattern
+- freezing it as the local tick of a new carrier
+- then projecting later values into that new carrier without requiring the
+  carrier itself to know the full lower provenance
+
+This feels like a real next seam for the bootstrap experiment.
+
 ### Exact Final Projection
 
 The current `Projected` read is the current repeated collapse result, not the
@@ -348,6 +421,7 @@ The current higher-grade bootstrap picture is:
 - `Reduced` preserves the richest current structure
 - `Collapsed` lowers one structural grade
 - `Projected` lowers repeatedly until no more collapse is possible
+- carrier-tick condensation is a separate later act, not the same as collapse
 - directed-segment-like and complex-like values are the same family under
   different carrier contexts
 

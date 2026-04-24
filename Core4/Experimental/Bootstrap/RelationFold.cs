@@ -270,6 +270,8 @@ public sealed class RelationFold : IElement
                 // structure and emit only a pure ratio-like floating-point read.
                 // That would erase flow direction, support, and resolution provenance,
                 // so bootstrap intentionally stops before that collapse for now.
+                // This is also distinct from any future carrier-tick condensation:
+                // condensing creates a new carrier floor, while collapse is only a read.
                 return TryCollapseOneGrade(fold.Reduced, out collapsed);
 
             case Relation relation:

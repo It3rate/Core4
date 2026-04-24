@@ -54,6 +54,47 @@ So the whole substrate may slide while the relation remains lawful internally.
 That is why the current concrete pass can use a shared offset on `Measure`
 without changing the folded relation result.
 
+## 2A. Tick As Current Resolution Floor
+
+A tick should not be read as an absolutely primitive piece of reality.
+
+It is only:
+
+- the current lowest accessible measure on the carrier being worked with
+
+This matters because the bootstrap pass can begin on any carrier that is
+already stable enough to be useful.
+
+So the starting carrier does not need to be treated as:
+
+- ultimate distance
+- ultimate time
+- ultimate energy
+
+It may already be a derived but stable concept such as:
+
+- speed
+- pressure
+- acceleration
+
+without first unpacking that concept into lower carriers.
+
+In that sense, every carrier has a local floor:
+
+- below that floor, richer structure may still exist
+- but that deeper structure is outside the current carrier's immediate access
+
+If later work opens that deeper structure, the system has not disproved the old
+tick. It has only moved the working floor downward and exposed a new smaller
+tick beneath it.
+
+So the current bootstrap picture should be read as:
+
+- `Measure` lives on the current accessible carrier floor
+- relation and fold work at that floor
+- deeper provenance may still exist below that floor
+- higher structure may still be condensed above that floor
+
 ## 3. Relation
 
 The primitive relation act is:
@@ -331,6 +372,71 @@ This is useful because it keeps the physical picture honest:
 
 - the structure remains what it is
 - the fold result is always a current reading of that structure
+
+## 13A. Condensing Into A Carrier Tick
+
+There is another act near fold that should be kept distinct from both relation
+and collapse.
+
+It is best described as:
+
+- condensing structure into a carrier tick
+
+This should be treated as:
+
+- creating a new accessible carrier
+- freezing one new opaque tick on that carrier
+- allowing richer structure to be counted through that new tick
+
+This is not the same as:
+
+- relating two things
+- folding one thing into another
+- collapsing a higher-grade result to a lower-grade read
+
+Collapse is a read of existing structure.
+
+Carrier-tick condensation is a new basis act:
+
+- take some stable construction
+- freeze it as one tick of a new carrier
+- then count future structure by that tick
+
+This matters because the new carrier may be simpler than the provenance that
+created it.
+
+For example:
+
+- `mph` can be treated as its own one-dimensional carrier
+- `meters per second squared` can be treated as its own carrier
+- `liters per 100 kilometers` can be treated as its own carrier
+
+The new carrier does not need to understand everything beneath that tick.
+
+It only needs:
+
+- one stable condensed tick
+- one stable way to count by that tick
+
+The older provenance may still be preserved outside the new carrier as:
+
+- named unit shape
+- carrier lineage
+- historical construction
+
+So the condensed carrier stays simple while the larger system still retains the
+power to:
+
+- inspect provenance
+- modify provenance
+- rebuild lower structure
+- project into the condensed carrier again
+
+This also means a fused or condensed tick is not the final floor of reality.
+
+It is only:
+
+- the local floor of the new carrier that has just been created
 
 ## 14. What This Currently Clarifies
 

@@ -1,5 +1,7 @@
 namespace Core4.Experimental.Bootstrap;
 
+// A bootstrap carrier is the current accessible floor of resolution.
+// It may be primitive like distance, or already condensed like speed.
 public readonly record struct Carrier(long Id, long Domain = 0)
 {
     public static Carrier Unbound => new(0);
