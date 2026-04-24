@@ -275,6 +275,12 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         return 1;
     }
 
+    // TODO: The current carrier surface is still only an ordered participation
+    // surface. It can preserve repeated occurrences or an explicitly compressed
+    // repeat count, but it does not yet preserve why the repeat exists. Later
+    // we likely need a richer numeric repeat/transform structure so powers,
+    // roots, loops, and independently repeated branches do not collapse to the
+    // same shallow surface read accidentally.
     private static TickSurfaceEntry[] CompressExactRepeats(TickSurfaceEntry[] surface)
     {
         if (surface.Length == 0)
