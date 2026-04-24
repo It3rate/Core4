@@ -3,6 +3,8 @@ using System.Threading;
 
 namespace Core4.Experimental.Bootstrap;
 
+public readonly record struct TickSurfaceEntry(Carrier Carrier, long RepeatCount = 1);
+
 // A bootstrap carrier is the current accessible floor of resolution.
 // It may be primitive like distance, or already condensed like speed.
 // TODO: Keep carrier identity itself small and stable. Usage-local surface such
@@ -65,6 +67,18 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         return false;
     }
 
+    public static bool TryGetTickSurface(Carrier carrier, out TickSurfaceEntry[] surface)
+    {
+        if (crystallizedSources.TryGetValue(carrier, out var crystallization))
+        {
+            surface = crystallization.Surface;
+            return true;
+        }
+
+        surface = Array.Empty<TickSurfaceEntry>();
+        return false;
+    }
+
     public static Carrier FirstCarrierOf(IElement element) => element switch
     {
         Measure measure => measure.Carrier,
@@ -86,12 +100,61 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         return FirstCarrierOf(right);
     }
 
-    private static Crystallization SplitSource(IElement source) => source switch
+    private static Crystallization SplitSource(IElement source)
     {
-        Relation relation => new(source, relation.Left, relation.Right),
-        RelationFold fold => new(source, fold.Left, fold.Right),
-        _ => new(source, source, null)
-    };
+        var surface = BuildTickSurface(source);
+        return source switch
+        {
+            Relation relation => new(source, relation.Left, relation.Right, surface),
+            RelationFold fold => new(source, fold.Left, fold.Right, surface),
+            _ => new(source, source, null, surface)
+        };
+    }
 
-    private sealed record Crystallization(IElement Source, IElement Variable, IElement? Frozen);
+    private static TickSurfaceEntry[] BuildTickSurface(IElement source)
+    {
+        var surface = new List<TickSurfaceEntry>();
+        CollectTickSurface(source, surface);
+        return surface.ToArray();
+    }
+
+    private static void CollectTickSurface(IElement element, List<TickSurfaceEntry> surface)
+    {
+        switch (element)
+        {
+            case Measure measure when measure.Carrier != Unbound:
+                AddTickSurfaceEntry(surface, measure.Carrier);
+                break;
+
+            case Relation relation:
+                CollectTickSurface(relation.Left, surface);
+                CollectTickSurface(relation.Right, surface);
+                break;
+
+            case RelationFold fold:
+                CollectTickSurface(fold.Left, surface);
+                CollectTickSurface(fold.Right, surface);
+                break;
+        }
+    }
+
+    private static void AddTickSurfaceEntry(List<TickSurfaceEntry> surface, Carrier carrier)
+    {
+        for (var i = 0; i < surface.Count; i++)
+        {
+            if (surface[i].Carrier == carrier)
+            {
+                surface[i] = surface[i] with { RepeatCount = surface[i].RepeatCount + 1 };
+                return;
+            }
+        }
+
+        surface.Add(new(carrier));
+    }
+
+    private sealed record Crystallization(
+        IElement Source,
+        IElement Variable,
+        IElement? Frozen,
+        TickSurfaceEntry[] Surface);
 }

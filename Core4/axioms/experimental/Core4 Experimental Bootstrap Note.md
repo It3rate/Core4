@@ -503,6 +503,23 @@ Repeated carriers may later be compressed into one repeated surface entry
 instead of listing every participation separately, but that should be treated as
 a later refinement rather than a bootstrap requirement.
 
+For now, if two calibrations are not naturally compatible at the same local
+tick floor, they should be treated as different carriers rather than as
+semi-compatible structures on one carrier.
+
+So things like:
+
+- Celsius
+- Fahrenheit
+- Kelvin
+
+should currently be modeled as different operational carriers, even if they
+belong to one broader thermal lineage.
+
+The exact relation or projector mechanism between such carriers is still open.
+It likely belongs to the same family as other projection relations, but the
+bootstrap pass should not pretend that this is already solved.
+
 ## 14. What This Currently Clarifies
 
 This rewrite sharpens several earlier ambiguities.
