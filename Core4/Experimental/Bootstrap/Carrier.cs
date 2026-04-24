@@ -7,7 +7,7 @@ namespace Core4.Experimental.Bootstrap;
 // It may be primitive like distance, or already condensed like speed.
 public readonly record struct Carrier(long Id, long Domain = 0)
 {
-    private static readonly ConcurrentDictionary<Carrier, IElement> crystallizedSources = new();
+    private static readonly ConcurrentDictionary<Carrier, Crystallization> crystallizedSources = new();
     private static long nextCrystallizedId;
 
     public static Carrier Unbound => new(0);
@@ -17,13 +17,48 @@ public readonly record struct Carrier(long Id, long Domain = 0)
     public static Carrier Crystallize(IElement source)
     {
         var lineage = FirstCarrierOf(source);
+        var crystallization = SplitSource(source);
         var crystallized = new Carrier(Interlocked.Decrement(ref nextCrystallizedId), lineage.Id);
-        crystallizedSources[crystallized] = source;
+        crystallizedSources[crystallized] = crystallization;
         return crystallized;
     }
 
-    public static bool TryGetSource(Carrier carrier, out IElement source) =>
-        crystallizedSources.TryGetValue(carrier, out source!);
+    public static bool TryGetSource(Carrier carrier, out IElement source)
+    {
+        if (crystallizedSources.TryGetValue(carrier, out var crystallization))
+        {
+            source = crystallization.Source;
+            return true;
+        }
+
+        source = null!;
+        return false;
+    }
+
+    public static bool TryGetVariableSource(Carrier carrier, out IElement variable)
+    {
+        if (crystallizedSources.TryGetValue(carrier, out var crystallization))
+        {
+            variable = crystallization.Variable;
+            return true;
+        }
+
+        variable = null!;
+        return false;
+    }
+
+    public static bool TryGetFrozenSource(Carrier carrier, out IElement frozen)
+    {
+        if (crystallizedSources.TryGetValue(carrier, out var crystallization) &&
+            crystallization.Frozen is { } frozenSource)
+        {
+            frozen = frozenSource;
+            return true;
+        }
+
+        frozen = null!;
+        return false;
+    }
 
     public static Carrier FirstCarrierOf(IElement element) => element switch
     {
@@ -45,4 +80,13 @@ public readonly record struct Carrier(long Id, long Domain = 0)
 
         return FirstCarrierOf(right);
     }
+
+    private static Crystallization SplitSource(IElement source) => source switch
+    {
+        Relation relation => new(source, relation.Left, relation.Right),
+        RelationFold fold => new(source, fold.Left, fold.Right),
+        _ => new(source, source, null)
+    };
+
+    private sealed record Crystallization(IElement Source, IElement Variable, IElement? Frozen);
 }

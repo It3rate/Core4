@@ -519,6 +519,35 @@ public sealed class BootstrapRelationTests
     }
 
     [Fact]
+    public void CrystallizedCarrierKeepsFirstValueVariableAndRestFrozen()
+    {
+        var miles = new BootstrapCarrier(10);
+        var hours = new BootstrapCarrier(20);
+        var speedShape = new BootstrapRelation(
+            new BootstrapMeasure(60, miles),
+            new BootstrapRelation(
+                new BootstrapMeasure(2, hours),
+                new BootstrapMeasure(1, hours)));
+        var speed = BootstrapCarrier.Crystallize(speedShape);
+
+        Assert.True(BootstrapCarrier.TryGetVariableSource(speed, out var variable));
+        Assert.True(BootstrapCarrier.TryGetFrozenSource(speed, out var frozen));
+        Assert.Same(speedShape.Left, variable);
+        Assert.Same(speedShape.Right, frozen);
+    }
+
+    [Fact]
+    public void SingleValueCrystallizationHasVariableButNoFrozenSurface()
+    {
+        var speed = new BootstrapMeasure(30, new BootstrapCarrier(10));
+        var crystallized = BootstrapCarrier.Crystallize(speed);
+
+        Assert.True(BootstrapCarrier.TryGetVariableSource(crystallized, out var variable));
+        Assert.False(BootstrapCarrier.TryGetFrozenSource(crystallized, out _));
+        Assert.Same(speed, variable);
+    }
+
+    [Fact]
     public void ClosedDirectedSegmentLikeFoldPreservesAllFourBranchContributions()
     {
         var carrier = new BootstrapCarrier(10);
