@@ -503,6 +503,17 @@ Repeated carriers may later be compressed into one repeated surface entry
 instead of listing every participation separately, but that should be treated as
 a later refinement rather than a bootstrap requirement.
 
+At the current bootstrap code seam:
+
+- automatic crystallization records carrier participation and repeat counts
+- explicit crystallization may also provide signed surface participation when it
+  is already known which sides are expansive or contractive
+
+So a condensed carrier tick may currently expose:
+
+- plain carrier references when only shallow surface is known
+- signed carrier references when the tick shape is already known strongly enough
+
 For now, if two calibrations are not naturally compatible at the same local
 tick floor, they should be treated as different carriers rather than as
 semi-compatible structures on one carrier.

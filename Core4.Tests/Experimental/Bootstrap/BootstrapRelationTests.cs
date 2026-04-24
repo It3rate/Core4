@@ -590,6 +590,54 @@ public sealed class BootstrapRelationTests
     }
 
     [Fact]
+    public void CrystallizedCarrierCanCarryExplicitSignedTickSurface()
+    {
+        var miles = new BootstrapCarrier(10);
+        var hours = new BootstrapCarrier(20);
+        var speedShape = new BootstrapRelation(
+            new BootstrapMeasure(60, miles),
+            new BootstrapMeasure(2, hours));
+        var speed = BootstrapCarrier.Crystallize(
+            speedShape,
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(miles, 1),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(hours, -1));
+
+        Assert.True(BootstrapCarrier.TryGetTickSurface(speed, out var surface));
+        Assert.Equal(
+            new[]
+            {
+                new Core4.Experimental.Bootstrap.TickSurfaceEntry(miles, 1),
+                new Core4.Experimental.Bootstrap.TickSurfaceEntry(hours, -1),
+            },
+            surface);
+    }
+
+    [Fact]
+    public void ExplicitTickSurfaceCanExpressRepeatedContractiveParticipation()
+    {
+        var meters = new BootstrapCarrier(10);
+        var seconds = new BootstrapCarrier(20);
+        var accelerationShape = new BootstrapRelation(
+            new BootstrapMeasure(8, meters),
+            new BootstrapRelation(
+                new BootstrapMeasure(2, seconds),
+                new BootstrapMeasure(3, seconds)));
+        var acceleration = BootstrapCarrier.Crystallize(
+            accelerationShape,
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(meters, 1),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, -2));
+
+        Assert.True(BootstrapCarrier.TryGetTickSurface(acceleration, out var surface));
+        Assert.Equal(
+            new[]
+            {
+                new Core4.Experimental.Bootstrap.TickSurfaceEntry(meters, 1),
+                new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, -2),
+            },
+            surface);
+    }
+
+    [Fact]
     public void ClosedDirectedSegmentLikeFoldPreservesAllFourBranchContributions()
     {
         var carrier = new BootstrapCarrier(10);

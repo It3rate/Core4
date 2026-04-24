@@ -3,7 +3,15 @@ using System.Threading;
 
 namespace Core4.Experimental.Bootstrap;
 
-public readonly record struct TickSurfaceEntry(Carrier Carrier, long RepeatCount = 1);
+public readonly record struct TickSurfaceEntry(Carrier Carrier, long SignedRepeatCount = 1)
+{
+    public long RepeatCount => Math.Abs(SignedRepeatCount);
+
+    // TODO: Revisit repeat semantics before surface interpretation hardens.
+    // Today sign is being used for expansive/contractive participation. Later we
+    // may also need explicit inverse-repeat or root-like surface reads without
+    // collapsing those meanings together accidentally.
+}
 
 // A bootstrap carrier is the current accessible floor of resolution.
 // It may be primitive like distance, or already condensed like speed.
@@ -25,6 +33,15 @@ public readonly record struct Carrier(long Id, long Domain = 0)
     {
         var lineage = FirstCarrierOf(source);
         var crystallization = SplitSource(source);
+        var crystallized = new Carrier(Interlocked.Decrement(ref nextCrystallizedId), lineage.Id);
+        crystallizedSources[crystallized] = crystallization;
+        return crystallized;
+    }
+
+    public static Carrier Crystallize(IElement source, params TickSurfaceEntry[] surface)
+    {
+        var lineage = FirstCarrierOf(source);
+        var crystallization = SplitSource(source, surface);
         var crystallized = new Carrier(Interlocked.Decrement(ref nextCrystallizedId), lineage.Id);
         crystallizedSources[crystallized] = crystallization;
         return crystallized;
@@ -100,9 +117,11 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         return FirstCarrierOf(right);
     }
 
-    private static Crystallization SplitSource(IElement source)
+    private static Crystallization SplitSource(IElement source) =>
+        SplitSource(source, BuildTickSurface(source));
+
+    private static Crystallization SplitSource(IElement source, TickSurfaceEntry[] surface)
     {
-        var surface = BuildTickSurface(source);
         return source switch
         {
             Relation relation => new(source, relation.Left, relation.Right, surface),
@@ -144,7 +163,7 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         {
             if (surface[i].Carrier == carrier)
             {
-                surface[i] = surface[i] with { RepeatCount = surface[i].RepeatCount + 1 };
+                surface[i] = surface[i] with { SignedRepeatCount = surface[i].SignedRepeatCount + 1 };
                 return;
             }
         }
