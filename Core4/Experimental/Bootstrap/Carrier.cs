@@ -96,6 +96,46 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         return false;
     }
 
+    public static bool TryProject(Carrier carrier, IElement input, out Measure projected)
+    {
+        if (!TryGetTickSurface(carrier, out var surface))
+        {
+            projected = null!;
+            return false;
+        }
+
+        var factors = new Dictionary<Carrier, ProjectionFactor>();
+        CollectProjectionFactors(input, factors);
+
+        if (!MatchesSurface(surface, factors))
+        {
+            projected = null!;
+            return false;
+        }
+
+        var value = 1d;
+        foreach (var entry in surface)
+        {
+            var factor = factors[entry.Carrier];
+            if (entry.SignedRepeatCount > 0)
+            {
+                value *= factor.Product;
+            }
+            else if (factor.Product != 0)
+            {
+                value /= factor.Product;
+            }
+            else
+            {
+                projected = null!;
+                return false;
+            }
+        }
+
+        projected = Measure.Fixed(ToLong(value), carrier);
+        return true;
+    }
+
     public static Carrier FirstCarrierOf(IElement element) => element switch
     {
         Measure measure => measure.Carrier,
@@ -171,9 +211,67 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         surface.Add(new(carrier));
     }
 
+    private static void CollectProjectionFactors(IElement element, Dictionary<Carrier, ProjectionFactor> factors)
+    {
+        switch (element)
+        {
+            case Measure measure when measure.Carrier != Unbound:
+                AddProjectionFactor(factors, measure.Carrier, measure.Raw);
+                break;
+
+            case Relation relation:
+                CollectProjectionFactors(relation.Left, factors);
+                CollectProjectionFactors(relation.Right, factors);
+                break;
+
+            case RelationFold fold:
+                CollectProjectionFactors(fold.Left, factors);
+                CollectProjectionFactors(fold.Right, factors);
+                break;
+        }
+    }
+
+    private static void AddProjectionFactor(Dictionary<Carrier, ProjectionFactor> factors, Carrier carrier, long value)
+    {
+        if (factors.TryGetValue(carrier, out var factor))
+        {
+            factors[carrier] = factor with
+            {
+                Count = factor.Count + 1,
+                Product = factor.Product * value
+            };
+            return;
+        }
+
+        factors[carrier] = new(1, value);
+    }
+
+    private static bool MatchesSurface(TickSurfaceEntry[] surface, Dictionary<Carrier, ProjectionFactor> factors)
+    {
+        if (surface.Length != factors.Count)
+        {
+            return false;
+        }
+
+        foreach (var entry in surface)
+        {
+            if (!factors.TryGetValue(entry.Carrier, out var factor) ||
+                factor.Count != entry.RepeatCount)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static long ToLong(double value) => (long)Math.Round(value, MidpointRounding.AwayFromZero);
+
     private sealed record Crystallization(
         IElement Source,
         IElement Variable,
         IElement? Frozen,
         TickSurfaceEntry[] Surface);
+
+    private readonly record struct ProjectionFactor(int Count, double Product);
 }

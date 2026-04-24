@@ -638,6 +638,81 @@ public sealed class BootstrapRelationTests
     }
 
     [Fact]
+    public void CanonicalProjectorCanProjectCompatibleQuotientInput()
+    {
+        var miles = new BootstrapCarrier(10);
+        var hours = new BootstrapCarrier(20);
+        var speedShape = new BootstrapRelation(
+            new BootstrapMeasure(60, miles),
+            new BootstrapMeasure(2, hours));
+        var speed = BootstrapCarrier.Crystallize(
+            speedShape,
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(miles, 1),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(hours, -1));
+        var input = new BootstrapRelation(
+            new BootstrapMeasure(60, miles),
+            new BootstrapMeasure(2, hours));
+
+        Assert.True(BootstrapCarrier.TryProject(speed, input, out var projected));
+        Assert.Equal(speed, projected.Carrier);
+        Assert.Equal(30, projected.Raw);
+    }
+
+    [Fact]
+    public void CanonicalProjectorCanProjectCompatibleProductInput()
+    {
+        var pounds = new BootstrapCarrier(10);
+        var feet = new BootstrapCarrier(20);
+        var footPounds = BootstrapCarrier.Crystallize(
+            new BootstrapRelation(new BootstrapMeasure(1, pounds), new BootstrapMeasure(1, feet)),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(pounds, 1),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(feet, 1));
+        var input = new BootstrapRelation(
+            new BootstrapMeasure(30, pounds),
+            new BootstrapMeasure(2, feet));
+
+        Assert.True(BootstrapCarrier.TryProject(footPounds, input, out var projected));
+        Assert.Equal(footPounds, projected.Carrier);
+        Assert.Equal(60, projected.Raw);
+    }
+
+    [Fact]
+    public void CanonicalProjectorCanProjectRepeatedContractiveInput()
+    {
+        var meters = new BootstrapCarrier(10);
+        var seconds = new BootstrapCarrier(20);
+        var acceleration = BootstrapCarrier.Crystallize(
+            new BootstrapRelation(
+                new BootstrapMeasure(1, meters),
+                new BootstrapRelation(new BootstrapMeasure(1, seconds), new BootstrapMeasure(1, seconds))),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(meters, 1),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, -2));
+        var input = new BootstrapRelation(
+            new BootstrapMeasure(8, meters),
+            new BootstrapRelation(new BootstrapMeasure(2, seconds), new BootstrapMeasure(4, seconds)));
+
+        Assert.True(BootstrapCarrier.TryProject(acceleration, input, out var projected));
+        Assert.Equal(acceleration, projected.Carrier);
+        Assert.Equal(1, projected.Raw);
+    }
+
+    [Fact]
+    public void CanonicalProjectorRejectsMismatchedSurface()
+    {
+        var miles = new BootstrapCarrier(10);
+        var hours = new BootstrapCarrier(20);
+        var speed = BootstrapCarrier.Crystallize(
+            new BootstrapRelation(new BootstrapMeasure(1, miles), new BootstrapMeasure(1, hours)),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(miles, 1),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(hours, -1));
+        var incompatible = new BootstrapRelation(
+            new BootstrapMeasure(60, miles),
+            new BootstrapMeasure(5, new BootstrapCarrier(30)));
+
+        Assert.False(BootstrapCarrier.TryProject(speed, incompatible, out _));
+    }
+
+    [Fact]
     public void ClosedDirectedSegmentLikeFoldPreservesAllFourBranchContributions()
     {
         var carrier = new BootstrapCarrier(10);
