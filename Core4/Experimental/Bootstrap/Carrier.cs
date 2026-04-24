@@ -137,26 +137,28 @@ public readonly record struct Carrier(long Id, long Domain = 0)
             return false;
         }
 
-        var factors = new Dictionary<Carrier, ProjectionFactor>();
-        CollectProjectionFactors(input, factors);
+        var occurrences = new List<ProjectionOccurrence>();
+        CollectProjectionOccurrences(input, occurrences);
+        var expandedSurface = ExpandSurface(surface);
 
-        if (!MatchesSurface(surface, factors))
+        if (!MatchesSurface(expandedSurface, occurrences))
         {
             projected = null!;
             return false;
         }
 
         var value = 1d;
-        foreach (var entry in surface)
+        for (var i = 0; i < expandedSurface.Length; i++)
         {
-            var factor = factors[entry.Carrier];
+            var entry = expandedSurface[i];
+            var occurrence = occurrences[i];
             if (entry.SignedRepeatCount > 0)
             {
-                value *= factor.Product;
+                value *= occurrence.Value;
             }
-            else if (factor.Product != 0)
+            else if (occurrence.Value != 0)
             {
-                value /= factor.Product;
+                value /= occurrence.Value;
             }
             else
             {
@@ -205,14 +207,15 @@ public readonly record struct Carrier(long Id, long Domain = 0)
 
     private static Crystallization BuildCrystallization(IElement source, IElement variable, IElement? frozen, TickSurfaceEntry[] surface)
     {
-        var totalSurface = surface.Length == 0 ? BuildTickSurface(source) : surface;
+        var hasExplicitSurface = surface.Length != 0;
+        var totalSurface = hasExplicitSurface ? surface : BuildTickSurface(source);
         return new(
             source,
             variable,
             frozen,
             totalSurface,
-            BuildSignedTickSurface(variable, totalSurface),
-            frozen is null ? Array.Empty<TickSurfaceEntry>() : BuildSignedTickSurface(frozen, totalSurface));
+            BuildSignedTickSurface(variable, totalSurface, hasExplicitSurface),
+            frozen is null ? Array.Empty<TickSurfaceEntry>() : BuildSignedTickSurface(frozen, totalSurface, hasExplicitSurface));
     }
 
     private static TickSurfaceEntry[] BuildTickSurface(IElement source)
@@ -222,18 +225,20 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         return surface.ToArray();
     }
 
-    private static TickSurfaceEntry[] BuildSignedTickSurface(IElement source, TickSurfaceEntry[] totalSurface)
+    private static TickSurfaceEntry[] BuildSignedTickSurface(IElement source, TickSurfaceEntry[] totalSurface, bool compressRepeats)
     {
         var localSurface = BuildTickSurface(source);
+        var expandedSurface = ExpandSurface(totalSurface);
+        var used = new bool[expandedSurface.Length];
         for (var i = 0; i < localSurface.Length; i++)
         {
             localSurface[i] = localSurface[i] with
             {
-                SignedRepeatCount = ResolveSignedRepeatCount(localSurface[i].Carrier, localSurface[i].RepeatCount, totalSurface)
+                SignedRepeatCount = ResolveSignedRepeatCount(localSurface[i].Carrier, used, expandedSurface)
             };
         }
 
-        return localSurface;
+        return compressRepeats ? CompressExactRepeats(localSurface) : localSurface;
     }
 
     private static void CollectTickSurface(IElement element, List<TickSurfaceEntry> surface)
@@ -241,7 +246,7 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         switch (element)
         {
             case Measure measure when measure.Carrier != Unbound:
-                AddTickSurfaceEntry(surface, measure.Carrier);
+                surface.Add(new(measure.Carrier));
                 break;
 
             case Relation relation:
@@ -256,79 +261,95 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         }
     }
 
-    private static void AddTickSurfaceEntry(List<TickSurfaceEntry> surface, Carrier carrier)
+    private static long ResolveSignedRepeatCount(Carrier carrier, bool[] used, TickSurfaceEntry[] expandedSurface)
     {
-        for (var i = 0; i < surface.Count; i++)
+        for (var i = 0; i < expandedSurface.Length; i++)
         {
-            if (surface[i].Carrier == carrier)
+            if (!used[i] && expandedSurface[i].Carrier == carrier)
             {
-                surface[i] = surface[i] with { SignedRepeatCount = surface[i].SignedRepeatCount + 1 };
-                return;
+                used[i] = true;
+                return expandedSurface[i].SignedRepeatCount < 0 ? -1 : 1;
             }
         }
 
-        surface.Add(new(carrier));
+        return 1;
     }
 
-    private static long ResolveSignedRepeatCount(Carrier carrier, long repeatCount, TickSurfaceEntry[] totalSurface)
+    private static TickSurfaceEntry[] CompressExactRepeats(TickSurfaceEntry[] surface)
     {
-        foreach (var entry in totalSurface)
+        if (surface.Length == 0)
         {
-            if (entry.Carrier == carrier)
+            return surface;
+        }
+
+        var compressed = new List<TickSurfaceEntry> { surface[0] };
+        for (var i = 1; i < surface.Length; i++)
+        {
+            var current = surface[i];
+            var lastIndex = compressed.Count - 1;
+            var last = compressed[lastIndex];
+            if (last.Carrier == current.Carrier &&
+                Math.Sign(last.SignedRepeatCount) == Math.Sign(current.SignedRepeatCount))
             {
-                return entry.SignedRepeatCount < 0 ? -repeatCount : repeatCount;
+                compressed[lastIndex] = last with
+                {
+                    SignedRepeatCount = last.SignedRepeatCount + current.SignedRepeatCount
+                };
+            }
+            else
+            {
+                compressed.Add(current);
             }
         }
 
-        return repeatCount;
+        return compressed.ToArray();
     }
 
-    private static void CollectProjectionFactors(IElement element, Dictionary<Carrier, ProjectionFactor> factors)
+    private static TickSurfaceEntry[] ExpandSurface(TickSurfaceEntry[] surface)
+    {
+        var expanded = new List<TickSurfaceEntry>();
+        foreach (var entry in surface)
+        {
+            var sign = entry.SignedRepeatCount < 0 ? -1L : 1L;
+            for (var i = 0L; i < entry.RepeatCount; i++)
+            {
+                expanded.Add(new(entry.Carrier, sign));
+            }
+        }
+
+        return expanded.ToArray();
+    }
+
+    private static void CollectProjectionOccurrences(IElement element, List<ProjectionOccurrence> occurrences)
     {
         switch (element)
         {
             case Measure measure when measure.Carrier != Unbound:
-                AddProjectionFactor(factors, measure.Carrier, measure.Raw);
+                occurrences.Add(new(measure.Carrier, measure.Raw));
                 break;
 
             case Relation relation:
-                CollectProjectionFactors(relation.Left, factors);
-                CollectProjectionFactors(relation.Right, factors);
+                CollectProjectionOccurrences(relation.Left, occurrences);
+                CollectProjectionOccurrences(relation.Right, occurrences);
                 break;
 
             case RelationFold fold:
-                CollectProjectionFactors(fold.Left, factors);
-                CollectProjectionFactors(fold.Right, factors);
+                CollectProjectionOccurrences(fold.Left, occurrences);
+                CollectProjectionOccurrences(fold.Right, occurrences);
                 break;
         }
     }
 
-    private static void AddProjectionFactor(Dictionary<Carrier, ProjectionFactor> factors, Carrier carrier, long value)
+    private static bool MatchesSurface(TickSurfaceEntry[] surface, List<ProjectionOccurrence> occurrences)
     {
-        if (factors.TryGetValue(carrier, out var factor))
-        {
-            factors[carrier] = factor with
-            {
-                Count = factor.Count + 1,
-                Product = factor.Product * value
-            };
-            return;
-        }
-
-        factors[carrier] = new(1, value);
-    }
-
-    private static bool MatchesSurface(TickSurfaceEntry[] surface, Dictionary<Carrier, ProjectionFactor> factors)
-    {
-        if (surface.Length != factors.Count)
+        if (surface.Length != occurrences.Count)
         {
             return false;
         }
 
-        foreach (var entry in surface)
+        for (var i = 0; i < surface.Length; i++)
         {
-            if (!factors.TryGetValue(entry.Carrier, out var factor) ||
-                factor.Count != entry.RepeatCount)
+            if (surface[i].Carrier != occurrences[i].Carrier)
             {
                 return false;
             }
@@ -347,5 +368,5 @@ public readonly record struct Carrier(long Id, long Domain = 0)
         TickSurfaceEntry[] VariableSurface,
         TickSurfaceEntry[] FrozenSurface);
 
-    private readonly record struct ProjectionFactor(int Count, double Product);
+    private readonly record struct ProjectionOccurrence(Carrier Carrier, long Value);
 }

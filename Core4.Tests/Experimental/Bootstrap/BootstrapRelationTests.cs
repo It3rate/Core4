@@ -568,7 +568,7 @@ public sealed class BootstrapRelationTests
     }
 
     [Fact]
-    public void RepeatedCarrierParticipationIsCompressedInTickSurface()
+    public void AutomaticCrystallizationPreservesRepeatedCarrierOccurrences()
     {
         var meters = new BootstrapCarrier(10);
         var seconds = new BootstrapCarrier(20);
@@ -584,7 +584,8 @@ public sealed class BootstrapRelationTests
             new[]
             {
                 new Core4.Experimental.Bootstrap.TickSurfaceEntry(meters, 1),
-                new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, 2),
+                new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, 1),
+                new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, 1),
             },
             surface);
     }
@@ -633,6 +634,33 @@ public sealed class BootstrapRelationTests
             {
                 new Core4.Experimental.Bootstrap.TickSurfaceEntry(meters, 1),
                 new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, -2),
+            },
+            surface);
+    }
+
+    [Fact]
+    public void ExplicitTickSurfaceCanKeepOpposedSameCarrierParticipationsSeparate()
+    {
+        var meters = new BootstrapCarrier(10);
+        var seconds = new BootstrapCarrier(20);
+        var mixedShape = new BootstrapRelation(
+            new BootstrapMeasure(8, meters),
+            new BootstrapRelation(
+                new BootstrapMeasure(2, seconds),
+                new BootstrapMeasure(4, seconds)));
+        var mixed = BootstrapCarrier.Crystallize(
+            mixedShape,
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(meters, 1),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, 1),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, -1));
+
+        Assert.True(BootstrapCarrier.TryGetTickSurface(mixed, out var surface));
+        Assert.Equal(
+            new[]
+            {
+                new Core4.Experimental.Bootstrap.TickSurfaceEntry(meters, 1),
+                new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, 1),
+                new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, -1),
             },
             surface);
     }
@@ -777,6 +805,27 @@ public sealed class BootstrapRelationTests
         Assert.True(BootstrapCarrier.TryProject(acceleration, input, out var projected));
         Assert.Equal(acceleration, projected.Carrier);
         Assert.Equal(1, projected.Raw);
+    }
+
+    [Fact]
+    public void CanonicalProjectorCanProjectMixedSameCarrierSurfaceInOrder()
+    {
+        var meters = new BootstrapCarrier(10);
+        var seconds = new BootstrapCarrier(20);
+        var mixed = BootstrapCarrier.Crystallize(
+            new BootstrapRelation(
+                new BootstrapMeasure(1, meters),
+                new BootstrapRelation(new BootstrapMeasure(1, seconds), new BootstrapMeasure(1, seconds))),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(meters, 1),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, 1),
+            new Core4.Experimental.Bootstrap.TickSurfaceEntry(seconds, -1));
+        var input = new BootstrapRelation(
+            new BootstrapMeasure(8, meters),
+            new BootstrapRelation(new BootstrapMeasure(2, seconds), new BootstrapMeasure(4, seconds)));
+
+        Assert.True(BootstrapCarrier.TryProject(mixed, input, out var projected));
+        Assert.Equal(mixed, projected.Carrier);
+        Assert.Equal(4, projected.Raw);
     }
 
     [Fact]

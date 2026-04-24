@@ -499,9 +499,10 @@ while the surface of one use still records things like:
 - expansive versus contractive
 - repeated participation count
 
-Repeated carriers may later be compressed into one repeated surface entry
-instead of listing every participation separately, but that should be treated as
-a later refinement rather than a bootstrap requirement.
+Repeated carriers should currently remain separate surface participations unless
+the repeat is intentionally known to be one true repeated role. Explicit
+surface description may compress true repeats, but the bootstrap default should
+not silently merge distinct participations that merely share one carrier.
 
 At the current bootstrap code seam:
 
