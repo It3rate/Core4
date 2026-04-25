@@ -1,5 +1,7 @@
 <Solution>
   <Project Path="Core4/Core4.csproj" />
+  <Project Path="Core4.Kernel/Core4.Kernel.csproj" />
+  <Project Path="Core4.Kernel.Tests/Core4.Kernel.Tests.csproj" />
   <Project Path="Core4.Runtime/Core4.Runtime.csproj" />
   <Project Path="Core4.Tests/Core4.Tests.csproj" />
 </Solution>
