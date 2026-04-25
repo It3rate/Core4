@@ -2,73 +2,44 @@ namespace Core4.Experimental.Bootstrap;
 
 public static class SupportReadEquations
 {
-    public static IElement Empty(IElement pair) => Pair(0, 0);
+    private static readonly IElement None = Coefficients(0, 0);
+    private static readonly IElement ReverseSlot = Coefficients(1, 0);
+    private static readonly IElement ForwardSlot = Coefficients(0, 1);
+    private static readonly IElement BothSlots = Coefficients(1, 1);
+    private static readonly IElement BalancedSlots = Coefficients(-1, 1);
 
-    public static IElement Support(IElement pair)
-    {
-        ReadPair(pair, out var reverse, out var forward);
-        return Pair(reverse, forward);
-    }
+    public static IElement Empty(IElement pair) => Select(pair, None);
+
+    public static IElement Support(IElement pair) => Select(pair, BothSlots);
 
     public static IElement Net(IElement pair)
     {
-        ReadPair(pair, out var reverse, out var forward);
-        var net = forward + reverse;
-        return Pair(net, net);
+        return Scale(NetMagnitude(pair), BothSlots);
     }
 
-    public static IElement ForwardOccupancy(IElement pair)
-    {
-        ReadPair(pair, out _, out var forward);
-        return Pair(0, forward);
-    }
+    public static IElement ForwardOccupancy(IElement pair) => Select(pair, ForwardSlot);
 
-    public static IElement ReverseOccupancy(IElement pair)
-    {
-        ReadPair(pair, out var reverse, out _);
-        return Pair(reverse, 0);
-    }
+    public static IElement ReverseOccupancy(IElement pair) => Select(pair, ReverseSlot);
 
     public static IElement Tension(IElement pair)
     {
         ReadPair(pair, out var reverse, out var forward);
-        var overlap = Math.Min(forward, -reverse);
-        return Pair(-overlap, overlap);
+        return Scale(Math.Min(forward, -reverse), BalancedSlots);
     }
 
-    public static IElement Exclusive(IElement pair)
-    {
-        ReadPair(pair, out var reverse, out var forward);
-        var net = forward + reverse;
-        return Pair(net, net);
-    }
+    public static IElement Exclusive(IElement pair) => Scale(NetMagnitude(pair), BothSlots);
 
-    public static IElement ForwardResidue(IElement pair)
-    {
-        ReadPair(pair, out var reverse, out var forward);
-        var net = forward + reverse;
-        return Pair(0, net);
-    }
+    public static IElement ForwardResidue(IElement pair) => Scale(NetMagnitude(pair), ForwardSlot);
 
-    public static IElement ReverseResidue(IElement pair)
-    {
-        ReadPair(pair, out var reverse, out var forward);
-        var net = forward + reverse;
-        return Pair(net, 0);
-    }
+    public static IElement ReverseResidue(IElement pair) => Scale(NetMagnitude(pair), ReverseSlot);
 
     public static IElement LargerFlow(IElement pair)
     {
         ReadPair(pair, out var reverse, out var forward);
-        return forward >= -reverse ? Pair(0, forward) : Pair(reverse, 0);
+        return forward >= -reverse ? Select(pair, ForwardSlot) : Select(pair, ReverseSlot);
     }
 
-    public static IElement CanceledSupport(IElement pair)
-    {
-        ReadPair(pair, out var reverse, out var forward);
-        var overlap = Math.Min(forward, -reverse);
-        return Pair(-overlap, overlap);
-    }
+    public static IElement CanceledSupport(IElement pair) => Tension(pair);
 
     public static long NetMagnitude(IElement pair)
     {
@@ -97,7 +68,23 @@ public static class SupportReadEquations
         forward = 0;
     }
 
-    private static IElement Pair(long reverse, long forward)
+    private static IElement Select(IElement pair, IElement coefficients)
+    {
+        ReadPair(pair, out var reverse, out var forward);
+        ReadPair(coefficients, out var reverseFactor, out var forwardFactor);
+        return Emit(reverse * reverseFactor, forward * forwardFactor);
+    }
+
+    private static IElement Scale(long magnitude, IElement coefficients)
+    {
+        ReadPair(coefficients, out var reverseFactor, out var forwardFactor);
+        return Emit(magnitude * reverseFactor, magnitude * forwardFactor);
+    }
+
+    private static IElement Coefficients(long reverse, long forward) =>
+        new Relation(Measure.Fixed(reverse), Measure.Fixed(forward));
+
+    private static IElement Emit(long reverse, long forward)
     {
         // TODO: These slot clamps are standing in for a future structural law.
         // The reverse slot should eventually be a container that rejects direct
