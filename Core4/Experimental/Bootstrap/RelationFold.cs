@@ -107,6 +107,11 @@ public sealed class RelationFold : IElement
             return new(left.First, SignedSurfaceOf(right));
         }
 
+        if (left.IsUnbound && right.IsRaw)
+        {
+            return new(-right.First, 0);
+        }
+
         if (right.IsUnbound)
         {
             return new(left.First + right.First, left.ResolvedSecond);

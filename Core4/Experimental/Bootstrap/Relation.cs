@@ -24,6 +24,8 @@ public sealed class Relation : IElement
     public static IElement Invert(IElement element) => element switch
     {
         RelationFold fold => new RelationFold(fold.Left, Oppose(fold.Right)),
+        Relation relation when IsOpenSite(relation.Right) && relation.Left is Measure => new Relation(relation.Right, relation.Left),
+        Relation relation when IsOpenSite(relation.Left) && relation.Right is Measure => new Relation(relation.Right, relation.Left),
         Relation relation when relation.Left is Measure && relation.Right is Measure => Oppose(relation),
         Relation relation => new Relation(relation.Left, Oppose(relation.Right)),
         _ => element

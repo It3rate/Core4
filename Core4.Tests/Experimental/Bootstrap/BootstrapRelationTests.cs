@@ -116,11 +116,12 @@ public sealed class BootstrapRelationTests
     }
 
     [Fact]
-    public void PositiveUnitStartsAtLeftmostSideOfNegativeRun()
+    public void OpposedSidePointClaimOnPositiveUnitStartsAtLeftmostSide()
     {
         var open = BootstrapRelation.Open();
         var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
-        var value = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(-10), open), unit);
+        var opposedPoint = Assert.IsType<BootstrapRelation>(BootstrapRelation.Invert(new BootstrapRelation(new BootstrapMeasure(10), open)));
+        var value = new BootstrapRelationFold(opposedPoint, unit);
 
         Assert.Equal(
             new[]
@@ -130,6 +131,15 @@ public sealed class BootstrapRelationTests
                 new BootstrapPartitionStep(-4, 4),
             },
             value.Partitions().ToArray());
+    }
+
+    [Fact]
+    public void OpposedSidePointClaimFoldsToNegativeUnboundShadowInternally()
+    {
+        var open = BootstrapRelation.Open();
+        var opposedPoint = Assert.IsType<BootstrapRelation>(BootstrapRelation.Invert(new BootstrapRelation(new BootstrapMeasure(10), open)));
+
+        Assert.Equal((-10L, 0L), Fold(opposedPoint));
     }
 
     [Fact]
