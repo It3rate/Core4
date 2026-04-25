@@ -90,7 +90,7 @@ public sealed class RelationFold : IElement
 
     internal static IEnumerable<PartitionStep> PartitionsFor(IElement element) => element switch
     {
-        Measure measure => PartitionsOf(measure.Raw, 0),
+        Measure => Array.Empty<PartitionStep>(),
         RelationFold fold => PartitionsForReduced(fold.Reduced, fold.First, fold.Second),
         Relation relation => PartitionsForRelation(relation),
         _ => Array.Empty<PartitionStep>()
@@ -114,9 +114,14 @@ public sealed class RelationFold : IElement
             return new(left.First, SignedSurfaceOf(right));
         }
 
+        if (left.IsRaw && right.IsUnbound)
+        {
+            return new(Math.Abs(left.First), 0, 1);
+        }
+
         if (left.IsUnbound && right.IsRaw)
         {
-            return new(right.First, 0, -1);
+            return new(Math.Abs(right.First), 0, -1);
         }
 
         if (right.IsUnbound)
@@ -249,7 +254,7 @@ public sealed class RelationFold : IElement
 
     private static IEnumerable<PartitionStep> FoldPartitionsFor(IElement element) => element switch
     {
-        Measure measure => PartitionsOf(measure.Raw, 0),
+        Measure => Array.Empty<PartitionStep>(),
         RelationFold fold => PartitionsOf(RawOf(fold.First), RawOf(fold.Second), SideOf(fold.Reduced)),
         Relation relation => FoldPartitionsForRelation(relation),
         _ => Array.Empty<PartitionStep>()
@@ -462,8 +467,8 @@ public sealed class RelationFold : IElement
 
     private static long SideOf(IElement element) => element switch
     {
-        Relation relation when Relation.IsOpenSite(relation.Right) && relation.Left is Measure left => Math.Sign(left.Raw),
-        Relation relation when Relation.IsOpenSite(relation.Left) && relation.Right is Measure right => -Math.Sign(right.Raw == 0 ? 1 : right.Raw),
+        Relation relation when Relation.IsOpenSite(relation.Right) && relation.Left is Measure => 1,
+        Relation relation when Relation.IsOpenSite(relation.Left) && relation.Right is Measure => -1,
         RelationFold fold when fold.Left is Measure left && Read(fold.Right).IsPartitioned => Math.Sign(left.Raw == 0 ? 1 : left.Raw),
         RelationFold fold when fold.Right is Measure right && Read(fold.Left).IsPartitioned => -Math.Sign(right.Raw == 0 ? 1 : right.Raw),
         RelationFold fold => SideOf(fold.Reduced),

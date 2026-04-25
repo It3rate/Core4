@@ -29,9 +29,9 @@ public sealed class Measure : IElement
 
     public Carrier Carrier => carrier;
 
-    public long PartitionCount => RelationFold.PartitionCountOf(Raw, 0);
+    public long PartitionCount => 0;
 
-    public IEnumerable<PartitionStep> Partitions() => RelationFold.PartitionsOf(Raw, 0);
+    public IEnumerable<PartitionStep> Partitions() => Array.Empty<PartitionStep>();
 
     internal static Measure Fixed(long raw, Carrier? carrier = null) => new(raw, carrier ?? Carrier.Unbound, usesOffset: false);
 

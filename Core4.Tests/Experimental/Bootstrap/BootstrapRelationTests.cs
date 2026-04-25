@@ -44,6 +44,15 @@ public sealed class BootstrapRelationTests
     }
 
     [Fact]
+    public void IsolatedRawMeasureDoesNotImplyOriginFlowOrPartitions()
+    {
+        var point = new BootstrapMeasure(-10);
+
+        Assert.Equal(0, point.PartitionCount);
+        Assert.Empty(point.Partitions());
+    }
+
+    [Fact]
     public void RawMeasureLoopPreservesDirectionAcrossAllTicks()
     {
         var dominantStart = new BootstrapMeasure(10);
@@ -75,6 +84,27 @@ public sealed class BootstrapRelationTests
         Assert.Equal((8L, 0L), Fold(Assert.IsType<BootstrapRelation>(point)));
         Assert.Equal((4L, 1L), Fold(unit));
         Assert.Equal((8L, 4L), Read(new BootstrapRelationFold(point, unit)));
+    }
+
+    [Fact]
+    public void PointClaimUsesStructuralForwardSideInsteadOfRawMeasureSign()
+    {
+        var point = Assert.IsType<BootstrapRelation>(BootstrapRelation.Claim(new BootstrapMeasure(-8)));
+
+        Assert.Equal((8L, 0L), Fold(point));
+        Assert.Equal(
+            new[]
+            {
+                new BootstrapPartitionStep(0, 1),
+                new BootstrapPartitionStep(1, 1),
+                new BootstrapPartitionStep(2, 1),
+                new BootstrapPartitionStep(3, 1),
+                new BootstrapPartitionStep(4, 1),
+                new BootstrapPartitionStep(5, 1),
+                new BootstrapPartitionStep(6, 1),
+                new BootstrapPartitionStep(7, 1),
+            },
+            point.Partitions().ToArray());
     }
 
     [Fact]
@@ -139,6 +169,27 @@ public sealed class BootstrapRelationTests
             {
                 new BootstrapPartitionStep(-10, 1),
                 new BootstrapPartitionStep(-9, 1),
+                new BootstrapPartitionStep(-8, 1),
+                new BootstrapPartitionStep(-7, 1),
+                new BootstrapPartitionStep(-6, 1),
+                new BootstrapPartitionStep(-5, 1),
+                new BootstrapPartitionStep(-4, 1),
+                new BootstrapPartitionStep(-3, 1),
+                new BootstrapPartitionStep(-2, 1),
+                new BootstrapPartitionStep(-1, 1),
+            },
+            opposedPoint.Partitions().ToArray());
+    }
+
+    [Fact]
+    public void OpposedSidePointClaimUsesStructuralOpposedSideInsteadOfRawMeasureSign()
+    {
+        var opposedPoint = Assert.IsType<BootstrapRelation>(BootstrapRelation.ClaimOpposed(new BootstrapMeasure(-8)));
+
+        Assert.Equal((8L, 0L), Fold(opposedPoint));
+        Assert.Equal(
+            new[]
+            {
                 new BootstrapPartitionStep(-8, 1),
                 new BootstrapPartitionStep(-7, 1),
                 new BootstrapPartitionStep(-6, 1),
