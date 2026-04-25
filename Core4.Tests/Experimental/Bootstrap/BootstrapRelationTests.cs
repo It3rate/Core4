@@ -3,6 +3,11 @@ using BootstrapRelationFold = Core4.Experimental.Bootstrap.RelationFold;
 using BootstrapRelation = Core4.Experimental.Bootstrap.Relation;
 using BootstrapCarrier = Core4.Experimental.Bootstrap.Carrier;
 using BootstrapPartitionStep = Core4.Experimental.Bootstrap.PartitionStep;
+using BootstrapSupportProjection = Core4.Experimental.Bootstrap.SupportProjection;
+using BootstrapSupportSpanUtilities = Core4.Experimental.Bootstrap.SupportSpanUtilities;
+using BootstrapDirectedSupportSpan = Core4.Experimental.Bootstrap.DirectedSupportSpan;
+using BootstrapSupportStateSpan = Core4.Experimental.Bootstrap.SupportStateSpan;
+using BootstrapSupportReadEquations = Core4.Experimental.Bootstrap.SupportReadEquations;
 
 namespace Core4.Tests.Experimental.Bootstrap;
 
@@ -946,6 +951,122 @@ public sealed class BootstrapRelationTests
         Assert.Equal((112L, 4L), ReadElement(fold.Projected));
     }
 
+    [Fact]
+    public void SupportProjectionCanReadSupportTensionAndResidueFromDirectedSegmentLikePair()
+    {
+        var carrier = new BootstrapCarrier(10);
+        var open = BootstrapRelation.Open();
+        var expansiveUnit = new BootstrapRelation(new BootstrapMeasure(10, carrier), new BootstrapMeasure(14, carrier));
+        var contractiveUnit = new BootstrapRelation(new BootstrapMeasure(14, carrier), new BootstrapMeasure(10, carrier));
+        var forward = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(8, carrier), open), expansiveUnit);
+        var reverse = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(2, carrier), open), contractiveUnit);
+        var segment = new BootstrapRelation(forward, reverse);
+
+        Assert.Equal(new[] { (0L, 8L) }, ReadSupport(BootstrapSupportProjection.SupportOn(segment, carrier)));
+        Assert.Equal(new[] { (0L, 2L) }, ReadSupport(BootstrapSupportProjection.TensionOn(segment, carrier)));
+        Assert.Equal(new[] { (2L, 8L) }, ReadSupport(BootstrapSupportProjection.ExclusiveSupportOn(segment, carrier)));
+        Assert.Equal(new[] { (2L, 8L) }, ReadSupport(BootstrapSupportProjection.ForwardResidueOn(segment, carrier)));
+        Assert.Empty(ReadSupport(BootstrapSupportProjection.ReverseResidueOn(segment, carrier)));
+    }
+
+    [Fact]
+    public void SupportProjectionCanPreserveReverseResidueWhenReverseSupportExtendsFurther()
+    {
+        var carrier = new BootstrapCarrier(10);
+        var open = BootstrapRelation.Open();
+        var expansiveUnit = new BootstrapRelation(new BootstrapMeasure(10, carrier), new BootstrapMeasure(14, carrier));
+        var contractiveUnit = new BootstrapRelation(new BootstrapMeasure(14, carrier), new BootstrapMeasure(10, carrier));
+        var forward = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(8, carrier), open), expansiveUnit);
+        var reverse = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(12, carrier), open), contractiveUnit);
+        var segment = new BootstrapRelation(forward, reverse);
+
+        Assert.Equal(new[] { (0L, 12L) }, ReadSupport(BootstrapSupportProjection.SupportOn(segment, carrier)));
+        Assert.Equal(new[] { (0L, 8L) }, ReadSupport(BootstrapSupportProjection.TensionOn(segment, carrier)));
+        Assert.Equal(new[] { (8L, 12L) }, ReadSupport(BootstrapSupportProjection.ExclusiveSupportOn(segment, carrier)));
+        Assert.Empty(ReadSupport(BootstrapSupportProjection.ForwardResidueOn(segment, carrier)));
+        Assert.Equal(new[] { (12L, 8L) }, ReadSupport(BootstrapSupportProjection.ReverseResidueOn(segment, carrier)));
+    }
+
+    [Fact]
+    public void SupportReadEquationsExposeNamedAndUncommittedNetSupportReads()
+    {
+        var overlap = new BootstrapSupportStateSpan(0, 2, -1, 1);
+        var forwardResidue = new BootstrapSupportStateSpan(2, 8, 0, 1);
+
+        Assert.Equal(0, BootstrapSupportReadEquations.Net(overlap.Reverse, overlap.Forward));
+        Assert.Equal(2, BootstrapSupportReadEquations.TotalSupport(overlap.Reverse, overlap.Forward));
+        Assert.Equal(1, BootstrapSupportReadEquations.ForwardOccupancy(overlap.Reverse, overlap.Forward));
+        Assert.Equal(-1, BootstrapSupportReadEquations.ReverseOccupancy(overlap.Reverse, overlap.Forward));
+        Assert.Equal(1, BootstrapSupportReadEquations.Tension(overlap.Reverse, overlap.Forward));
+        Assert.Equal(0, BootstrapSupportReadEquations.Exclusive(overlap.Reverse, overlap.Forward));
+        Assert.Equal(1, BootstrapSupportReadEquations.LargerFlow(overlap.Reverse, overlap.Forward));
+        Assert.Equal(2, BootstrapSupportReadEquations.CanceledSupport(overlap.Reverse, overlap.Forward));
+
+        Assert.Equal(1, BootstrapSupportReadEquations.Net(forwardResidue.Reverse, forwardResidue.Forward));
+        Assert.Equal(1, BootstrapSupportReadEquations.TotalSupport(forwardResidue.Reverse, forwardResidue.Forward));
+        Assert.Equal(1, BootstrapSupportReadEquations.ForwardOccupancy(forwardResidue.Reverse, forwardResidue.Forward));
+        Assert.Equal(0, BootstrapSupportReadEquations.ReverseOccupancy(forwardResidue.Reverse, forwardResidue.Forward));
+        Assert.Equal(0, BootstrapSupportReadEquations.Tension(forwardResidue.Reverse, forwardResidue.Forward));
+        Assert.Equal(1, BootstrapSupportReadEquations.Exclusive(forwardResidue.Reverse, forwardResidue.Forward));
+        Assert.Equal(1, BootstrapSupportReadEquations.ForwardResidue(forwardResidue.Reverse, forwardResidue.Forward));
+        Assert.Equal(0, BootstrapSupportReadEquations.ReverseResidue(forwardResidue.Reverse, forwardResidue.Forward));
+    }
+
+    [Fact]
+    public void SupportProjectionCanUseUnnamedNetSupportEquationReads()
+    {
+        var carrier = new BootstrapCarrier(10);
+        var open = BootstrapRelation.Open();
+        var expansiveUnit = new BootstrapRelation(new BootstrapMeasure(10, carrier), new BootstrapMeasure(14, carrier));
+        var contractiveUnit = new BootstrapRelation(new BootstrapMeasure(14, carrier), new BootstrapMeasure(10, carrier));
+        var forward = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(8, carrier), open), expansiveUnit);
+        var reverse = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(2, carrier), open), contractiveUnit);
+        var segment = new BootstrapRelation(forward, reverse);
+
+        Assert.Equal(new[] { (0L, 8L) }, ReadSupport(BootstrapSupportProjection.ProjectOn(segment, carrier, BootstrapSupportReadEquations.ForwardOccupancy)));
+        Assert.Equal(new[] { (2L, 0L) }, ReadSupport(BootstrapSupportProjection.ProjectOn(segment, carrier, BootstrapSupportReadEquations.ReverseOccupancy, preserveDirection: true)));
+        Assert.Equal(new[] { (0L, 8L) }, ReadSupport(BootstrapSupportProjection.ProjectOn(segment, carrier, BootstrapSupportReadEquations.LargerFlow, preserveDirection: true)));
+    }
+
+    [Fact]
+    public void SupportSpanUtilitiesDiscoverDirectedCarrierSpansWithoutCollapsingOccurrences()
+    {
+        var carrier = new BootstrapCarrier(10);
+        var open = BootstrapRelation.Open();
+        var expansiveUnit = new BootstrapRelation(new BootstrapMeasure(10, carrier), new BootstrapMeasure(14, carrier));
+        var contractiveUnit = new BootstrapRelation(new BootstrapMeasure(14, carrier), new BootstrapMeasure(10, carrier));
+        var forward = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(8, carrier), open), expansiveUnit);
+        var reverse = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(2, carrier), open), contractiveUnit);
+        var segment = new BootstrapRelation(forward, reverse);
+
+        Assert.Equal(
+            new[]
+            {
+                new BootstrapDirectedSupportSpan(0, 8, 1),
+                new BootstrapDirectedSupportSpan(0, 2, -1),
+            },
+            BootstrapSupportSpanUtilities.DiscoverDirectedSpans(segment, carrier));
+    }
+
+    [Fact]
+    public void SupportSpanUtilitiesBuildSupportStateSpansWithSignedReverseAndForwardOccupancies()
+    {
+        var states = BootstrapSupportSpanUtilities.BuildStateSpans(
+            new[]
+            {
+                new BootstrapDirectedSupportSpan(0, 8, 1),
+                new BootstrapDirectedSupportSpan(0, 2, -1),
+            });
+
+        Assert.Equal(
+            new[]
+            {
+                new BootstrapSupportStateSpan(0, 2, -1, 1),
+                new BootstrapSupportStateSpan(2, 8, 0, 1),
+            },
+            states);
+    }
+
     private static (long First, long Second) Fold(BootstrapRelation relation) =>
         Read(new BootstrapRelationFold(relation.Left, relation.Right));
 
@@ -959,4 +1080,13 @@ public sealed class BootstrapRelationTests
             BootstrapRelation relation => Fold(relation),
             _ => (Assert.IsType<BootstrapMeasure>(element).Raw, 0)
         };
+
+    private static (long Start, long End)[] ReadSupport(Core4.Experimental.Bootstrap.IElement element) => element switch
+    {
+        BootstrapMeasure measure when measure.Raw == 0 => [],
+        BootstrapRelation relation when relation.Left is BootstrapMeasure start && relation.Right is BootstrapMeasure end
+            => [(start.Raw, end.Raw)],
+        BootstrapRelation relation => ReadSupport(relation.Left).Concat(ReadSupport(relation.Right)).ToArray(),
+        _ => throw new Xunit.Sdk.XunitException($"Unsupported support projection element: {element.GetType().Name}")
+    };
 }
