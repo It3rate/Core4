@@ -1018,6 +1018,35 @@ public sealed class BootstrapRelationTests
     }
 
     [Fact]
+    public void SupportReadEquationsExposeExplicitFourStateTruthTables()
+    {
+        var empty = new BootstrapRelation(new BootstrapMeasure(0), new BootstrapMeasure(0));
+        var reverseOnly = new BootstrapRelation(new BootstrapMeasure(-1), new BootstrapMeasure(0));
+        var forwardOnly = new BootstrapRelation(new BootstrapMeasure(0), new BootstrapMeasure(1));
+        var both = new BootstrapRelation(new BootstrapMeasure(-1), new BootstrapMeasure(1));
+
+        Assert.Equal((0L, 0L), ReadFlowPair(BootstrapSupportReadEquations.Support(empty)));
+        Assert.Equal((-1L, 0L), ReadFlowPair(BootstrapSupportReadEquations.Support(reverseOnly)));
+        Assert.Equal((0L, 1L), ReadFlowPair(BootstrapSupportReadEquations.Support(forwardOnly)));
+        Assert.Equal((-1L, 1L), ReadFlowPair(BootstrapSupportReadEquations.Support(both)));
+
+        Assert.Equal((0L, 0L), ReadFlowPair(BootstrapSupportReadEquations.ForwardOccupancy(empty)));
+        Assert.Equal((0L, 0L), ReadFlowPair(BootstrapSupportReadEquations.ForwardOccupancy(reverseOnly)));
+        Assert.Equal((0L, 1L), ReadFlowPair(BootstrapSupportReadEquations.ForwardOccupancy(forwardOnly)));
+        Assert.Equal((0L, 1L), ReadFlowPair(BootstrapSupportReadEquations.ForwardOccupancy(both)));
+
+        Assert.Equal((0L, 0L), ReadFlowPair(BootstrapSupportReadEquations.ReverseOccupancy(empty)));
+        Assert.Equal((-1L, 0L), ReadFlowPair(BootstrapSupportReadEquations.ReverseOccupancy(reverseOnly)));
+        Assert.Equal((0L, 0L), ReadFlowPair(BootstrapSupportReadEquations.ReverseOccupancy(forwardOnly)));
+        Assert.Equal((-1L, 0L), ReadFlowPair(BootstrapSupportReadEquations.ReverseOccupancy(both)));
+
+        Assert.Equal((0L, 0L), ReadFlowPair(BootstrapSupportReadEquations.Tension(empty)));
+        Assert.Equal((0L, 0L), ReadFlowPair(BootstrapSupportReadEquations.Tension(reverseOnly)));
+        Assert.Equal((0L, 0L), ReadFlowPair(BootstrapSupportReadEquations.Tension(forwardOnly)));
+        Assert.Equal((-1L, 1L), ReadFlowPair(BootstrapSupportReadEquations.Tension(both)));
+    }
+
+    [Fact]
     public void SupportProjectionCanUseUnnamedNetSupportEquationReads()
     {
         var carrier = new BootstrapCarrier(10);
