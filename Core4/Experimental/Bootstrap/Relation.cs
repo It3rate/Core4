@@ -10,6 +10,10 @@ public sealed class Relation : IElement
 
     public static Relation Open() => new(Measure.Fixed(0), Measure.Fixed(0));
 
+    public static IElement Claim(IElement value) => new Relation(value, Open());
+
+    public static IElement ClaimOpposed(IElement value) => new Relation(Open(), value);
+
     public static IElement Compose(IElement left, IElement right) => CombineStructural(left, right);
 
     public static IElement Apply(IElement transform, IElement input) => CombineStructural(transform, input);
@@ -24,8 +28,8 @@ public sealed class Relation : IElement
     public static IElement Invert(IElement element) => element switch
     {
         RelationFold fold => new RelationFold(fold.Left, Oppose(fold.Right)),
-        Relation relation when IsOpenSite(relation.Right) && relation.Left is Measure => new Relation(relation.Right, relation.Left),
-        Relation relation when IsOpenSite(relation.Left) && relation.Right is Measure => new Relation(relation.Right, relation.Left),
+        Relation relation when IsOpenSite(relation.Right) && relation.Left is Measure => ClaimOpposed(relation.Left),
+        Relation relation when IsOpenSite(relation.Left) && relation.Right is Measure => Claim(relation.Right),
         Relation relation when relation.Left is Measure && relation.Right is Measure => Oppose(relation),
         Relation relation => new Relation(relation.Left, Oppose(relation.Right)),
         _ => element

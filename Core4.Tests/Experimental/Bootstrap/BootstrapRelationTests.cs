@@ -58,23 +58,21 @@ public sealed class BootstrapRelationTests
     [Fact]
     public void ZeroPartitionPointClaimsAppendWithoutMixing()
     {
-        var open = BootstrapRelation.Open();
-        var leftPoint = new BootstrapRelation(new BootstrapMeasure(8), open);
-        var rightPoint = new BootstrapRelation(new BootstrapMeasure(12), open);
+        var leftPoint = BootstrapRelation.Claim(new BootstrapMeasure(8));
+        var rightPoint = BootstrapRelation.Claim(new BootstrapMeasure(12));
 
-        Assert.Equal((8L, 0L), Fold(leftPoint));
-        Assert.Equal((12L, 0L), Fold(rightPoint));
+        Assert.Equal((8L, 0L), Fold(Assert.IsType<BootstrapRelation>(leftPoint)));
+        Assert.Equal((12L, 0L), Fold(Assert.IsType<BootstrapRelation>(rightPoint)));
         Assert.Equal((20L, 0L), Read(new BootstrapRelationFold(leftPoint, rightPoint)));
     }
 
     [Fact]
     public void PointClaimCanBeResolvedThroughSharedUnit()
     {
-        var open = BootstrapRelation.Open();
-        var point = new BootstrapRelation(new BootstrapMeasure(8), open);
+        var point = BootstrapRelation.Claim(new BootstrapMeasure(8));
         var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
 
-        Assert.Equal((8L, 0L), Fold(point));
+        Assert.Equal((8L, 0L), Fold(Assert.IsType<BootstrapRelation>(point)));
         Assert.Equal((4L, 1L), Fold(unit));
         Assert.Equal((8L, 4L), Read(new BootstrapRelationFold(point, unit)));
     }
@@ -82,10 +80,9 @@ public sealed class BootstrapRelationTests
     [Fact]
     public void SharedBasisSmearingProducesMultiplicationLikeResult()
     {
-        var open = BootstrapRelation.Open();
         var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
-        var two = new BootstrapRelation(new BootstrapRelation(new BootstrapMeasure(8), open), unit);
-        var three = new BootstrapRelation(new BootstrapRelation(new BootstrapMeasure(12), open), unit);
+        var two = new BootstrapRelation(BootstrapRelation.Claim(new BootstrapMeasure(8)), unit);
+        var three = new BootstrapRelation(BootstrapRelation.Claim(new BootstrapMeasure(12)), unit);
 
         Assert.Equal((8L, 4L), Fold(two));
         Assert.Equal((12L, 4L), Fold(three));
@@ -95,9 +92,8 @@ public sealed class BootstrapRelationTests
     [Fact]
     public void PartitionIteratorUsesNaturalFlowAndPlacesPartialWidthFirst()
     {
-        var open = BootstrapRelation.Open();
         var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
-        var value = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(26), open), unit);
+        var value = new BootstrapRelationFold(BootstrapRelation.Claim(new BootstrapMeasure(26)), unit);
         var partitions = value.Partitions().ToArray();
 
         Assert.Equal(7, value.PartitionCount);
@@ -118,9 +114,8 @@ public sealed class BootstrapRelationTests
     [Fact]
     public void OpposedSidePointClaimOnPositiveUnitStartsAtLeftmostSide()
     {
-        var open = BootstrapRelation.Open();
         var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
-        var opposedPoint = Assert.IsType<BootstrapRelation>(BootstrapRelation.Invert(new BootstrapRelation(new BootstrapMeasure(10), open)));
+        var opposedPoint = Assert.IsType<BootstrapRelation>(BootstrapRelation.ClaimOpposed(new BootstrapMeasure(10)));
         var value = new BootstrapRelationFold(opposedPoint, unit);
 
         Assert.Equal(
@@ -136,8 +131,7 @@ public sealed class BootstrapRelationTests
     [Fact]
     public void OpposedSidePointClaimFoldsToNegativeUnboundShadowInternally()
     {
-        var open = BootstrapRelation.Open();
-        var opposedPoint = Assert.IsType<BootstrapRelation>(BootstrapRelation.Invert(new BootstrapRelation(new BootstrapMeasure(10), open)));
+        var opposedPoint = Assert.IsType<BootstrapRelation>(BootstrapRelation.ClaimOpposed(new BootstrapMeasure(10)));
 
         Assert.Equal((-10L, 0L), Fold(opposedPoint));
     }
@@ -145,10 +139,9 @@ public sealed class BootstrapRelationTests
     [Fact]
     public void NegativeUnitStartsAtRightmostSideAndFlowsLeft()
     {
-        var open = BootstrapRelation.Open();
         var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
         var inverseUnit = BootstrapRelation.Oppose(unit);
-        var value = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(10), open), inverseUnit);
+        var value = new BootstrapRelationFold(BootstrapRelation.Claim(new BootstrapMeasure(10)), inverseUnit);
 
         Assert.Equal(
             new[]
@@ -163,8 +156,7 @@ public sealed class BootstrapRelationTests
     [Fact]
     public void ResolvedValueCanBeInvertedThroughOpposedBasis()
     {
-        var open = BootstrapRelation.Open();
-        var point = new BootstrapRelation(new BootstrapMeasure(8), open);
+        var point = BootstrapRelation.Claim(new BootstrapMeasure(8));
         var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
         var value = new BootstrapRelationFold(point, unit);
         var inverted = Assert.IsType<BootstrapRelationFold>(BootstrapRelation.Invert(value));
