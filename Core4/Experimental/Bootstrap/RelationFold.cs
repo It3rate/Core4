@@ -99,12 +99,12 @@ public sealed class RelationFold : IElement
             var extent = right.First - left.First;
             return extent == 0
                 ? new(0, 0)
-                : new(extent, Math.Sign(extent));
+                : new(Math.Abs(extent), Math.Sign(extent));
         }
 
         if (!left.IsPartitioned && right.IsPartitioned)
         {
-            return new(left.First, right.First);
+            return new(left.First, SignedSurfaceOf(right));
         }
 
         if (right.IsUnbound)
@@ -449,6 +449,13 @@ public sealed class RelationFold : IElement
 
         return left.ResolvedSecond;
     }
+
+    private static long SignedSurfaceOf(RelationState value) => value.Second switch
+    {
+        null => value.First,
+        0 => value.First,
+        var second => Math.Sign(second.Value) * Math.Abs(value.First)
+    };
 
     private static long ToLong(double value) => (long)Math.Round(value, MidpointRounding.AwayFromZero);
 

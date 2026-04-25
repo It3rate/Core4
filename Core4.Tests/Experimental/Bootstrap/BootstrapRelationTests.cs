@@ -52,7 +52,7 @@ public sealed class BootstrapRelationTests
         var recessiveEnd = new BootstrapMeasure(10);
 
         Assert.Equal((10L, 1L), Read(new BootstrapRelationFold(dominantStart, dominantEnd)));
-        Assert.Equal((-10L, -1L), Read(new BootstrapRelationFold(recessiveStart, recessiveEnd)));
+        Assert.Equal((10L, -1L), Read(new BootstrapRelationFold(recessiveStart, recessiveEnd)));
     }
 
     [Fact]
