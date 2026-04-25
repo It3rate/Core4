@@ -558,12 +558,21 @@ public sealed class RelationTests
     }
 
     [Fact]
-    public void MeasureCanCarryKernelCarrierIdentity()
+    public void BareMeasureDefaultsToUnboundCarrier()
+    {
+        var measure = new KernelMeasure(8);
+
+        Assert.Equal(KernelCarrier.Unbound, measure.Carrier);
+        Assert.Equal(KernelMeasure.Unbound(8).Carrier, measure.Carrier);
+    }
+
+    [Fact]
+    public void MeasureCanAttachToCarrierIdentity()
     {
         var horizontal = new KernelCarrier(10);
         var vertical = new KernelCarrier(20);
-        var x = new KernelMeasure(8, horizontal);
-        var y = new KernelMeasure(8, vertical);
+        var x = KernelMeasure.On(horizontal, 8);
+        var y = KernelMeasure.On(vertical, 8);
 
         Assert.Equal(horizontal, x.Carrier);
         Assert.Equal(vertical, y.Carrier);

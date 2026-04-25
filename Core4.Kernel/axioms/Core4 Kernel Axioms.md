@@ -38,9 +38,17 @@ This keeps the primitive substrate weak. Meaning is discovered by folding,
 projecting, composing, and inspecting relations instead of by assigning a large
 taxonomy of named element kinds.
 
-## 2. Measure As Ambient Carrier Coordinate
+## 2. Measure As Carrier-Neutral Coordinate
 
-A `Measure` is a raw signed coordinate on a `Carrier`.
+A `Measure` is a raw signed coordinate. By default it belongs to
+`Carrier.Unbound`, which means it is carrier-neutral structure rather than a
+claim already attached to physical or semantic carrier meaning.
+
+The current construction surface is:
+
+- `new Measure(raw)` = unbound measure
+- `Measure.Unbound(raw)` = explicit unbound measure
+- `Measure.On(carrier, raw)` = measure attached to a carrier
 
 A lone `Measure` is allowed, but it is not a segment, not a basis, and not a
 flow by itself. It has:
@@ -52,9 +60,12 @@ flow by itself. It has:
 Raw sign remains part of the substrate coordinate. Claim direction comes from
 relation structure, not from whether the raw measure is positive or negative.
 
-`Measure.Offset` is the current temporary way to model a sliding substrate.
+`Measure.Offset` is the current temporary way to model a sliding read surface.
 Normal measures read through the offset; fixed measures are internal readings
 that do not slide. This is not yet a full frame system.
+
+`Carrier.Primary` remains available for an explicitly generic concrete carrier,
+but it is no longer the default for bare measures.
 
 ## 3. Relation As Ordered Primitive
 
@@ -183,6 +194,10 @@ The current built-ins are:
 - `Carrier.Unbound`
 - `Carrier.Primary`
 
+`Carrier.Unbound` is the carrier-neutral floor for floating structure. A
+structure on this carrier may still have internal numeric shape, but it has not
+yet been pinned to a carrier-local meaning.
+
 A carrier can be crystallized from an element. Crystallization records:
 
 - source structure
@@ -201,6 +216,26 @@ Carrier projection is intentionally shallow. `Carrier.TryProject` accepts only
 inputs whose carrier occurrence surface matches the crystallized surface in
 order. Positive signed entries multiply. Negative signed entries divide. A
 mismatch rejects projection instead of guessing.
+
+## 9A. Attachment And Scaling Direction
+
+The likely next frame mechanism has three levels:
+
+- unbound structure with internal numeric shape
+- origin-only attachment, where one structure site is pinned to one carrier site
+- origin-plus-unit attachment, where a structure relation is pinned to a
+  carrier relation and can be reread through that carrier scale
+
+The kernel does not yet implement this attachment object. The intended
+Core4-native direction is that scaling should come from a relation between an
+unbound basis and a carrier-local basis, not from an opaque scale tag.
+
+If a structure represents seven unit repetitions and the attached unit changes,
+unfrozen dependent structure should be reread through the new unit. Frozen
+landmarks or invariants should resist that reread and produce compatible motion
+or tension instead. Orthogonal participation should not be guessed by special
+case; it should be rediscovered by the same frame relation, support projection,
+and tension mechanisms once those are explicit.
 
 ## 10. Support Reads Are Lower Projections
 
@@ -244,6 +279,8 @@ is to extend the numeric structure, not to attach symbolic bookkeeping.
 The following are intentionally not settled by the kernel yet:
 
 - explicit pinned site and frame-shift structure
+- origin-only and origin-plus-unit attachment of unbound structure to carriers
+- frame scaling when an attached unit changes
 - full freeze and attachment commitment
 - runtime hardening and relaxation of relation denominators
 - rich repeat lineage for powers, roots, loops, and transformed reuse
@@ -264,7 +301,11 @@ The most important corrections are:
 
 - Some older axioms say an extent requires first freezing a fixed origin. The
   kernel currently allows raw ordered measure pairs to fold directly into an
-  extent-like reading. Stable origin, pin, and frame-shift are not explicit yet.
+  extent-like floating reading. Stable origin, pin, and frame-shift are not
+  explicit yet.
+- Earlier kernel text treated a bare `Measure` as if it lived on
+  `Carrier.Primary`. The current kernel treats bare measures as
+  `Carrier.Unbound`; carrier-local meaning must be explicit.
 - Some older bootstrap text says a raw relation such as `10 -> 20` folds to
   `10/10`. The current kernel folds raw measure pairs to `abs(delta)/sign`, so
   `10 -> 20` reads as `10/1` and `20 -> 10` reads as `10/-1`.
