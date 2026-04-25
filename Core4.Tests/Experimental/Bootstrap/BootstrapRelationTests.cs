@@ -129,11 +129,26 @@ public sealed class BootstrapRelationTests
     }
 
     [Fact]
-    public void OpposedSidePointClaimFoldsToNegativeUnboundShadowInternally()
+    public void OpposedSidePointClaimPreservesMagnitudeAndTracksItsOwnSide()
     {
         var opposedPoint = Assert.IsType<BootstrapRelation>(BootstrapRelation.ClaimOpposed(new BootstrapMeasure(10)));
 
-        Assert.Equal((-10L, 0L), Fold(opposedPoint));
+        Assert.Equal((10L, 0L), Fold(opposedPoint));
+        Assert.Equal(
+            new[]
+            {
+                new BootstrapPartitionStep(-10, 1),
+                new BootstrapPartitionStep(-9, 1),
+                new BootstrapPartitionStep(-8, 1),
+                new BootstrapPartitionStep(-7, 1),
+                new BootstrapPartitionStep(-6, 1),
+                new BootstrapPartitionStep(-5, 1),
+                new BootstrapPartitionStep(-4, 1),
+                new BootstrapPartitionStep(-3, 1),
+                new BootstrapPartitionStep(-2, 1),
+                new BootstrapPartitionStep(-1, 1),
+            },
+            opposedPoint.Partitions().ToArray());
     }
 
     [Fact]

@@ -50,7 +50,7 @@ public sealed class RelationFold : IElement
 
     internal static long PartitionCountFor(IElement element) => PartitionsFor(element).LongCount();
 
-    internal static IEnumerable<PartitionStep> PartitionsOf(long first, long second)
+    internal static IEnumerable<PartitionStep> PartitionsOf(long first, long second, long side = 0)
     {
         if (first == 0)
         {
@@ -58,11 +58,18 @@ public sealed class RelationFold : IElement
         }
 
         var unitSize = second == 0 ? 1 : Math.Abs(second);
-        var flowDirection = second == 0 ? Math.Sign(first) : Math.Sign(second);
+        var flowDirection = second == 0
+            ? side != 0 ? 1 : Math.Sign(first)
+            : Math.Sign(second);
         var totalWidth = Math.Abs(first);
         var leadWidth = totalWidth % unitSize;
         var firstWidth = leadWidth == 0 ? unitSize : leadWidth;
-        var runStart = flowDirection >= 0 ? Math.Min(0, first) : Math.Max(0, first);
+        var runStart = side switch
+        {
+            < 0 => flowDirection >= 0 ? -totalWidth : 0,
+            > 0 => flowDirection >= 0 ? 0 : totalWidth,
+            _ => flowDirection >= 0 ? Math.Min(0, first) : Math.Max(0, first)
+        };
         var emitted = 0L;
         var currentStart = runStart;
 
@@ -109,12 +116,12 @@ public sealed class RelationFold : IElement
 
         if (left.IsUnbound && right.IsRaw)
         {
-            return new(-right.First, 0);
+            return new(right.First, 0, -1);
         }
 
         if (right.IsUnbound)
         {
-            return new(left.First + right.First, left.ResolvedSecond);
+            return new(left.First + right.First, left.ResolvedSecond, left.Side);
         }
 
         var result = 0d;
@@ -198,7 +205,7 @@ public sealed class RelationFold : IElement
     {
         if (!ShouldTraverseReducedStructure(reduced))
         {
-            return PartitionsOf(RawOf(first), RawOf(second));
+            return PartitionsOf(RawOf(first), RawOf(second), SideOf(reduced));
         }
 
         return PartitionsForPreservedStructure(reduced);
@@ -217,11 +224,23 @@ public sealed class RelationFold : IElement
 
         if (leftOpenSites > 0 && rightOpenSites == 0)
         {
+            if (relation.Right is Measure)
+            {
+                var folded = Fold(relation.Left, relation.Right);
+                return PartitionsOf(folded.First, folded.ResolvedSecond, folded.Side);
+            }
+
             return PartitionsFor(relation.Right);
         }
 
         if (rightOpenSites > 0 && leftOpenSites == 0)
         {
+            if (relation.Left is Measure)
+            {
+                var folded = Fold(relation.Left, relation.Right);
+                return PartitionsOf(folded.First, folded.ResolvedSecond, folded.Side);
+            }
+
             return PartitionsFor(relation.Left);
         }
 
@@ -231,13 +250,14 @@ public sealed class RelationFold : IElement
     private static IEnumerable<PartitionStep> FoldPartitionsFor(IElement element) => element switch
     {
         Measure measure => PartitionsOf(measure.Raw, 0),
-        RelationFold fold => PartitionsOf(RawOf(fold.First), RawOf(fold.Second)),
+        RelationFold fold => PartitionsOf(RawOf(fold.First), RawOf(fold.Second), SideOf(fold.Reduced)),
         Relation relation => FoldPartitionsForRelation(relation),
         _ => Array.Empty<PartitionStep>()
     };
 
     private static IEnumerable<PartitionStep> PartitionsForPreservedStructure(IElement element) => element switch
     {
+        Relation relation when Relation.OpenSiteCount(relation) > 0 => PartitionsForRelation(relation),
         Relation relation => PartitionsForPreservedStructure(relation.Left).Concat(PartitionsForPreservedStructure(relation.Right)),
         RelationFold fold when ShouldTraverseReducedStructure(fold.Reduced) => PartitionsForPreservedStructure(fold.Reduced),
         _ => PartitionsFor(element)
@@ -246,7 +266,7 @@ public sealed class RelationFold : IElement
     private static IEnumerable<PartitionStep> FoldPartitionsForRelation(Relation relation)
     {
         var folded = Fold(relation.Left, relation.Right);
-        return PartitionsOf(folded.First, folded.ResolvedSecond);
+        return PartitionsOf(folded.First, folded.ResolvedSecond, folded.Side);
     }
 
     private static IElement CollapseFully(IElement element)
@@ -435,9 +455,19 @@ public sealed class RelationFold : IElement
     private static RelationState Read(IElement element) => element switch
     {
         Measure measure => new(measure.Raw, null),
-        RelationFold fold => new(RawOf(fold.First), RawOf(fold.Second)),
+        RelationFold fold => new(RawOf(fold.First), RawOf(fold.Second), SideOf(fold.Reduced)),
         Relation relation => Fold(relation.Left, relation.Right),
         _ => new(0, null)
+    };
+
+    private static long SideOf(IElement element) => element switch
+    {
+        Relation relation when Relation.IsOpenSite(relation.Right) && relation.Left is Measure left => Math.Sign(left.Raw),
+        Relation relation when Relation.IsOpenSite(relation.Left) && relation.Right is Measure right => -Math.Sign(right.Raw == 0 ? 1 : right.Raw),
+        RelationFold fold when fold.Left is Measure left && Read(fold.Right).IsPartitioned => Math.Sign(left.Raw == 0 ? 1 : left.Raw),
+        RelationFold fold when fold.Right is Measure right && Read(fold.Left).IsPartitioned => -Math.Sign(right.Raw == 0 ? 1 : right.Raw),
+        RelationFold fold => SideOf(fold.Reduced),
+        _ => 0
     };
 
     private static long MergeSecond(RelationState left, RelationState right)
@@ -477,7 +507,7 @@ public sealed class RelationFold : IElement
     private static long LeastCommonMultiple(long left, long right) =>
         left == 0 || right == 0 ? 0 : Math.Abs(left / GreatestCommonDivisor(left, right) * right);
 
-    private readonly record struct RelationState(long First, long? Second)
+    private readonly record struct RelationState(long First, long? Second, long Side = 0)
     {
         public bool IsRaw => Second is null;
 
