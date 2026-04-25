@@ -42,7 +42,7 @@ public static class SupportProjection
 
             if (collapseToSupport)
             {
-                if (reverse < 0 || forward > 0)
+                if (reverse > 0 || forward > 0)
                 {
                     projected.Add(new(state.Start, state.End, 1));
                 }
@@ -50,7 +50,7 @@ public static class SupportProjection
                 continue;
             }
 
-            if (reverse < 0)
+            if (reverse > 0)
             {
                 projected.Add(new(state.Start, state.End, -1));
             }
@@ -111,8 +111,8 @@ public static class SupportProjection
             relation.Left is Measure reverseMeasure &&
             relation.Right is Measure forwardMeasure)
         {
-            reverse = reverseMeasure.Raw;
-            forward = forwardMeasure.Raw;
+            reverse = Math.Max(reverseMeasure.Raw, 0);
+            forward = Math.Max(forwardMeasure.Raw, 0);
             return;
         }
 

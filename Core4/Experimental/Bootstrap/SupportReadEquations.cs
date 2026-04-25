@@ -6,13 +6,11 @@ public static class SupportReadEquations
     private static readonly IElement ReverseSlot = Coefficients(1, 0);
     private static readonly IElement ForwardSlot = Coefficients(0, 1);
     private static readonly IElement BothSlots = Coefficients(1, 1);
-    private static readonly IElement BalancedSlots = Coefficients(-1, 1);
     private static readonly IElement EmptyTable = TruthTable(None, None, None, None);
     private static readonly IElement SupportTable = TruthTable(None, ReverseSlot, ForwardSlot, BothSlots);
     private static readonly IElement ForwardOccupancyTable = TruthTable(None, None, ForwardSlot, ForwardSlot);
     private static readonly IElement ReverseOccupancyTable = TruthTable(None, ReverseSlot, None, ReverseSlot);
-    private static readonly IElement TensionTable = TruthTable(None, None, None, BalancedSlots);
-    private static readonly IElement NetTable = TruthTable(None, ReverseSlot, ForwardSlot, BothSlots);
+    private static readonly IElement TensionTable = TruthTable(None, None, None, BothSlots);
     private static readonly IElement ForwardResidueTable = TruthTable(None, None, ForwardSlot, ForwardSlot);
     private static readonly IElement ReverseResidueTable = TruthTable(None, ReverseSlot, None, ReverseSlot);
     private static readonly IElement LargerForwardTable = TruthTable(None, ReverseSlot, ForwardSlot, ForwardSlot);
@@ -22,7 +20,7 @@ public static class SupportReadEquations
 
     public static IElement Support(IElement pair) => ApplyTable(pair, SupportTable);
 
-    public static IElement Net(IElement pair) => ScaleByTable(pair, NetTable, NetMagnitude);
+    public static IElement Net(IElement pair) => ScaleByTable(pair, LargerTableFor(pair), ExclusiveMagnitude);
 
     public static IElement ForwardOccupancy(IElement pair) => ApplyTable(pair, ForwardOccupancyTable);
 
@@ -30,17 +28,15 @@ public static class SupportReadEquations
 
     public static IElement Tension(IElement pair) => ScaleByTable(pair, TensionTable, TensionMagnitude);
 
-    public static IElement Exclusive(IElement pair) => ScaleByTable(pair, NetTable, NetMagnitude);
+    public static IElement Exclusive(IElement pair) => Net(pair);
 
-    public static IElement ForwardResidue(IElement pair) => ScaleByTable(pair, ForwardResidueTable, NetMagnitude);
+    public static IElement ForwardResidue(IElement pair) => ScaleByTable(pair, ForwardResidueTable, ForwardResidueMagnitude);
 
-    public static IElement ReverseResidue(IElement pair) => ScaleByTable(pair, ReverseResidueTable, NetMagnitude);
+    public static IElement ReverseResidue(IElement pair) => ScaleByTable(pair, ReverseResidueTable, ReverseResidueMagnitude);
 
     public static IElement LargerFlow(IElement pair)
     {
-        ReadPair(pair, out var reverse, out var forward);
-        var table = forward >= -reverse ? LargerForwardTable : LargerReverseTable;
-        return ApplyTable(pair, table);
+        return ApplyTable(pair, LargerTableFor(pair));
     }
 
     public static IElement CanceledSupport(IElement pair) => Tension(pair);
@@ -48,19 +44,33 @@ public static class SupportReadEquations
     public static long NetMagnitude(IElement pair)
     {
         ReadPair(pair, out var reverse, out var forward);
-        return forward + reverse;
+        return forward - reverse;
     }
 
     public static long SupportMagnitude(IElement pair)
     {
         ReadPair(pair, out var reverse, out var forward);
-        return forward - reverse;
+        return forward + reverse;
     }
 
     public static long TensionMagnitude(IElement pair)
     {
         ReadPair(pair, out var reverse, out var forward);
-        return Math.Min(forward, -reverse);
+        return Math.Min(forward, reverse);
+    }
+
+    public static long ExclusiveMagnitude(IElement pair) => Math.Abs(NetMagnitude(pair));
+
+    public static long ForwardResidueMagnitude(IElement pair)
+    {
+        ReadPair(pair, out var reverse, out var forward);
+        return Math.Max(forward - reverse, 0);
+    }
+
+    public static long ReverseResidueMagnitude(IElement pair)
+    {
+        ReadPair(pair, out var reverse, out var forward);
+        return Math.Max(reverse - forward, 0);
     }
 
     private static void ReadPair(IElement pair, out long reverse, out long forward)
@@ -69,8 +79,8 @@ public static class SupportReadEquations
             relation.Left is Measure reverseMeasure &&
             relation.Right is Measure forwardMeasure)
         {
-            reverse = reverseMeasure.Raw;
-            forward = forwardMeasure.Raw;
+            reverse = Math.Max(reverseMeasure.Raw, 0);
+            forward = Math.Max(forwardMeasure.Raw, 0);
             return;
         }
 
@@ -111,6 +121,12 @@ public static class SupportReadEquations
             new Relation(empty, reverseOnly),
             new Relation(forwardOnly, both));
 
+    private static IElement LargerTableFor(IElement pair)
+    {
+        ReadPair(pair, out var reverse, out var forward);
+        return forward >= reverse ? LargerForwardTable : LargerReverseTable;
+    }
+
     private static IElement ReadTruthEntry(IElement table, IElement pair)
     {
         ReadPair(pair, out var reverse, out var forward);
@@ -133,11 +149,11 @@ public static class SupportReadEquations
     {
         // TODO: These slot clamps are standing in for a future structural law.
         // The reverse slot should eventually be a container that rejects direct
-        // flow, and the forward slot should reject inverse flow, likely through
+        // flow, and the forward slot should reject reverse flow, likely through
         // the same boundary machinery used elsewhere. For now we truncate
         // incompatible emissions numerically so pair-valued operators remain
         // stable while that container/boundary layer is still missing.
-        var clampedReverse = Math.Min(reverse, 0);
+        var clampedReverse = Math.Max(reverse, 0);
         var clampedForward = Math.Max(forward, 0);
         return new Relation(Measure.Fixed(clampedReverse), Measure.Fixed(clampedForward));
     }

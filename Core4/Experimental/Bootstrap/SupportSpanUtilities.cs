@@ -23,11 +23,11 @@ public readonly record struct SupportStateSpan
 
     public long Forward { get; init; }
 
-    public long Net => Forward + Reverse;
+    public long Net => Forward - Reverse;
 
-    public long Support => Forward - Reverse;
+    public long Support => Forward + Reverse;
 
-    public long Tension => Math.Min(Forward, -Reverse);
+    public long Tension => Math.Min(Forward, Reverse);
 
     public long Exclusive => Math.Abs(Net);
 
@@ -106,7 +106,7 @@ public static class SupportSpanUtilities
                 continue;
             }
 
-            states.Add(new(start, end, -reverse, forward));
+            states.Add(new(start, end, reverse, forward));
         }
 
         return states.ToArray();
