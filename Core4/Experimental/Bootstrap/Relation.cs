@@ -21,6 +21,14 @@ public sealed class Relation : IElement
         _ => element
     };
 
+    public static IElement Invert(IElement element) => element switch
+    {
+        RelationFold fold => new RelationFold(fold.Left, Oppose(fold.Right)),
+        Relation relation when relation.Left is Measure && relation.Right is Measure => Oppose(relation),
+        Relation relation => new Relation(relation.Left, Oppose(relation.Right)),
+        _ => element
+    };
+
     public static int OpenSiteCount(IElement element) => CountOpenSites(element);
 
     public IElement Left { get; }

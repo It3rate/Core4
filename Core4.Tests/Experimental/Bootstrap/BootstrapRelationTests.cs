@@ -151,6 +151,18 @@ public sealed class BootstrapRelationTests
     }
 
     [Fact]
+    public void ResolvedValueCanBeInvertedThroughOpposedBasis()
+    {
+        var open = BootstrapRelation.Open();
+        var point = new BootstrapRelation(new BootstrapMeasure(8), open);
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var value = new BootstrapRelationFold(point, unit);
+        var inverted = Assert.IsType<BootstrapRelationFold>(BootstrapRelation.Invert(value));
+
+        Assert.Equal((8L, -4L), Read(inverted));
+    }
+
+    [Fact]
     public void OpenSiteCountIsDerivedFromStructure()
     {
         var open = BootstrapRelation.Open();
