@@ -990,26 +990,31 @@ public sealed class BootstrapRelationTests
     [Fact]
     public void SupportReadEquationsExposeNamedAndUncommittedNetSupportReads()
     {
-        var overlap = new BootstrapSupportStateSpan(0, 2, -1, 1);
-        var forwardResidue = new BootstrapSupportStateSpan(2, 8, 0, 1);
+        var overlap = new BootstrapRelation(new BootstrapMeasure(-1), new BootstrapMeasure(1));
+        var forwardResidue = new BootstrapRelation(new BootstrapMeasure(0), new BootstrapMeasure(1));
 
-        Assert.Equal(0, BootstrapSupportReadEquations.Net(overlap.Reverse, overlap.Forward));
-        Assert.Equal(2, BootstrapSupportReadEquations.TotalSupport(overlap.Reverse, overlap.Forward));
-        Assert.Equal(1, BootstrapSupportReadEquations.ForwardOccupancy(overlap.Reverse, overlap.Forward));
-        Assert.Equal(-1, BootstrapSupportReadEquations.ReverseOccupancy(overlap.Reverse, overlap.Forward));
-        Assert.Equal(1, BootstrapSupportReadEquations.Tension(overlap.Reverse, overlap.Forward));
-        Assert.Equal(0, BootstrapSupportReadEquations.Exclusive(overlap.Reverse, overlap.Forward));
-        Assert.Equal(1, BootstrapSupportReadEquations.LargerFlow(overlap.Reverse, overlap.Forward));
-        Assert.Equal(2, BootstrapSupportReadEquations.CanceledSupport(overlap.Reverse, overlap.Forward));
+        Assert.Equal((0L, 0L), ReadFlowPair(BootstrapSupportReadEquations.Net(overlap)));
+        Assert.Equal((-1L, 1L), ReadFlowPair(BootstrapSupportReadEquations.Support(overlap)));
+        Assert.Equal((0L, 1L), ReadFlowPair(BootstrapSupportReadEquations.ForwardOccupancy(overlap)));
+        Assert.Equal((-1L, 0L), ReadFlowPair(BootstrapSupportReadEquations.ReverseOccupancy(overlap)));
+        Assert.Equal((-1L, 1L), ReadFlowPair(BootstrapSupportReadEquations.Tension(overlap)));
+        Assert.Equal((0L, 0L), ReadFlowPair(BootstrapSupportReadEquations.Exclusive(overlap)));
+        Assert.Equal((0L, 1L), ReadFlowPair(BootstrapSupportReadEquations.LargerFlow(overlap)));
+        Assert.Equal((-1L, 1L), ReadFlowPair(BootstrapSupportReadEquations.CanceledSupport(overlap)));
 
-        Assert.Equal(1, BootstrapSupportReadEquations.Net(forwardResidue.Reverse, forwardResidue.Forward));
-        Assert.Equal(1, BootstrapSupportReadEquations.TotalSupport(forwardResidue.Reverse, forwardResidue.Forward));
-        Assert.Equal(1, BootstrapSupportReadEquations.ForwardOccupancy(forwardResidue.Reverse, forwardResidue.Forward));
-        Assert.Equal(0, BootstrapSupportReadEquations.ReverseOccupancy(forwardResidue.Reverse, forwardResidue.Forward));
-        Assert.Equal(0, BootstrapSupportReadEquations.Tension(forwardResidue.Reverse, forwardResidue.Forward));
-        Assert.Equal(1, BootstrapSupportReadEquations.Exclusive(forwardResidue.Reverse, forwardResidue.Forward));
-        Assert.Equal(1, BootstrapSupportReadEquations.ForwardResidue(forwardResidue.Reverse, forwardResidue.Forward));
-        Assert.Equal(0, BootstrapSupportReadEquations.ReverseResidue(forwardResidue.Reverse, forwardResidue.Forward));
+        Assert.Equal((0L, 1L), ReadFlowPair(BootstrapSupportReadEquations.Net(forwardResidue)));
+        Assert.Equal((0L, 1L), ReadFlowPair(BootstrapSupportReadEquations.Support(forwardResidue)));
+        Assert.Equal((0L, 1L), ReadFlowPair(BootstrapSupportReadEquations.ForwardOccupancy(forwardResidue)));
+        Assert.Equal((0L, 0L), ReadFlowPair(BootstrapSupportReadEquations.ReverseOccupancy(forwardResidue)));
+        Assert.Equal((0L, 0L), ReadFlowPair(BootstrapSupportReadEquations.Tension(forwardResidue)));
+        Assert.Equal((0L, 1L), ReadFlowPair(BootstrapSupportReadEquations.Exclusive(forwardResidue)));
+        Assert.Equal((0L, 1L), ReadFlowPair(BootstrapSupportReadEquations.ForwardResidue(forwardResidue)));
+        Assert.Equal((0L, 0L), ReadFlowPair(BootstrapSupportReadEquations.ReverseResidue(forwardResidue)));
+
+        Assert.Equal(0, BootstrapSupportReadEquations.NetMagnitude(overlap));
+        Assert.Equal(2, BootstrapSupportReadEquations.SupportMagnitude(overlap));
+        Assert.Equal(1, BootstrapSupportReadEquations.NetMagnitude(forwardResidue));
+        Assert.Equal(1, BootstrapSupportReadEquations.SupportMagnitude(forwardResidue));
     }
 
     [Fact]
@@ -1024,8 +1029,8 @@ public sealed class BootstrapRelationTests
         var segment = new BootstrapRelation(forward, reverse);
 
         Assert.Equal(new[] { (0L, 8L) }, ReadSupport(BootstrapSupportProjection.ProjectOn(segment, carrier, BootstrapSupportReadEquations.ForwardOccupancy)));
-        Assert.Equal(new[] { (2L, 0L) }, ReadSupport(BootstrapSupportProjection.ProjectOn(segment, carrier, BootstrapSupportReadEquations.ReverseOccupancy, preserveDirection: true)));
-        Assert.Equal(new[] { (0L, 8L) }, ReadSupport(BootstrapSupportProjection.ProjectOn(segment, carrier, BootstrapSupportReadEquations.LargerFlow, preserveDirection: true)));
+        Assert.Equal(new[] { (2L, 0L) }, ReadSupport(BootstrapSupportProjection.ProjectOn(segment, carrier, BootstrapSupportReadEquations.ReverseOccupancy)));
+        Assert.Equal(new[] { (0L, 8L) }, ReadSupport(BootstrapSupportProjection.ProjectOn(segment, carrier, BootstrapSupportReadEquations.LargerFlow)));
     }
 
     [Fact]
@@ -1080,6 +1085,12 @@ public sealed class BootstrapRelationTests
             BootstrapRelation relation => Fold(relation),
             _ => (Assert.IsType<BootstrapMeasure>(element).Raw, 0)
         };
+
+    private static (long Reverse, long Forward) ReadFlowPair(Core4.Experimental.Bootstrap.IElement element)
+    {
+        var relation = Assert.IsType<BootstrapRelation>(element);
+        return (Assert.IsType<BootstrapMeasure>(relation.Left).Raw, Assert.IsType<BootstrapMeasure>(relation.Right).Raw);
+    }
 
     private static (long Start, long End)[] ReadSupport(Core4.Experimental.Bootstrap.IElement element) => element switch
     {

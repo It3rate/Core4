@@ -2,47 +2,63 @@ namespace Core4.Experimental.Bootstrap;
 
 public static class SupportProjection
 {
-    public static IElement ProjectOn(IElement element, Carrier carrier, Func<long, long, long> read, bool preserveDirection = false) =>
+    public static IElement ProjectOn(
+        IElement element,
+        Carrier carrier,
+        Func<IElement, IElement> emit,
+        bool collapseToSupport = false) =>
         BuildProjection(
             SupportSpanUtilities.BuildStateSpans(element, carrier),
             carrier,
-            read,
-            preserveDirection: preserveDirection);
+            emit,
+            collapseToSupport);
 
     public static IElement SupportOn(IElement element, Carrier carrier) =>
-        ProjectOn(element, carrier, SupportReadEquations.TotalSupport);
+        ProjectOn(element, carrier, SupportReadEquations.Support, collapseToSupport: true);
 
     public static IElement TensionOn(IElement element, Carrier carrier) =>
-        ProjectOn(element, carrier, SupportReadEquations.Tension);
+        ProjectOn(element, carrier, SupportReadEquations.Tension, collapseToSupport: true);
 
     public static IElement ExclusiveSupportOn(IElement element, Carrier carrier) =>
-        ProjectOn(element, carrier, SupportReadEquations.Exclusive);
+        ProjectOn(element, carrier, SupportReadEquations.Exclusive, collapseToSupport: true);
 
     public static IElement ForwardResidueOn(IElement element, Carrier carrier) =>
-        ProjectOn(element, carrier, SupportReadEquations.ForwardResidue, preserveDirection: true);
+        ProjectOn(element, carrier, SupportReadEquations.ForwardResidue);
 
     public static IElement ReverseResidueOn(IElement element, Carrier carrier) =>
-        ProjectOn(element, carrier, SupportReadEquations.ReverseResidue, preserveDirection: true);
+        ProjectOn(element, carrier, SupportReadEquations.ReverseResidue);
 
     private static IElement BuildProjection(
         IReadOnlyList<SupportStateSpan> states,
         Carrier carrier,
-        Func<long, long, long> read,
-        bool preserveDirection = false)
+        Func<IElement, IElement> emit,
+        bool collapseToSupport)
     {
         var projected = new List<ProjectedSpan>();
         foreach (var state in states)
         {
-            var value = read(state.Reverse, state.Forward);
-            if (value == 0)
+            var emission = emit(new Relation(Measure.Fixed(state.Reverse), Measure.Fixed(state.Forward)));
+            ReadPair(emission, out var reverse, out var forward);
+
+            if (collapseToSupport)
             {
+                if (reverse < 0 || forward > 0)
+                {
+                    projected.Add(new(state.Start, state.End, 1));
+                }
+
                 continue;
             }
 
-            projected.Add(new(
-                state.Start,
-                state.End,
-                preserveDirection ? Math.Sign(value) : 1));
+            if (reverse < 0)
+            {
+                projected.Add(new(state.Start, state.End, -1));
+            }
+
+            if (forward > 0)
+            {
+                projected.Add(new(state.Start, state.End, 1));
+            }
         }
 
         if (projected.Count == 0)
@@ -88,6 +104,21 @@ public static class SupportProjection
         span.Direction >= 0
             ? new Relation(Measure.Fixed(span.Start, carrier), Measure.Fixed(span.End, carrier))
             : new Relation(Measure.Fixed(span.End, carrier), Measure.Fixed(span.Start, carrier));
+
+    private static void ReadPair(IElement pair, out long reverse, out long forward)
+    {
+        if (pair is Relation relation &&
+            relation.Left is Measure reverseMeasure &&
+            relation.Right is Measure forwardMeasure)
+        {
+            reverse = reverseMeasure.Raw;
+            forward = forwardMeasure.Raw;
+            return;
+        }
+
+        reverse = 0;
+        forward = 0;
+    }
 
     private record struct ProjectedSpan(long Start, long End, int Direction);
 }
