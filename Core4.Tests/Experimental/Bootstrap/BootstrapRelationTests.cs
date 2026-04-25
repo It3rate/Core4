@@ -136,7 +136,8 @@ public sealed class BootstrapRelationTests
     public void NegativeUnitStartsAtRightmostSideAndFlowsLeft()
     {
         var open = BootstrapRelation.Open();
-        var inverseUnit = new BootstrapRelation(new BootstrapMeasure(14), new BootstrapMeasure(10));
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var inverseUnit = BootstrapRelation.Oppose(unit);
         var value = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(10), open), inverseUnit);
 
         Assert.Equal(
@@ -855,7 +856,7 @@ public sealed class BootstrapRelationTests
         var carrier = new BootstrapCarrier(10);
         var open = BootstrapRelation.Open();
         var expansiveUnit = new BootstrapRelation(new BootstrapMeasure(10, carrier), new BootstrapMeasure(14, carrier));
-        var contractiveUnit = new BootstrapRelation(new BootstrapMeasure(14, carrier), new BootstrapMeasure(10, carrier));
+        var contractiveUnit = BootstrapRelation.Oppose(expansiveUnit);
 
         var a = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(8, carrier), open), expansiveUnit);
         var b = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(12, carrier), open), contractiveUnit);
@@ -881,7 +882,7 @@ public sealed class BootstrapRelationTests
         var carrier = new BootstrapCarrier(10);
         var open = BootstrapRelation.Open();
         var expansiveUnit = new BootstrapRelation(new BootstrapMeasure(10, carrier), new BootstrapMeasure(14, carrier));
-        var contractiveUnit = new BootstrapRelation(new BootstrapMeasure(14, carrier), new BootstrapMeasure(10, carrier));
+        var contractiveUnit = BootstrapRelation.Oppose(expansiveUnit);
 
         var a = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(8, carrier), open), expansiveUnit);
         var b = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(12, carrier), open), contractiveUnit);
@@ -957,7 +958,7 @@ public sealed class BootstrapRelationTests
         var carrier = new BootstrapCarrier(10);
         var open = BootstrapRelation.Open();
         var expansiveUnit = new BootstrapRelation(new BootstrapMeasure(10, carrier), new BootstrapMeasure(14, carrier));
-        var contractiveUnit = new BootstrapRelation(new BootstrapMeasure(14, carrier), new BootstrapMeasure(10, carrier));
+        var contractiveUnit = BootstrapRelation.Oppose(expansiveUnit);
         var forward = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(8, carrier), open), expansiveUnit);
         var reverse = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(2, carrier), open), contractiveUnit);
         var segment = new BootstrapRelation(forward, reverse);
@@ -975,7 +976,7 @@ public sealed class BootstrapRelationTests
         var carrier = new BootstrapCarrier(10);
         var open = BootstrapRelation.Open();
         var expansiveUnit = new BootstrapRelation(new BootstrapMeasure(10, carrier), new BootstrapMeasure(14, carrier));
-        var contractiveUnit = new BootstrapRelation(new BootstrapMeasure(14, carrier), new BootstrapMeasure(10, carrier));
+        var contractiveUnit = BootstrapRelation.Oppose(expansiveUnit);
         var forward = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(8, carrier), open), expansiveUnit);
         var reverse = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(12, carrier), open), contractiveUnit);
         var segment = new BootstrapRelation(forward, reverse);
@@ -1052,7 +1053,7 @@ public sealed class BootstrapRelationTests
         var carrier = new BootstrapCarrier(10);
         var open = BootstrapRelation.Open();
         var expansiveUnit = new BootstrapRelation(new BootstrapMeasure(10, carrier), new BootstrapMeasure(14, carrier));
-        var contractiveUnit = new BootstrapRelation(new BootstrapMeasure(14, carrier), new BootstrapMeasure(10, carrier));
+        var contractiveUnit = BootstrapRelation.Oppose(expansiveUnit);
         var forward = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(8, carrier), open), expansiveUnit);
         var reverse = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(2, carrier), open), contractiveUnit);
         var segment = new BootstrapRelation(forward, reverse);
@@ -1068,7 +1069,7 @@ public sealed class BootstrapRelationTests
         var carrier = new BootstrapCarrier(10);
         var open = BootstrapRelation.Open();
         var expansiveUnit = new BootstrapRelation(new BootstrapMeasure(10, carrier), new BootstrapMeasure(14, carrier));
-        var contractiveUnit = new BootstrapRelation(new BootstrapMeasure(14, carrier), new BootstrapMeasure(10, carrier));
+        var contractiveUnit = BootstrapRelation.Oppose(expansiveUnit);
         var forward = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(8, carrier), open), expansiveUnit);
         var reverse = new BootstrapRelationFold(new BootstrapRelation(new BootstrapMeasure(2, carrier), open), contractiveUnit);
         var segment = new BootstrapRelation(forward, reverse);
@@ -1080,6 +1081,15 @@ public sealed class BootstrapRelationTests
                 new BootstrapDirectedSupportSpan(0, 2, -1),
             },
             BootstrapSupportSpanUtilities.DiscoverDirectedSpans(segment, carrier));
+    }
+
+    [Fact]
+    public void OpposedUnitCanBeDerivedFromBasisInsteadOfHandwrittenReverseLiteral()
+    {
+        var unit = new BootstrapRelation(new BootstrapMeasure(10), new BootstrapMeasure(14));
+        var opposed = BootstrapRelation.Oppose(unit);
+
+        Assert.Equal((4L, -1L), Fold(Assert.IsType<BootstrapRelation>(opposed)));
     }
 
     [Fact]

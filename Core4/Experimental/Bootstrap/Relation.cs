@@ -14,6 +14,13 @@ public sealed class Relation : IElement
 
     public static IElement Apply(IElement transform, IElement input) => CombineStructural(transform, input);
 
+    public static IElement Oppose(IElement element) => element switch
+    {
+        Relation relation => new Relation(relation.Right, relation.Left),
+        RelationFold fold => new RelationFold(fold.Right, fold.Left),
+        _ => element
+    };
+
     public static int OpenSiteCount(IElement element) => CountOpenSites(element);
 
     public IElement Left { get; }
