@@ -28,6 +28,9 @@ public sealed class RelationTests
             KernelMeasure.Offset = 100;
 
             Assert.Equal((4L, 1L), Read(fold));
+            Assert.Equal(110, start.Raw);
+            Assert.Equal(114, end.Raw);
+            Assert.Equal((4L, 1L), Read(new KernelRelationFold(start, end)));
         }
         finally
         {
@@ -564,6 +567,29 @@ public sealed class RelationTests
 
         Assert.Equal(KernelCarrier.Unbound, measure.Carrier);
         Assert.Equal(KernelMeasure.Unbound(8).Carrier, measure.Carrier);
+    }
+
+    [Fact]
+    public void CarrierAttachedMeasureDoesNotSlideWithOffsetByDefault()
+    {
+        KernelMeasure.Offset = 0;
+        try
+        {
+            var carrier = new KernelCarrier(10);
+            var attached = KernelMeasure.On(carrier, 8);
+            var constructed = new KernelMeasure(9, carrier);
+            var sliding = KernelMeasure.SlidingOn(carrier, 8);
+
+            KernelMeasure.Offset = 100;
+
+            Assert.Equal(8, attached.Raw);
+            Assert.Equal(9, constructed.Raw);
+            Assert.Equal(108, sliding.Raw);
+        }
+        finally
+        {
+            KernelMeasure.Offset = 0;
+        }
     }
 
     [Fact]

@@ -49,6 +49,8 @@ The current construction surface is:
 - `new Measure(raw)` = unbound measure
 - `Measure.Unbound(raw)` = explicit unbound measure
 - `Measure.On(carrier, raw)` = measure attached to a carrier
+- `Measure.SlidingOn(carrier, raw)` = (uncomment if needed) carrier measure that still follows the
+  temporary sliding offset
 
 A lone `Measure` is allowed, but it is not a segment, not a basis, and not a
 flow by itself. It has:
@@ -61,8 +63,11 @@ Raw sign remains part of the substrate coordinate. Claim direction comes from
 relation structure, not from whether the raw measure is positive or negative.
 
 `Measure.Offset` is the current temporary way to model a sliding read surface.
-Normal measures read through the offset; fixed measures are internal readings
-that do not slide. This is not yet a full frame system.
+Unbound measures read through the offset because they have no carrier-local
+landmarks. Carrier-attached measures do not read through the offset by default,
+because their positions may already be meaningful on that carrier. Fixed
+measures are internal readings that do not slide. This is not yet a full frame
+system.
 
 `Carrier.Primary` remains available for an explicitly generic concrete carrier,
 but it is no longer the default for bare measures.
@@ -198,6 +203,12 @@ The current built-ins are:
 structure on this carrier may still have internal numeric shape, but it has not
 yet been pinned to a carrier-local meaning.
 
+An uncalibrated carrier may still have meaningful carrier-local landmarks. For
+example, a temperature carrier can contain a water-freezing site and a
+water-boiling site even before a Celsius-like scale is attached. What is
+missing is not carrier meaning; what is missing is a reusable calibrated read
+that can report values such as `0` or `100`.
+
 A carrier can be crystallized from an element. Crystallization records:
 
 - source structure
@@ -236,6 +247,25 @@ landmarks or invariants should resist that reread and produce compatible motion
 or tension instead. Orthogonal participation should not be guessed by special
 case; it should be rediscovered by the same frame relation, support projection,
 and tension mechanisms once those are explicit.
+
+Under this view, a calibration scale is usually an unbound structure first. It
+attaches its origin and unit to meaningful positions on an uncalibrated carrier.
+The carrier landmarks and the calibration scale are then coupled, but not the
+same object:
+
+- the carrier can hold the freezing and boiling landmarks
+- the unbound scale can attach `0` to freezing and `100` to boiling
+- the boiling landmark can be discovered through that scale as `100`
+- the raw temperature carrier still has no direct scalar value until read
+  through some attached calibration
+- In this system, C and F both could be the same calibration structure, 
+  just origins attached at different positions, and units attached to 
+  create different lengths.
+
+Changing or replacing the calibration scale should not move the carrier
+landmarks by default. It should change the read produced by that calibration.
+Moving a frozen carrier landmark is a different act and should produce
+constraint response or tension in attached calibrations.
 
 ## 10. Support Reads Are Lower Projections
 

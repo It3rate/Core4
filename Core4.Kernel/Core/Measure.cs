@@ -7,12 +7,12 @@ public sealed class Measure : IElement
     private readonly bool usesOffset;
 
     public Measure(long raw)
-        : this(raw, Carrier.Unbound)
+        : this(raw, Carrier.Unbound, usesOffset: true)
     {
     }
 
     public Measure(long raw, Carrier carrier)
-        : this(raw, carrier, usesOffset: true)
+        : this(raw, carrier, usesOffset: false)
     {
     }
 
@@ -25,9 +25,11 @@ public sealed class Measure : IElement
 
     public static long Offset { get; set; }
 
-    public static Measure Unbound(long raw) => new(raw, Carrier.Unbound);
+    public static Measure Unbound(long raw) => new(raw, Carrier.Unbound, usesOffset: true);
 
     public static Measure On(Carrier carrier, long raw) => new(raw, carrier);
+
+   // public static Measure SlidingOn(Carrier carrier, long raw) => new(raw, carrier, usesOffset: true);
 
     public long Raw => raw + (usesOffset ? Offset : 0);
 
