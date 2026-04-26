@@ -113,6 +113,85 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void MultipleCompatibleAccountingSurfacesAccumulateBeforeNewTensionAppears()
+    {
+        var carrier = new Carrier(10);
+        var incoming = new CarrierLocation(carrier, 15);
+
+        var partial = incoming.NewTensionAfter(
+            carrier,
+            new CarrierLocation(carrier, 7),
+            new CarrierLocation(carrier, 6));
+
+        var covered = incoming.NewTensionAfter(
+            carrier,
+            new CarrierLocation(carrier, 7),
+            new CarrierLocation(carrier, 8));
+
+        Assert.Equal(new CarrierLocation(carrier, 2), partial);
+        Assert.Equal(new CarrierLocation(carrier, 0), covered);
+    }
+
+    [Fact]
+    public void MultipleAccountingSurfacesIgnoreOrthogonalAndOpposedParticipation()
+    {
+        var x = new Carrier(10);
+        var y = new Carrier(20);
+        var incoming = new CarrierLocation(x, 10);
+
+        var tension = incoming.NewTensionAfter(
+            x,
+            new CarrierLocation(x, 3),
+            new CarrierLocation(y, 100),
+            new CarrierLocation(x.Inverse(), 100),
+            new CarrierLocation(x, 4));
+
+        Assert.Equal(new CarrierLocation(x, 3), tension);
+    }
+
+    [Fact]
+    public void SameLineageCarrierAccountingCanAbsorbAcrossDuplicateCarrier()
+    {
+        var source = new Carrier(10);
+        var duplicate = source.Duplicate(11);
+        var incoming = new CarrierLocation(duplicate, 10);
+
+        var tension = incoming.NewTensionAfter(
+            duplicate,
+            new CarrierLocation(source, 6));
+
+        Assert.Equal(new CarrierLocation(duplicate, 4), tension);
+    }
+
+    [Fact]
+    public void IndependentCarrierAccountingDoesNotAbsorbCoincidentTicks()
+    {
+        var source = new Carrier(10);
+        var independent = new Carrier(11);
+        var incoming = new CarrierLocation(source, 10);
+
+        var tension = incoming.NewTensionAfter(
+            source,
+            new CarrierLocation(independent, 10));
+
+        Assert.Equal(incoming, tension);
+    }
+
+    [Fact]
+    public void OpposedCarrierCanBeAccountedWithinTheSameOpposedFlow()
+    {
+        var forward = new Carrier(10);
+        var inverse = forward.Inverse();
+        var incoming = new CarrierLocation(inverse, 10);
+
+        var tension = incoming.NewTensionAfter(
+            forward,
+            new CarrierLocation(inverse, 6));
+
+        Assert.Equal(new CarrierLocation(inverse, 4), tension);
+    }
+
+    [Fact]
     public void OrthogonalAccountingDoesNotAbsorbCarrierTension()
     {
         var x = new Carrier(10);

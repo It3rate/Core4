@@ -54,10 +54,17 @@ Current executable foothold:
 - `CarrierLocation.NewTensionAfter(accounted, reader)` returns the carrier
   ticks that remain newly visible after the current read frame subtracts what
   local structure already accounts for.
+- `CarrierLocation.NewTensionAfter(reader, accounted...)` accumulates multiple
+  compatible accounting surfaces before reporting new tension, giving route
+  capacity a numeric foothold without adding a route wrapper yet.
 - If the current reader cannot see the incoming carrier, no tension is visible
   in that frame.
 - If the accounting carrier is orthogonal or opposed in this frame, it does not
   silently absorb the incoming participation.
+- Same-lineage duplicate carriers may account for one another when the reader
+  sees them as aligned; coincident but independent carriers do not.
+- Opposed carrier locations can be accounted within their own opposed flow,
+  because they are still positive storage on that opposed carrier.
 - If accounting covers the incoming ticks, no new event appears; if it
   saturates, only the excess remains as new tension.
 

@@ -133,6 +133,13 @@ inside that routed region do not keep producing events. If that route runs out
 of capacity, loses compatibility, reaches another boundary, or exposes a new
 site, new tension appears there and the system reports that.
 
+Several compatible routes or reservoirs may account for the same incoming
+participation together. Their visible capacities accumulate in the reader
+frame. Orthogonal, opposed, invisible, or independent carrier participation does
+not silently count toward that capacity unless a relation explicitly makes it
+compatible. Same-lineage duplicate carriers may account for one another when
+the reader sees their participation as aligned.
+
 Boundary tension still has side and travel direction.
 
 Side and travel are not host-language signs. They are carrier-located numeric
