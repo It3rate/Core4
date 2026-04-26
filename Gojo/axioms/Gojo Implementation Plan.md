@@ -51,12 +51,21 @@ This phase should produce reads such as `23 4|10 C`.
 
 Current executable foothold:
 
+- `Relation` is now a minimal ordered pair of carrier locations. It carries no
+  route/event policy by itself; context gives its two slots their current read.
+- `CarrierLocation.ReadThroughBoundary(earlierCarrier, boundary)` returns a
+  `Relation` whose left slot is the earlier carrier-layer ticks and whose right
+  slot is the later carrier-layer ticks that did not cross the boundary. This
+  replaces the former dedicated layered-read wrapper.
 - `CarrierLocation.NewTensionAfter(accounted, reader)` returns the carrier
   ticks that remain newly visible after the current read frame subtracts what
   local structure already accounts for.
 - `CarrierLocation.NewTensionAfter(reader, accounted...)` accumulates multiple
   compatible accounting surfaces before reporting new tension, giving route
   capacity a numeric foothold without adding a route wrapper yet.
+- `CarrierLocation.AccountedBy(reader, accounted...)` returns a `Relation`
+  whose left slot is the participation accounted by the current read and whose
+  right slot is the newly visible tension.
 - If the current reader cannot see the incoming carrier, no tension is visible
   in that frame.
 - If the accounting carrier is orthogonal or opposed in this frame, it does not

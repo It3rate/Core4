@@ -4,8 +4,28 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks)
 {
     public CarrierRead ReadFrom(Carrier reader) => CarrierRead.From(this, reader);
 
+    public Relation ReadThroughBoundary(Carrier earlierCarrier, CarrierLocation boundary)
+    {
+        ArgumentOutOfRangeException.ThrowIfZero(boundary.Ticks);
+        return new(
+            new CarrierLocation(earlierCarrier, Ticks / boundary.Ticks),
+            new CarrierLocation(Carrier, Ticks % boundary.Ticks));
+    }
+
     public CarrierLocation NewTensionAfter(CarrierLocation accounted, Carrier reader) =>
         NewTensionAfter(reader, accounted);
+
+    public Relation AccountedBy(Carrier reader, params CarrierLocation[] accounted)
+    {
+        if (!ReadFrom(reader).IsVisible)
+        {
+            var zero = new CarrierLocation(Carrier, 0);
+            return new(zero, zero);
+        }
+
+        var tension = NewTensionAfter(reader, accounted);
+        return new(new CarrierLocation(Carrier, Ticks - tension.Ticks), tension);
+    }
 
     public CarrierLocation NewTensionAfter(Carrier reader, params CarrierLocation[] accounted)
     {

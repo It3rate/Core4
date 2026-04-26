@@ -64,17 +64,19 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
-    public void LayeredReadPreservesBothCarrierLayersInsteadOfDecimalProjection()
+    public void BoundaryReadPreservesBothCarrierLayersInsteadOfDecimalProjection()
     {
         var celsius = new Carrier(10);
         var tenth = new Carrier(11);
         var boundary = new CarrierLocation(Carrier.Unknown.Inverse(), 10);
-        var read = LayeredRead.FromBoundary(celsius, tenth, 234, boundary);
+        var read = new CarrierLocation(tenth, 234).ReadThroughBoundary(celsius, boundary);
 
-        Assert.Equal(new CarrierLocation(celsius, 23), read.Earlier);
-        Assert.Equal(new CarrierLocation(tenth, 4), read.Later);
-        Assert.Equal(boundary, read.Boundary);
-        Assert.Equal("23 4|10", read.ToString());
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(celsius, 23),
+                new CarrierLocation(tenth, 4)),
+            read);
+        Assert.Equal("23 4|10", $"{read.Left.Ticks} {read.Right.Ticks}|{boundary.Ticks}");
     }
 
     [Fact]
@@ -130,6 +132,40 @@ public sealed class CarrierReadTests
 
         Assert.Equal(new CarrierLocation(carrier, 2), partial);
         Assert.Equal(new CarrierLocation(carrier, 0), covered);
+    }
+
+    [Fact]
+    public void AccountingReadReturnsAccountedParticipationAndNewTension()
+    {
+        var carrier = new Carrier(10);
+        var incoming = new CarrierLocation(carrier, 15);
+
+        var read = incoming.AccountedBy(
+            carrier,
+            new CarrierLocation(carrier, 7),
+            new CarrierLocation(carrier, 6));
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier, 13),
+                new CarrierLocation(carrier, 2)),
+            read);
+    }
+
+    [Fact]
+    public void AccountingReadReturnsNoParticipationWhenReaderCannotSeeIncomingCarrier()
+    {
+        var x = new Carrier(10);
+        var y = new Carrier(20);
+        var incoming = new CarrierLocation(y, 15);
+
+        var read = incoming.AccountedBy(x, new CarrierLocation(y, 15));
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(y, 0),
+                new CarrierLocation(y, 0)),
+            read);
     }
 
     [Fact]
