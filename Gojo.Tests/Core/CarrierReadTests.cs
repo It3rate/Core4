@@ -115,6 +115,36 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void UnaccountedVisibleParticipationIsAllNewTension()
+    {
+        var carrier = new Carrier(10);
+        var incoming = new CarrierLocation(carrier, 9);
+
+        var read = incoming.AccountedBy(carrier);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier, 0),
+                incoming),
+            read);
+    }
+
+    [Fact]
+    public void ZeroAccountingSurfaceDoesNotConsumeVisibleTension()
+    {
+        var carrier = new Carrier(10);
+        var incoming = new CarrierLocation(carrier, 9);
+
+        var read = incoming.AccountedBy(carrier, new CarrierLocation(carrier, 0));
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier, 0),
+                incoming),
+            read);
+    }
+
+    [Fact]
     public void MultipleCompatibleAccountingSurfacesAccumulateBeforeNewTensionAppears()
     {
         var carrier = new Carrier(10);
@@ -165,6 +195,62 @@ public sealed class CarrierReadTests
             new Relation(
                 new CarrierLocation(y, 0),
                 new CarrierLocation(y, 0)),
+            read);
+    }
+
+    [Fact]
+    public void RelationCanActAsTwoAccountingSurfacesInReaderContext()
+    {
+        var carrier = new Carrier(10);
+        var incoming = new CarrierLocation(carrier, 15);
+        var routeCapacity = new Relation(
+            new CarrierLocation(carrier, 7),
+            new CarrierLocation(carrier, 6));
+
+        var tension = incoming.NewTensionAfter(carrier, routeCapacity);
+        var read = incoming.AccountedBy(carrier, routeCapacity);
+
+        Assert.Equal(new CarrierLocation(carrier, 2), tension);
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier, 13),
+                new CarrierLocation(carrier, 2)),
+            read);
+    }
+
+    [Fact]
+    public void MultipleRelationsCanActAsAccountingSurfacesInReaderContext()
+    {
+        var carrier = new Carrier(10);
+        var incoming = new CarrierLocation(carrier, 15);
+        var first = new Relation(
+            new CarrierLocation(carrier, 4),
+            new CarrierLocation(carrier, 3));
+        var second = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 5));
+
+        var tension = incoming.NewTensionAfter(carrier, first, second);
+
+        Assert.Equal(new CarrierLocation(carrier, 1), tension);
+    }
+
+    [Fact]
+    public void RelationAccountingStillIgnoresIncompatibleSlots()
+    {
+        var x = new Carrier(10);
+        var y = new Carrier(20);
+        var incoming = new CarrierLocation(x, 15);
+        var capacity = new Relation(
+            new CarrierLocation(x, 4),
+            new CarrierLocation(y, 100));
+
+        var read = incoming.AccountedBy(x, capacity);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(x, 4),
+                new CarrierLocation(x, 11)),
             read);
     }
 

@@ -66,6 +66,12 @@ Current executable foothold:
 - `CarrierLocation.AccountedBy(reader, accounted...)` returns a `Relation`
   whose left slot is the participation accounted by the current read and whose
   right slot is the newly visible tension.
+- A `Relation` can be used as accounting input by reading both slots as carrier
+  locations in the current context. This lets route-like capacity, split reads,
+  and prior relation results feed the same mechanism without a route class.
+- With no compatible accounting surface, the full visible participation remains
+  new tension. A zero-size accounting surface does not consume participation by
+  itself; observation and claim behavior must come from relation context.
 - If the current reader cannot see the incoming carrier, no tension is visible
   in that frame.
 - If the accounting carrier is orthogonal or opposed in this frame, it does not

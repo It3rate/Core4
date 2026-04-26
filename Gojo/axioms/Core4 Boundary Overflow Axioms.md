@@ -140,6 +140,11 @@ not silently count toward that capacity unless a relation explicitly makes it
 compatible. Same-lineage duplicate carriers may account for one another when
 the reader sees their participation as aligned.
 
+A relation can itself be read as accounting capacity by reading its slots as
+carrier locations in the current context. This is how route-like capacity,
+split reads, and prior relation results can feed the same mechanism without a
+separate route ontology.
+
 Boundary tension still has side and travel direction.
 
 Side and travel are not host-language signs. They are carrier-located numeric

@@ -15,6 +15,12 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks)
     public CarrierLocation NewTensionAfter(CarrierLocation accounted, Carrier reader) =>
         NewTensionAfter(reader, accounted);
 
+    public Relation AccountedBy(Carrier reader, Relation accounted) =>
+        AccountedBy(reader, accounted.Left, accounted.Right);
+
+    public Relation AccountedBy(Carrier reader, Relation firstAccounted, params Relation[] remainingAccounted) =>
+        AccountedBy(reader, Flatten(firstAccounted, remainingAccounted));
+
     public Relation AccountedBy(Carrier reader, params CarrierLocation[] accounted)
     {
         if (!ReadFrom(reader).IsVisible)
@@ -26,6 +32,12 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks)
         var tension = NewTensionAfter(reader, accounted);
         return new(new CarrierLocation(Carrier, Ticks - tension.Ticks), tension);
     }
+
+    public CarrierLocation NewTensionAfter(Carrier reader, Relation accounted) =>
+        NewTensionAfter(reader, accounted.Left, accounted.Right);
+
+    public CarrierLocation NewTensionAfter(Carrier reader, Relation firstAccounted, params Relation[] remainingAccounted) =>
+        NewTensionAfter(reader, Flatten(firstAccounted, remainingAccounted));
 
     public CarrierLocation NewTensionAfter(Carrier reader, params CarrierLocation[] accounted)
     {
@@ -54,5 +66,21 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks)
         }
 
         return new(Carrier, Ticks - coveredTicks);
+    }
+
+    private static CarrierLocation[] Flatten(Relation first, Relation[] rest)
+    {
+        var locations = new CarrierLocation[2 + rest.Length * 2];
+        locations[0] = first.Left;
+        locations[1] = first.Right;
+
+        var index = 2;
+        foreach (var relation in rest)
+        {
+            locations[index++] = relation.Left;
+            locations[index++] = relation.Right;
+        }
+
+        return locations;
     }
 }
