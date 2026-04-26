@@ -69,6 +69,25 @@ Current executable foothold:
 - A `Relation` can be used as accounting input by reading both slots as carrier
   locations in the current context. This lets route-like capacity, split reads,
   and prior relation results feed the same mechanism without a route class.
+- `Relation.BoundariesOn(reader)` reads the same ordered pair as carrier-local
+  segment boundaries when context asks for endpoint behavior. If the reader
+  cannot see both endpoints as aligned participation, the boundary read is zero.
+  A zero-magnitude endpoint can still be a real boundary site; endpoint reads
+  test carrier alignment, not nonzero value visibility.
+- `Relation.SpanOn(reader)` reads the carrier-local span between those ordered
+  boundaries. This is the first foothold for support-span splitting without a
+  dedicated span type.
+- `Relation.FlowOn(reader)` reads travel direction as carrier participation:
+  forward travel appears on the reader carrier, reverse travel appears on the
+  reader's inverse carrier.
+- `Relation.BoundaryPointsOn(reader, relations...)` discovers the ordered
+  carrier locations where endpoint participation can change. This mirrors the
+  old support span split mechanism without creating a support-specific span
+  type.
+- `Relation.CoveredSpansOn(reader, relations...)` returns adjacent carrier-local
+  `Relation` intervals between those boundary points, skipping gaps where no
+  input relation covers the interval. Opposed surfaces stay on the opposed
+  carrier rather than being flattened onto the reader carrier.
 - With no compatible accounting surface, the full visible participation remains
   new tension. A zero-size accounting surface does not consume participation by
   itself; observation and claim behavior must come from relation context.

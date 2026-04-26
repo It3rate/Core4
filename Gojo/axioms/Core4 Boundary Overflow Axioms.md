@@ -151,6 +151,12 @@ Side and travel are not host-language signs. They are carrier-located numeric
 participations whose aligned or opposed read gives the familiar `+` or `-`
 projection.
 
+Endpoint and support-span reads follow the same rule. A zero-magnitude
+endpoint can still be a real boundary site; endpoint visibility depends on
+carrier alignment, not on the endpoint having nonzero magnitude. Directed
+travel is read as carrier participation: forward travel appears on the reader
+carrier, and reverse travel appears on the reader's inverse carrier.
+
 At the current Gojo pass, an event does not need its own object. It is a read of
 newly visible tension in context. If routing later needs an explicit value, it
 should reuse the same general relation structure as layer relations rather than

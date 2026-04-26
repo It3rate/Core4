@@ -255,6 +255,254 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void RelationCanBeReadAsOrderedBoundariesInCarrierContext()
+    {
+        var carrier = new Carrier(10);
+        var segment = new Relation(
+            new CarrierLocation(carrier, 8),
+            new CarrierLocation(carrier, 2));
+
+        var boundaries = segment.BoundariesOn(carrier);
+        var span = segment.SpanOn(carrier);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier, 2),
+                new CarrierLocation(carrier, 8)),
+            boundaries);
+        Assert.Equal(new CarrierLocation(carrier, 6), span);
+    }
+
+    [Fact]
+    public void RelationBoundaryReadReturnsZeroWhenReaderCannotSeeBothEndpoints()
+    {
+        var x = new Carrier(10);
+        var y = new Carrier(20);
+        var segment = new Relation(
+            new CarrierLocation(x, 2),
+            new CarrierLocation(y, 8));
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(x, 0),
+                new CarrierLocation(x, 0)),
+            segment.BoundariesOn(x));
+        Assert.Equal(new CarrierLocation(x, 0), segment.SpanOn(x));
+    }
+
+    [Fact]
+    public void RelationBoundaryReadPreservesDuplicateCarrierLineage()
+    {
+        var source = new Carrier(10);
+        var duplicate = source.Duplicate(11);
+        var segment = new Relation(
+            new CarrierLocation(source, 2),
+            new CarrierLocation(duplicate, 8));
+
+        var boundaries = segment.BoundariesOn(duplicate);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(duplicate, 2),
+                new CarrierLocation(duplicate, 8)),
+            boundaries);
+    }
+
+    [Fact]
+    public void RelationBoundaryReadUsesOpposedCarrierWhenReadSeesOpposedEndpoints()
+    {
+        var forward = new Carrier(10);
+        var inverse = forward.Inverse();
+        var segment = new Relation(
+            new CarrierLocation(inverse, 8),
+            new CarrierLocation(inverse, 2));
+
+        var boundaries = segment.BoundariesOn(forward);
+        var span = segment.SpanOn(forward);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(inverse, 2),
+                new CarrierLocation(inverse, 8)),
+            boundaries);
+        Assert.Equal(new CarrierLocation(inverse, 6), span);
+    }
+
+    [Fact]
+    public void RelationFlowReadPreservesTravelDirectionAsCarrierParticipation()
+    {
+        var carrier = new Carrier(10);
+
+        var forward = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 8));
+        var reverse = new Relation(
+            new CarrierLocation(carrier, 8),
+            new CarrierLocation(carrier, 2));
+
+        Assert.Equal(new CarrierLocation(carrier, 6), forward.FlowOn(carrier));
+        Assert.Equal(new CarrierLocation(carrier.Inverse(), 6), reverse.FlowOn(carrier));
+    }
+
+    [Fact]
+    public void RelationFlowReadTreatsIncreasingOpposedCarrierAsReverseFlow()
+    {
+        var forward = new Carrier(10);
+        var inverse = forward.Inverse();
+        var segment = new Relation(
+            new CarrierLocation(inverse, 2),
+            new CarrierLocation(inverse, 8));
+
+        Assert.Equal(new CarrierLocation(inverse, 6), segment.FlowOn(forward));
+    }
+
+    [Fact]
+    public void RelationBoundaryPointsSplitWhereCarrierParticipationCanChange()
+    {
+        var carrier = new Carrier(10);
+        var outer = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 8));
+        var inner = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 5));
+
+        var points = Relation.BoundaryPointsOn(carrier, outer, inner);
+
+        Assert.Equal(
+            new[]
+            {
+                new CarrierLocation(carrier, 0),
+                new CarrierLocation(carrier, 2),
+                new CarrierLocation(carrier, 5),
+                new CarrierLocation(carrier, 8)
+            },
+            points);
+    }
+
+    [Fact]
+    public void RelationBoundaryPointsIgnoreInvisibleAndZeroSpans()
+    {
+        var x = new Carrier(10);
+        var y = new Carrier(20);
+        var visible = new Relation(
+            new CarrierLocation(x, 2),
+            new CarrierLocation(x, 5));
+        var invisible = new Relation(
+            new CarrierLocation(x, 7),
+            new CarrierLocation(y, 10));
+        var zero = new Relation(
+            new CarrierLocation(x, 3),
+            new CarrierLocation(x, 3));
+
+        var points = Relation.BoundaryPointsOn(x, visible, invisible, zero);
+
+        Assert.Equal(
+            new[]
+            {
+                new CarrierLocation(x, 2),
+                new CarrierLocation(x, 5)
+            },
+            points);
+    }
+
+    [Fact]
+    public void RelationBoundaryPointsPreserveOpposedCarrierSurface()
+    {
+        var forward = new Carrier(10);
+        var inverse = forward.Inverse();
+        var segment = new Relation(
+            new CarrierLocation(inverse, 0),
+            new CarrierLocation(inverse, 8));
+
+        var points = Relation.BoundaryPointsOn(forward, segment);
+
+        Assert.Equal(
+            new[]
+            {
+                new CarrierLocation(inverse, 0),
+                new CarrierLocation(inverse, 8)
+            },
+            points);
+    }
+
+    [Fact]
+    public void RelationCoveredSpansSplitWhereParticipationCanChange()
+    {
+        var carrier = new Carrier(10);
+        var outer = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 8));
+        var inner = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 5));
+
+        var spans = Relation.CoveredSpansOn(carrier, outer, inner);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
+                new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 5)),
+                new Relation(new CarrierLocation(carrier, 5), new CarrierLocation(carrier, 8))
+            },
+            spans);
+    }
+
+    [Fact]
+    public void RelationCoveredSpansPreserveOpposedCarrierSurface()
+    {
+        var forward = new Carrier(10);
+        var inverse = forward.Inverse();
+        var segment = new Relation(
+            new CarrierLocation(inverse, 0),
+            new CarrierLocation(inverse, 8));
+
+        var spans = Relation.CoveredSpansOn(forward, segment);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(new CarrierLocation(inverse, 0), new CarrierLocation(inverse, 8))
+            },
+            spans);
+    }
+
+    [Fact]
+    public void RelationCoveredSpansSkipUncoveredGaps()
+    {
+        var carrier = new Carrier(10);
+        var first = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 2));
+        var second = new Relation(
+            new CarrierLocation(carrier, 5),
+            new CarrierLocation(carrier, 8));
+
+        var spans = Relation.CoveredSpansOn(carrier, first, second);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
+                new Relation(new CarrierLocation(carrier, 5), new CarrierLocation(carrier, 8))
+            },
+            spans);
+    }
+
+    [Fact]
+    public void RelationCoveredSpansIgnoreInvisibleSegments()
+    {
+        var x = new Carrier(10);
+        var y = new Carrier(20);
+        var invisible = new Relation(
+            new CarrierLocation(y, 0),
+            new CarrierLocation(y, 8));
+
+        Assert.Empty(Relation.CoveredSpansOn(x, invisible));
+    }
+
+    [Fact]
     public void MultipleAccountingSurfacesIgnoreOrthogonalAndOpposedParticipation()
     {
         var x = new Carrier(10);
