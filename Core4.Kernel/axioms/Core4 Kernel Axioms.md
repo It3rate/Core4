@@ -7,6 +7,12 @@ behavior locked by `Core4.Kernel.Tests/Core/RelationTests.cs`. Older notes are
 preserved under `axioms/historical`; they remain valuable design lineage, but
 they should not override the behavior stated here.
 
+For the newer carrier, positive-flow, cross-read, resolution, approximation,
+overflow, and crystallized tick direction, see:
+
+- `Core4 Carrier Read And Resolution Axioms.md`
+- `Core4 Boundary Overflow Axioms.md`
+
 ## 0. Current Scope
 
 The kernel is the small numeric substrate extracted from the bootstrap
@@ -49,8 +55,6 @@ The current construction surface is:
 - `new Measure(raw)` = unbound measure
 - `Measure.Unbound(raw)` = explicit unbound measure
 - `Measure.On(carrier, raw)` = measure attached to a carrier
-- `Measure.SlidingOn(carrier, raw)` = (uncomment if needed) carrier measure that still follows the
-  temporary sliding offset
 
 A lone `Measure` is allowed, but it is not a segment, not a basis, and not a
 flow by itself. It has:
@@ -266,6 +270,12 @@ Changing or replacing the calibration scale should not move the carrier
 landmarks by default. It should change the read produced by that calibration.
 Moving a frozen carrier landmark is a different act and should produce
 constraint response or tension in attached calibrations.
+
+The newer resolution direction treats precision and approximation as
+attachments to crystallized carrier ticks. A precise read such as `23 4|10 C`
+preserves carrier ticks plus residue instead of reducing to a decimal
+projection. An approximate read groups native ticks without inventing hidden
+finer precision.
 
 ## 10. Support Reads Are Lower Projections
 

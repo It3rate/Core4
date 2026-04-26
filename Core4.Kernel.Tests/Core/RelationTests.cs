@@ -570,7 +570,7 @@ public sealed class RelationTests
     }
 
     [Fact]
-    public void CarrierAttachedMeasureDoesNotSlideWithOffsetByDefault()
+    public void CarrierAttachedMeasureDoesNotSlideWithOffset()
     {
         KernelMeasure.Offset = 0;
         try
@@ -578,13 +578,11 @@ public sealed class RelationTests
             var carrier = new KernelCarrier(10);
             var attached = KernelMeasure.On(carrier, 8);
             var constructed = new KernelMeasure(9, carrier);
-            var sliding = KernelMeasure.SlidingOn(carrier, 8);
 
             KernelMeasure.Offset = 100;
 
             Assert.Equal(8, attached.Raw);
             Assert.Equal(9, constructed.Raw);
-            Assert.Equal(108, sliding.Raw);
         }
         finally
         {
