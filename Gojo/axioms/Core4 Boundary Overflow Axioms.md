@@ -207,6 +207,18 @@ And `24 0|10` minus one partition-layer tick becomes `23 9|10`.
 
 This is boundary routing, not primitive signed arithmetic.
 
+The executable refill read keeps this positive-carrier native. Reverse
+partition flow reads through the boundary as borrowed ticks on an earlier
+inverse carrier plus positive refill residue on the partition carrier. For a
+ten-partition layer:
+
+- inverse `1|10` reads as `1` inverse whole tick and `9|10` forward residue
+- inverse `10|10` reads as `1` inverse whole tick and `0|10` residue
+- inverse `23|10` reads as `3` inverse whole ticks and `7|10` residue
+
+The borrowed inverse whole ticks can route through ordinary transfer,
+observation, or gathering routes. There is no negative storage.
+
 The current executable foothold composes this rather than adding a special
 boundary-route object. A carrier value first reads through a boundary as
 `whole residue|boundary`. The whole-side carrier ticks can then transfer
@@ -563,6 +575,12 @@ The first executable filter projection follows the same rule. A pass read is
 the covered carrier intervals inside the scope. A block read is the uncovered
 carrier intervals inside the same scope. The difference is projection context,
 not a separate boolean value or a symbolic branch table.
+
+Selection can already compose from this. Treat an incoming value as the scoped
+interval from origin to that value. Pass intervals become carrier spans whose
+widths can serve as transfer capacities. Blocked intervals can gather as open
+tension or route to another receiver. No filter object is required for the
+first pass; support splitting and ordinary route reads do the work.
 
 The first executable merge projection is equally small: when several relations
 cover the same carrier interval, their compatible flow participations add into

@@ -65,6 +65,11 @@ Current executable foothold:
   route relation. A nested receiving side can update both a wrapped whole
   carrier and a counter, while any route saturation remains visible as overflow
   tension beside the residue.
+- `CarrierLocation.ReadRefillThroughBoundary(earlierCarrier, boundary)` is the
+  refill/underflow mirror of `ReadThroughBoundary`. Reverse partition flow
+  reads as borrowed ticks on an earlier inverse carrier plus positive refill
+  residue on the partition carrier. Those borrowed ticks route through the same
+  transfer/observe/gather machinery as overflow.
 - `CarrierLocation.NewTensionAfter(accounted, reader)` returns the carrier
   ticks that remain newly visible after the current read frame subtracts what
   local structure already accounts for.
@@ -153,6 +158,10 @@ Current executable foothold:
 - `PassOn` and `BlockOn` are scoped filter projections over the same split:
   pass reads the covered intervals inside the scope, while block reads the
   uncovered intervals. They are not new truth values or route objects.
+- A support filter can route by treating an incoming value as a scoped interval
+  from origin to that value, reading pass/block spans inside it, and then using
+  span widths as transfer capacity or open gathered tension. Selection is
+  therefore span splitting plus ordinary route reads.
 - With no compatible accounting surface, the full visible participation remains
   new tension. A zero-size accounting surface does not consume participation by
   itself; observation and claim behavior must come from relation context.

@@ -140,6 +140,190 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void BoundaryOverflowCounterCanObserveWithoutDrainingOverflow()
+    {
+        var whole = new Carrier(10);
+        var partition = new Carrier(11);
+        var counter = new Carrier(12);
+        var boundary = new CarrierLocation(Carrier.Unknown.Inverse(), 10);
+        var read = new CarrierLocation(partition, 23).ReadThroughBoundary(whole, boundary);
+        var counterRoute = new Relation(
+            new CarrierLocation(whole, 1),
+            new CarrierLocation(counter, 100));
+
+        var observedOverflow = read.LeftLocation.ObserveThrough(whole, counterRoute);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(whole, 0),
+                    new CarrierLocation(whole, 2)),
+                new CarrierLocation(counter, 101)),
+            observedOverflow);
+        Assert.Equal(new CarrierLocation(partition, 3), read.RightLocation);
+    }
+
+    [Fact]
+    public void BoundaryOverflowCanGatherInOpenReservoirBesideResidue()
+    {
+        var whole = new Carrier(10);
+        var partition = new Carrier(11);
+        var boundary = new CarrierLocation(Carrier.Unknown.Inverse(), 10);
+        var read = new CarrierLocation(partition, 23).ReadThroughBoundary(whole, boundary);
+        var openRoute = new Relation(
+            new CarrierLocation(whole, 5),
+            new CarrierLocation(Carrier.Unknown, 0));
+
+        var gatheredOverflow = read.LeftLocation.GatherThrough(whole, openRoute);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(whole, 0),
+                    new CarrierLocation(whole, 2)),
+                new Relation(
+                    new CarrierLocation(whole, 7),
+                    new CarrierLocation(Carrier.Unknown, 0))),
+            gatheredOverflow);
+        Assert.Equal(new CarrierLocation(partition, 3), read.RightLocation);
+    }
+
+    [Fact]
+    public void BoundaryOverflowCanTransferObserveAndGatherInOneOrderedRead()
+    {
+        var whole = new Carrier(10);
+        var partition = new Carrier(11);
+        var wrapped = new Carrier(12);
+        var counter = new Carrier(13);
+        var boundary = new CarrierLocation(Carrier.Unknown.Inverse(), 10);
+        var read = new CarrierLocation(partition, 37).ReadThroughBoundary(whole, boundary);
+        var wrapRoute = new Relation(
+            new CarrierLocation(whole, 2),
+            new CarrierLocation(wrapped, 100));
+        var counterRoute = new Relation(
+            new CarrierLocation(whole, 1),
+            new CarrierLocation(counter, 200));
+        var openRoute = new Relation(
+            new CarrierLocation(whole, 0),
+            new CarrierLocation(Carrier.Unknown, 0));
+
+        var transfers = read.LeftLocation.TransferThroughRoutes(whole, wrapRoute);
+        var remaining = transfers[^1].Left is Relation firstRead
+            ? firstRead.RightLocation
+            : new CarrierLocation(whole, 0);
+        var observed = remaining.ObserveThrough(whole, counterRoute);
+        var gathered = remaining.GatherThrough(whole, openRoute);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(whole, 3),
+                new CarrierLocation(partition, 7)),
+            read);
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(whole, 2),
+                        new CarrierLocation(whole, 1)),
+                    new CarrierLocation(wrapped, 102))
+            },
+            transfers);
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(whole, 0),
+                    new CarrierLocation(whole, 1)),
+                new CarrierLocation(counter, 201)),
+            observed);
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(whole, 0),
+                    new CarrierLocation(whole, 1)),
+                new Relation(
+                    new CarrierLocation(whole, 1),
+                    new CarrierLocation(Carrier.Unknown, 0))),
+            gathered);
+    }
+
+    [Fact]
+    public void BoundaryRefillReadPreservesBorrowedWholeAndRefilledResidue()
+    {
+        var whole = new Carrier(10);
+        var partition = new Carrier(11);
+        var boundary = new CarrierLocation(Carrier.Unknown.Inverse(), 10);
+
+        var refill = new CarrierLocation(partition.Inverse(), 1)
+            .ReadRefillThroughBoundary(whole.Inverse(), boundary);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(whole.Inverse(), 1),
+                new CarrierLocation(partition, 9)),
+            refill);
+    }
+
+    [Fact]
+    public void BoundaryRefillReadHasNoResidueAtWholeBoundary()
+    {
+        var whole = new Carrier(10);
+        var partition = new Carrier(11);
+        var boundary = new CarrierLocation(Carrier.Unknown.Inverse(), 10);
+
+        var refill = new CarrierLocation(partition.Inverse(), 10)
+            .ReadRefillThroughBoundary(whole.Inverse(), boundary);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(whole.Inverse(), 1),
+                new CarrierLocation(partition, 0)),
+            refill);
+    }
+
+    [Fact]
+    public void BoundaryRefillReadCanCrossMultipleWholeTicks()
+    {
+        var whole = new Carrier(10);
+        var partition = new Carrier(11);
+        var boundary = new CarrierLocation(Carrier.Unknown.Inverse(), 10);
+
+        var refill = new CarrierLocation(partition.Inverse(), 23)
+            .ReadRefillThroughBoundary(whole.Inverse(), boundary);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(whole.Inverse(), 3),
+                new CarrierLocation(partition, 7)),
+            refill);
+    }
+
+    [Fact]
+    public void BoundaryRefillReadCanRouteBorrowedWholeTicks()
+    {
+        var whole = new Carrier(10);
+        var partition = new Carrier(11);
+        var counter = new Carrier(12);
+        var boundary = new CarrierLocation(Carrier.Unknown.Inverse(), 10);
+        var refill = new CarrierLocation(partition.Inverse(), 23)
+            .ReadRefillThroughBoundary(whole.Inverse(), boundary);
+        var route = new Relation(
+            new CarrierLocation(whole.Inverse(), 2),
+            new CarrierLocation(counter, 100));
+
+        var routedBorrow = refill.LeftLocation.TransferThrough(whole, route);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(whole.Inverse(), 2),
+                    new CarrierLocation(whole.Inverse(), 1)),
+                new CarrierLocation(counter, 102)),
+            routedBorrow);
+        Assert.Equal(new CarrierLocation(partition, 7), refill.RightLocation);
+    }
+
+    [Fact]
     public void BoundarySideAndTravelCanBePlainCarrierLocations()
     {
         var side = new Carrier(101);
@@ -1448,6 +1632,104 @@ public sealed class CarrierReadTests
         Assert.Equal(
             Relation.UncoveredSpansOn(carrier, scope, blocked),
             Relation.NotOn(carrier, scope, blocked));
+    }
+
+    [Fact]
+    public void SupportFilterCanSplitIncomingExtentIntoPassedAndBlockedSpans()
+    {
+        var carrier = new Carrier(10);
+        var incomingScope = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 10));
+        var support = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 5));
+
+        var passed = Relation.PassOn(carrier, incomingScope, support);
+        var blocked = Relation.BlockOn(carrier, incomingScope, support);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 5))
+            },
+            passed);
+        Assert.Equal(
+            new[]
+            {
+                new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
+                new Relation(new CarrierLocation(carrier, 5), new CarrierLocation(carrier, 10))
+            },
+            blocked);
+    }
+
+    [Fact]
+    public void SupportFilterPassedSpanCanBecomeTransferCapacity()
+    {
+        var carrier = new Carrier(10);
+        var target = new Carrier(20);
+        var incoming = new CarrierLocation(carrier, 10);
+        var incomingScope = new Relation(
+            new CarrierLocation(carrier, 0),
+            incoming);
+        var support = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 5));
+
+        var passed = Relation.PassOn(carrier, incomingScope, support);
+        var capacity = passed[0].SpanOn(carrier);
+        var route = new Relation(capacity, new CarrierLocation(target, 100));
+
+        var transfer = incoming.TransferThrough(carrier, route);
+
+        Assert.Equal(new CarrierLocation(carrier, 3), capacity);
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(carrier, 3),
+                    new CarrierLocation(carrier, 7)),
+                new CarrierLocation(target, 103)),
+            transfer);
+    }
+
+    [Fact]
+    public void SupportFilterBlockedSpansCanGatherAsUnpassedTension()
+    {
+        var carrier = new Carrier(10);
+        var incoming = new CarrierLocation(carrier, 10);
+        var incomingScope = new Relation(
+            new CarrierLocation(carrier, 0),
+            incoming);
+        var support = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 5));
+
+        var passed = Relation.PassOn(carrier, incomingScope, support);
+        var blocked = Relation.BlockOn(carrier, incomingScope, support);
+        var blockedCapacity = new Relation(
+            blocked[0].SpanOn(carrier),
+            blocked[1].SpanOn(carrier));
+        var unpassed = incoming.AccountedBy(carrier, passed[0].SpanOn(carrier)).RightLocation;
+        var open = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(Carrier.Unknown, 0));
+
+        var gathered = unpassed.GatherThrough(carrier, open);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier, 2),
+                new CarrierLocation(carrier, 5)),
+            blockedCapacity);
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(carrier, 0),
+                    new CarrierLocation(carrier, 7)),
+                new Relation(
+                    new CarrierLocation(carrier, 7),
+                    new CarrierLocation(Carrier.Unknown, 0))),
+            gathered);
     }
 
     [Fact]

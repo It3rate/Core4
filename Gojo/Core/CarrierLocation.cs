@@ -12,6 +12,21 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks) : IE
             new CarrierLocation(Carrier, Ticks % boundary.Ticks));
     }
 
+    public Relation ReadRefillThroughBoundary(Carrier earlierCarrier, CarrierLocation boundary)
+    {
+        ArgumentOutOfRangeException.ThrowIfZero(boundary.Ticks);
+        if (Ticks == 0)
+        {
+            return new(
+                new CarrierLocation(earlierCarrier, 0),
+                new CarrierLocation(Carrier.Inverse(), 0));
+        }
+
+        return new(
+            new CarrierLocation(earlierCarrier, ((Ticks - 1) / boundary.Ticks) + 1),
+            new CarrierLocation(Carrier.Inverse(), (boundary.Ticks - (Ticks % boundary.Ticks)) % boundary.Ticks));
+    }
+
     public CarrierLocation NewTensionAfter(CarrierLocation accounted, Carrier reader) =>
         NewTensionAfter(reader, accounted);
 
