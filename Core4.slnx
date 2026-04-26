@@ -4,4 +4,6 @@
   <Project Path="Core4.Kernel.Tests/Core4.Kernel.Tests.csproj" />
   <Project Path="Core4.Runtime/Core4.Runtime.csproj" />
   <Project Path="Core4.Tests/Core4.Tests.csproj" />
+  <Project Path="Gojo/Gojo.csproj" />
+  <Project Path="Gojo.Tests/Gojo.Tests.csproj" />
 </Solution>

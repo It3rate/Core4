@@ -1,0 +1,496 @@
+# Core4 Boundary Overflow Axioms
+
+This note records the target model for carrier-layer boundaries, overflow,
+underflow, route coupling, loop closure, counters, filters, and directed
+segment boundaries.
+
+It builds on `Core4 Carrier Read And Resolution Axioms.md`.
+
+The current kernel does not yet implement this whole mechanism. This file is a
+design target for the next implementation pass.
+
+## 1. Layer Order Is Dependency Order
+
+Carrier layers should be visualized as dependency layers.
+
+Earlier crystallized layers sit lower. Later interpretation, resolution,
+operation, and read layers sit above them.
+
+This vertical order is not size order.
+
+For example, the following is legal:
+
+- meter layer
+- centimeter layer
+- kilometer layer
+
+The centimeter layer contracts the meter layer. The kilometer layer expands the
+centimeter layer. The order says which layer depends on which earlier layer,
+not which tick is smaller or larger.
+
+## 2. One Transform Per Layer
+
+One layer relates to its dependency layer through one numeric transform.
+
+A single layer should not simultaneously scale, shift, and change resolution.
+Those are separate layers:
+
+- resolution layer
+- scale layer
+- shift layer
+
+or another dependency order if the physical construction calls for it.
+
+The transform value has the usual Core4 read:
+
+- positive: expansive
+- negative: contractive
+- zero: additive, translational, or non-mixing, depending on route structure
+
+This keeps every layer inspectable. A complex operation is a stack or network
+of simple carrier layers, not one opaque operation tag.
+
+## 3. Operations Are Carrier Layers
+
+Every stable operation can be read as a carrier layer.
+
+Reading is traversal through carrier-layer relations.
+
+Multiplication, division, resolution, approximation, inversion, addition,
+branching, filtering, wrapping, clamping, and oscillation differ by:
+
+- the transform value between layers
+- the boundary events exposed by the layer
+- the routes attached to those boundary events
+- whether routed flow drains, observes, wraps, branches, or becomes tension
+
+This means an equation is not a symbolic expression outside the carrier system.
+It is a carrier-layer path that values can be read through in either compatible
+direction.
+
+## 4. Resolution And Crystal Layers
+
+A high-resolution carrier layer can feed a crystal layer.
+
+For example, a Fahrenheit reading may arrive with fifty residue ticks per
+degree. That high-resolution layer can relate to a Fahrenheit crystal layer
+whose native tick is one degree Fahrenheit.
+
+Then:
+
+- the high-resolution layer keeps residue
+- the Fahrenheit crystal layer absorbs whole degree overflows
+- reading through the high-resolution layer exposes residue
+- reading through the crystal layer exposes whole Fahrenheit ticks
+
+No precision is destroyed unless a read intentionally projects only through the
+coarser crystal layer.
+
+## 5. Boundary As A Carrier-Layer Fact
+
+A layer with a transform creates a boundary.
+
+For a contractive ten-partition layer over a carrier tick:
+
+- residue values `0` through `9` remain in the partition layer
+- the next forward overflow crosses the boundary
+- that overflow can increment the lower carrier tick and drain the residue
+
+For an expansive ten-tick approximation layer:
+
+- ten lower carrier ticks fill one approximate tick
+- overflow emits one approximate tick
+- leftover lower ticks may remain as residue or tension depending on route
+
+The boundary belongs to the layer relation. It is not a separate symbolic
+operator.
+
+## 6. Four Boundary Events
+
+Boundary behavior has side and travel direction.
+
+For a bilateral or bounded layer, there are four primitive boundary events:
+
+- `++`: positive side, forward/outward crossing
+- `+-`: positive side, backward/inward crossing
+- `-+`: negative side, forward/inward crossing
+- `--`: negative side, backward/outward crossing
+
+Common code may name them more plainly:
+
+- positive overflow
+- positive refill or underflow
+- negative refill or underflow
+- negative overflow
+
+The important point is that overflow is not one event. Each side and travel
+direction can route independently.
+
+Symmetric behavior is common, but it is not required.
+
+## 7. Partition Overflow And Refill
+
+A simple ten-partition residue layer over a whole carrier tick shows the basic
+mechanism.
+
+Forward accumulation:
+
+- residue fills from `0|10` toward `9|10`
+- one more residue tick triggers positive overflow
+- whole carrier tick increments
+- residue drains or wraps to `0|10`
+
+Backward accumulation:
+
+- subtracting one residue tick from `0|10` triggers positive refill or underflow
+- whole carrier tick decrements if a whole tick is available
+- residue refills to `9|10`
+
+So `23 9|10` plus one residue tick becomes `24 0|10`.
+
+And `24 0|10` minus one residue tick becomes `23 9|10`.
+
+This is boundary routing, not primitive signed arithmetic.
+
+## 8. Overflow Routes
+
+Each boundary event may attach to zero, one, or many routes.
+
+Routes can connect the event to:
+
+- the same carrier layer
+- a parent crystal layer
+- an opposed carrier layer
+- a counter carrier
+- a tension reservoir
+- a boolean or support filter
+- a branch of several carriers
+- a merge into one carrier
+- an open site that has not yet chosen a route
+
+An unrouted event produces tension.
+
+Routing is the main way the system lowers tension dynamically rather than
+solving an external equation.
+
+## 9. Drain Versus Observe Without Flags
+
+The system should not need a `drain` flag.
+
+Drain should emerge from relation shape.
+
+A resolved route with unit participation transfers flow:
+
+- routed content enters the target
+- the source reservoir updates or drains according to the boundary law
+- overflow is consumed to the degree the target absorbs it
+
+A zero-unit route observes or claims the event:
+
+- the route can sense that the event occurred
+- it can count, mark, branch a signal, or create a claim
+- it does not consume the source reservoir by itself
+
+An open route accepts potential but has no committed transfer law yet:
+
+- event content can gather as unresolved tension
+- a later relation may harden and absorb it
+
+So the numeric ladder is:
+
+- `0/0`: open route
+- `m/0`: event claim, marker, or unresolved tension potential
+- `m/u`: resolved transfer route
+
+This preserves the existing Core4 open/unbound/resolved ladder.
+
+## 10. Tension As Unrouted Overflow
+
+Tension is overflow or underflow that has no compatible route under the current
+read.
+
+Examples:
+
+- `43` read down through `7` and `3` gives `2` plus overflow tension if no
+  compatible residue layer exists
+- the same value can read without tension at an intermediate resolution layer
+- a clamp is a boundary with no continuation route, so overflow becomes tension
+- a partial route absorbs some content and leaves the rest as tension
+
+Tension is not an exception. It is real content that the current structure has
+not explained.
+
+## 11. Self Absorption Versus Routed Overflow
+
+When a value overshoots a carrier's ordinary positive range, the first possible
+behavior may be self absorption.
+
+Self absorption means:
+
+- the carrier accepts a larger positive count on itself
+- no external route is needed
+- no tension is produced
+
+For example, a partition carrier with unit size ten may be able to hold value
+`50` and read that as five whole partition cycles if its own boundary permits
+self absorption.
+
+Routed overflow is different:
+
+- the carrier crosses a boundary
+- event content leaves or updates the source layer
+- another carrier, counter, crystal layer, or tension reservoir receives it
+
+The boundary law decides which behavior is active.
+
+## 12. Underflow And Opposed Carriers
+
+No positive-flow carrier can go below its own origin.
+
+If flow attempts to move below zero and no route exists, underflow becomes
+tension.
+
+If an opposed carrier is fused into the structure, underflow can route into
+that opposed carrier. The opposed carrier still receives positive flow in its
+own direction.
+
+So reverse movement is not negative storage. It is routed positive storage on
+an inverse participation.
+
+## 13. Looping And Circular Boundaries
+
+Looping is boundary routing, not a separate loop primitive.
+
+A circular two-boundary relation may be:
+
+- positive overflow routes to the origin of the opposed carrier
+- opposed overflow routes back to the origin of the positive carrier
+
+If routed content drains and re-enters the opposite side, the value circulates.
+
+If no route can absorb the content, the boundary produces tension.
+
+If a counter route observes or absorbs each crossing, the system can count
+periods without changing the circulating content unless the route is coupled.
+
+This gives modulo, wrap, periodicity, and loop counting as different route
+structures.
+
+## 14. Drainable And Non-Drainable Loops
+
+A circular flow may or may not drain on boundary crossing.
+
+Drainable loop:
+
+- boundary crossing transfers content to the next carrier
+- source reservoir wraps or clears
+- flow continues around the circuit
+
+Non-drainable observer loop:
+
+- boundary crossing is detected
+- source reservoir does not clear
+- tension may accumulate if the value has crossed a boundary but no coupled
+  route absorbs it
+
+The distinction comes from whether the route is resolved transfer or zero-unit
+observation.
+
+## 15. Counters
+
+A counter is a carrier route attached to a boundary event.
+
+It may be coupled:
+
+- absorbs one overflow quantum
+- source drains or wraps
+- counter increments in its own positive direction
+
+It may be observational:
+
+- sees the event
+- records a marker or claim
+- source is not consumed
+
+Refill can draw from a coupled counter if the inverse route exists:
+
+- underflow asks the counter for one quantum
+- counter decrements by routing through its opposed participation or by tension
+  if decrement is not supported
+- residue refills
+
+If no compatible counter or tension source can supply refill, negative-side
+tension appears.
+
+## 16. Directed Segment Boundaries
+
+A directed segment can be built from fused carrier participations, but its
+boundaries do not have to be only the native units.
+
+A segment boundary may be:
+
+- a carrier origin
+- a carrier tick
+- a value read through one side of the fused pair
+- a value read through the other side
+- a pair of values, one read through each carrier
+- a higher crystallized segment carrier
+
+This means a directed segment itself can become a boundary object.
+
+For example:
+
+- define a segment by two values
+- route the segment end back to its beginning
+- if the route transfers flow, the segment drains and wraps
+- if no counter or absorber receives the route event, the drain may produce
+  tension
+
+A segment used as a boundary is not special. It is a carrier-layer structure
+whose endpoint events have routes.
+
+## 17. Segment Loop Closure
+
+The end of a segment can route to its own beginning.
+
+This creates loop closure:
+
+- crossing the end boundary maps to the start boundary
+- the source segment may drain, wrap, or only signal depending on route
+- a counter can attach to count laps
+- another route can absorb the full value
+- an unrouted excess becomes tension
+
+If the segment also has an opposed participation, the start and end can support
+ping-pong behavior:
+
+- positive end overflow routes into inverse flow
+- inverse end overflow routes back into positive flow
+
+This gives reflection and oscillation without separate reflection tokens.
+
+## 18. Branch And Merge
+
+Branching is one boundary event with multiple routes.
+
+For example, one overflow event can route to:
+
+- a counter carrier
+- a wrapped continuation carrier
+- a tension reservoir
+- an observational marker
+
+Merging is several boundary events routing to one carrier.
+
+Neither branch nor merge needs to be a primitive symbolic graph operation.
+They are route multiplicity patterns over boundary events.
+
+## 19. Boolean Filters
+
+Boolean-like operations should be expressible as boundary and support filters.
+
+A filter is a layer or route that can:
+
+- pass supported flow
+- block unsupported flow into tension
+- split flow into pass and residue
+- observe a crossing without draining it
+- merge several support conditions into one route
+
+This makes boolean reads lower projections over flow support:
+
+- `and`: multiple supports must route into one pass condition
+- `or`: any compatible support may route into pass
+- `not`: opposed or absence route becomes visible
+- branch: support routes to multiple continuations
+- selection: only supported routes transfer flow
+
+The current `SupportReadEquations` already points this way by representing
+boolean-like reads as relation-shaped support projections rather than as a
+separate boolean algebra.
+
+## 20. Oscillation And Field-Like Response
+
+Oscillation can emerge from routed boundary response.
+
+Example pattern:
+
+- position carrier has positive and inverse fused sides
+- velocity carrier is incremented or decremented depending on which side is
+  active
+- overflow routes switch or oppose velocity at boundaries
+- repeated route response produces oscillation
+
+A gravitational or spring-like pull can be read similarly:
+
+- side of position determines route direction
+- distance or residue magnitude affects how strongly velocity changes
+- opposing carrier flow absorbs attempted underflow
+- tension remains where route capacity is insufficient
+
+This is not a hard-coded sine or gravity function. It is routed response in a
+carrier-layer network.
+
+## 21. Implementation Shape
+
+The implementation should likely introduce an explicit boundary/read layer
+before trying to encode all of this in `RelationFold`.
+
+Useful concepts to preserve numerically:
+
+- source carrier layer
+- dependent carrier layer
+- one transform value
+- boundary size
+- boundary side
+- travel direction
+- overflow amount
+- residue amount
+- route target
+- route coupling state: open, zero-unit observation, resolved transfer
+- whether the route absorbed all, some, or none of the event content
+
+The route coupling state should be encoded through existing Core4 numeric
+structure rather than through enum tags where possible.
+
+## 22. Current Kernel Mismatch
+
+The current kernel still collapses many of these ideas into:
+
+- signed `long` measures
+- relation folds
+- partition widths
+- support projections
+
+That is acceptable for the bootstrap layer, but the boundary implementation
+should move toward:
+
+- positive carrier-local storage
+- sign as cross-read or opposed-carrier projection
+- residue as live attachment state
+- tension as unrouted boundary content
+- branch, merge, loop, clamp, and filter as route structures
+
+## 23. Guiding Rule
+
+A boundary is a site where flow asks for continuation.
+
+Continuation is not a symbolic control-flow instruction. It is a numeric route.
+
+If the route is resolved, flow transfers.
+
+If the route is zero-unit, the event is observed or claimed without consuming
+the source.
+
+If the route is open, tension gathers.
+
+If multiple routes attach, the event branches.
+
+If multiple events share a route, the event merges.
+
+If the route returns to an earlier boundary, the structure loops.
+
+If the route crosses into an opposed carrier, the structure reflects or
+ping-pongs.
+
+If no route can accept the content, the boundary clamps and tension remains.
