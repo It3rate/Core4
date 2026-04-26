@@ -3,18 +3,18 @@ namespace Gojo.Core;
 public readonly record struct LayeredRead(
     CarrierLocation Earlier,
     CarrierLocation Later,
-    LayerTransform Boundary)
+    CarrierLocation Boundary)
 {
     public static LayeredRead FromBoundary(
         Carrier earlierCarrier,
         Carrier laterCarrier,
         ulong ticks,
-        LayerTransform boundary)
+        CarrierLocation boundary)
     {
-        ArgumentOutOfRangeException.ThrowIfZero(boundary.Magnitude);
+        ArgumentOutOfRangeException.ThrowIfZero(boundary.Ticks);
         return new(
-            new CarrierLocation(earlierCarrier, ticks / boundary.Magnitude),
-            new CarrierLocation(laterCarrier, ticks % boundary.Magnitude),
+            new CarrierLocation(earlierCarrier, ticks / boundary.Ticks),
+            new CarrierLocation(laterCarrier, ticks % boundary.Ticks),
             boundary);
     }
 
@@ -22,6 +22,6 @@ public readonly record struct LayeredRead(
 
     public override string ToString() =>
         HasLaterLayerTicks
-            ? $"{Earlier.Ticks} {Later.Ticks}|{Boundary.Magnitude}"
+            ? $"{Earlier.Ticks} {Later.Ticks}|{Boundary.Ticks}"
             : Earlier.Ticks.ToString();
 }

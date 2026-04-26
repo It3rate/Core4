@@ -41,15 +41,17 @@ Those are separate layers:
 
 or another dependency order if the physical construction calls for it.
 
-The transform value has the usual Core4 read:
+The transform slot contains an ordinary carrier-located value. That value has
+the usual Core4 read:
 
 - positive: expansive
 - negative: contractive
 - zero: additive, translational, or non-mixing, depending on route structure
 
-The transform itself should be a carrier-located Gojo/Core4 number, often on
-the unknown carrier until it is crystallized or attached more specifically. A
-host-language signed scalar is only a projection of that relation.
+Nothing special makes that value a transform except its position in the layer
+relation. A `CarrierLocation` on the unknown carrier may be used until it is
+crystallized or attached more specifically. A host-language signed scalar is
+only a projection of that relation.
 
 This keeps every layer inspectable. A complex operation is a stack or network
 of simple carrier layers, not one opaque operation tag.
@@ -63,7 +65,7 @@ Reading is traversal through carrier-layer relations.
 Multiplication, division, resolution, approximation, inversion, addition,
 branching, filtering, wrapping, clamping, and oscillation differ by:
 
-- the transform value between layers
+- the carrier value in the transform slot between layers
 - the boundary events exposed by the layer
 - the routes attached to those boundary events
 - whether routed flow drains, observes, wraps, branches, or becomes tension
@@ -118,6 +120,11 @@ Boundary behavior has side and travel direction.
 Side and travel are not host-language signs. They are carrier-located numeric
 participations whose aligned or opposed read gives the familiar `+` or `-`
 projection.
+
+At the current Gojo pass, a boundary event does not need its own object. It is
+the boundary-context read of side and travel carrier locations. If routing later
+needs an explicit value, it should reuse the same general relation structure as
+layer relations rather than introducing a separate event ontology.
 
 For a bilateral or bounded layer, there are four primitive boundary events:
 
@@ -451,7 +458,7 @@ Useful concepts to preserve numerically:
 
 - source carrier layer
 - dependent carrier layer
-- one transform value
+- one carrier value in the transform slot
 - boundary size
 - boundary side
 - travel direction

@@ -8,7 +8,7 @@ carrier-layer reading:
 - carrier-local storage is positive-flow storage
 - sign is a cross-carrier read
 - operations are carrier layers
-- each layer has one transform value
+- each layer has one carrier value in its transform slot
 - boundary overflow leaves attached-layer state or tension unless routed
 
 ## Phase 1. Positive Carrier Reads
@@ -27,6 +27,7 @@ This phase proves that location and read are separate.
 
 Add one-transform-per-layer paths:
 
+- bare `CarrierLocation` values in transform slots
 - expansive reads
 - contractive reads
 - reverse reads with attached-layer state or tension
@@ -41,7 +42,7 @@ Add carrier-layer boundaries:
 
 - carrier tick overflow
 - attached carrier-layer ticks
-- four directional boundary events
+- four directional side/travel carrier-location reads
 - unrouted overflow as tension
 
 This phase should produce reads such as `23 4|10 C`.
@@ -79,3 +80,8 @@ This phase should replace boolean branching with carrier-native route support.
 Only copy code from `Core4.Kernel` when it still preserves the Gojo direction.
 Do not carry over signed `long` fold behavior as canonical storage. It may stay
 as a projection only.
+
+Prefer removing role wrappers when relation context already supplies the role.
+A value in a transform slot is a transform; a side/travel pair in boundary
+context is a boundary event. Dedicated types should appear only when they carry
+new numeric structure.
