@@ -54,32 +54,41 @@ public sealed class CarrierReadTests
         var contractive = LayerTransform.Contractive(10);
         var additive = LayerTransform.Additive;
 
+        Assert.Equal(Carrier.Unknown, expansive.Value.Carrier);
         Assert.True(expansive.IsExpansive);
         Assert.Equal(3UL, expansive.Magnitude);
+        Assert.Equal(Carrier.Unknown.Inverse(), contractive.Value.Carrier);
         Assert.True(contractive.IsContractive);
         Assert.Equal(10UL, contractive.Magnitude);
+        Assert.Equal(Carrier.Unknown, additive.Value.Carrier);
         Assert.True(additive.IsAdditive);
         Assert.Equal(0UL, additive.Magnitude);
     }
 
     [Fact]
-    public void ResidueReadPreservesDiscernmentInsteadOfDecimalProjection()
+    public void LayeredReadPreservesBothCarrierLayersInsteadOfDecimalProjection()
     {
-        var read = ResidueRead.FromTicks(234, 10);
+        var celsius = new Carrier(10);
+        var tenth = new Carrier(11);
+        var read = LayeredRead.FromBoundary(celsius, tenth, 234, LayerTransform.Contractive(10));
 
-        Assert.Equal(23UL, read.WholeTicks);
-        Assert.Equal(4UL, read.ResidueTicks);
-        Assert.Equal(10UL, read.BoundaryTicks);
+        Assert.Equal(new CarrierLocation(celsius, 23), read.Earlier);
+        Assert.Equal(new CarrierLocation(tenth, 4), read.Later);
+        Assert.Equal(10UL, read.Boundary.Magnitude);
         Assert.Equal("23 4|10", read.ToString());
     }
 
     [Fact]
-    public void BoundaryEventsPreserveSideAndTravelDirection()
+    public void BoundaryEventsUseCarrierNumbersForSideAndTravelDirection()
     {
-        Assert.Equal(new BoundaryEvent(1, 1), BoundaryEvent.PositiveOverflow);
-        Assert.Equal(new BoundaryEvent(1, -1), BoundaryEvent.PositiveRefill);
-        Assert.Equal(new BoundaryEvent(-1, 1), BoundaryEvent.NegativeRefill);
-        Assert.Equal(new BoundaryEvent(-1, -1), BoundaryEvent.NegativeOverflow);
+        Assert.Equal(new CarrierLocation(BoundaryEvent.SideCarrier, 1), BoundaryEvent.PositiveOverflow.Side);
+        Assert.Equal(new CarrierLocation(BoundaryEvent.TravelCarrier, 1), BoundaryEvent.PositiveOverflow.Travel);
+        Assert.Equal(new CarrierLocation(BoundaryEvent.SideCarrier, 1), BoundaryEvent.PositiveRefill.Side);
+        Assert.Equal(new CarrierLocation(BoundaryEvent.TravelCarrier.Inverse(), 1), BoundaryEvent.PositiveRefill.Travel);
+        Assert.Equal(new CarrierLocation(BoundaryEvent.SideCarrier.Inverse(), 1), BoundaryEvent.NegativeRefill.Side);
+        Assert.Equal(new CarrierLocation(BoundaryEvent.TravelCarrier, 1), BoundaryEvent.NegativeRefill.Travel);
+        Assert.Equal(new CarrierLocation(BoundaryEvent.SideCarrier.Inverse(), 1), BoundaryEvent.NegativeOverflow.Side);
+        Assert.Equal(new CarrierLocation(BoundaryEvent.TravelCarrier.Inverse(), 1), BoundaryEvent.NegativeOverflow.Travel);
 
         Assert.Equal(1, BoundaryEvent.PositiveOverflow.Alignment);
         Assert.Equal(-1, BoundaryEvent.PositiveRefill.Alignment);

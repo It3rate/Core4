@@ -74,7 +74,7 @@ Crystallization means:
 This collapses the sharp distinction between unit and value:
 
 - a unit is a crystallized structure used as one tick
-- a value is accumulated ticks plus any unresolved attachment residue
+- a value is accumulated ticks across the carrier layers currently being read
 - a value can later be crystallized into a new unit/carrier
 
 Any stable structure can be crystallized if the system wants to use it as a
@@ -191,7 +191,7 @@ Finer reads use contractive attachment.
 For Celsius with ten exposed sub-ticks per degree:
 
 - Celsius carrier native tick: one degree Celsius
-- precision attachment: ten residue ticks per carrier tick
+- precision attachment: ten later-layer ticks per Celsius carrier tick
 - read: `23 4|10 C`
 
 The read should stay in that structured form. Decimal projection such as
@@ -204,25 +204,29 @@ attached to that tick.
 For detailed overflow and refill behavior at these attachment boundaries, see
 `Core4 Boundary Overflow Axioms.md`.
 
-## 10. Tick And Residue
+## 10. Layered Tick Reads
 
-Values read through an attachment have two visible surfaces:
+Values read through an attachment may expose multiple carrier layers at once.
+There is no separate earlier-layer-versus-later-layer ontology. Both surfaces
+are carrier layers; the relation between them is what makes one earlier and the
+other dependent in this read.
 
-- carrier tick overflow
-- attachment residue
+- earlier carrier-layer ticks
+- later carrier-layer ticks that have not crossed the boundary relation
 
 Flow moves through the attachment. When the attachment crosses its boundary,
-overflow increments or decrements the carrier tick surface. The unoverflowed
-part remains as residue in the attachment.
+overflow increments or decrements the earlier carrier-layer surface. The
+unoverflowed part remains visible as ticks on the later carrier layer.
 
 So a precise Celsius read may be:
 
-- carrier ticks: `23`
-- residue: `4|10`
+- earlier Celsius layer: `23`
+- later precision layer: `4|10`
 - canonical label: `23 4|10 C`
 
-The residue is not an arithmetic afterthought. It is the live state of the
-attached resolution structure.
+The `4|10` part is not an arithmetic afterthought and not a different kind of
+thing from the `23`. It is the live state of another carrier layer bound by the
+ten-part boundary relation.
 
 ## 11. Boundary Direction
 
@@ -230,7 +234,7 @@ Overflow direction depends on the read intention.
 
 When accumulating:
 
-- attachment residue fills
+- the later attachment layer fills
 - boundary crossing overflows upward into carrier ticks
 
 When generating or inspecting:
@@ -294,13 +298,13 @@ That `10` can later be interpreted back through the mile carrier as:
 - label `100`
 - a coarse segment-like compatibility region
 - a distribution
-- unresolved residue or tension
+- unresolved later-layer ticks or tension
 
 Those are interpretations of the approximation carrier. They are not secret
 contents of the original read.
 
 Coarse-to-fine projection cannot invent finer detail. Fine-to-coarse projection
-can intentionally discard detail or carry it as residue/tension.
+can intentionally discard detail or carry it as attached-layer ticks or tension.
 
 ## 14. Orthogonality And Zero Reads
 
@@ -367,7 +371,7 @@ law.
 
 - a unit is a crystallized tick used for reading
 - a carrier is a positive-flow tick line whose tick has been crystallized
-- a value is carrier tick overflow plus attachment residue
+- a value is the visible carrier-layer tick state exposed by the current read
 - a scale is an attachment structure that maps its origin and unit onto another
   carrier
 - a resolution is a scale-like attachment to a carrier tick
@@ -385,15 +389,16 @@ future separation of:
 - reading carrier
 - positive tick count
 - inverse/opposed carrier participation
-- attachment residue
-- carrier tick overflow
+- attached carrier-layer ticks
+- earlier carrier-layer overflow
 
 `PartitionStep` should eventually mean the current exposed inspection or
 overflow surface, not atoms of underlying reality.
 
 `Carrier.TryProject` should eventually become one member of a broader read
-system where values can be read across carriers, including zero reads,
-opposed reads, approximation reads, and residue-preserving reads.
+system where values can be read across carriers, including zero reads, opposed
+reads, approximation reads, and reads that preserve later-layer tick state
+instead of collapsing it away.
 
 ## 19. Open Questions
 
@@ -402,7 +407,8 @@ These points remain unsettled:
 - whether carrier-local storage should actually become `ulong` or only behave
   as if it were positive-flow storage
 - the exact numeric encoding of contractive, expansive, and zero attachments
-- how residue should carry provenance when several attachments are nested
+- how attached-layer ticks should carry provenance when several attachments are
+  nested
 - when a coarse read should project back as a label, span, distribution, or
   tension
 - how to encode inverse carrier creation without adding symbolic tags
@@ -414,5 +420,6 @@ These points remain unsettled:
 The guiding constraint is stable:
 
 meaning should stay in numeric carrier structure, crystallized ticks,
-attachments, overflow, residue, and cross-carrier reads rather than being hidden
-in enums, opaque metadata, or ordinary algebraic simplification.
+attachments, overflow, attached-layer tick state, and cross-carrier reads rather
+than being hidden in enums, opaque metadata, or ordinary algebraic
+simplification.

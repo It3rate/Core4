@@ -9,7 +9,7 @@ carrier-layer reading:
 - sign is a cross-carrier read
 - operations are carrier layers
 - each layer has one transform value
-- boundary overflow creates residue or tension unless routed
+- boundary overflow leaves attached-layer state or tension unless routed
 
 ## Phase 1. Positive Carrier Reads
 
@@ -29,18 +29,18 @@ Add one-transform-per-layer paths:
 
 - expansive reads
 - contractive reads
-- reverse reads with residue or tension
+- reverse reads with attached-layer state or tension
 - zero transform as additive or non-mixing attachment
 
 This phase should cover multiplication-like and division-like reads without
 ordinary algebraic operator tags.
 
-## Phase 3. Residue And Boundary Events
+## Phase 3. Layered Reads And Boundary Events
 
 Add carrier-layer boundaries:
 
 - carrier tick overflow
-- attachment residue
+- attached carrier-layer ticks
 - four directional boundary events
 - unrouted overflow as tension
 
@@ -69,7 +69,7 @@ Rebuild support and boolean-like reads on top of routes:
 - block
 - branch
 - merge
-- residue
+- unpassed carrier-layer state
 - support/tension/exclusive reads
 
 This phase should replace boolean branching with carrier-native route support.

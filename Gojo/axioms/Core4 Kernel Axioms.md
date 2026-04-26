@@ -273,7 +273,7 @@ constraint response or tension in attached calibrations.
 
 The newer resolution direction treats precision and approximation as
 attachments to crystallized carrier ticks. A precise read such as `23 4|10 C`
-preserves carrier ticks plus residue instead of reducing to a decimal
+preserves multiple carrier-layer tick surfaces instead of reducing to a decimal
 projection. An approximate read groups native ticks without inventing hidden
 finer precision.
 
@@ -292,8 +292,8 @@ From those slots it can project:
 - support
 - tension
 - exclusive support
-- forward residue
-- reverse residue
+- forward unclaimed flow
+- reverse unclaimed flow
 - occupancy and larger-flow reads
 
 The read equations are themselves represented as relation-shaped truth tables

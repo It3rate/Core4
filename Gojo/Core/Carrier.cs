@@ -14,7 +14,9 @@ public readonly record struct Carrier
         Flow = Math.Sign(flow);
     }
 
-    public static Carrier Unbound => new(0, 0, 0);
+    public static Carrier Unknown => new(0, 0, 1);
+
+    public static Carrier Unbound => Unknown;
 
     public static Carrier Primary => new(1);
 
@@ -30,6 +32,11 @@ public readonly record struct Carrier
 
     public long ReadSignOf(Carrier locationCarrier)
     {
+        if (Id == locationCarrier.Id && Lineage == locationCarrier.Lineage)
+        {
+            return Math.Sign(ReadableFlow * locationCarrier.ReadableFlow);
+        }
+
         if (Lineage == 0 || locationCarrier.Lineage == 0)
         {
             return this == locationCarrier ? 1 : 0;

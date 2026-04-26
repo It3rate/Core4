@@ -47,6 +47,10 @@ The transform value has the usual Core4 read:
 - negative: contractive
 - zero: additive, translational, or non-mixing, depending on route structure
 
+The transform itself should be a carrier-located Gojo/Core4 number, often on
+the unknown carrier until it is crystallized or attached more specifically. A
+host-language signed scalar is only a projection of that relation.
+
 This keeps every layer inspectable. A complex operation is a stack or network
 of simple carrier layers, not one opaque operation tag.
 
@@ -72,15 +76,15 @@ direction.
 
 A high-resolution carrier layer can feed a crystal layer.
 
-For example, a Fahrenheit reading may arrive with fifty residue ticks per
+For example, a Fahrenheit reading may arrive with fifty later-layer ticks per
 degree. That high-resolution layer can relate to a Fahrenheit crystal layer
 whose native tick is one degree Fahrenheit.
 
 Then:
 
-- the high-resolution layer keeps residue
+- the high-resolution layer keeps its unoverflowed layer ticks
 - the Fahrenheit crystal layer absorbs whole degree overflows
-- reading through the high-resolution layer exposes residue
+- reading through the high-resolution layer exposes those layer ticks
 - reading through the crystal layer exposes whole Fahrenheit ticks
 
 No precision is destroyed unless a read intentionally projects only through the
@@ -92,15 +96,17 @@ A layer with a transform creates a boundary.
 
 For a contractive ten-partition layer over a carrier tick:
 
-- residue values `0` through `9` remain in the partition layer
+- partition-layer values `0` through `9` remain in the partition layer
 - the next forward overflow crosses the boundary
-- that overflow can increment the lower carrier tick and drain the residue
+- that overflow can increment the earlier carrier tick and drain the partition
+  layer
 
 For an expansive ten-tick approximation layer:
 
 - ten lower carrier ticks fill one approximate tick
 - overflow emits one approximate tick
-- leftover lower ticks may remain as residue or tension depending on route
+- leftover lower ticks may remain as attached-layer state or tension depending
+  on route
 
 The boundary belongs to the layer relation. It is not a separate symbolic
 operator.
@@ -108,6 +114,10 @@ operator.
 ## 6. Four Boundary Events
 
 Boundary behavior has side and travel direction.
+
+Side and travel are not host-language signs. They are carrier-located numeric
+participations whose aligned or opposed read gives the familiar `+` or `-`
+projection.
 
 For a bilateral or bounded layer, there are four primitive boundary events:
 
@@ -130,25 +140,26 @@ Symmetric behavior is common, but it is not required.
 
 ## 7. Partition Overflow And Refill
 
-A simple ten-partition residue layer over a whole carrier tick shows the basic
+A simple ten-partition carrier layer over a whole carrier tick shows the basic
 mechanism.
 
 Forward accumulation:
 
-- residue fills from `0|10` toward `9|10`
-- one more residue tick triggers positive overflow
+- the partition layer fills from `0|10` toward `9|10`
+- one more partition-layer tick triggers positive overflow
 - whole carrier tick increments
-- residue drains or wraps to `0|10`
+- the partition layer drains or wraps to `0|10`
 
 Backward accumulation:
 
-- subtracting one residue tick from `0|10` triggers positive refill or underflow
+- subtracting one partition-layer tick from `0|10` triggers positive refill or
+  underflow
 - whole carrier tick decrements if a whole tick is available
-- residue refills to `9|10`
+- the partition layer refills to `9|10`
 
-So `23 9|10` plus one residue tick becomes `24 0|10`.
+So `23 9|10` plus one partition-layer tick becomes `24 0|10`.
 
-And `24 0|10` minus one residue tick becomes `23 9|10`.
+And `24 0|10` minus one partition-layer tick becomes `23 9|10`.
 
 This is boundary routing, not primitive signed arithmetic.
 
@@ -212,7 +223,7 @@ read.
 Examples:
 
 - `43` read down through `7` and `3` gives `2` plus overflow tension if no
-  compatible residue layer exists
+  compatible intermediate carrier layer exists
 - the same value can read without tension at an intermediate resolution layer
 - a clamp is a boundary with no continuation route, so overflow becomes tension
 - a partial route absorbs some content and leaves the rest as tension
@@ -317,7 +328,7 @@ Refill can draw from a coupled counter if the inverse route exists:
 - underflow asks the counter for one quantum
 - counter decrements by routing through its opposed participation or by tension
   if decrement is not supported
-- residue refills
+- the partition layer refills
 
 If no compatible counter or tension source can supply refill, negative-side
 tension appears.
@@ -393,7 +404,7 @@ A filter is a layer or route that can:
 
 - pass supported flow
 - block unsupported flow into tension
-- split flow into pass and residue
+- split flow into passed and unpassed carrier-layer state
 - observe a crossing without draining it
 - merge several support conditions into one route
 
@@ -424,7 +435,7 @@ Example pattern:
 A gravitational or spring-like pull can be read similarly:
 
 - side of position determines route direction
-- distance or residue magnitude affects how strongly velocity changes
+- distance or later-layer magnitude affects how strongly velocity changes
 - opposing carrier flow absorbs attempted underflow
 - tension remains where route capacity is insufficient
 
@@ -445,7 +456,7 @@ Useful concepts to preserve numerically:
 - boundary side
 - travel direction
 - overflow amount
-- residue amount
+- unoverflowed attached-layer amount
 - route target
 - route coupling state: open, zero-unit observation, resolved transfer
 - whether the route absorbed all, some, or none of the event content
@@ -467,7 +478,7 @@ should move toward:
 
 - positive carrier-local storage
 - sign as cross-read or opposed-carrier projection
-- residue as live attachment state
+- attached-layer ticks as live relation state
 - tension as unrouted boundary content
 - branch, merge, loop, clamp, and filter as route structures
 
