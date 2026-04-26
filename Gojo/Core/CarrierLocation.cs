@@ -1,6 +1,6 @@
 namespace Gojo.Core;
 
-public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks)
+public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks) : IElement
 {
     public CarrierRead ReadFrom(Carrier reader) => CarrierRead.From(this, reader);
 
@@ -16,7 +16,7 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks)
         NewTensionAfter(reader, accounted);
 
     public Relation AccountedBy(Carrier reader, Relation accounted) =>
-        AccountedBy(reader, accounted.Left, accounted.Right);
+        AccountedBy(reader, accounted.CarrierLocations());
 
     public Relation AccountedBy(Carrier reader, Relation firstAccounted, params Relation[] remainingAccounted) =>
         AccountedBy(reader, Flatten(firstAccounted, remainingAccounted));
@@ -34,7 +34,7 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks)
     }
 
     public CarrierLocation NewTensionAfter(Carrier reader, Relation accounted) =>
-        NewTensionAfter(reader, accounted.Left, accounted.Right);
+        NewTensionAfter(reader, accounted.CarrierLocations());
 
     public CarrierLocation NewTensionAfter(Carrier reader, Relation firstAccounted, params Relation[] remainingAccounted) =>
         NewTensionAfter(reader, Flatten(firstAccounted, remainingAccounted));
@@ -70,17 +70,12 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks)
 
     private static CarrierLocation[] Flatten(Relation first, Relation[] rest)
     {
-        var locations = new CarrierLocation[2 + rest.Length * 2];
-        locations[0] = first.Left;
-        locations[1] = first.Right;
-
-        var index = 2;
+        var locations = new List<CarrierLocation>(first.CarrierLocations());
         foreach (var relation in rest)
         {
-            locations[index++] = relation.Left;
-            locations[index++] = relation.Right;
+            locations.AddRange(relation.CarrierLocations());
         }
 
-        return locations;
+        return [.. locations];
     }
 }

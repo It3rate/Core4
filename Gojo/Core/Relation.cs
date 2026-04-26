@@ -1,13 +1,13 @@
 namespace Gojo.Core;
 
-public readonly record struct Relation(CarrierLocation Left, CarrierLocation Right)
+public readonly record struct Relation(IElement Left, IElement Right) : IElement
 {
     public static CarrierLocation[] BoundaryPointsOn(Carrier reader, params Relation[] relations)
     {
         return relations
             .Select(relation => relation.BoundariesOn(reader))
-            .Where(boundary => boundary.Left.Ticks != boundary.Right.Ticks)
-            .SelectMany(boundary => new[] { boundary.Left, boundary.Right })
+            .Where(boundary => boundary.LeftLocation.Ticks != boundary.RightLocation.Ticks)
+            .SelectMany(boundary => new[] { boundary.LeftLocation, boundary.RightLocation })
             .Distinct()
             .OrderBy(location => location.Carrier.Lineage)
             .ThenBy(location => location.Carrier.Id)
@@ -20,7 +20,7 @@ public readonly record struct Relation(CarrierLocation Left, CarrierLocation Rig
     {
         var boundaries = relations
             .Select(relation => relation.BoundariesOn(reader))
-            .Where(boundary => boundary.Left.Ticks != boundary.Right.Ticks)
+            .Where(boundary => boundary.LeftLocation.Ticks != boundary.RightLocation.Ticks)
             .ToArray();
 
         if (boundaries.Length == 0)
@@ -29,11 +29,11 @@ public readonly record struct Relation(CarrierLocation Left, CarrierLocation Rig
         }
 
         var spans = new List<Relation>();
-        foreach (var group in boundaries.GroupBy(boundary => boundary.Left.Carrier))
+        foreach (var group in boundaries.GroupBy(boundary => boundary.LeftLocation.Carrier))
         {
             var groupedBoundaries = group.ToArray();
             var points = groupedBoundaries
-                .SelectMany(boundary => new[] { boundary.Left, boundary.Right })
+                .SelectMany(boundary => new[] { boundary.LeftLocation, boundary.RightLocation })
                 .Distinct()
                 .OrderBy(location => location.Ticks)
                 .ToArray();
@@ -52,10 +52,42 @@ public readonly record struct Relation(CarrierLocation Left, CarrierLocation Rig
         return [.. spans];
     }
 
+    public static Relation[] SupportStatesOn(Carrier reader, params Relation[] relations) =>
+        CoveredSpansOn(reader, relations)
+            .Select(span => new Relation(span, SupportStateOn(span, reader, relations)))
+            .ToArray();
+
+    public Relation SupportOn(Carrier reader)
+    {
+        var (reverse, forward) = ReadStatePair(reader);
+        return SlotPair(reader, reverse, forward);
+    }
+
+    public Relation TensionOn(Carrier reader)
+    {
+        var (reverse, forward) = ReadStatePair(reader);
+        var tension = Math.Min(reverse, forward);
+        return SlotPair(reader, tension, tension);
+    }
+
+    public Relation ExclusiveOn(Carrier reader)
+    {
+        var (reverse, forward) = ReadStatePair(reader);
+        return forward >= reverse
+            ? SlotPair(reader, 0, forward - reverse)
+            : SlotPair(reader, reverse - forward, 0);
+    }
+
     public Relation BoundariesOn(Carrier reader)
     {
-        var left = Left.ReadFrom(reader);
-        var right = Right.ReadFrom(reader);
+        if (!TryGetCarrierLocations(out var leftLocation, out var rightLocation))
+        {
+            var zero = new CarrierLocation(reader, 0);
+            return new(zero, zero);
+        }
+
+        var left = leftLocation.ReadFrom(reader);
+        var right = rightLocation.ReadFrom(reader);
         if (left.Direction == 0 || right.Direction == 0 || left.Direction != right.Direction)
         {
             var zero = new CarrierLocation(reader, 0);
@@ -71,13 +103,20 @@ public readonly record struct Relation(CarrierLocation Left, CarrierLocation Rig
     public CarrierLocation SpanOn(Carrier reader)
     {
         var boundaries = BoundariesOn(reader);
-        return new CarrierLocation(boundaries.Left.Carrier, boundaries.Right.Ticks - boundaries.Left.Ticks);
+        return new CarrierLocation(
+            boundaries.LeftLocation.Carrier,
+            boundaries.RightLocation.Ticks - boundaries.LeftLocation.Ticks);
     }
 
     public CarrierLocation FlowOn(Carrier reader)
     {
-        var left = Left.ReadFrom(reader);
-        var right = Right.ReadFrom(reader);
+        if (!TryGetCarrierLocations(out var leftLocation, out var rightLocation))
+        {
+            return new CarrierLocation(reader, 0);
+        }
+
+        var left = leftLocation.ReadFrom(reader);
+        var right = rightLocation.ReadFrom(reader);
         if (left.Direction == 0 || right.Direction == 0 || left.Direction != right.Direction)
         {
             return new CarrierLocation(reader, 0);
@@ -89,6 +128,113 @@ public readonly record struct Relation(CarrierLocation Left, CarrierLocation Rig
             : new CarrierLocation(reader.Inverse(), checked((ulong)-delta));
     }
 
+    public CarrierLocation[] CarrierLocations()
+    {
+        var locations = new List<CarrierLocation>(2);
+        if (Left is CarrierLocation left)
+        {
+            locations.Add(left);
+        }
+
+        if (Right is CarrierLocation right)
+        {
+            locations.Add(right);
+        }
+
+        return [.. locations];
+    }
+
+    public bool TryGetCarrierLocations(out CarrierLocation left, out CarrierLocation right)
+    {
+        if (Left is CarrierLocation leftLocation && Right is CarrierLocation rightLocation)
+        {
+            left = leftLocation;
+            right = rightLocation;
+            return true;
+        }
+
+        left = default;
+        right = default;
+        return false;
+    }
+
+    public CarrierLocation LeftLocation => Left is CarrierLocation location
+        ? location
+        : throw new InvalidOperationException("The left relation slot is not a carrier location.");
+
+    public CarrierLocation RightLocation => Right is CarrierLocation location
+        ? location
+        : throw new InvalidOperationException("The right relation slot is not a carrier location.");
+
     private static bool IsCovered(ulong start, ulong end, Relation[] boundaries) =>
-        boundaries.Any(boundary => boundary.Left.Ticks <= start && boundary.Right.Ticks >= end);
+        boundaries.Any(boundary => boundary.LeftLocation.Ticks <= start && boundary.RightLocation.Ticks >= end);
+
+    private static Relation SupportStateOn(Relation span, Carrier reader, Relation[] relations)
+    {
+        var reverse = 0UL;
+        var forward = 0UL;
+        foreach (var relation in relations)
+        {
+            var boundaries = relation.BoundariesOn(reader);
+            if (boundaries.LeftLocation.Carrier != span.LeftLocation.Carrier ||
+                !IsCovered(span.LeftLocation.Ticks, span.RightLocation.Ticks, [boundaries]))
+            {
+                continue;
+            }
+
+            var flow = relation.FlowOn(reader).ReadFrom(reader);
+            if (flow.Direction > 0)
+            {
+                forward++;
+            }
+            else if (flow.Direction < 0)
+            {
+                reverse++;
+            }
+        }
+
+        return new(
+            new CarrierLocation(reader.Inverse(), reverse),
+            new CarrierLocation(reader, forward));
+    }
+
+    private static Relation SlotPair(Carrier reader, ulong reverse, ulong forward) =>
+        new(
+            new CarrierLocation(reader.Inverse(), reverse),
+            new CarrierLocation(reader, forward));
+
+    private (ulong Reverse, ulong Forward) ReadStatePair(Carrier reader)
+    {
+        if (TryGetCarrierLocations(out var left, out var right))
+        {
+            return ReadSlots(reader, left, right);
+        }
+
+        return Right is Relation state ? state.ReadStatePair(reader) : (0, 0);
+    }
+
+    private static (ulong Reverse, ulong Forward) ReadSlots(
+        Carrier reader,
+        CarrierLocation left,
+        CarrierLocation right)
+    {
+        var reverse = 0UL;
+        var forward = 0UL;
+        AddSlot(left);
+        AddSlot(right);
+        return (reverse, forward);
+
+        void AddSlot(CarrierLocation slot)
+        {
+            var read = slot.ReadFrom(reader);
+            if (read.Direction > 0)
+            {
+                forward += read.Magnitude;
+            }
+            else if (read.Direction < 0)
+            {
+                reverse += read.Magnitude;
+            }
+        }
+    }
 }

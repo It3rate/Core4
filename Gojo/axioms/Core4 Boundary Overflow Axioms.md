@@ -479,6 +479,18 @@ The current `SupportReadEquations` already points this way by representing
 boolean-like reads as relation-shaped support projections rather than as a
 separate boolean algebra.
 
+In the Gojo pass, support states should stay inside the same recursive relation
+structure:
+
+- a carrier interval is a relation between endpoint locations
+- a support state is a relation between that interval and a reverse/forward
+  participation pair
+- support, tension, and exclusive-support reads are projections over that
+  reverse/forward pair
+
+So support splitting and boolean-like filtering should not introduce a separate
+span or truth-table ontology unless new numeric structure genuinely requires it.
+
 ## 20. Oscillation And Field-Like Response
 
 Oscillation can emerge from routed boundary response.

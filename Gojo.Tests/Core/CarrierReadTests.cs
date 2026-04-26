@@ -76,7 +76,7 @@ public sealed class CarrierReadTests
                 new CarrierLocation(celsius, 23),
                 new CarrierLocation(tenth, 4)),
             read);
-        Assert.Equal("23 4|10", $"{read.Left.Ticks} {read.Right.Ticks}|{boundary.Ticks}");
+        Assert.Equal("23 4|10", $"{read.LeftLocation.Ticks} {read.RightLocation.Ticks}|{boundary.Ticks}");
     }
 
     [Fact]
@@ -500,6 +500,157 @@ public sealed class CarrierReadTests
             new CarrierLocation(y, 8));
 
         Assert.Empty(Relation.CoveredSpansOn(x, invisible));
+    }
+
+    [Fact]
+    public void RelationSupportStatesReadReverseAndForwardParticipationBySpan()
+    {
+        var carrier = new Carrier(10);
+        var forward = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 8));
+        var reverse = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 0));
+
+        var states = Relation.SupportStatesOn(carrier, forward, reverse);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1))),
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 8)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1)))
+            },
+            states);
+    }
+
+    [Fact]
+    public void RelationSupportStatesSkipUncoveredGaps()
+    {
+        var carrier = new Carrier(10);
+        var first = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 2));
+        var second = new Relation(
+            new CarrierLocation(carrier, 5),
+            new CarrierLocation(carrier, 8));
+
+        var states = Relation.SupportStatesOn(carrier, first, second);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1))),
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 5), new CarrierLocation(carrier, 8)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1)))
+            },
+            states);
+    }
+
+    [Fact]
+    public void RelationSupportStatesUseOpposedSlotForOpposedCarrierFlow()
+    {
+        var forward = new Carrier(10);
+        var inverse = forward.Inverse();
+        var opposed = new Relation(
+            new CarrierLocation(inverse, 0),
+            new CarrierLocation(inverse, 8));
+
+        var states = Relation.SupportStatesOn(forward, opposed);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(new CarrierLocation(inverse, 0), new CarrierLocation(inverse, 8)),
+                    new Relation(new CarrierLocation(inverse, 1), new CarrierLocation(forward, 0)))
+            },
+            states);
+    }
+
+    [Fact]
+    public void RelationSupportProjectionPreservesReverseAndForwardSlots()
+    {
+        var carrier = new Carrier(10);
+        var state = new Relation(
+            new CarrierLocation(carrier.Inverse(), 2),
+            new CarrierLocation(carrier, 3));
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier.Inverse(), 2),
+                new CarrierLocation(carrier, 3)),
+            state.SupportOn(carrier));
+    }
+
+    [Fact]
+    public void RelationTensionProjectionReadsSharedReverseAndForwardParticipation()
+    {
+        var carrier = new Carrier(10);
+        var state = new Relation(
+            new CarrierLocation(carrier.Inverse(), 2),
+            new CarrierLocation(carrier, 3));
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier.Inverse(), 2),
+                new CarrierLocation(carrier, 2)),
+            state.TensionOn(carrier));
+    }
+
+    [Fact]
+    public void RelationExclusiveProjectionKeepsOnlyLargerFlowSide()
+    {
+        var carrier = new Carrier(10);
+        var forwardLarger = new Relation(
+            new CarrierLocation(carrier.Inverse(), 2),
+            new CarrierLocation(carrier, 5));
+        var reverseLarger = new Relation(
+            new CarrierLocation(carrier.Inverse(), 5),
+            new CarrierLocation(carrier, 2));
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier.Inverse(), 0),
+                new CarrierLocation(carrier, 3)),
+            forwardLarger.ExclusiveOn(carrier));
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier.Inverse(), 3),
+                new CarrierLocation(carrier, 0)),
+            reverseLarger.ExclusiveOn(carrier));
+    }
+
+    [Fact]
+    public void RelationSupportProjectionsCanReadNestedSupportState()
+    {
+        var carrier = new Carrier(10);
+        var state = new Relation(
+            new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
+            new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1)));
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier.Inverse(), 1),
+                new CarrierLocation(carrier, 1)),
+            state.SupportOn(carrier));
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier.Inverse(), 1),
+                new CarrierLocation(carrier, 1)),
+            state.TensionOn(carrier));
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier.Inverse(), 0),
+                new CarrierLocation(carrier, 0)),
+            state.ExclusiveOn(carrier));
     }
 
     [Fact]

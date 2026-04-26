@@ -51,8 +51,11 @@ This phase should produce reads such as `23 4|10 C`.
 
 Current executable foothold:
 
-- `Relation` is now a minimal ordered pair of carrier locations. It carries no
-  route/event policy by itself; context gives its two slots their current read.
+- `IElement` is the minimal recursive participation surface. `CarrierLocation`
+  and `Relation` both participate as elements.
+- `Relation` is now a minimal ordered pair of elements. It carries no route,
+  event, support, or endpoint policy by itself; context gives its two slots
+  their current read.
 - `CarrierLocation.ReadThroughBoundary(earlierCarrier, boundary)` returns a
   `Relation` whose left slot is the earlier carrier-layer ticks and whose right
   slot is the later carrier-layer ticks that did not cross the boundary. This
@@ -88,6 +91,13 @@ Current executable foothold:
   `Relation` intervals between those boundary points, skipping gaps where no
   input relation covers the interval. Opposed surfaces stay on the opposed
   carrier rather than being flattened onto the reader carrier.
+- `Relation.SupportStatesOn(reader, relations...)` returns nested relations:
+  the left slot is a carrier-local interval and the right slot is the
+  reverse/forward participation pair for that interval.
+- `Relation.SupportOn(reader)`, `Relation.TensionOn(reader)`, and
+  `Relation.ExclusiveOn(reader)` project a reverse/forward pair without leaving
+  the relation system. They can read either a bare reverse/forward pair or a
+  nested support state.
 - With no compatible accounting surface, the full visible participation remains
   new tension. A zero-size accounting surface does not consume participation by
   itself; observation and claim behavior must come from relation context.
