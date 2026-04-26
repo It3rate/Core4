@@ -654,6 +654,106 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void RelationSupportSpanProjectionPreservesIntervalsWithAnyParticipation()
+    {
+        var carrier = new Carrier(10);
+        var forward = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 8));
+        var reverse = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 0));
+
+        var support = Relation.SupportOn(carrier, forward, reverse);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1))),
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 8)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1)))
+            },
+            support);
+    }
+
+    [Fact]
+    public void RelationTensionSpanProjectionPreservesOnlyIntervalsWithSharedOpposedParticipation()
+    {
+        var carrier = new Carrier(10);
+        var forward = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 8));
+        var reverse = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 0));
+
+        var tension = Relation.TensionOn(carrier, forward, reverse);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1)))
+            },
+            tension);
+    }
+
+    [Fact]
+    public void RelationExclusiveSpanProjectionPreservesOnlyUnopposedIntervals()
+    {
+        var carrier = new Carrier(10);
+        var forward = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 8));
+        var reverse = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 0));
+
+        var exclusive = Relation.ExclusiveOn(carrier, forward, reverse);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 8)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1)))
+            },
+            exclusive);
+    }
+
+    [Fact]
+    public void RelationTensionAndExclusiveSpanProjectionsReturnNoZeroStates()
+    {
+        var carrier = new Carrier(10);
+        var forward = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 8));
+
+        Assert.Empty(Relation.TensionOn(carrier, forward));
+        Assert.Equal(Relation.SupportOn(carrier, forward), Relation.ExclusiveOn(carrier, forward));
+    }
+
+    [Fact]
+    public void BooleanStyleSpanReadsAreSupportProjections()
+    {
+        var carrier = new Carrier(10);
+        var forward = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 8));
+        var reverse = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 0));
+
+        Assert.Equal(Relation.SupportOn(carrier, forward, reverse), Relation.OrOn(carrier, forward, reverse));
+        Assert.Equal(Relation.TensionOn(carrier, forward, reverse), Relation.AndOn(carrier, forward, reverse));
+        Assert.Equal(Relation.ExclusiveOn(carrier, forward, reverse), Relation.XorOn(carrier, forward, reverse));
+    }
+
+    [Fact]
     public void MultipleAccountingSurfacesIgnoreOrthogonalAndOpposedParticipation()
     {
         var x = new Carrier(10);

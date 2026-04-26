@@ -57,6 +57,24 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             .Select(span => new Relation(span, SupportStateOn(span, reader, relations)))
             .ToArray();
 
+    public static Relation[] SupportOn(Carrier reader, params Relation[] relations) =>
+        ProjectStatesOn(reader, state => state.SupportOn(reader), relations);
+
+    public static Relation[] TensionOn(Carrier reader, params Relation[] relations) =>
+        ProjectStatesOn(reader, state => state.TensionOn(reader), relations);
+
+    public static Relation[] ExclusiveOn(Carrier reader, params Relation[] relations) =>
+        ProjectStatesOn(reader, state => state.ExclusiveOn(reader), relations);
+
+    public static Relation[] AndOn(Carrier reader, params Relation[] relations) =>
+        TensionOn(reader, relations);
+
+    public static Relation[] XorOn(Carrier reader, params Relation[] relations) =>
+        ExclusiveOn(reader, relations);
+
+    public static Relation[] OrOn(Carrier reader, params Relation[] relations) =>
+        SupportOn(reader, relations);
+
     public Relation SupportOn(Carrier reader)
     {
         var (reverse, forward) = ReadStatePair(reader);
@@ -169,6 +187,15 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
     private static bool IsCovered(ulong start, ulong end, Relation[] boundaries) =>
         boundaries.Any(boundary => boundary.LeftLocation.Ticks <= start && boundary.RightLocation.Ticks >= end);
 
+    private static Relation[] ProjectStatesOn(
+        Carrier reader,
+        Func<Relation, Relation> projection,
+        Relation[] relations) =>
+        SupportStatesOn(reader, relations)
+            .Select(state => new Relation(state.Left, projection(state)))
+            .Where(state => state.Right is Relation projected && projected.HasStateParticipationOn(reader))
+            .ToArray();
+
     private static Relation SupportStateOn(Relation span, Carrier reader, Relation[] relations)
     {
         var reverse = 0UL;
@@ -202,6 +229,12 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         new(
             new CarrierLocation(reader.Inverse(), reverse),
             new CarrierLocation(reader, forward));
+
+    private bool HasStateParticipationOn(Carrier reader)
+    {
+        var (reverse, forward) = ReadStatePair(reader);
+        return reverse != 0 || forward != 0;
+    }
 
     private (ulong Reverse, ulong Forward) ReadStatePair(Carrier reader)
     {

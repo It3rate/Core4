@@ -490,6 +490,9 @@ structure:
 
 So support splitting and boolean-like filtering should not introduce a separate
 span or truth-table ontology unless new numeric structure genuinely requires it.
+Boolean-style names can exist as lower projections: `or` reads support, `and`
+reads shared opposed participation/tension, and `xor` reads exclusive unopposed
+participation.
 
 ## 20. Oscillation And Field-Like Response
 

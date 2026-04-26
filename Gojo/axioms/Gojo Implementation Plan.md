@@ -98,6 +98,12 @@ Current executable foothold:
   `Relation.ExclusiveOn(reader)` project a reverse/forward pair without leaving
   the relation system. They can read either a bare reverse/forward pair or a
   nested support state.
+- Static span projections `Relation.SupportOn`, `Relation.TensionOn`, and
+  `Relation.ExclusiveOn` preserve the carrier intervals that carry those
+  projected states and omit zero projected states.
+- Boolean-style span reads are aliases over those projections: `OrOn` is
+  support, `AndOn` is tension/shared opposed participation, and `XorOn` is
+  exclusive unopposed participation.
 - With no compatible accounting surface, the full visible participation remains
   new tension. A zero-size accounting surface does not consume participation by
   itself; observation and claim behavior must come from relation context.
