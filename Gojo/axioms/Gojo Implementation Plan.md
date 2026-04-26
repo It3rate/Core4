@@ -91,9 +91,16 @@ Current executable foothold:
   `Relation` intervals between those boundary points, skipping gaps where no
   input relation covers the interval. Opposed surfaces stay on the opposed
   carrier rather than being flattened onto the reader carrier.
+- `Relation.CoveredSpansWithinOn(reader, scope, relations...)` reads coverage only
+  inside one explicit scope relation, clipping covered intervals to that scope.
 - `Relation.SupportStatesOn(reader, relations...)` returns nested relations:
   the left slot is a carrier-local interval and the right slot is the
   reverse/forward participation pair for that interval.
+- Multiple compatible relations covering the same interval merge by increasing
+  the forward or reverse carrier participation count in that state pair.
+- `Relation.SupportStatesWithinOn(reader, scope, relations...)` does the same
+  inside one explicit scope, preserving clipped intervals and their local
+  reverse/forward state.
 - `Relation.SupportOn(reader)`, `Relation.TensionOn(reader)`, and
   `Relation.ExclusiveOn(reader)` project a reverse/forward pair without leaving
   the relation system. They can read either a bare reverse/forward pair or a
@@ -101,9 +108,19 @@ Current executable foothold:
 - Static span projections `Relation.SupportOn`, `Relation.TensionOn`, and
   `Relation.ExclusiveOn` preserve the carrier intervals that carry those
   projected states and omit zero projected states.
+- Scoped projections `SupportWithinOn`, `TensionWithinOn`, and
+  `ExclusiveWithinOn` apply the same support/tension/exclusive reads inside a
+  chosen interval.
 - Boolean-style span reads are aliases over those projections: `OrOn` is
   support, `AndOn` is tension/shared opposed participation, and `XorOn` is
   exclusive unopposed participation.
+- `Relation.UncoveredSpansOn(reader, scope, covered...)` reads scoped absence
+  by splitting one visible scope relation around covered intervals. `NotOn` is
+  only this scoped absence projection; there is no global negation outside a
+  chosen carrier interval.
+- `PassOn` and `BlockOn` are scoped filter projections over the same split:
+  pass reads the covered intervals inside the scope, while block reads the
+  uncovered intervals. They are not new truth values or route objects.
 - With no compatible accounting surface, the full visible participation remains
   new tension. A zero-size accounting surface does not consume participation by
   itself; observation and claim behavior must come from relation context.

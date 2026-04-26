@@ -576,6 +576,105 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void RelationSupportStatesMergeMultipleCompatibleParticipations()
+    {
+        var carrier = new Carrier(10);
+        var firstForward = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 8));
+        var secondForward = new Relation(
+            new CarrierLocation(carrier, 1),
+            new CarrierLocation(carrier, 9));
+        var reverse = new Relation(
+            new CarrierLocation(carrier, 10),
+            new CarrierLocation(carrier, 2));
+
+        var states = Relation.SupportStatesOn(carrier, firstForward, secondForward, reverse);
+
+        Assert.Contains(
+            new Relation(
+                new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 8)),
+                new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 2))),
+            states);
+    }
+
+    [Fact]
+    public void RelationSupportStatesCanBeScopedToCarrierInterval()
+    {
+        var carrier = new Carrier(10);
+        var scope = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 6));
+        var forward = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 8));
+        var reverse = new Relation(
+            new CarrierLocation(carrier, 10),
+            new CarrierLocation(carrier, 4));
+
+        var states = Relation.SupportStatesWithinOn(carrier, scope, forward, reverse);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 4)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1))),
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 4), new CarrierLocation(carrier, 6)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1)))
+            },
+            states);
+    }
+
+    [Fact]
+    public void RelationScopedSupportProjectionsPreserveOnlyScopedParticipation()
+    {
+        var carrier = new Carrier(10);
+        var scope = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 6));
+        var forward = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 8));
+        var reverse = new Relation(
+            new CarrierLocation(carrier, 10),
+            new CarrierLocation(carrier, 4));
+
+        var support = Relation.SupportWithinOn(carrier, scope, forward, reverse);
+        var tension = Relation.TensionWithinOn(carrier, scope, forward, reverse);
+        var exclusive = Relation.ExclusiveWithinOn(carrier, scope, forward, reverse);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 4)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1))),
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 4), new CarrierLocation(carrier, 6)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1)))
+            },
+            support);
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 4), new CarrierLocation(carrier, 6)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1)))
+            },
+            tension);
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 4)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1)))
+            },
+            exclusive);
+    }
+
+    [Fact]
     public void RelationSupportProjectionPreservesReverseAndForwardSlots()
     {
         var carrier = new Carrier(10);
@@ -751,6 +850,150 @@ public sealed class CarrierReadTests
         Assert.Equal(Relation.SupportOn(carrier, forward, reverse), Relation.OrOn(carrier, forward, reverse));
         Assert.Equal(Relation.TensionOn(carrier, forward, reverse), Relation.AndOn(carrier, forward, reverse));
         Assert.Equal(Relation.ExclusiveOn(carrier, forward, reverse), Relation.XorOn(carrier, forward, reverse));
+    }
+
+    [Fact]
+    public void RelationUncoveredSpansReadScopedAbsenceBetweenCoveredIntervals()
+    {
+        var carrier = new Carrier(10);
+        var scope = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 10));
+        var blocked = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 5));
+
+        var uncovered = Relation.UncoveredSpansOn(carrier, scope, blocked);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
+                new Relation(new CarrierLocation(carrier, 5), new CarrierLocation(carrier, 10))
+            },
+            uncovered);
+    }
+
+    [Fact]
+    public void RelationUncoveredSpansReturnEmptyWhenScopeIsFullyCovered()
+    {
+        var carrier = new Carrier(10);
+        var scope = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 8));
+        var blocked = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 10));
+
+        var uncovered = Relation.UncoveredSpansOn(carrier, scope, blocked);
+
+        Assert.Empty(uncovered);
+    }
+
+    [Fact]
+    public void RelationUncoveredSpansIgnoreInvisibleCoverage()
+    {
+        var carrier = new Carrier(10);
+        var other = new Carrier(20);
+        var scope = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 10));
+        var invisible = new Relation(
+            new CarrierLocation(other, 2),
+            new CarrierLocation(other, 5));
+
+        var uncovered = Relation.UncoveredSpansOn(carrier, scope, invisible);
+
+        Assert.Equal(
+            new[]
+            {
+                scope
+            },
+            uncovered);
+    }
+
+    [Fact]
+    public void RelationUncoveredSpansClipCoverageToScope()
+    {
+        var carrier = new Carrier(10);
+        var scope = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 8));
+        var leftBlocked = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 5));
+        var rightBlocked = new Relation(
+            new CarrierLocation(carrier, 7),
+            new CarrierLocation(carrier, 10));
+
+        var uncovered = Relation.UncoveredSpansOn(carrier, scope, leftBlocked, rightBlocked);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(new CarrierLocation(carrier, 5), new CarrierLocation(carrier, 7))
+            },
+            uncovered);
+    }
+
+    [Fact]
+    public void RelationCoveredSpansCanReadCoverageInsideScope()
+    {
+        var carrier = new Carrier(10);
+        var scope = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 8));
+        var leftSupported = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 5));
+        var rightSupported = new Relation(
+            new CarrierLocation(carrier, 7),
+            new CarrierLocation(carrier, 10));
+
+        var covered = Relation.CoveredSpansWithinOn(carrier, scope, leftSupported, rightSupported);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 5)),
+                new Relation(new CarrierLocation(carrier, 7), new CarrierLocation(carrier, 8))
+            },
+            covered);
+    }
+
+    [Fact]
+    public void RelationPassAndBlockAreScopedFilterProjections()
+    {
+        var carrier = new Carrier(10);
+        var scope = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 10));
+        var supported = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 5));
+
+        Assert.Equal(
+            Relation.CoveredSpansWithinOn(carrier, scope, supported),
+            Relation.PassOn(carrier, scope, supported));
+        Assert.Equal(
+            Relation.UncoveredSpansOn(carrier, scope, supported),
+            Relation.BlockOn(carrier, scope, supported));
+    }
+
+    [Fact]
+    public void RelationNotIsScopedAbsenceProjection()
+    {
+        var carrier = new Carrier(10);
+        var scope = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 10));
+        var blocked = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 5));
+
+        Assert.Equal(
+            Relation.UncoveredSpansOn(carrier, scope, blocked),
+            Relation.NotOn(carrier, scope, blocked));
     }
 
     [Fact]

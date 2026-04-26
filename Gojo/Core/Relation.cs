@@ -52,8 +52,32 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         return [.. spans];
     }
 
+    public static Relation[] CoveredSpansWithinOn(Carrier reader, Relation scope, params Relation[] relations)
+    {
+        var scopeBoundary = scope.BoundariesOn(reader);
+        if (scopeBoundary.LeftLocation.Ticks == scopeBoundary.RightLocation.Ticks)
+        {
+            return [];
+        }
+
+        var coveredBoundaries = ClipToScope(reader, scopeBoundary, relations);
+        if (coveredBoundaries.Length == 0)
+        {
+            return [];
+        }
+
+        return SplitScopeOn(scopeBoundary, coveredBoundaries)
+            .Where(span => IsCovered(span.LeftLocation.Ticks, span.RightLocation.Ticks, coveredBoundaries))
+            .ToArray();
+    }
+
     public static Relation[] SupportStatesOn(Carrier reader, params Relation[] relations) =>
         CoveredSpansOn(reader, relations)
+            .Select(span => new Relation(span, SupportStateOn(span, reader, relations)))
+            .ToArray();
+
+    public static Relation[] SupportStatesWithinOn(Carrier reader, Relation scope, params Relation[] relations) =>
+        CoveredSpansWithinOn(reader, scope, relations)
             .Select(span => new Relation(span, SupportStateOn(span, reader, relations)))
             .ToArray();
 
@@ -66,8 +90,40 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
     public static Relation[] ExclusiveOn(Carrier reader, params Relation[] relations) =>
         ProjectStatesOn(reader, state => state.ExclusiveOn(reader), relations);
 
+    public static Relation[] SupportWithinOn(Carrier reader, Relation scope, params Relation[] relations) =>
+        ProjectStatesWithinOn(reader, scope, state => state.SupportOn(reader), relations);
+
+    public static Relation[] TensionWithinOn(Carrier reader, Relation scope, params Relation[] relations) =>
+        ProjectStatesWithinOn(reader, scope, state => state.TensionOn(reader), relations);
+
+    public static Relation[] ExclusiveWithinOn(Carrier reader, Relation scope, params Relation[] relations) =>
+        ProjectStatesWithinOn(reader, scope, state => state.ExclusiveOn(reader), relations);
+
+    public static Relation[] UncoveredSpansOn(Carrier reader, Relation scope, params Relation[] covered)
+    {
+        var scopeBoundary = scope.BoundariesOn(reader);
+        if (scopeBoundary.LeftLocation.Ticks == scopeBoundary.RightLocation.Ticks)
+        {
+            return [];
+        }
+
+        var coveredBoundaries = ClipToScope(reader, scopeBoundary, covered);
+        return SplitScopeOn(scopeBoundary, coveredBoundaries)
+            .Where(span => !IsCovered(span.LeftLocation.Ticks, span.RightLocation.Ticks, coveredBoundaries))
+            .ToArray();
+    }
+
     public static Relation[] AndOn(Carrier reader, params Relation[] relations) =>
         TensionOn(reader, relations);
+
+    public static Relation[] NotOn(Carrier reader, Relation scope, params Relation[] blocked) =>
+        UncoveredSpansOn(reader, scope, blocked);
+
+    public static Relation[] PassOn(Carrier reader, Relation scope, params Relation[] support) =>
+        CoveredSpansWithinOn(reader, scope, support);
+
+    public static Relation[] BlockOn(Carrier reader, Relation scope, params Relation[] support) =>
+        UncoveredSpansOn(reader, scope, support);
 
     public static Relation[] XorOn(Carrier reader, params Relation[] relations) =>
         ExclusiveOn(reader, relations);
@@ -187,11 +243,64 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
     private static bool IsCovered(ulong start, ulong end, Relation[] boundaries) =>
         boundaries.Any(boundary => boundary.LeftLocation.Ticks <= start && boundary.RightLocation.Ticks >= end);
 
+    private static Relation ClipTo(Relation scope, Relation boundary)
+    {
+        if (scope.LeftLocation.Carrier != boundary.LeftLocation.Carrier)
+        {
+            var zero = new CarrierLocation(scope.LeftLocation.Carrier, 0);
+            return new(zero, zero);
+        }
+
+        var start = Math.Max(scope.LeftLocation.Ticks, boundary.LeftLocation.Ticks);
+        var end = Math.Min(scope.RightLocation.Ticks, boundary.RightLocation.Ticks);
+        return start < end
+            ? new Relation(new CarrierLocation(scope.LeftLocation.Carrier, start), new CarrierLocation(scope.LeftLocation.Carrier, end))
+            : new Relation(scope.LeftLocation, scope.LeftLocation);
+    }
+
+    private static Relation[] ClipToScope(Carrier reader, Relation scope, Relation[] relations) =>
+        relations
+            .Select(relation => relation.BoundariesOn(reader))
+            .Select(boundary => ClipTo(scope, boundary))
+            .Where(boundary => boundary.LeftLocation.Ticks != boundary.RightLocation.Ticks)
+            .ToArray();
+
+    private static Relation[] SplitScopeOn(Relation scope, Relation[] boundaries)
+    {
+        var points = boundaries
+            .SelectMany(boundary => new[] { boundary.LeftLocation, boundary.RightLocation })
+            .Append(scope.LeftLocation)
+            .Append(scope.RightLocation)
+            .Distinct()
+            .OrderBy(location => location.Ticks)
+            .ToArray();
+
+        var spans = new List<Relation>();
+        for (var i = 0; i < points.Length - 1; i++)
+        {
+            var start = points[i];
+            var end = points[i + 1];
+            spans.Add(new(start, end));
+        }
+
+        return [.. spans];
+    }
+
     private static Relation[] ProjectStatesOn(
         Carrier reader,
         Func<Relation, Relation> projection,
         Relation[] relations) =>
         SupportStatesOn(reader, relations)
+            .Select(state => new Relation(state.Left, projection(state)))
+            .Where(state => state.Right is Relation projected && projected.HasStateParticipationOn(reader))
+            .ToArray();
+
+    private static Relation[] ProjectStatesWithinOn(
+        Carrier reader,
+        Relation scope,
+        Func<Relation, Relation> projection,
+        Relation[] relations) =>
+        SupportStatesWithinOn(reader, scope, relations)
             .Select(state => new Relation(state.Left, projection(state)))
             .Where(state => state.Right is Relation projected && projected.HasStateParticipationOn(reader))
             .ToArray();

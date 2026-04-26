@@ -471,7 +471,8 @@ This makes boolean reads lower projections over flow support:
 
 - `and`: multiple supports must route into one pass condition
 - `or`: any compatible support may route into pass
-- `not`: opposed or absence route becomes visible
+- `not`: absence becomes visible only inside an explicit scoped carrier
+  interval, or opposed participation becomes visible through an opposed route
 - branch: support routes to multiple continuations
 - selection: only supported routes transfer flow
 
@@ -487,12 +488,29 @@ structure:
   participation pair
 - support, tension, and exclusive-support reads are projections over that
   reverse/forward pair
+- scoped support is the same read clipped to an explicit carrier interval
 
 So support splitting and boolean-like filtering should not introduce a separate
 span or truth-table ontology unless new numeric structure genuinely requires it.
 Boolean-style names can exist as lower projections: `or` reads support, `and`
 reads shared opposed participation/tension, and `xor` reads exclusive unopposed
 participation.
+
+Scoped absence is the current safe form of `not`: a scope relation is read as
+carrier-local boundaries, covered intervals are clipped to that scope, and the
+remaining visible intervals are returned as ordinary relations. This keeps
+absence numerically grounded. There is no meaningful global complement without
+first naming the carrier surface that absence is being read through.
+
+The first executable filter projection follows the same rule. A pass read is
+the covered carrier intervals inside the scope. A block read is the uncovered
+carrier intervals inside the same scope. The difference is projection context,
+not a separate boolean value or a symbolic branch table.
+
+The first executable merge projection is equally small: when several relations
+cover the same carrier interval, their compatible flow participations add into
+the same reverse/forward state pair. Merge is therefore visible as larger
+carrier participation before it needs any separate route graph object.
 
 ## 20. Oscillation And Field-Like Response
 
