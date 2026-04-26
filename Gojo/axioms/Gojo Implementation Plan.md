@@ -9,7 +9,8 @@ carrier-layer reading:
 - sign is a cross-carrier read
 - operations are carrier layers
 - each layer has one carrier value in its transform slot
-- boundary overflow leaves attached-layer state or tension unless routed
+- an event is the appearance of newly visible tension
+- boundary overflow leaves attached-layer state or new tension unless routed
 
 ## Phase 1. Positive Carrier Reads
 
@@ -36,16 +37,29 @@ Add one-transform-per-layer paths:
 This phase should cover multiplication-like and division-like reads without
 ordinary algebraic operator tags.
 
-## Phase 3. Layered Reads And Boundary Events
+## Phase 3. Layered Reads And New Tension
 
 Add carrier-layer boundaries:
 
 - carrier tick overflow
 - attached carrier-layer ticks
 - four directional side/travel carrier-location reads
-- unrouted overflow as tension
+- newly visible tension when continuation is not already accounted for
+- routed or self-absorbed overflow producing no repeated event
 
 This phase should produce reads such as `23 4|10 C`.
+
+Current executable foothold:
+
+- `CarrierLocation.NewTensionAfter(accounted, reader)` returns the carrier
+  ticks that remain newly visible after the current read frame subtracts what
+  local structure already accounts for.
+- If the current reader cannot see the incoming carrier, no tension is visible
+  in that frame.
+- If the accounting carrier is orthogonal or opposed in this frame, it does not
+  silently absorb the incoming participation.
+- If accounting covers the incoming ticks, no new event appears; if it
+  saturates, only the excess remains as new tension.
 
 ## Phase 4. Routes
 
@@ -54,6 +68,7 @@ Add route structures:
 - resolved transfer routes
 - zero-unit observation routes
 - open tension routes
+- route capacity and saturation
 - counters
 - wrap
 - clamp
@@ -66,6 +81,7 @@ This phase should make boundary behavior compositional instead of flag-driven.
 
 Rebuild support and boolean-like reads on top of routes:
 
+- support span boundary splitting as new tension discovery
 - pass
 - block
 - branch
@@ -75,6 +91,26 @@ Rebuild support and boolean-like reads on top of routes:
 
 This phase should replace boolean branching with carrier-native route support.
 
+## Existing Code Pressure
+
+The preserved bootstrap/kernel code already contains partial versions of this
+mechanism:
+
+- `SupportSpanUtilities.BuildStateSpans` splits support at span start/end
+  positions. In Gojo terms, those split points are places where carrier
+  participation changes and new tension may become visible.
+- `SupportReadEquations.Tension` reads overlap between reverse and forward
+  slots as tension. In Gojo terms, boolean-like cancellation is a projection of
+  carrier tension, not a separate boolean operator.
+- `SupportReadEquations.Emit` currently clamps incompatible slot emissions with
+  a TODO for future boundary containers. In Gojo terms, those rejected emissions
+  should become newly visible tension and then route, observe, or remain
+  unresolved.
+
+Do not port these as special support-only mechanisms. Port them as ordinary
+carrier relation traversal: split where tension becomes visible, route what can
+be accounted for, and preserve the rest as tension.
+
 ## Migration Rule
 
 Only copy code from `Core4.Kernel` when it still preserves the Gojo direction.
@@ -83,5 +119,11 @@ as a projection only.
 
 Prefer removing role wrappers when relation context already supplies the role.
 A value in a transform slot is a transform; a side/travel pair in boundary
-context is a boundary event. Dedicated types should appear only when they carry
-new numeric structure.
+context is boundary tension direction. Dedicated types should appear only when
+they carry new numeric structure.
+
+Likewise, avoid introducing an event system as a separate ontology. Kernel
+events are projections of newly visible tension: a relation site has encountered
+participation that cannot be silently accounted for under the current read.
+C# events may be useful in a runtime layer, but the numeric kernel should return
+the tension/read structure directly.

@@ -1,8 +1,8 @@
 # Core4 Boundary Overflow Axioms
 
-This note records the target model for carrier-layer boundaries, overflow,
-underflow, route coupling, loop closure, counters, filters, and directed
-segment boundaries.
+This note records the target model for carrier-layer boundaries, newly visible
+tension, overflow, underflow, route coupling, loop closure, counters, filters,
+and directed segment boundaries.
 
 It builds on `Core4 Carrier Read And Resolution Axioms.md`.
 
@@ -66,8 +66,8 @@ Multiplication, division, resolution, approximation, inversion, addition,
 branching, filtering, wrapping, clamping, and oscillation differ by:
 
 - the carrier value in the transform slot between layers
-- the boundary events exposed by the layer
-- the routes attached to those boundary events
+- the newly visible tension exposed by the layer
+- the routes attached to that tension
 - whether routed flow drains, observes, wraps, branches, or becomes tension
 
 This means an equation is not a symbolic expression outside the carrier system.
@@ -111,37 +111,56 @@ For an expansive ten-tick approximation layer:
   on route
 
 The boundary belongs to the layer relation. It is not a separate symbolic
-operator.
+operator, and crossing it is not automatically an event forever. If the
+crossing is already accounted for by a route or reservoir, no new event is
+needed until that accounting fails or saturates.
 
-## 6. Four Boundary Events
+## 6. Boundary Encounters As New Tension
 
-Boundary behavior has side and travel direction.
+An event is the appearance of new tension at a relation site.
+
+This means a boundary crossing, endpoint touch, fusion-point encounter,
+orthogonal attachment, support split, route junction, clamp, or filter block
+all use the same mechanism:
+
+- incoming participation reaches a relation site
+- local structure accounts for some or all of it
+- unaccounted participation becomes newly visible tension
+- that new tension may route, observe, branch, harden, or remain unresolved
+
+If a route already accounts for overflow past one carrier tick, then values
+inside that routed region do not keep producing events. If that route runs out
+of capacity, loses compatibility, reaches another boundary, or exposes a new
+site, new tension appears there and the system reports that.
+
+Boundary tension still has side and travel direction.
 
 Side and travel are not host-language signs. They are carrier-located numeric
 participations whose aligned or opposed read gives the familiar `+` or `-`
 projection.
 
-At the current Gojo pass, a boundary event does not need its own object. It is
-the boundary-context read of side and travel carrier locations. If routing later
-needs an explicit value, it should reuse the same general relation structure as
-layer relations rather than introducing a separate event ontology.
+At the current Gojo pass, an event does not need its own object. It is a read of
+newly visible tension in context. If routing later needs an explicit value, it
+should reuse the same general relation structure as layer relations rather than
+introducing a separate event ontology.
 
-For a bilateral or bounded layer, there are four primitive boundary events:
+For a bilateral or bounded layer, there are four primitive boundary tension
+directions:
 
 - `++`: positive side, forward/outward crossing
 - `+-`: positive side, backward/inward crossing
 - `-+`: negative side, forward/inward crossing
 - `--`: negative side, backward/outward crossing
 
-Common code may name them more plainly:
+Common discussion may name them more plainly:
 
 - positive overflow
 - positive refill or underflow
 - negative refill or underflow
 - negative overflow
 
-The important point is that overflow is not one event. Each side and travel
-direction can route independently.
+The important point is that overflow is not one event kind. Each side and
+travel direction can route independently when new tension appears there.
 
 Symmetric behavior is common, but it is not required.
 
@@ -153,14 +172,14 @@ mechanism.
 Forward accumulation:
 
 - the partition layer fills from `0|10` toward `9|10`
-- one more partition-layer tick triggers positive overflow
+- one more partition-layer tick exposes positive overflow tension
 - whole carrier tick increments
 - the partition layer drains or wraps to `0|10`
 
 Backward accumulation:
 
-- subtracting one partition-layer tick from `0|10` triggers positive refill or
-  underflow
+- subtracting one partition-layer tick from `0|10` exposes positive refill or
+  underflow tension
 - whole carrier tick decrements if a whole tick is available
 - the partition layer refills to `9|10`
 
@@ -170,11 +189,11 @@ And `24 0|10` minus one partition-layer tick becomes `23 9|10`.
 
 This is boundary routing, not primitive signed arithmetic.
 
-## 8. Overflow Routes
+## 8. Tension Routes
 
-Each boundary event may attach to zero, one, or many routes.
+New tension may attach to zero, one, or many routes.
 
-Routes can connect the event to:
+Routes can connect the tension to:
 
 - the same carrier layer
 - a parent crystal layer
@@ -186,7 +205,7 @@ Routes can connect the event to:
 - a merge into one carrier
 - an open site that has not yet chosen a route
 
-An unrouted event produces tension.
+Unrouted new tension remains visible as tension.
 
 Routing is the main way the system lowers tension dynamically rather than
 solving an external equation.
@@ -203,29 +222,40 @@ A resolved route with unit participation transfers flow:
 - the source reservoir updates or drains according to the boundary law
 - overflow is consumed to the degree the target absorbs it
 
-A zero-unit route observes or claims the event:
+A zero-unit route observes or claims the newly visible tension:
 
-- the route can sense that the event occurred
+- the route can sense that new tension appeared
 - it can count, mark, branch a signal, or create a claim
 - it does not consume the source reservoir by itself
 
 An open route accepts potential but has no committed transfer law yet:
 
-- event content can gather as unresolved tension
+- newly visible content can gather as unresolved tension
 - a later relation may harden and absorb it
 
 So the numeric ladder is:
 
 - `0/0`: open route
-- `m/0`: event claim, marker, or unresolved tension potential
+- `m/0`: tension claim, marker, or unresolved tension potential
 - `m/u`: resolved transfer route
 
 This preserves the existing Core4 open/unbound/resolved ladder.
 
-## 10. Tension As Unrouted Overflow
+## 10. Event Projection As New Tension
 
-Tension is overflow or underflow that has no compatible route under the current
-read.
+An event is the projection of newly visible tension. It is not a primitive
+signal separate from the numeric structure.
+
+Tension may appear because overflow or underflow has no compatible route under
+the current read, but overflow is only one source. Tension can also appear when:
+
+- a traversal reaches a segment endpoint
+- a traversal reaches a fusion point between carrier participations
+- an orthogonal carrier attaches to a site
+- a support span splits at a new boundary
+- a filter blocks participation
+- a route reaches its capacity
+- a previously open site hardens or loses compatibility
 
 Examples:
 
@@ -234,9 +264,11 @@ Examples:
 - the same value can read without tension at an intermediate resolution layer
 - a clamp is a boundary with no continuation route, so overflow becomes tension
 - a partial route absorbs some content and leaves the rest as tension
+- an overflow reservoir that accepts `10..20` does not emit again at `11`, but
+  it emits new tension when the value reaches `21`
 
 Tension is not an exception. It is real content that the current structure has
-not explained.
+not explained or cannot silently continue to account for.
 
 ## 11. Self Absorption Versus Routed Overflow
 
@@ -247,7 +279,7 @@ Self absorption means:
 
 - the carrier accepts a larger positive count on itself
 - no external route is needed
-- no tension is produced
+- no new tension is produced
 
 For example, a partition carrier with unit size ten may be able to hold value
 `50` and read that as five whole partition cycles if its own boundary permits
@@ -256,7 +288,7 @@ self absorption.
 Routed overflow is different:
 
 - the carrier crosses a boundary
-- event content leaves or updates the source layer
+- newly visible tension leaves or updates the source layer
 - another carrier, counter, crystal layer, or tension reservoir receives it
 
 The boundary law decides which behavior is active.
@@ -288,8 +320,9 @@ If routed content drains and re-enters the opposite side, the value circulates.
 
 If no route can absorb the content, the boundary produces tension.
 
-If a counter route observes or absorbs each crossing, the system can count
-periods without changing the circulating content unless the route is coupled.
+If a counter route observes or absorbs each newly visible crossing tension, the
+system can count periods without changing the circulating content unless the
+route is coupled.
 
 This gives modulo, wrap, periodicity, and loop counting as different route
 structures.
@@ -316,7 +349,7 @@ observation.
 
 ## 15. Counters
 
-A counter is a carrier route attached to a boundary event.
+A counter is a carrier route attached to newly visible boundary tension.
 
 It may be coupled:
 
@@ -326,7 +359,7 @@ It may be coupled:
 
 It may be observational:
 
-- sees the event
+- sees the newly visible tension
 - records a marker or claim
 - source is not consumed
 
@@ -361,11 +394,12 @@ For example:
 - define a segment by two values
 - route the segment end back to its beginning
 - if the route transfers flow, the segment drains and wraps
-- if no counter or absorber receives the route event, the drain may produce
+- if no counter or absorber receives the routed tension, the drain may produce
   tension
 
 A segment used as a boundary is not special. It is a carrier-layer structure
-whose endpoint events have routes.
+whose endpoints expose new tension when continuation is not already accounted
+for.
 
 ## 17. Segment Loop Closure
 
@@ -389,19 +423,19 @@ This gives reflection and oscillation without separate reflection tokens.
 
 ## 18. Branch And Merge
 
-Branching is one boundary event with multiple routes.
+Branching is one newly visible tension site with multiple routes.
 
-For example, one overflow event can route to:
+For example, one overflow tension can route to:
 
 - a counter carrier
 - a wrapped continuation carrier
 - a tension reservoir
 - an observational marker
 
-Merging is several boundary events routing to one carrier.
+Merging is several newly visible tension sites routing to one carrier.
 
 Neither branch nor merge needs to be a primitive symbolic graph operation.
-They are route multiplicity patterns over boundary events.
+They are route multiplicity patterns over tension sites.
 
 ## 19. Boolean Filters
 
@@ -466,7 +500,7 @@ Useful concepts to preserve numerically:
 - unoverflowed attached-layer amount
 - route target
 - route coupling state: open, zero-unit observation, resolved transfer
-- whether the route absorbed all, some, or none of the event content
+- whether the route absorbed all, some, or none of the new tension
 
 The route coupling state should be encoded through existing Core4 numeric
 structure rather than through enum tags where possible.
@@ -497,14 +531,14 @@ Continuation is not a symbolic control-flow instruction. It is a numeric route.
 
 If the route is resolved, flow transfers.
 
-If the route is zero-unit, the event is observed or claimed without consuming
-the source.
+If the route is zero-unit, the new tension is observed or claimed without
+consuming the source.
 
 If the route is open, tension gathers.
 
-If multiple routes attach, the event branches.
+If multiple routes attach, the new tension branches.
 
-If multiple events share a route, the event merges.
+If multiple tension sites share a route, the new tension merges.
 
 If the route returns to an earlier boundary, the structure loops.
 

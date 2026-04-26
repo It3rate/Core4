@@ -96,4 +96,57 @@ public sealed class CarrierReadTests
         long Alignment(CarrierLocation sideLocation, CarrierLocation travelLocation) =>
             Math.Sign(side.ReadSignOf(sideLocation.Carrier) * travel.ReadSignOf(travelLocation.Carrier));
     }
+
+    [Fact]
+    public void NewTensionAppearsOnlyPastAccountedCarrierRegion()
+    {
+        var carrier = new Carrier(10);
+        var accounted = new CarrierLocation(carrier, 20);
+
+        var inside = new CarrierLocation(carrier, 11).NewTensionAfter(accounted, carrier);
+        var boundary = new CarrierLocation(carrier, 20).NewTensionAfter(accounted, carrier);
+        var beyond = new CarrierLocation(carrier, 21).NewTensionAfter(accounted, carrier);
+
+        Assert.Equal(new CarrierLocation(carrier, 0), inside);
+        Assert.Equal(new CarrierLocation(carrier, 0), boundary);
+        Assert.Equal(new CarrierLocation(carrier, 1), beyond);
+    }
+
+    [Fact]
+    public void OrthogonalAccountingDoesNotAbsorbCarrierTension()
+    {
+        var x = new Carrier(10);
+        var y = new Carrier(20);
+        var incoming = new CarrierLocation(x, 5);
+        var orthogonalAccounted = new CarrierLocation(y, 100);
+
+        var tension = incoming.NewTensionAfter(orthogonalAccounted, x);
+
+        Assert.Equal(incoming, tension);
+    }
+
+    [Fact]
+    public void OpposedAccountingDoesNotAbsorbCarrierTensionWithoutRoute()
+    {
+        var forward = new Carrier(10);
+        var incoming = new CarrierLocation(forward, 5);
+        var opposedAccounted = new CarrierLocation(forward.Inverse(), 100);
+
+        var tension = incoming.NewTensionAfter(opposedAccounted, forward);
+
+        Assert.Equal(incoming, tension);
+    }
+
+    [Fact]
+    public void InvisibleCarrierDoesNotCreateTensionInReaderFrame()
+    {
+        var x = new Carrier(10);
+        var y = new Carrier(20);
+        var incoming = new CarrierLocation(y, 5);
+        var accounted = new CarrierLocation(y, 0);
+
+        var tension = incoming.NewTensionAfter(accounted, x);
+
+        Assert.Equal(new CarrierLocation(y, 0), tension);
+    }
 }
