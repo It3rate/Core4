@@ -601,6 +601,85 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void ClampReadIsAccountingWithoutContinuationRoute()
+    {
+        var carrier = new Carrier(10);
+        var incoming = new CarrierLocation(carrier, 12);
+        var clampFace = new CarrierLocation(carrier, 5);
+
+        var clamp = incoming.AccountedBy(carrier, clampFace);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier, 5),
+                new CarrierLocation(carrier, 7)),
+            clamp);
+    }
+
+    [Fact]
+    public void ClampReadCanUseSeveralCompatibleFacesBeforeTensionAppears()
+    {
+        var carrier = new Carrier(10);
+        var incoming = new CarrierLocation(carrier, 12);
+        var firstFace = new CarrierLocation(carrier, 5);
+        var secondFace = new CarrierLocation(carrier, 4);
+
+        var clamp = incoming.AccountedBy(carrier, firstFace, secondFace);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier, 9),
+                new CarrierLocation(carrier, 3)),
+            clamp);
+    }
+
+    [Fact]
+    public void ClampReadExcessCanGatherAsOpenTension()
+    {
+        var carrier = new Carrier(10);
+        var incoming = new CarrierLocation(carrier, 12);
+        var clamp = incoming.AccountedBy(carrier, new CarrierLocation(carrier, 5));
+        var open = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(Carrier.Unknown, 0));
+
+        var gathered = clamp.RightLocation.GatherThrough(carrier, open);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(carrier, 0),
+                    new CarrierLocation(carrier, 7)),
+                new Relation(
+                    new CarrierLocation(carrier, 7),
+                    new CarrierLocation(Carrier.Unknown, 0))),
+            gathered);
+    }
+
+    [Fact]
+    public void CarrierCanSelfAbsorbLargerPositiveCountsUntilBoundaryContextReadsThem()
+    {
+        var whole = new Carrier(10);
+        var partition = new Carrier(11);
+        var boundary = new CarrierLocation(Carrier.Unknown.Inverse(), 10);
+        var incoming = new CarrierLocation(partition, 23);
+
+        var selfAbsorbed = incoming.AccountedBy(partition, incoming);
+        var boundaryRead = incoming.ReadThroughBoundary(whole, boundary);
+
+        Assert.Equal(
+            new Relation(
+                incoming,
+                new CarrierLocation(partition, 0)),
+            selfAbsorbed);
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(whole, 2),
+                new CarrierLocation(partition, 3)),
+            boundaryRead);
+    }
+
+    [Fact]
     public void AccountingReadReturnsNoParticipationWhenReaderCannotSeeIncomingCarrier()
     {
         var x = new Carrier(10);
@@ -1324,6 +1403,130 @@ public sealed class CarrierReadTests
             {
                 new CarrierLocation(inverse, 0),
                 new CarrierLocation(inverse, 8)
+            },
+            points);
+    }
+
+    [Fact]
+    public void RelationTraversedBoundaryPointsReturnSitesInTravelOrder()
+    {
+        var carrier = new Carrier(10);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 10));
+        var first = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 4));
+        var second = new Relation(
+            new CarrierLocation(carrier, 7),
+            new CarrierLocation(carrier, 9));
+
+        var points = Relation.TraversedBoundaryPointsOn(carrier, travel, first, second);
+
+        Assert.Equal(
+            new[]
+            {
+                new CarrierLocation(carrier, 2),
+                new CarrierLocation(carrier, 4),
+                new CarrierLocation(carrier, 7),
+                new CarrierLocation(carrier, 9)
+            },
+            points);
+    }
+
+    [Fact]
+    public void RelationTraversedBoundaryPointsExcludeTravelStartAndIncludeTravelEnd()
+    {
+        var carrier = new Carrier(10);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 8));
+        var boundaries = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 8));
+
+        var points = Relation.TraversedBoundaryPointsOn(carrier, travel, boundaries);
+
+        Assert.Equal(
+            new[]
+            {
+                new CarrierLocation(carrier, 8)
+            },
+            points);
+    }
+
+    [Fact]
+    public void RelationTraversedBoundaryPointsFollowReverseTravelOrder()
+    {
+        var carrier = new Carrier(10);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 10),
+            new CarrierLocation(carrier, 0));
+        var first = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 4));
+        var second = new Relation(
+            new CarrierLocation(carrier, 7),
+            new CarrierLocation(carrier, 9));
+
+        var points = Relation.TraversedBoundaryPointsOn(carrier, travel, first, second);
+
+        Assert.Equal(
+            new[]
+            {
+                new CarrierLocation(carrier, 9),
+                new CarrierLocation(carrier, 7),
+                new CarrierLocation(carrier, 4),
+                new CarrierLocation(carrier, 2)
+            },
+            points);
+    }
+
+    [Fact]
+    public void RelationTraversedBoundaryPointsPreserveOpposedCarrierSurface()
+    {
+        var forward = new Carrier(10);
+        var inverse = forward.Inverse();
+        var travel = new Relation(
+            new CarrierLocation(inverse, 0),
+            new CarrierLocation(inverse, 10));
+        var boundary = new Relation(
+            new CarrierLocation(inverse, 2),
+            new CarrierLocation(inverse, 4));
+
+        var points = Relation.TraversedBoundaryPointsOn(forward, travel, boundary);
+
+        Assert.Equal(
+            new[]
+            {
+                new CarrierLocation(inverse, 2),
+                new CarrierLocation(inverse, 4)
+            },
+            points);
+    }
+
+    [Fact]
+    public void RelationTraversedBoundaryPointsIgnoreInvisibleSites()
+    {
+        var x = new Carrier(10);
+        var y = new Carrier(20);
+        var travel = new Relation(
+            new CarrierLocation(x, 0),
+            new CarrierLocation(x, 10));
+        var visible = new Relation(
+            new CarrierLocation(x, 2),
+            new CarrierLocation(x, 4));
+        var invisible = new Relation(
+            new CarrierLocation(y, 6),
+            new CarrierLocation(y, 8));
+
+        var points = Relation.TraversedBoundaryPointsOn(x, travel, visible, invisible);
+
+        Assert.Equal(
+            new[]
+            {
+                new CarrierLocation(x, 2),
+                new CarrierLocation(x, 4)
             },
             points);
     }

@@ -88,6 +88,13 @@ Current executable foothold:
 - `CarrierLocation.AccountedBy(reader, accounted...)` returns a `Relation`
   whose left slot is the participation accounted by the current read and whose
   right slot is the newly visible tension.
+- Clamp is currently this same accounting read with no continuation route. The
+  accepted portion stays on the left of the returned relation, and the excess
+  stays visible as tension on the right. That excess may then gather into an
+  open route or remain unresolved.
+- A carrier can self-absorb larger positive counts until a boundary context
+  asks for overflow. For example, `23` partition ticks are just `23` ticks on
+  that carrier until `ReadThroughBoundary` projects them as `2 3|10`.
 - A `Relation` can be used as accounting input by reading both slots as carrier
   locations in the current context. This lets route-like capacity, split reads,
   and prior relation results feed the same mechanism without a route class.
@@ -138,6 +145,10 @@ Current executable foothold:
   carrier locations where endpoint participation can change. This mirrors the
   old support span split mechanism without creating a support-specific span
   type.
+- `Relation.TraversedBoundaryPointsOn(reader, travel, relations...)` reads the
+  boundary sites crossed by an ordered travel relation. The start site is not
+  repeated as a new encounter, the end site is included, and results are ordered
+  by travel direction while preserving opposed carrier surfaces.
 - `Relation.CoveredSpansOn(reader, relations...)` returns adjacent carrier-local
   `Relation` intervals between those boundary points, skipping gaps where no
   input relation covers the interval. Opposed surfaces stay on the opposed
@@ -200,7 +211,7 @@ Add route structures:
 - route capacity and saturation
 - counters
 - wrap
-- clamp
+- clamp (already accounted by `AccountedBy` with no continuation route)
 - ping-pong
 - segment end-to-start closure
 

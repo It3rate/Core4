@@ -16,6 +16,27 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             .ToArray();
     }
 
+    public static CarrierLocation[] TraversedBoundaryPointsOn(Carrier reader, Relation travel, params Relation[] relations)
+    {
+        if (!travel.TryGetCarrierLocations(out var leftLocation, out var rightLocation))
+        {
+            return [];
+        }
+
+        var left = leftLocation.ReadFrom(reader);
+        var right = rightLocation.ReadFrom(reader);
+        if (left.Direction == 0 || right.Direction == 0 || left.Direction != right.Direction || left.Magnitude == right.Magnitude)
+        {
+            return [];
+        }
+
+        var boundaryCarrier = left.Direction > 0 ? reader : reader.Inverse();
+        return BoundaryPointsOn(reader, relations)
+            .Where(point => point.Carrier == boundaryCarrier && IsTraversed(point.Ticks, left.Magnitude, right.Magnitude))
+            .OrderBy(point => left.Magnitude < right.Magnitude ? point.Ticks : ulong.MaxValue - point.Ticks)
+            .ToArray();
+    }
+
     public static Relation[] CoveredSpansOn(Carrier reader, params Relation[] relations)
     {
         var boundaries = relations
@@ -242,6 +263,11 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
 
     private static bool IsCovered(ulong start, ulong end, Relation[] boundaries) =>
         boundaries.Any(boundary => boundary.LeftLocation.Ticks <= start && boundary.RightLocation.Ticks >= end);
+
+    private static bool IsTraversed(ulong point, ulong from, ulong to) =>
+        from < to
+            ? point > from && point <= to
+            : point < from && point >= to;
 
     private static Relation ClipTo(Relation scope, Relation boundary)
     {

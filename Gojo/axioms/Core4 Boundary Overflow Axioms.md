@@ -157,6 +157,12 @@ carrier alignment, not on the endpoint having nonzero magnitude. Directed
 travel is read as carrier participation: forward travel appears on the reader
 carrier, and reverse travel appears on the reader's inverse carrier.
 
+The executable traversal read asks which visible boundary sites an ordered
+relation crosses. The travel start is not emitted as new tension by default,
+because the traversal is already there; the travel end is emitted. Forward and
+reverse traversal return the same sites in opposite order, and opposed carrier
+surfaces remain opposed rather than flattening onto the reader.
+
 At the current Gojo pass, an event does not need its own object. It is a read of
 newly visible tension in context. If routing later needs an explicit value, it
 should reuse the same general relation structure as layer relations rather than
@@ -352,6 +358,12 @@ Examples:
 Tension is not an exception. It is real content that the current structure has
 not explained or cannot silently continue to account for.
 
+In the executable Gojo pass, clamp is an accounting read with no continuation
+route. The accepted portion appears on the left side of the returned relation,
+and the unaccepted portion remains newly visible tension on the right. That
+right-side tension can gather into an open route, be observed, route elsewhere,
+or simply remain unresolved.
+
 ## 11. Self Absorption Versus Routed Overflow
 
 When a value overshoots a carrier's ordinary positive range, the first possible
@@ -366,6 +378,11 @@ Self absorption means:
 For example, a partition carrier with unit size ten may be able to hold value
 `50` and read that as five whole partition cycles if its own boundary permits
 self absorption.
+
+The current executable foothold treats a carrier location as self-absorbed
+until a boundary context asks for overflow. A partition location of `23` is
+ordinary positive participation on that partition carrier; reading through a
+ten-boundary projects it as `2 3|10`.
 
 Routed overflow is different:
 
