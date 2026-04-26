@@ -60,6 +60,11 @@ Current executable foothold:
   `Relation` whose left slot is the earlier carrier-layer ticks and whose right
   slot is the later carrier-layer ticks that did not cross the boundary. This
   replaces the former dedicated layered-read wrapper.
+- Boundary overflow routing composes from existing reads: read through a
+  boundary, then transfer the left overflow carrier ticks through an ordinary
+  route relation. A nested receiving side can update both a wrapped whole
+  carrier and a counter, while any route saturation remains visible as overflow
+  tension beside the residue.
 - `CarrierLocation.NewTensionAfter(accounted, reader)` returns the carrier
   ticks that remain newly visible after the current read frame subtracts what
   local structure already accounts for.
@@ -85,11 +90,20 @@ Current executable foothold:
 - `CarrierLocation.TransferThroughRoutes(reader, routes...)` reads an ordered
   route sequence. Each route receives only the source tension left by earlier
   routes, and traversal stops once no visible tension remains.
+- Transfer into an opposed carrier already gives the first reflection shape.
+  The opposed carrier stores positive ticks in its own direction, and those
+  ticks can route back through a later relation when read from the original
+  carrier frame.
 - `CarrierLocation.ObserveThrough(reader, route)` is the first zero-unit
   observation projection. The route's left side sizes what can be observed, but
   the source is read with no drain, so the full visible incoming participation
   remains new tension. The right side receives the observed amount as a marker,
   counter, or claim.
+- `CarrierLocation.GatherThrough(reader, route)` is the first open-route
+  projection. The source is read with no drain, and the incoming visible
+  tension gathers into the route's left side while the route's right side
+  remains open. This turns `0/0` into `m/0`; the gathered `m` can later harden
+  into transfer capacity by pairing it with a resolved receiving side.
 - `Relation.BoundariesOn(reader)` reads the same ordered pair as carrier-local
   segment boundaries when context asks for endpoint behavior. If the reader
   cannot see both endpoints as aligned participation, the boundary read is zero.
@@ -159,7 +173,7 @@ Add route structures:
 
 - resolved transfer routes (started as `TransferThrough`)
 - zero-unit observation routes (started as `ObserveThrough`)
-- open tension routes
+- open tension routes (started as `GatherThrough`)
 - route capacity and saturation
 - counters
 - wrap

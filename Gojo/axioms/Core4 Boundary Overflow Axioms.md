@@ -207,6 +207,14 @@ And `24 0|10` minus one partition-layer tick becomes `23 9|10`.
 
 This is boundary routing, not primitive signed arithmetic.
 
+The current executable foothold composes this rather than adding a special
+boundary-route object. A carrier value first reads through a boundary as
+`whole residue|boundary`. The whole-side carrier ticks can then transfer
+through an ordinary route. A nested receiving side can update both the wrapped
+whole carrier and a counter. If that route has too little source-side capacity,
+the untransferred whole-side ticks remain visible as overflow tension while the
+residue remains on the partition carrier.
+
 ## 8. Tension Routes
 
 New tension may attach to zero, one, or many routes.
@@ -284,6 +292,17 @@ An open route accepts potential but has no committed transfer law yet:
 - newly visible content can gather as unresolved tension
 - a later relation may harden and absorb it
 
+The current executable foothold reads open gathering through the same relation
+shape again:
+
+- left side: unresolved potential surface
+- right side: open commitment surface
+- output: unchanged source tension paired with the updated open route
+
+So an incoming source value of `7` gathered through `0/0` reads as source
+`0 + 7 tension` and route `7/0`. If that gathered `7` is later paired with a
+resolved receiving site, it can act as source-side capacity in a transfer read.
+
 So the numeric ladder is:
 
 - `0/0`: open route
@@ -357,6 +376,11 @@ own direction.
 
 So reverse movement is not negative storage. It is routed positive storage on
 an inverse participation.
+
+The current executable foothold confirms this directly: a resolved transfer
+route can receive forward flow into the inverse carrier, and a later route can
+read that inverse-carrier participation from the original frame and transfer it
+back into the forward carrier. This is the first reflection/ping-pong shape.
 
 ## 13. Looping And Circular Boundaries
 

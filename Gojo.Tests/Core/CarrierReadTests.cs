@@ -80,6 +80,66 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void BoundaryOverflowCanRouteToWholeCarrierAndCounter()
+    {
+        var whole = new Carrier(10);
+        var partition = new Carrier(11);
+        var counter = new Carrier(12);
+        var boundary = new CarrierLocation(Carrier.Unknown.Inverse(), 10);
+        var read = new CarrierLocation(partition, 23).ReadThroughBoundary(whole, boundary);
+        var route = new Relation(
+            new CarrierLocation(whole, 2),
+            new Relation(
+                new CarrierLocation(whole, 100),
+                new CarrierLocation(counter, 0)));
+
+        var routedOverflow = read.LeftLocation.TransferThrough(whole, route);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(whole, 2),
+                new CarrierLocation(partition, 3)),
+            read);
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(whole, 2),
+                    new CarrierLocation(whole, 0)),
+                new Relation(
+                    new CarrierLocation(whole, 102),
+                    new CarrierLocation(counter, 2))),
+            routedOverflow);
+    }
+
+    [Fact]
+    public void PartialBoundaryRouteLeavesOverflowTensionBesideResidue()
+    {
+        var whole = new Carrier(10);
+        var partition = new Carrier(11);
+        var counter = new Carrier(12);
+        var boundary = new CarrierLocation(Carrier.Unknown.Inverse(), 10);
+        var read = new CarrierLocation(partition, 23).ReadThroughBoundary(whole, boundary);
+        var route = new Relation(
+            new CarrierLocation(whole, 1),
+            new Relation(
+                new CarrierLocation(whole, 100),
+                new CarrierLocation(counter, 0)));
+
+        var routedOverflow = read.LeftLocation.TransferThrough(whole, route);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(whole, 1),
+                    new CarrierLocation(whole, 1)),
+                new Relation(
+                    new CarrierLocation(whole, 101),
+                    new CarrierLocation(counter, 1))),
+            routedOverflow);
+        Assert.Equal(new CarrierLocation(partition, 3), read.RightLocation);
+    }
+
+    [Fact]
     public void BoundarySideAndTravelCanBePlainCarrierLocations()
     {
         var side = new Carrier(101);
@@ -384,6 +444,48 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void ResolvedRouteCanReflectFlowIntoOpposedCarrier()
+    {
+        var forward = new Carrier(10);
+        var inverse = forward.Inverse();
+        var incoming = new CarrierLocation(forward, 5);
+        var route = new Relation(
+            new CarrierLocation(forward, 5),
+            new CarrierLocation(inverse, 0));
+
+        var transfer = incoming.TransferThrough(forward, route);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(forward, 5),
+                    new CarrierLocation(forward, 0)),
+                new CarrierLocation(inverse, 5)),
+            transfer);
+    }
+
+    [Fact]
+    public void OpposedCarrierFlowCanRouteBackToForwardCarrier()
+    {
+        var forward = new Carrier(10);
+        var inverse = forward.Inverse();
+        var incoming = new CarrierLocation(inverse, 5);
+        var route = new Relation(
+            new CarrierLocation(inverse, 5),
+            new CarrierLocation(forward, 0));
+
+        var transfer = incoming.TransferThrough(forward, route);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(inverse, 5),
+                    new CarrierLocation(inverse, 0)),
+                new CarrierLocation(forward, 5)),
+            transfer);
+    }
+
+    [Fact]
     public void OrderedRoutesTransferOnlyRemainingTensionForward()
     {
         var source = new Carrier(10);
@@ -512,6 +614,98 @@ public sealed class CarrierReadTests
                     new CarrierLocation(other, 0)),
                 new CarrierLocation(marker, 100)),
             observation);
+    }
+
+    [Fact]
+    public void OpenRouteGathersUnresolvedPotentialWithoutDrainingSource()
+    {
+        var source = new Carrier(10);
+        var incoming = new CarrierLocation(source, 7);
+        var open = new Relation(
+            new CarrierLocation(source, 0),
+            new CarrierLocation(Carrier.Unknown, 0));
+
+        var gathered = incoming.GatherThrough(source, open);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(source, 0),
+                    incoming),
+                new Relation(
+                    incoming,
+                    new CarrierLocation(Carrier.Unknown, 0))),
+            gathered);
+    }
+
+    [Fact]
+    public void OpenRouteAccumulatedPotentialCanGatherMoreTension()
+    {
+        var source = new Carrier(10);
+        var incoming = new CarrierLocation(source, 7);
+        var open = new Relation(
+            new CarrierLocation(source, 5),
+            new CarrierLocation(Carrier.Unknown, 0));
+
+        var gathered = incoming.GatherThrough(source, open);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(source, 0),
+                    incoming),
+                new Relation(
+                    new CarrierLocation(source, 12),
+                    new CarrierLocation(Carrier.Unknown, 0))),
+            gathered);
+    }
+
+    [Fact]
+    public void OpenRouteDoesNotGatherInvisibleIncomingParticipation()
+    {
+        var source = new Carrier(10);
+        var other = new Carrier(20);
+        var incoming = new CarrierLocation(other, 7);
+        var open = new Relation(
+            new CarrierLocation(source, 5),
+            new CarrierLocation(Carrier.Unknown, 0));
+
+        var gathered = incoming.GatherThrough(source, open);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(other, 0),
+                    new CarrierLocation(other, 0)),
+                open),
+            gathered);
+    }
+
+    [Fact]
+    public void GatheredPotentialCanHardenIntoLaterTransferCapacity()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var incoming = new CarrierLocation(source, 7);
+        var open = new Relation(
+            new CarrierLocation(source, 0),
+            new CarrierLocation(Carrier.Unknown, 0));
+
+        var gathered = incoming.GatherThrough(source, open);
+        var gatheredRoute = Assert.IsType<Relation>(gathered.Right);
+        var hardened = new Relation(
+            gatheredRoute.Left,
+            new CarrierLocation(target, 100));
+
+        var transfer = new CarrierLocation(source, 10).TransferThrough(source, hardened);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(source, 7),
+                    new CarrierLocation(source, 3)),
+                new CarrierLocation(target, 107)),
+            transfer);
     }
 
     [Fact]
