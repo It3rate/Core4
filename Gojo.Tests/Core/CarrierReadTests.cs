@@ -324,6 +324,180 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void BoundaryRefillCanDrawAgainstCounterAsOpposedParticipation()
+    {
+        var whole = new Carrier(10);
+        var partition = new Carrier(11);
+        var counter = new Carrier(12);
+        var boundary = new CarrierLocation(Carrier.Unknown.Inverse(), 10);
+        var refill = new CarrierLocation(partition.Inverse(), 10)
+            .ReadRefillThroughBoundary(whole.Inverse(), boundary);
+        var drawRoute = new Relation(
+            new CarrierLocation(whole.Inverse(), 1),
+            new CarrierLocation(counter.Inverse(), 0));
+
+        var draw = refill.LeftLocation.TransferThrough(whole, drawRoute);
+        var counterState = new Relation(
+            new CarrierLocation(counter, 5),
+            draw.RightLocation);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(whole.Inverse(), 1),
+                    new CarrierLocation(whole.Inverse(), 0)),
+                new CarrierLocation(counter.Inverse(), 1)),
+            draw);
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(counter.Inverse(), 1),
+                new CarrierLocation(counter, 1)),
+            counterState.TensionOn(counter));
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(counter.Inverse(), 0),
+                new CarrierLocation(counter, 4)),
+            counterState.ExclusiveOn(counter));
+    }
+
+    [Fact]
+    public void BoundaryRefillDrawBeyondCounterLeavesOpposedRemainderVisible()
+    {
+        var counter = new Carrier(12);
+        var counterState = new Relation(
+            new CarrierLocation(counter, 2),
+            new CarrierLocation(counter.Inverse(), 5));
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(counter.Inverse(), 2),
+                new CarrierLocation(counter, 2)),
+            counterState.TensionOn(counter));
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(counter.Inverse(), 3),
+                new CarrierLocation(counter, 0)),
+            counterState.ExclusiveOn(counter));
+    }
+
+    [Fact]
+    public void SegmentBoundaryReadCountsWholeCrossingsAndKeepsResidueOnSegmentSurface()
+    {
+        var carrier = new Carrier(10);
+        var lap = new Carrier(20);
+        var segment = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 8));
+
+        var read = new CarrierLocation(carrier, 17).ReadThroughSegment(carrier, segment, lap);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(lap, 2),
+                new CarrierLocation(carrier, 5)),
+            read);
+    }
+
+    [Fact]
+    public void SegmentBoundaryReadReturnsSameSurfaceWhenInsideSegment()
+    {
+        var carrier = new Carrier(10);
+        var lap = new Carrier(20);
+        var segment = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 8));
+
+        var read = new CarrierLocation(carrier, 5).ReadThroughSegment(carrier, segment, lap);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(lap, 0),
+                new CarrierLocation(carrier, 5)),
+            read);
+    }
+
+    [Fact]
+    public void SegmentBoundaryReadMapsSegmentEndToStartWithOneLap()
+    {
+        var carrier = new Carrier(10);
+        var lap = new Carrier(20);
+        var segment = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 8));
+
+        var read = new CarrierLocation(carrier, 8).ReadThroughSegment(carrier, segment, lap);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(lap, 1),
+                new CarrierLocation(carrier, 2)),
+            read);
+    }
+
+    [Fact]
+    public void SegmentBoundaryReadPreservesOpposedSegmentSurface()
+    {
+        var forward = new Carrier(10);
+        var inverse = forward.Inverse();
+        var lap = new Carrier(20);
+        var segment = new Relation(
+            new CarrierLocation(inverse, 2),
+            new CarrierLocation(inverse, 8));
+
+        var read = new CarrierLocation(inverse, 17).ReadThroughSegment(forward, segment, lap);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(lap, 2),
+                new CarrierLocation(inverse, 5)),
+            read);
+    }
+
+    [Fact]
+    public void SegmentBoundaryReadRoutesLapCounterAndPreservesResidue()
+    {
+        var carrier = new Carrier(10);
+        var lap = new Carrier(20);
+        var counter = new Carrier(30);
+        var segment = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 8));
+        var read = new CarrierLocation(carrier, 17).ReadThroughSegment(carrier, segment, lap);
+        var counterRoute = new Relation(
+            new CarrierLocation(lap, 2),
+            new CarrierLocation(counter, 100));
+
+        var counted = read.LeftLocation.TransferThrough(lap, counterRoute);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(lap, 2),
+                    new CarrierLocation(lap, 0)),
+                new CarrierLocation(counter, 102)),
+            counted);
+        Assert.Equal(new CarrierLocation(carrier, 5), read.RightLocation);
+    }
+
+    [Fact]
+    public void SegmentBoundaryReadReturnsZeroWhenLocationIsBeforeSegment()
+    {
+        var carrier = new Carrier(10);
+        var lap = new Carrier(20);
+        var segment = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 8));
+
+        var read = new CarrierLocation(carrier, 1).ReadThroughSegment(carrier, segment, lap);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(lap, 0),
+                new CarrierLocation(lap, 0)),
+            read);
+    }
+
+    [Fact]
     public void BoundarySideAndTravelCanBePlainCarrierLocations()
     {
         var side = new Carrier(101);
@@ -667,6 +841,96 @@ public sealed class CarrierReadTests
                     new CarrierLocation(inverse, 0)),
                 new CarrierLocation(forward, 5)),
             transfer);
+    }
+
+    [Fact]
+    public void ResolvedRoutesCanCloseLoopByFeedingReceiverIntoNextRoute()
+    {
+        var first = new Carrier(10);
+        var second = new Carrier(20);
+        var incoming = new CarrierLocation(first, 5);
+        var outRoute = new Relation(
+            new CarrierLocation(first, 5),
+            new CarrierLocation(second, 0));
+        var returnRoute = new Relation(
+            new CarrierLocation(second, 5),
+            new CarrierLocation(first, 100));
+
+        var outward = incoming.TransferThrough(first, outRoute);
+        var received = outward.RightLocation;
+        var returned = received.TransferThrough(second, returnRoute);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(first, 5),
+                    new CarrierLocation(first, 0)),
+                new CarrierLocation(second, 5)),
+            outward);
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(second, 5),
+                    new CarrierLocation(second, 0)),
+                new CarrierLocation(first, 105)),
+            returned);
+    }
+
+    [Fact]
+    public void ResolvedLoopLeavesTensionWhenReturnRouteSaturates()
+    {
+        var first = new Carrier(10);
+        var second = new Carrier(20);
+        var incoming = new CarrierLocation(first, 5);
+        var outRoute = new Relation(
+            new CarrierLocation(first, 5),
+            new CarrierLocation(second, 0));
+        var returnRoute = new Relation(
+            new CarrierLocation(second, 3),
+            new CarrierLocation(first, 100));
+
+        var outward = incoming.TransferThrough(first, outRoute);
+        var returned = outward.RightLocation.TransferThrough(second, returnRoute);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(second, 3),
+                    new CarrierLocation(second, 2)),
+                new CarrierLocation(first, 103)),
+            returned);
+    }
+
+    [Fact]
+    public void OpposedRoutesCanPingPongByFeedingReceiverIntoOpposedRoute()
+    {
+        var forward = new Carrier(10);
+        var inverse = forward.Inverse();
+        var incoming = new CarrierLocation(forward, 4);
+        var reflect = new Relation(
+            new CarrierLocation(forward, 4),
+            new CarrierLocation(inverse, 0));
+        var returnRoute = new Relation(
+            new CarrierLocation(inverse, 4),
+            new CarrierLocation(forward, 0));
+
+        var reflected = incoming.TransferThrough(forward, reflect);
+        var returned = reflected.RightLocation.TransferThrough(forward, returnRoute);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(forward, 4),
+                    new CarrierLocation(forward, 0)),
+                new CarrierLocation(inverse, 4)),
+            reflected);
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(inverse, 4),
+                    new CarrierLocation(inverse, 0)),
+                new CarrierLocation(forward, 4)),
+            returned);
     }
 
     [Fact]

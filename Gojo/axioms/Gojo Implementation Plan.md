@@ -70,6 +70,15 @@ Current executable foothold:
   reads as borrowed ticks on an earlier inverse carrier plus positive refill
   residue on the partition carrier. Those borrowed ticks route through the same
   transfer/observe/gather machinery as overflow.
+- `CarrierLocation.ReadThroughSegment(reader, segment, lapCarrier)` lets a
+  directed segment act as a boundary. It reads whole segment crossings on the
+  lap carrier and preserves residue as a carrier location on the segment
+  surface. Reading exactly at the segment end returns one lap and the segment
+  start, so end-to-start closure is ordinary segment-boundary reading.
+- Coupled counter decrement is represented as opposed counter participation.
+  A refill draw routed into `counter.Inverse()` can be compared with existing
+  forward counter ticks through `TensionOn` and `ExclusiveOn`; remaining forward
+  count or opposed overdraw is visible without signed storage.
 - `CarrierLocation.NewTensionAfter(accounted, reader)` returns the carrier
   ticks that remain newly visible after the current read frame subtracts what
   local structure already accounts for.
@@ -99,6 +108,11 @@ Current executable foothold:
   The opposed carrier stores positive ticks in its own direction, and those
   ticks can route back through a later relation when read from the original
   carrier frame.
+- Loop closure is currently plain composition: feed the receiving carrier
+  location from one transfer into the next route. If the return route saturates,
+  its source-side split exposes the unreturned tension. Opposed loop closure is
+  the same composition through an inverse carrier, giving ping-pong without a
+  reflection token.
 - `CarrierLocation.ObserveThrough(reader, route)` is the first zero-unit
   observation projection. The route's left side sizes what can be observed, but
   the source is read with no drain, so the full visible incoming participation

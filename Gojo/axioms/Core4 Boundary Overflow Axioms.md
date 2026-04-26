@@ -414,6 +414,13 @@ route is coupled.
 This gives modulo, wrap, periodicity, and loop counting as different route
 structures.
 
+The current executable loop closure is plain composition. A transfer read emits
+a receiving carrier location. That received location can be fed into another
+route as source participation. If the return route has enough capacity, the
+loop closes. If it saturates, the source-side split on the return transfer
+exposes the unreturned tension. If the receiving carrier is opposed to the
+original carrier, the same composition is ping-pong/reflection.
+
 ## 14. Drainable And Non-Drainable Loops
 
 A circular flow may or may not drain on boundary crossing.
@@ -507,6 +514,17 @@ ping-pong behavior:
 - inverse end overflow routes back into positive flow
 
 This gives reflection and oscillation without separate reflection tokens.
+
+The current executable segment-boundary read uses the same carrier relation
+shape. A carrier location is read relative to a segment's ordered boundaries:
+
+- whole segment crossings appear on a lap carrier
+- residue remains on the original segment carrier surface
+- an exact read at the segment end returns one lap and the segment start
+
+For a segment `2..8`, location `17` reads as `2` laps and residue at `5`.
+Location `8` reads as `1` lap and residue at `2`. The lap carrier can route to
+a counter, and the residue can continue as the wrapped position.
 
 ## 18. Branch And Merge
 

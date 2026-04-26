@@ -27,6 +27,29 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks) : IE
             new CarrierLocation(Carrier.Inverse(), (boundary.Ticks - (Ticks % boundary.Ticks)) % boundary.Ticks));
     }
 
+    public Relation ReadThroughSegment(Carrier reader, Relation segment, Carrier lapCarrier)
+    {
+        var boundaries = segment.BoundariesOn(reader);
+        var span = boundaries.RightLocation.Ticks - boundaries.LeftLocation.Ticks;
+        if (span == 0)
+        {
+            var zero = new CarrierLocation(lapCarrier, 0);
+            return new(zero, zero);
+        }
+
+        var read = ReadFrom(boundaries.LeftLocation.Carrier);
+        if (read.Direction <= 0 || read.Magnitude < boundaries.LeftLocation.Ticks)
+        {
+            var zero = new CarrierLocation(lapCarrier, 0);
+            return new(zero, zero);
+        }
+
+        var offset = read.Magnitude - boundaries.LeftLocation.Ticks;
+        return new(
+            new CarrierLocation(lapCarrier, offset / span),
+            new CarrierLocation(boundaries.LeftLocation.Carrier, boundaries.LeftLocation.Ticks + (offset % span)));
+    }
+
     public CarrierLocation NewTensionAfter(CarrierLocation accounted, Carrier reader) =>
         NewTensionAfter(reader, accounted);
 
