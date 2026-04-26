@@ -255,6 +255,266 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void RelationCarrierLocationsTraverseNestedRelationSurface()
+    {
+        var x = new Carrier(10);
+        var y = new Carrier(20);
+        var relation = new Relation(
+            new Relation(
+                new CarrierLocation(x, 1),
+                new CarrierLocation(x, 2)),
+            new Relation(
+                new CarrierLocation(y, 3),
+                new CarrierLocation(y, 4)));
+
+        Assert.Equal(
+            new[]
+            {
+                new CarrierLocation(x, 1),
+                new CarrierLocation(x, 2),
+                new CarrierLocation(y, 3),
+                new CarrierLocation(y, 4)
+            },
+            relation.CarrierLocations());
+        Assert.Equal(
+            new[]
+            {
+                new CarrierLocation(x, 1),
+                new CarrierLocation(x, 2)
+            },
+            relation.LeftCarrierLocations());
+        Assert.Equal(
+            new[]
+            {
+                new CarrierLocation(y, 3),
+                new CarrierLocation(y, 4)
+            },
+            relation.RightCarrierLocations());
+    }
+
+    [Fact]
+    public void ResolvedRouteTransfersAccountedParticipationToReceiver()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var incoming = new CarrierLocation(source, 15);
+        var route = new Relation(
+            new CarrierLocation(source, 10),
+            new CarrierLocation(target, 3));
+
+        var transfer = incoming.TransferThrough(source, route);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(source, 10),
+                    new CarrierLocation(source, 5)),
+                new CarrierLocation(target, 13)),
+            transfer);
+    }
+
+    [Fact]
+    public void ResolvedRouteCanUseMultipleSourceCapacitiesBeforeTensionAppears()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var incoming = new CarrierLocation(source, 15);
+        var route = new Relation(
+            new Relation(
+                new CarrierLocation(source, 7),
+                new CarrierLocation(source, 6)),
+            new CarrierLocation(target, 0));
+
+        var transfer = incoming.TransferThrough(source, route);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(source, 13),
+                    new CarrierLocation(source, 2)),
+                new CarrierLocation(target, 13)),
+            transfer);
+    }
+
+    [Fact]
+    public void ResolvedRouteCanBranchTransferIntoNestedReceiverSurface()
+    {
+        var source = new Carrier(10);
+        var wrapped = new Carrier(20);
+        var counter = new Carrier(30);
+        var incoming = new CarrierLocation(source, 5);
+        var route = new Relation(
+            new CarrierLocation(source, 3),
+            new Relation(
+                new CarrierLocation(wrapped, 100),
+                new CarrierLocation(counter, 7)));
+
+        var transfer = incoming.TransferThrough(source, route);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(source, 3),
+                    new CarrierLocation(source, 2)),
+                new Relation(
+                    new CarrierLocation(wrapped, 103),
+                    new CarrierLocation(counter, 10))),
+            transfer);
+    }
+
+    [Fact]
+    public void ResolvedRouteDoesNotTransferThroughZeroSourceCapacity()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var incoming = new CarrierLocation(source, 15);
+        var route = new Relation(
+            new CarrierLocation(source, 0),
+            new CarrierLocation(target, 3));
+
+        var transfer = incoming.TransferThrough(source, route);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(source, 0),
+                    incoming),
+                new CarrierLocation(target, 3)),
+            transfer);
+    }
+
+    [Fact]
+    public void OrderedRoutesTransferOnlyRemainingTensionForward()
+    {
+        var source = new Carrier(10);
+        var firstTarget = new Carrier(20);
+        var secondTarget = new Carrier(30);
+        var incoming = new CarrierLocation(source, 15);
+        var firstRoute = new Relation(
+            new CarrierLocation(source, 5),
+            new CarrierLocation(firstTarget, 100));
+        var secondRoute = new Relation(
+            new CarrierLocation(source, 6),
+            new CarrierLocation(secondTarget, 200));
+
+        var transfers = incoming.TransferThroughRoutes(source, firstRoute, secondRoute);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(source, 5),
+                        new CarrierLocation(source, 10)),
+                    new CarrierLocation(firstTarget, 105)),
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(source, 6),
+                        new CarrierLocation(source, 4)),
+                    new CarrierLocation(secondTarget, 206))
+            },
+            transfers);
+    }
+
+    [Fact]
+    public void OrderedRoutesStopAfterTensionIsFullyTransferred()
+    {
+        var source = new Carrier(10);
+        var firstTarget = new Carrier(20);
+        var secondTarget = new Carrier(30);
+        var incoming = new CarrierLocation(source, 5);
+        var firstRoute = new Relation(
+            new CarrierLocation(source, 5),
+            new CarrierLocation(firstTarget, 100));
+        var secondRoute = new Relation(
+            new CarrierLocation(source, 6),
+            new CarrierLocation(secondTarget, 200));
+
+        var transfers = incoming.TransferThroughRoutes(source, firstRoute, secondRoute);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(source, 5),
+                        new CarrierLocation(source, 0)),
+                    new CarrierLocation(firstTarget, 105))
+            },
+            transfers);
+    }
+
+    [Fact]
+    public void ObservationRouteMarksReceiverWithoutDrainingSource()
+    {
+        var source = new Carrier(10);
+        var marker = new Carrier(20);
+        var incoming = new CarrierLocation(source, 7);
+        var route = new Relation(
+            new Relation(
+                new CarrierLocation(source, 4),
+                new CarrierLocation(source, 0)),
+            new CarrierLocation(marker, 100));
+
+        var observation = incoming.ObserveThrough(source, route);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(source, 0),
+                    incoming),
+                new CarrierLocation(marker, 104)),
+            observation);
+    }
+
+    [Fact]
+    public void ObservationRouteCannotObserveMoreThanVisibleIncomingParticipation()
+    {
+        var source = new Carrier(10);
+        var marker = new Carrier(20);
+        var incoming = new CarrierLocation(source, 7);
+        var route = new Relation(
+            new Relation(
+                new CarrierLocation(source, 10),
+                new CarrierLocation(source, 0)),
+            new CarrierLocation(marker, 100));
+
+        var observation = incoming.ObserveThrough(source, route);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(source, 0),
+                    incoming),
+                new CarrierLocation(marker, 107)),
+            observation);
+    }
+
+    [Fact]
+    public void ObservationRouteCannotSeeInvisibleIncomingParticipation()
+    {
+        var source = new Carrier(10);
+        var other = new Carrier(20);
+        var marker = new Carrier(30);
+        var incoming = new CarrierLocation(other, 7);
+        var route = new Relation(
+            new Relation(
+                new CarrierLocation(other, 10),
+                new CarrierLocation(other, 0)),
+            new CarrierLocation(marker, 100));
+
+        var observation = incoming.ObserveThrough(source, route);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(other, 0),
+                    new CarrierLocation(other, 0)),
+                new CarrierLocation(marker, 100)),
+            observation);
+    }
+
+    [Fact]
     public void RelationCanBeReadAsOrderedBoundariesInCarrierContext()
     {
         var carrier = new Carrier(10);

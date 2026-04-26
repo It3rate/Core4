@@ -204,19 +204,12 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
 
     public CarrierLocation[] CarrierLocations()
     {
-        var locations = new List<CarrierLocation>(2);
-        if (Left is CarrierLocation left)
-        {
-            locations.Add(left);
-        }
-
-        if (Right is CarrierLocation right)
-        {
-            locations.Add(right);
-        }
-
-        return [.. locations];
+        return [.. LeftCarrierLocations(), .. RightCarrierLocations()];
     }
+
+    public CarrierLocation[] LeftCarrierLocations() => CarrierLocationsOf(Left);
+
+    public CarrierLocation[] RightCarrierLocations() => CarrierLocationsOf(Right);
 
     public bool TryGetCarrierLocations(out CarrierLocation left, out CarrierLocation right)
     {
@@ -239,6 +232,13 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
     public CarrierLocation RightLocation => Right is CarrierLocation location
         ? location
         : throw new InvalidOperationException("The right relation slot is not a carrier location.");
+
+    private static CarrierLocation[] CarrierLocationsOf(IElement element) => element switch
+    {
+        CarrierLocation location => [location],
+        Relation relation => relation.CarrierLocations(),
+        _ => []
+    };
 
     private static bool IsCovered(ulong start, ulong end, Relation[] boundaries) =>
         boundaries.Any(boundary => boundary.LeftLocation.Ticks <= start && boundary.RightLocation.Ticks >= end);

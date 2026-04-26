@@ -33,6 +33,40 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks) : IE
         return new(new CarrierLocation(Carrier, Ticks - tension.Ticks), tension);
     }
 
+    public Relation TransferThrough(Carrier reader, Relation route)
+    {
+        var sourceRead = AccountedBy(reader, route.LeftCarrierLocations());
+        return new(sourceRead, Receive(route.Right, sourceRead.LeftLocation));
+    }
+
+    public Relation[] TransferThroughRoutes(Carrier reader, params Relation[] routes)
+    {
+        var remaining = this;
+        var transfers = new List<Relation>();
+        foreach (var route in routes)
+        {
+            if (!remaining.ReadFrom(reader).IsVisible)
+            {
+                break;
+            }
+
+            var transfer = remaining.TransferThrough(reader, route);
+            transfers.Add(transfer);
+            remaining = transfer.Left is Relation sourceRead
+                ? sourceRead.RightLocation
+                : new CarrierLocation(Carrier, 0);
+        }
+
+        return [.. transfers];
+    }
+
+    public Relation ObserveThrough(Carrier reader, Relation route)
+    {
+        var sourceRead = AccountedBy(reader);
+        var observed = AccountedBy(reader, route.LeftCarrierLocations()).LeftLocation;
+        return new(sourceRead, Receive(route.Right, observed));
+    }
+
     public CarrierLocation NewTensionAfter(Carrier reader, Relation accounted) =>
         NewTensionAfter(reader, accounted.CarrierLocations());
 
@@ -67,6 +101,13 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks) : IE
 
         return new(Carrier, Ticks - coveredTicks);
     }
+
+    private static IElement Receive(IElement target, CarrierLocation accounted) => target switch
+    {
+        CarrierLocation location => new CarrierLocation(location.Carrier, checked(location.Ticks + accounted.Ticks)),
+        Relation relation => new Relation(Receive(relation.Left, accounted), Receive(relation.Right, accounted)),
+        _ => target
+    };
 
     private static CarrierLocation[] Flatten(Relation first, Relation[] rest)
     {

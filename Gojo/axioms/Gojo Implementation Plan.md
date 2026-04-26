@@ -72,6 +72,24 @@ Current executable foothold:
 - A `Relation` can be used as accounting input by reading both slots as carrier
   locations in the current context. This lets route-like capacity, split reads,
   and prior relation results feed the same mechanism without a route class.
+- `Relation.CarrierLocations()` now traverses nested relation surfaces.
+  `LeftCarrierLocations()` and `RightCarrierLocations()` keep the ordered side
+  distinction when context needs it.
+- `CarrierLocation.TransferThrough(reader, route)` is the first resolved-route
+  projection. The route's left side is read as source-side capacity; the
+  route's right side is read as the receiving carrier surface. The returned
+  relation is `source accounting split -> received surface`, so partial
+  transfer leaves excess visible as tension. If the receiving side is nested,
+  the transfer preserves that nested relation shape, giving branch-like
+  receiver updates without introducing a graph object.
+- `CarrierLocation.TransferThroughRoutes(reader, routes...)` reads an ordered
+  route sequence. Each route receives only the source tension left by earlier
+  routes, and traversal stops once no visible tension remains.
+- `CarrierLocation.ObserveThrough(reader, route)` is the first zero-unit
+  observation projection. The route's left side sizes what can be observed, but
+  the source is read with no drain, so the full visible incoming participation
+  remains new tension. The right side receives the observed amount as a marker,
+  counter, or claim.
 - `Relation.BoundariesOn(reader)` reads the same ordered pair as carrier-local
   segment boundaries when context asks for endpoint behavior. If the reader
   cannot see both endpoints as aligned participation, the boundary read is zero.
@@ -139,8 +157,8 @@ Current executable foothold:
 
 Add route structures:
 
-- resolved transfer routes
-- zero-unit observation routes
+- resolved transfer routes (started as `TransferThrough`)
+- zero-unit observation routes (started as `ObserveThrough`)
 - open tension routes
 - route capacity and saturation
 - counters

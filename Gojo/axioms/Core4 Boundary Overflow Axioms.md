@@ -240,11 +240,44 @@ A resolved route with unit participation transfers flow:
 - the source reservoir updates or drains according to the boundary law
 - overflow is consumed to the degree the target absorbs it
 
+The current executable foothold reads a plain relation this way:
+
+- left side: source-side capacity/accounting surface
+- right side: receiving carrier surface
+- output: a relation from source accounting split to the received carrier
+  surface
+
+So a route with source capacity `10` and target site `3` receiving incoming
+`15` reads as source `10 + 5 tension` and target `13`. No route wrapper is
+introduced; the route role comes from asking to transfer through that relation.
+
+If the receiving side is itself a relation, the same accounted participation is
+read through each receiver slot while the source is accounted once. This gives
+the first executable branch shape: for example, one boundary crossing can update
+a wrapped continuation carrier and a counter carrier as one routed read.
+
+An ordered route sequence reads by feeding only remaining source tension forward
+to later routes. If an earlier route fully accounts for the incoming
+participation, traversal stops and later routes do not wake. This is an initial
+capacity/saturation rule, not a separate scheduler.
+
 A zero-unit route observes or claims the newly visible tension:
 
 - the route can sense that new tension appeared
 - it can count, mark, branch a signal, or create a claim
 - it does not consume the source reservoir by itself
+
+The current executable foothold reads observation through the same relation
+shape but with a different context:
+
+- left side: the observable amount or scope
+- right side: marker, counter, or claim surface
+- output: a relation from unchanged source tension to the marked receiver
+  surface
+
+So an incoming source value of `7` observed through `4/0` into marker `100`
+reads as source `0 + 7 tension` and marker `104`. The observation is bounded by
+what the reader can see; invisible incoming participation marks nothing.
 
 An open route accepts potential but has no committed transfer law yet:
 
