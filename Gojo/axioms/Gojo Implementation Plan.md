@@ -157,6 +157,13 @@ Current executable foothold:
   crossed boundary site with the travel flow that caused the encounter. These
   site-flow relations can observe, gather, or route without introducing an
   event type.
+- `Relation.TraversedSpansOn(reader, travel, relations...)` splits an ordered
+  travel relation into the carrier intervals occupied between crossed boundary
+  sites. Same-carrier reverse travel keeps span sites on the original carrier;
+  the span flow is what moves onto the inverse carrier.
+- `Relation.TraversedSpanStatesOn(reader, travel, relations...)` pairs each
+  traversed span with its local flow, so path occupancy and path flow can be
+  inspected separately.
 - `Relation.CoveredSpansOn(reader, relations...)` returns adjacent carrier-local
   `Relation` intervals between those boundary points, skipping gaps where no
   input relation covers the interval. Opposed surfaces stay on the opposed

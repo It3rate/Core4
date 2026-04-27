@@ -47,6 +47,58 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             : [];
     }
 
+    public static Relation[] TraversedSpansOn(Carrier reader, Relation travel, params Relation[] relations)
+    {
+        if (!travel.TryGetCarrierLocations(out var leftLocation, out var rightLocation))
+        {
+            return [];
+        }
+
+        var left = leftLocation.ReadFrom(reader);
+        var right = rightLocation.ReadFrom(reader);
+        if (left.Direction == 0 || right.Direction == 0 || left.Direction != right.Direction || left.Magnitude == right.Magnitude)
+        {
+            return [];
+        }
+
+        var carrier = left.Direction > 0 ? reader : reader.Inverse();
+        var points = new List<CarrierLocation>
+        {
+            new(carrier, left.Magnitude)
+        };
+
+        foreach (var point in TraversedBoundaryPointsOn(reader, travel, relations))
+        {
+            AddPoint(point);
+        }
+
+        AddPoint(new CarrierLocation(carrier, right.Magnitude));
+
+        var spans = new List<Relation>();
+        for (var i = 0; i < points.Count - 1; i++)
+        {
+            if (points[i].Ticks != points[i + 1].Ticks)
+            {
+                spans.Add(new(points[i], points[i + 1]));
+            }
+        }
+
+        return [.. spans];
+
+        void AddPoint(CarrierLocation point)
+        {
+            if (!points.Contains(point))
+            {
+                points.Add(point);
+            }
+        }
+    }
+
+    public static Relation[] TraversedSpanStatesOn(Carrier reader, Relation travel, params Relation[] relations) =>
+        TraversedSpansOn(reader, travel, relations)
+            .Select(span => new Relation(span, span.FlowOn(reader)))
+            .ToArray();
+
     public static Relation[] CoveredSpansOn(Carrier reader, params Relation[] relations)
     {
         var boundaries = relations

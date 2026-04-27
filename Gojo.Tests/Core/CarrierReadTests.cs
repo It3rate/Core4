@@ -1688,6 +1688,162 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void RelationTraversedSpansSplitTravelAtBoundaryPointsInTravelOrder()
+    {
+        var carrier = new Carrier(10);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 10));
+        var first = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 4));
+        var second = new Relation(
+            new CarrierLocation(carrier, 7),
+            new CarrierLocation(carrier, 9));
+
+        var spans = Relation.TraversedSpansOn(carrier, travel, first, second);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
+                new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 4)),
+                new Relation(new CarrierLocation(carrier, 4), new CarrierLocation(carrier, 7)),
+                new Relation(new CarrierLocation(carrier, 7), new CarrierLocation(carrier, 9)),
+                new Relation(new CarrierLocation(carrier, 9), new CarrierLocation(carrier, 10))
+            },
+            spans);
+    }
+
+    [Fact]
+    public void RelationTraversedSpansFollowReverseTravelOrder()
+    {
+        var carrier = new Carrier(10);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 10),
+            new CarrierLocation(carrier, 0));
+        var first = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 4));
+        var second = new Relation(
+            new CarrierLocation(carrier, 7),
+            new CarrierLocation(carrier, 9));
+
+        var spans = Relation.TraversedSpansOn(carrier, travel, first, second);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(new CarrierLocation(carrier, 10), new CarrierLocation(carrier, 9)),
+                new Relation(new CarrierLocation(carrier, 9), new CarrierLocation(carrier, 7)),
+                new Relation(new CarrierLocation(carrier, 7), new CarrierLocation(carrier, 4)),
+                new Relation(new CarrierLocation(carrier, 4), new CarrierLocation(carrier, 2)),
+                new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 0))
+            },
+            spans);
+    }
+
+    [Fact]
+    public void RelationTraversedSpansReturnWholeTravelWhenNoBoundaryIsCrossed()
+    {
+        var carrier = new Carrier(10);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 10));
+
+        var spans = Relation.TraversedSpansOn(carrier, travel);
+
+        Assert.Equal(
+            new[]
+            {
+                travel
+            },
+            spans);
+    }
+
+    [Fact]
+    public void RelationTraversedSpansPreserveOpposedCarrierSurface()
+    {
+        var forward = new Carrier(10);
+        var inverse = forward.Inverse();
+        var travel = new Relation(
+            new CarrierLocation(inverse, 0),
+            new CarrierLocation(inverse, 10));
+        var boundary = new Relation(
+            new CarrierLocation(inverse, 2),
+            new CarrierLocation(inverse, 4));
+
+        var spans = Relation.TraversedSpansOn(forward, travel, boundary);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(new CarrierLocation(inverse, 0), new CarrierLocation(inverse, 2)),
+                new Relation(new CarrierLocation(inverse, 2), new CarrierLocation(inverse, 4)),
+                new Relation(new CarrierLocation(inverse, 4), new CarrierLocation(inverse, 10))
+            },
+            spans);
+    }
+
+    [Fact]
+    public void RelationTraversedSpanStatesPairEachSpanWithLocalFlow()
+    {
+        var carrier = new Carrier(10);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 10));
+        var boundary = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 4));
+
+        var states = Relation.TraversedSpanStatesOn(carrier, travel, boundary);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
+                    new CarrierLocation(carrier, 2)),
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 4)),
+                    new CarrierLocation(carrier, 2)),
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 4), new CarrierLocation(carrier, 10)),
+                    new CarrierLocation(carrier, 6))
+            },
+            states);
+    }
+
+    [Fact]
+    public void RelationTraversedSpanStatesKeepReverseSitesOnCarrierAndFlowOnInverse()
+    {
+        var carrier = new Carrier(10);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 10),
+            new CarrierLocation(carrier, 0));
+        var boundary = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 4));
+
+        var states = Relation.TraversedSpanStatesOn(carrier, travel, boundary);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 10), new CarrierLocation(carrier, 4)),
+                    new CarrierLocation(carrier.Inverse(), 6)),
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 4), new CarrierLocation(carrier, 2)),
+                    new CarrierLocation(carrier.Inverse(), 2)),
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 0)),
+                    new CarrierLocation(carrier.Inverse(), 2))
+            },
+            states);
+    }
+
+    [Fact]
     public void RelationCoveredSpansSplitWhereParticipationCanChange()
     {
         var carrier = new Carrier(10);

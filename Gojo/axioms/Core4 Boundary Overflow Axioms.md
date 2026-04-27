@@ -170,6 +170,13 @@ travel flow. Those site-flow relations can feed observation, gathering, or
 transfer routes directly, so "an event" remains numeric carrier participation
 instead of a C# event or symbolic token.
 
+Traversal also has occupied spans between encounters. A traversed span read
+splits travel into ordered carrier intervals between the start, crossed
+boundary sites, and end. A span-state read pairs each interval with its local
+flow. Reverse travel on the same carrier keeps the occupied sites on that
+carrier, while the local flow is carried by the inverse carrier. This separates
+"where the path is" from "which way tension moves through it."
+
 At the current Gojo pass, an event does not need its own object. It is a read of
 newly visible tension in context. If routing later needs an explicit value, it
 should reuse the same general relation structure as layer relations rather than
