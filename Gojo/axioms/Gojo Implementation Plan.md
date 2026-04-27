@@ -127,6 +127,10 @@ Current executable foothold:
   source or receiver excess without manually unwrapping the nested relation
   shape. It is a context read over result surfaces, not a global claim that
   every relation endpoint is tension.
+- `Gojo.Reads.ResidualReads.ResidualLoadOn(reader)` lowers visible residuals to
+  a reverse/forward carrier pair in the reader frame. A zero pair means the
+  result surface is settled for that frame; nonzero participation means another
+  balancing pass has visible tension to work with.
 - `Gojo.Reads.ResidualRouteReads` contains exploration/read-pass helpers that
   feed visible residuals into the same transfer, observation, and open-gather
   route reads. They are explicit projections for a balancing pass, not an
@@ -220,6 +224,11 @@ Current executable foothold:
   support/tension/exclusive projections, and pass/block projections. It is a
   read-pass surface over the existing relation-shaped outputs, not a new
   numeric object replacing those outputs.
+- TODO: Revisit whether `TraversalRead` should remain a named projection bundle
+  or be replaced by a richer Core4-shaped traversal observation. The current
+  shape is useful for tests and inspection, but a mature numeric investigator
+  should discover what is present in the traversal surface without probing every
+  conceptual projection by name.
 - `RelationReads.CoveredSpansOn(reader, relations...)` returns adjacent carrier-local
   `Relation` intervals between those boundary points, skipping gaps where no
   input relation covers the interval. Opposed surfaces stay on the opposed

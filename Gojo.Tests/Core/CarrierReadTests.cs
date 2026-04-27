@@ -1058,6 +1058,52 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void ResultSurfaceResidualLoadReadsVisibleResidualMagnitudeByReader()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var incoming = new CarrierLocation(source, 12);
+        var route = new Relation(
+            new CarrierLocation(source, 10),
+            new CarrierLocation(target, 3));
+        var receiverCapacity = new Relation(
+            new CarrierLocation(target, 0),
+            new CarrierLocation(target, 8));
+
+        var transfer = incoming.TransferThrough(source, route, target, receiverCapacity);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(source.Inverse(), 0),
+                new CarrierLocation(source, 2)),
+            transfer.ResidualLoadOn(source));
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(target.Inverse(), 0),
+                new CarrierLocation(target, 5)),
+            transfer.ResidualLoadOn(target));
+    }
+
+    [Fact]
+    public void ResultSurfaceResidualLoadPreservesOpposedResidualDirection()
+    {
+        var carrier = new Carrier(10);
+        var target = new Carrier(20);
+        var incoming = new CarrierLocation(carrier.Inverse(), 8);
+        var route = new Relation(
+            new CarrierLocation(carrier.Inverse(), 5),
+            new CarrierLocation(target, 100));
+
+        var transfer = incoming.TransferThrough(carrier, route);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier.Inverse(), 3),
+                new CarrierLocation(carrier, 0)),
+            transfer.ResidualLoadOn(carrier));
+    }
+
+    [Fact]
     public void ResultSurfaceResidualCanRouteWithoutManualUnwrapping()
     {
         var source = new Carrier(10);
@@ -1121,6 +1167,16 @@ public sealed class CarrierReadTests
 
         Assert.Empty(transfer.ResidualsOn(source));
         Assert.Empty(transfer.ResidualsOn(target));
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(source.Inverse(), 0),
+                new CarrierLocation(source, 0)),
+            transfer.ResidualLoadOn(source));
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(target.Inverse(), 0),
+                new CarrierLocation(target, 0)),
+            transfer.ResidualLoadOn(target));
     }
 
     [Fact]
