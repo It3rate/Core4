@@ -1532,6 +1532,162 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void RelationTraversalSitesExposeStartAsOccupiedAndEndAsNewFlow()
+    {
+        var carrier = new Carrier(10);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 8));
+
+        var sites = travel.TraversalSitesOn(carrier);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(carrier, 2),
+                    new CarrierLocation(carrier, 0)),
+                new Relation(
+                    new CarrierLocation(carrier, 8),
+                    new CarrierLocation(carrier, 6))),
+            sites);
+    }
+
+    [Fact]
+    public void RelationTraversalSitesExposeReverseFlowOnOpposedSurface()
+    {
+        var carrier = new Carrier(10);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 8),
+            new CarrierLocation(carrier, 2));
+
+        var sites = travel.TraversalSitesOn(carrier);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(carrier.Inverse(), 8),
+                    new CarrierLocation(carrier.Inverse(), 0)),
+                new Relation(
+                    new CarrierLocation(carrier.Inverse(), 2),
+                    new CarrierLocation(carrier.Inverse(), 6))),
+            sites);
+    }
+
+    [Fact]
+    public void RelationTraversedBoundaryStatesPairEachSiteWithTravelFlow()
+    {
+        var carrier = new Carrier(10);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 10));
+        var boundary = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 4));
+
+        var states = Relation.TraversedBoundaryStatesOn(carrier, travel, boundary);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new CarrierLocation(carrier, 2),
+                    new CarrierLocation(carrier, 10)),
+                new Relation(
+                    new CarrierLocation(carrier, 4),
+                    new CarrierLocation(carrier, 10))
+            },
+            states);
+    }
+
+    [Fact]
+    public void RelationTraversedBoundaryStatesCarryReverseFlow()
+    {
+        var carrier = new Carrier(10);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 10),
+            new CarrierLocation(carrier, 0));
+        var boundary = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 4));
+
+        var states = Relation.TraversedBoundaryStatesOn(carrier, travel, boundary);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new CarrierLocation(carrier, 4),
+                    new CarrierLocation(carrier.Inverse(), 10)),
+                new Relation(
+                    new CarrierLocation(carrier, 2),
+                    new CarrierLocation(carrier.Inverse(), 10))
+            },
+            states);
+    }
+
+    [Fact]
+    public void RelationTraversalEndpointGateCanWakeEndWithoutWakingStart()
+    {
+        var carrier = new Carrier(10);
+        var marker = new Carrier(20);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 8));
+        var markerRoute = new Relation(
+            new CarrierLocation(carrier, 1),
+            new CarrierLocation(marker, 100));
+
+        var sites = travel.TraversalSitesOn(carrier);
+        var start = Assert.IsType<Relation>(sites.Left);
+        var end = Assert.IsType<Relation>(sites.Right);
+
+        var startWake = start.RightLocation.ObserveThrough(carrier, markerRoute);
+        var endWake = end.RightLocation.ObserveThrough(carrier, markerRoute);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(carrier, 0),
+                    new CarrierLocation(carrier, 0)),
+                new CarrierLocation(marker, 100)),
+            startWake);
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(carrier, 0),
+                    new CarrierLocation(carrier, 6)),
+                new CarrierLocation(marker, 101)),
+            endWake);
+    }
+
+    [Fact]
+    public void RelationTraversedBoundaryStateCanWakeObserverWithoutDrainingFlow()
+    {
+        var carrier = new Carrier(10);
+        var marker = new Carrier(20);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 10));
+        var boundary = new Relation(
+            new CarrierLocation(carrier, 4),
+            new CarrierLocation(carrier, 5));
+        var markerRoute = new Relation(
+            new CarrierLocation(carrier, 1),
+            new CarrierLocation(marker, 100));
+
+        var state = Relation.TraversedBoundaryStatesOn(carrier, travel, boundary)[0];
+        var wake = state.RightLocation.ObserveThrough(carrier, markerRoute);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(carrier, 0),
+                    new CarrierLocation(carrier, 10)),
+                new CarrierLocation(marker, 101)),
+            wake);
+    }
+
+    [Fact]
     public void RelationCoveredSpansSplitWhereParticipationCanChange()
     {
         var carrier = new Carrier(10);

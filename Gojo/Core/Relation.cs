@@ -37,6 +37,16 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             .ToArray();
     }
 
+    public static Relation[] TraversedBoundaryStatesOn(Carrier reader, Relation travel, params Relation[] relations)
+    {
+        var flow = travel.FlowOn(reader);
+        return flow.ReadFrom(reader).IsVisible
+            ? TraversedBoundaryPointsOn(reader, travel, relations)
+                .Select(point => new Relation(point, flow))
+                .ToArray()
+            : [];
+    }
+
     public static Relation[] CoveredSpansOn(Carrier reader, params Relation[] relations)
     {
         var boundaries = relations
@@ -221,6 +231,29 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         return delta >= 0
             ? new CarrierLocation(reader, checked((ulong)delta))
             : new CarrierLocation(reader.Inverse(), checked((ulong)-delta));
+    }
+
+    public Relation TraversalSitesOn(Carrier reader)
+    {
+        if (!TryGetCarrierLocations(out var leftLocation, out var rightLocation))
+        {
+            var zero = new CarrierLocation(reader, 0);
+            return new(new Relation(zero, zero), new Relation(zero, zero));
+        }
+
+        var left = leftLocation.ReadFrom(reader);
+        var right = rightLocation.ReadFrom(reader);
+        var flow = FlowOn(reader);
+        if (left.Direction == 0 || right.Direction == 0 || left.Direction != right.Direction || flow.Ticks == 0)
+        {
+            var zero = new CarrierLocation(reader, 0);
+            return new(new Relation(zero, zero), new Relation(zero, zero));
+        }
+
+        var zeroFlow = new CarrierLocation(flow.Carrier, 0);
+        return new(
+            new Relation(new CarrierLocation(flow.Carrier, left.Magnitude), zeroFlow),
+            new Relation(new CarrierLocation(flow.Carrier, right.Magnitude), flow));
     }
 
     public CarrierLocation[] CarrierLocations()

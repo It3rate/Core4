@@ -149,6 +149,14 @@ Current executable foothold:
   boundary sites crossed by an ordered travel relation. The start site is not
   repeated as a new encounter, the end site is included, and results are ordered
   by travel direction while preserving opposed carrier surfaces.
+- `Relation.TraversalSitesOn(reader)` exposes the travel endpoint gate as
+  relation state: the start site is paired with zero new flow, while the end
+  site is paired with the travel flow. This makes start-excluded/end-included
+  behavior inspectable as carrier participation.
+- `Relation.TraversedBoundaryStatesOn(reader, travel, relations...)` pairs each
+  crossed boundary site with the travel flow that caused the encounter. These
+  site-flow relations can observe, gather, or route without introducing an
+  event type.
 - `Relation.CoveredSpansOn(reader, relations...)` returns adjacent carrier-local
   `Relation` intervals between those boundary points, skipping gaps where no
   input relation covers the interval. Opposed surfaces stay on the opposed

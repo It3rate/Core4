@@ -163,6 +163,13 @@ because the traversal is already there; the travel end is emitted. Forward and
 reverse traversal return the same sites in opposite order, and opposed carrier
 surfaces remain opposed rather than flattening onto the reader.
 
+Endpoint inclusion is also readable as relation state. A traversal site read
+pairs the start site with zero new flow and the end site with the travel flow.
+Crossed boundary states pair each encountered boundary site with the same
+travel flow. Those site-flow relations can feed observation, gathering, or
+transfer routes directly, so "an event" remains numeric carrier participation
+instead of a C# event or symbolic token.
+
 At the current Gojo pass, an event does not need its own object. It is a read of
 newly visible tension in context. If routing later needs an explicit value, it
 should reuse the same general relation structure as layer relations rather than
