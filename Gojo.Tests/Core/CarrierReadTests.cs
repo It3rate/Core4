@@ -1,4 +1,5 @@
 using Gojo.Core;
+using Gojo.Reads;
 
 namespace Gojo.Tests.Core;
 
@@ -1536,7 +1537,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(source, 10),
             new CarrierLocation(target, 100));
 
-        var transfers = CarrierLocation.TransferSourcesThrough(source, route, first, second);
+        var transfers = RouteSequenceReads.TransferSourcesThrough(source, route, first, second);
 
         Assert.Equal(
             new[]
@@ -1566,7 +1567,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(source, 5),
             new CarrierLocation(target, 100));
 
-        var transfers = CarrierLocation.TransferSourcesThrough(source, route, first, second);
+        var transfers = RouteSequenceReads.TransferSourcesThrough(source, route, first, second);
 
         Assert.Equal(
             new[]
@@ -1597,7 +1598,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(source, 10),
             new CarrierLocation(target, 100));
 
-        var transfers = CarrierLocation.TransferSourcesThrough(source, route, visible, invisible);
+        var transfers = RouteSequenceReads.TransferSourcesThrough(source, route, visible, invisible);
 
         Assert.Equal(
             new[]
@@ -1627,7 +1628,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(source, 10),
             new CarrierLocation(display, 100));
 
-        var observations = CarrierLocation.ObserveSourcesThrough(source, route, first, second);
+        var observations = RouteSequenceReads.ObserveSourcesThrough(source, route, first, second);
 
         Assert.Equal(
             new[]
@@ -3067,9 +3068,9 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 0));
 
-        Assert.Equal(Relation.SupportOn(carrier, forward, reverse), Relation.OrOn(carrier, forward, reverse));
-        Assert.Equal(Relation.TensionOn(carrier, forward, reverse), Relation.AndOn(carrier, forward, reverse));
-        Assert.Equal(Relation.ExclusiveOn(carrier, forward, reverse), Relation.XorOn(carrier, forward, reverse));
+        Assert.Equal(Relation.SupportOn(carrier, forward, reverse), BooleanStyleReads.OrOn(carrier, forward, reverse));
+        Assert.Equal(Relation.TensionOn(carrier, forward, reverse), BooleanStyleReads.AndOn(carrier, forward, reverse));
+        Assert.Equal(Relation.ExclusiveOn(carrier, forward, reverse), BooleanStyleReads.XorOn(carrier, forward, reverse));
     }
 
     [Fact]
@@ -3194,10 +3195,10 @@ public sealed class CarrierReadTests
 
         Assert.Equal(
             Relation.CoveredSpansWithinOn(carrier, scope, supported),
-            Relation.PassOn(carrier, scope, supported));
+            BooleanStyleReads.PassOn(carrier, scope, supported));
         Assert.Equal(
             Relation.UncoveredSpansOn(carrier, scope, supported),
-            Relation.BlockOn(carrier, scope, supported));
+            BooleanStyleReads.BlockOn(carrier, scope, supported));
     }
 
     [Fact]
@@ -3213,7 +3214,7 @@ public sealed class CarrierReadTests
 
         Assert.Equal(
             Relation.UncoveredSpansOn(carrier, scope, blocked),
-            Relation.NotOn(carrier, scope, blocked));
+            BooleanStyleReads.NotOn(carrier, scope, blocked));
     }
 
     [Fact]
@@ -3227,8 +3228,8 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 5));
 
-        var passed = Relation.PassOn(carrier, incomingScope, support);
-        var blocked = Relation.BlockOn(carrier, incomingScope, support);
+        var passed = BooleanStyleReads.PassOn(carrier, incomingScope, support);
+        var blocked = BooleanStyleReads.BlockOn(carrier, incomingScope, support);
 
         Assert.Equal(
             new[]
@@ -3258,7 +3259,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 5));
 
-        var passed = Relation.PassOn(carrier, incomingScope, support);
+        var passed = BooleanStyleReads.PassOn(carrier, incomingScope, support);
         var capacity = passed[0].SpanOn(carrier);
         var route = new Relation(capacity, new CarrierLocation(target, 100));
 
@@ -3286,8 +3287,8 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 5));
 
-        var passed = Relation.PassOn(carrier, incomingScope, support);
-        var blocked = Relation.BlockOn(carrier, incomingScope, support);
+        var passed = BooleanStyleReads.PassOn(carrier, incomingScope, support);
+        var blocked = BooleanStyleReads.BlockOn(carrier, incomingScope, support);
         var blockedCapacity = new Relation(
             blocked[0].SpanOn(carrier),
             blocked[1].SpanOn(carrier));

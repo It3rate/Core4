@@ -85,68 +85,11 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks) : IE
             : transfer;
     }
 
-    public Relation[] TransferThroughRoutes(Carrier reader, params Relation[] routes)
-    {
-        var remaining = this;
-        var transfers = new List<Relation>();
-        foreach (var route in routes)
-        {
-            if (!remaining.ReadFrom(reader).IsVisible)
-            {
-                break;
-            }
-
-            var transfer = remaining.TransferThrough(reader, route);
-            transfers.Add(transfer);
-            remaining = transfer.Left is Relation sourceRead
-                ? sourceRead.RightLocation
-                : new CarrierLocation(Carrier, 0);
-        }
-
-        return [.. transfers];
-    }
-
-    public static Relation[] TransferSourcesThrough(Carrier reader, Relation route, params CarrierLocation[] sources)
-    {
-        var currentRoute = route;
-        var transfers = new List<Relation>();
-        foreach (var source in sources)
-        {
-            var transfer = source.TransferThrough(reader, currentRoute);
-            transfers.Add(transfer);
-            currentRoute = new Relation(currentRoute.Left, transfer.Right);
-        }
-
-        return [.. transfers];
-    }
-
     public Relation ObserveThrough(Carrier reader, Relation route)
     {
         var sourceRead = AccountedBy(reader);
         var observed = AccountedBy(reader, route.LeftCarrierLocations()).LeftLocation;
         return new(sourceRead, Receive(route.Right, observed));
-    }
-
-    public Relation[] ObserveThroughRoutes(Carrier reader, params Relation[] routes)
-    {
-        var source = this;
-        return routes
-            .Select(route => source.ObserveThrough(reader, route))
-            .ToArray();
-    }
-
-    public static Relation[] ObserveSourcesThrough(Carrier reader, Relation route, params CarrierLocation[] sources)
-    {
-        var currentRoute = route;
-        var observations = new List<Relation>();
-        foreach (var source in sources)
-        {
-            var observation = source.ObserveThrough(reader, currentRoute);
-            observations.Add(observation);
-            currentRoute = new Relation(currentRoute.Left, observation.Right);
-        }
-
-        return [.. observations];
     }
 
     public Relation GatherThrough(Carrier reader, Relation route)

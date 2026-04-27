@@ -219,24 +219,6 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             .ToArray();
     }
 
-    public static Relation[] AndOn(Carrier reader, params Relation[] relations) =>
-        TensionOn(reader, relations);
-
-    public static Relation[] NotOn(Carrier reader, Relation scope, params Relation[] blocked) =>
-        UncoveredSpansOn(reader, scope, blocked);
-
-    public static Relation[] PassOn(Carrier reader, Relation scope, params Relation[] support) =>
-        CoveredSpansWithinOn(reader, scope, support);
-
-    public static Relation[] BlockOn(Carrier reader, Relation scope, params Relation[] support) =>
-        UncoveredSpansOn(reader, scope, support);
-
-    public static Relation[] XorOn(Carrier reader, params Relation[] relations) =>
-        ExclusiveOn(reader, relations);
-
-    public static Relation[] OrOn(Carrier reader, params Relation[] relations) =>
-        SupportOn(reader, relations);
-
     public Relation SupportOn(Carrier reader)
     {
         var (reverse, forward) = ReadStatePair(reader);
@@ -337,17 +319,6 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
     }
 
     public CarrierLocation[] ResidualsOn(Carrier reader) => ResidualsOf(this, reader);
-
-    public Relation[] TransferResidualsThrough(Carrier reader, Relation route) =>
-        CarrierLocation.TransferSourcesThrough(reader, route, ResidualsOn(reader));
-
-    public Relation[] ObserveResidualsThrough(Carrier reader, Relation route) =>
-        CarrierLocation.ObserveSourcesThrough(reader, route, ResidualsOn(reader));
-
-    public Relation[] GatherResidualsThrough(Carrier reader, Relation route) =>
-        ResidualsOn(reader)
-            .Select(residual => residual.GatherThrough(reader, route))
-            .ToArray();
 
     public CarrierLocation[] LeftCarrierLocations() => CarrierLocationsOf(Left);
 

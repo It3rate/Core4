@@ -123,17 +123,18 @@ Current executable foothold:
   source or receiver excess without manually unwrapping the nested relation
   shape. It is a context read over result surfaces, not a global claim that
   every relation endpoint is tension.
-- `TransferResidualsThrough`, `ObserveResidualsThrough`, and
-  `GatherResidualsThrough` feed those visible residuals into the same transfer,
-  observation, and open-gather route reads. They are explicit projections for a
-  balancing pass, not an automatic solver.
-- `CarrierLocation.TransferThroughRoutes(reader, routes...)` reads an ordered
-  route sequence. Each route receives only the source tension left by earlier
-  routes, and traversal stops once no visible tension remains.
+- `Gojo.Reads.ResidualRouteReads` contains exploration/read-pass helpers that
+  feed visible residuals into the same transfer, observation, and open-gather
+  route reads. They are explicit projections for a balancing pass, not an
+  automatic solver, and they intentionally sit outside the core relation type.
+- `Gojo.Reads.RouteSequenceReads.TransferThroughRoutes` reads an ordered route
+  sequence. Each route receives only the source tension left by earlier routes,
+  and traversal stops once no visible tension remains. This is a read utility,
+  not a new carrier primitive.
 - Conserved branch behavior is currently this same ordered route read. If
   source `8` meets route capacities `5` and `5`, the first route can account
   for `5` and the second can account only for the remaining `3`.
-- `CarrierLocation.TransferSourcesThrough(reader, route, sources...)` is the
+- `RouteSequenceReads.TransferSourcesThrough(reader, route, sources...)` is the
   first conserved merge projection. Each source is accounted independently by
   the route's source side, and the receiver surface accumulates the accounted
   participation from each source in order. Source tension remains attached to
@@ -152,11 +153,11 @@ Current executable foothold:
   the source is read with no drain, so the full visible incoming participation
   remains new tension. The right side receives the observed amount as a marker,
   counter, or claim.
-- `CarrierLocation.ObserveThroughRoutes(reader, routes...)` reads each
+- `RouteSequenceReads.ObserveThroughRoutes(reader, routes...)` reads each
   observation route against the same undrained source. This is the first
   observation fanout shape: several displays, sensors, or claims may each read
   the same visible participation without splitting the source.
-- `CarrierLocation.ObserveSourcesThrough(reader, route, sources...)` is the
+- `RouteSequenceReads.ObserveSourcesThrough(reader, route, sources...)` is the
   observation-merge mirror. Several sources can update one receiver surface
   without being drained; each source still reports its own unchanged visible
   tension.
@@ -233,16 +234,19 @@ Current executable foothold:
 - Scoped projections `SupportWithinOn`, `TensionWithinOn`, and
   `ExclusiveWithinOn` apply the same support/tension/exclusive reads inside a
   chosen interval.
-- Boolean-style span reads are aliases over those projections: `OrOn` is
-  support, `AndOn` is tension/shared opposed participation, and `XorOn` is
-  exclusive unopposed participation.
+- `Gojo.Reads.BooleanStyleReads` provides boolean-style vocabulary as aliases
+  over those projections: `OrOn` is support, `AndOn` is tension/shared opposed
+  participation, and `XorOn` is exclusive unopposed participation. These names
+  live outside the primitive relation type because they are lower projections,
+  not new structure.
 - `Relation.UncoveredSpansOn(reader, scope, covered...)` reads scoped absence
   by splitting one visible scope relation around covered intervals. `NotOn` is
   only this scoped absence projection; there is no global negation outside a
   chosen carrier interval.
-- `PassOn` and `BlockOn` are scoped filter projections over the same split:
-  pass reads the covered intervals inside the scope, while block reads the
-  uncovered intervals. They are not new truth values or route objects.
+- `BooleanStyleReads.PassOn` and `BooleanStyleReads.BlockOn` are scoped filter
+  projections over the same split: pass reads the covered intervals inside the
+  scope, while block reads the uncovered intervals. They are not new truth
+  values or route objects.
 - A support filter can route by treating an incoming value as a scoped interval
   from origin to that value, reading pass/block spans inside it, and then using
   span widths as transfer capacity or open gathered tension. Selection is

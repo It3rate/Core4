@@ -322,8 +322,10 @@ is tension.
 
 Those residuals can then feed the same route reads as any other carrier
 participation. A balancing pass may transfer visible residuals, observe them, or
-gather them into an open route. This is still explicit routing: the kernel does
-not silently chase every possible route to a final answer.
+gather them into an open route. These projections may live in read/exploration
+utilities rather than on the primitive relation itself. This is still explicit
+routing: the kernel does not silently chase every possible route to a final
+answer.
 
 If the receiving side is itself a relation, the same accounted participation is
 read through each receiver slot while the source is accounted once. This gives
@@ -674,9 +676,9 @@ structure:
 
 So support splitting and boolean-like filtering should not introduce a separate
 span or truth-table ontology unless new numeric structure genuinely requires it.
-Boolean-style names can exist as lower projections: `or` reads support, `and`
-reads shared opposed participation/tension, and `xor` reads exclusive unopposed
-participation.
+Boolean-style names can exist as lower projections outside the primitive
+relation type: `or` reads support, `and` reads shared opposed
+participation/tension, and `xor` reads exclusive unopposed participation.
 
 Scoped absence is the current safe form of `not`: a scope relation is read as
 carrier-local boundaries, covered intervals are clipped to that scope, and the
