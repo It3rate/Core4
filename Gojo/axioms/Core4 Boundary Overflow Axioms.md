@@ -306,6 +306,13 @@ intermediate tensions that later routes may absorb, observe, or leave
 unresolved. If the receiver read frame cannot see the received carrier, then no
 receiver-side tension is visible in that frame.
 
+Receiver excess is not a new kind of overflow. It is ordinary carrier
+participation on the receiving carrier after that accounting read. A later pass
+may transfer it to another carrier, observe it with a zero-unit route, gather it
+as open potential, or let it remain as unresolved tension. This keeps the
+system dynamic: each pass lowers the tension it can see rather than forcing a
+single final solution.
+
 If the receiving side is itself a relation, the same accounted participation is
 read through each receiver slot while the source is accounted once. This gives
 the first executable branch shape: for example, one boundary crossing can update

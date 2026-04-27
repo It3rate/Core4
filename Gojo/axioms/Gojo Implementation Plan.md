@@ -114,6 +114,10 @@ Current executable foothold:
   excess and receiver excess remain distinct tensions that can settle in later
   route passes. If the receiver reader cannot see the received carrier, no
   receiver tension is visible in that frame.
+- Receiver excess from that split is still an ordinary carrier location on the
+  receiving carrier. Later passes can transfer it, observe it, gather it into
+  an open site, or leave it unresolved using the same route reads as any other
+  tension.
 - `CarrierLocation.TransferThroughRoutes(reader, routes...)` reads an ordered
   route sequence. Each route receives only the source tension left by earlier
   routes, and traversal stops once no visible tension remains.
