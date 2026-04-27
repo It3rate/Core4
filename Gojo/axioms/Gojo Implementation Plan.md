@@ -56,6 +56,10 @@ Current executable foothold:
 - `Relation` is now a minimal ordered pair of elements. It carries no route,
   event, support, or endpoint policy by itself; context gives its two slots
   their current read.
+- `Gojo.Reads` holds named read passes and exploration vocabulary over the same
+  core structures. These helpers are not a second ontology; they keep traversal,
+  support, boolean-style, residual, and route-sequence projections from
+  crowding the primitive carrier/relation types.
 - `CarrierLocation.ReadThroughBoundary(earlierCarrier, boundary)` returns a
   `Relation` whose left slot is the earlier carrier-layer ticks and whose right
   slot is the later carrier-layer ticks that did not cross the boundary. This
@@ -177,11 +181,11 @@ Current executable foothold:
 - `Relation.FlowOn(reader)` reads travel direction as carrier participation:
   forward travel appears on the reader carrier, reverse travel appears on the
   reader's inverse carrier.
-- `Relation.BoundaryPointsOn(reader, relations...)` discovers the ordered
+- `Gojo.Reads.RelationReads.BoundaryPointsOn(reader, relations...)` discovers the ordered
   carrier locations where endpoint participation can change. This mirrors the
   old support span split mechanism without creating a support-specific span
   type.
-- `Relation.TraversedBoundaryPointsOn(reader, travel, relations...)` reads the
+- `RelationReads.TraversedBoundaryPointsOn(reader, travel, relations...)` reads the
   boundary sites crossed by an ordered travel relation. The start site is not
   repeated as a new encounter, the end site is included, and results are ordered
   by travel direction while preserving opposed carrier surfaces.
@@ -189,18 +193,18 @@ Current executable foothold:
   relation state: the start site is paired with zero new flow, while the end
   site is paired with the travel flow. This makes start-excluded/end-included
   behavior inspectable as carrier participation.
-- `Relation.TraversedBoundaryStatesOn(reader, travel, relations...)` pairs each
+- `RelationReads.TraversedBoundaryStatesOn(reader, travel, relations...)` pairs each
   crossed boundary site with the travel flow that caused the encounter. These
   site-flow relations can observe, gather, or route without introducing an
   event type.
-- `Relation.TraversedSpansOn(reader, travel, relations...)` splits an ordered
+- `RelationReads.TraversedSpansOn(reader, travel, relations...)` splits an ordered
   travel relation into the carrier intervals occupied between crossed boundary
   sites. Same-carrier reverse travel keeps span sites on the original carrier;
   the span flow is what moves onto the inverse carrier.
-- `Relation.TraversedSpanStatesOn(reader, travel, relations...)` pairs each
+- `RelationReads.TraversedSpanStatesOn(reader, travel, relations...)` pairs each
   traversed span with its local flow, so path occupancy and path flow can be
   inspected separately.
-- `Relation.TraversedSupportStatesOn(reader, travel, support...)` reads the
+- `RelationReads.TraversedSupportStatesOn(reader, travel, support...)` reads the
   support state on every traversed path span. Unsupported path spans stay
   present as zero reverse/forward support, so blocked traversal remains visible
   instead of disappearing during projection.
@@ -210,26 +214,26 @@ Current executable foothold:
 - `TraversedPassOn` and `TraversedBlockOn` are path filter projections:
   passing is supported traversal, and blocking is unsupported traversal. They
   are not route objects or truth values.
-- `Relation.CoveredSpansOn(reader, relations...)` returns adjacent carrier-local
+- `RelationReads.CoveredSpansOn(reader, relations...)` returns adjacent carrier-local
   `Relation` intervals between those boundary points, skipping gaps where no
   input relation covers the interval. Opposed surfaces stay on the opposed
   carrier rather than being flattened onto the reader carrier.
-- `Relation.CoveredSpansWithinOn(reader, scope, relations...)` reads coverage only
+- `RelationReads.CoveredSpansWithinOn(reader, scope, relations...)` reads coverage only
   inside one explicit scope relation, clipping covered intervals to that scope.
-- `Relation.SupportStatesOn(reader, relations...)` returns nested relations:
+- `RelationReads.SupportStatesOn(reader, relations...)` returns nested relations:
   the left slot is a carrier-local interval and the right slot is the
   reverse/forward participation pair for that interval.
 - Multiple compatible relations covering the same interval merge by increasing
   the forward or reverse carrier participation count in that state pair.
-- `Relation.SupportStatesWithinOn(reader, scope, relations...)` does the same
+- `RelationReads.SupportStatesWithinOn(reader, scope, relations...)` does the same
   inside one explicit scope, preserving clipped intervals and their local
   reverse/forward state.
 - `Relation.SupportOn(reader)`, `Relation.TensionOn(reader)`, and
   `Relation.ExclusiveOn(reader)` project a reverse/forward pair without leaving
   the relation system. They can read either a bare reverse/forward pair or a
   nested support state.
-- Static span projections `Relation.SupportOn`, `Relation.TensionOn`, and
-  `Relation.ExclusiveOn` preserve the carrier intervals that carry those
+- Span projections `RelationReads.SupportOn`, `RelationReads.TensionOn`, and
+  `RelationReads.ExclusiveOn` preserve the carrier intervals that carry those
   projected states and omit zero projected states.
 - Scoped projections `SupportWithinOn`, `TensionWithinOn`, and
   `ExclusiveWithinOn` apply the same support/tension/exclusive reads inside a
@@ -239,7 +243,7 @@ Current executable foothold:
   participation, and `XorOn` is exclusive unopposed participation. These names
   live outside the primitive relation type because they are lower projections,
   not new structure.
-- `Relation.UncoveredSpansOn(reader, scope, covered...)` reads scoped absence
+- `RelationReads.UncoveredSpansOn(reader, scope, covered...)` reads scoped absence
   by splitting one visible scope relation around covered intervals. `NotOn` is
   only this scoped absence projection; there is no global negation outside a
   chosen carrier interval.

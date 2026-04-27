@@ -1922,7 +1922,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 5));
 
-        var points = Relation.BoundaryPointsOn(carrier, outer, inner);
+        var points = RelationReads.BoundaryPointsOn(carrier, outer, inner);
 
         Assert.Equal(
             new[]
@@ -1950,7 +1950,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(x, 3),
             new CarrierLocation(x, 3));
 
-        var points = Relation.BoundaryPointsOn(x, visible, invisible, zero);
+        var points = RelationReads.BoundaryPointsOn(x, visible, invisible, zero);
 
         Assert.Equal(
             new[]
@@ -1970,7 +1970,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(inverse, 0),
             new CarrierLocation(inverse, 8));
 
-        var points = Relation.BoundaryPointsOn(forward, segment);
+        var points = RelationReads.BoundaryPointsOn(forward, segment);
 
         Assert.Equal(
             new[]
@@ -1995,7 +1995,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 7),
             new CarrierLocation(carrier, 9));
 
-        var points = Relation.TraversedBoundaryPointsOn(carrier, travel, first, second);
+        var points = RelationReads.TraversedBoundaryPointsOn(carrier, travel, first, second);
 
         Assert.Equal(
             new[]
@@ -2019,7 +2019,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 8));
 
-        var points = Relation.TraversedBoundaryPointsOn(carrier, travel, boundaries);
+        var points = RelationReads.TraversedBoundaryPointsOn(carrier, travel, boundaries);
 
         Assert.Equal(
             new[]
@@ -2043,7 +2043,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 7),
             new CarrierLocation(carrier, 9));
 
-        var points = Relation.TraversedBoundaryPointsOn(carrier, travel, first, second);
+        var points = RelationReads.TraversedBoundaryPointsOn(carrier, travel, first, second);
 
         Assert.Equal(
             new[]
@@ -2068,7 +2068,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(inverse, 2),
             new CarrierLocation(inverse, 4));
 
-        var points = Relation.TraversedBoundaryPointsOn(forward, travel, boundary);
+        var points = RelationReads.TraversedBoundaryPointsOn(forward, travel, boundary);
 
         Assert.Equal(
             new[]
@@ -2094,7 +2094,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(y, 6),
             new CarrierLocation(y, 8));
 
-        var points = Relation.TraversedBoundaryPointsOn(x, travel, visible, invisible);
+        var points = RelationReads.TraversedBoundaryPointsOn(x, travel, visible, invisible);
 
         Assert.Equal(
             new[]
@@ -2158,7 +2158,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 4));
 
-        var states = Relation.TraversedBoundaryStatesOn(carrier, travel, boundary);
+        var states = RelationReads.TraversedBoundaryStatesOn(carrier, travel, boundary);
 
         Assert.Equal(
             new[]
@@ -2184,7 +2184,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 4));
 
-        var states = Relation.TraversedBoundaryStatesOn(carrier, travel, boundary);
+        var states = RelationReads.TraversedBoundaryStatesOn(carrier, travel, boundary);
 
         Assert.Equal(
             new[]
@@ -2249,7 +2249,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 1),
             new CarrierLocation(marker, 100));
 
-        var state = Relation.TraversedBoundaryStatesOn(carrier, travel, boundary)[0];
+        var state = RelationReads.TraversedBoundaryStatesOn(carrier, travel, boundary)[0];
         var wake = state.RightLocation.ObserveThrough(carrier, markerRoute);
 
         Assert.Equal(
@@ -2275,7 +2275,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 7),
             new CarrierLocation(carrier, 9));
 
-        var spans = Relation.TraversedSpansOn(carrier, travel, first, second);
+        var spans = RelationReads.TraversedSpansOn(carrier, travel, first, second);
 
         Assert.Equal(
             new[]
@@ -2303,7 +2303,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 7),
             new CarrierLocation(carrier, 9));
 
-        var spans = Relation.TraversedSpansOn(carrier, travel, first, second);
+        var spans = RelationReads.TraversedSpansOn(carrier, travel, first, second);
 
         Assert.Equal(
             new[]
@@ -2325,7 +2325,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
 
-        var spans = Relation.TraversedSpansOn(carrier, travel);
+        var spans = RelationReads.TraversedSpansOn(carrier, travel);
 
         Assert.Equal(
             new[]
@@ -2347,7 +2347,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(inverse, 2),
             new CarrierLocation(inverse, 4));
 
-        var spans = Relation.TraversedSpansOn(forward, travel, boundary);
+        var spans = RelationReads.TraversedSpansOn(forward, travel, boundary);
 
         Assert.Equal(
             new[]
@@ -2370,7 +2370,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 4));
 
-        var states = Relation.TraversedSpanStatesOn(carrier, travel, boundary);
+        var states = RelationReads.TraversedSpanStatesOn(carrier, travel, boundary);
 
         Assert.Equal(
             new[]
@@ -2399,7 +2399,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 4));
 
-        var states = Relation.TraversedSpanStatesOn(carrier, travel, boundary);
+        var states = RelationReads.TraversedSpanStatesOn(carrier, travel, boundary);
 
         Assert.Equal(
             new[]
@@ -2428,7 +2428,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 5));
 
-        var states = Relation.TraversedSupportStatesOn(carrier, travel, support);
+        var states = RelationReads.TraversedSupportStatesOn(carrier, travel, support);
 
         Assert.Equal(
             new[]
@@ -2457,8 +2457,8 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 5));
 
-        var passed = Relation.TraversedSupportOn(carrier, travel, support);
-        var blocked = Relation.TraversedBlockOn(carrier, travel, support);
+        var passed = RelationReads.TraversedSupportOn(carrier, travel, support);
+        var blocked = RelationReads.TraversedBlockOn(carrier, travel, support);
 
         Assert.Equal(
             new[]
@@ -2488,7 +2488,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 5));
 
-        var states = Relation.TraversedSupportStatesOn(carrier, travel, support);
+        var states = RelationReads.TraversedSupportStatesOn(carrier, travel, support);
 
         Assert.Equal(
             new[]
@@ -2520,8 +2520,8 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 6),
             new CarrierLocation(carrier, 4));
 
-        var tension = Relation.TraversedTensionOn(carrier, travel, forward, reverse);
-        var exclusive = Relation.TraversedExclusiveOn(carrier, travel, forward, reverse);
+        var tension = RelationReads.TraversedTensionOn(carrier, travel, forward, reverse);
+        var exclusive = RelationReads.TraversedExclusiveOn(carrier, travel, forward, reverse);
 
         Assert.Equal(
             new[]
@@ -2555,7 +2555,7 @@ public sealed class CarrierReadTests
         var support = new Relation(
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 5));
-        var passed = Relation.TraversedPassOn(carrier, travel, support);
+        var passed = RelationReads.TraversedPassOn(carrier, travel, support);
         var passedSpan = (Relation)passed[0].Left;
         var capacity = passedSpan.SpanOn(carrier);
         var route = new Relation(
@@ -2584,8 +2584,8 @@ public sealed class CarrierReadTests
         var support = new Relation(
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 5));
-        var passed = Relation.TraversedPassOn(carrier, travel, support);
-        var blocked = Relation.TraversedBlockOn(carrier, travel, support);
+        var passed = RelationReads.TraversedPassOn(carrier, travel, support);
+        var blocked = RelationReads.TraversedBlockOn(carrier, travel, support);
         var blockedCapacity = new Relation(
             blocked[0].SpanOn(carrier),
             blocked[1].SpanOn(carrier));
@@ -2626,7 +2626,7 @@ public sealed class CarrierReadTests
         var support = new Relation(
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 5));
-        var passed = Relation.TraversedPassOn(carrier, travel, support);
+        var passed = RelationReads.TraversedPassOn(carrier, travel, support);
         var passedSpan = (Relation)passed[0].Left;
         var pathWidth = passedSpan.SpanOn(carrier);
         var pathFlow = travel.FlowOn(carrier);
@@ -2658,7 +2658,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 5));
 
-        var spans = Relation.CoveredSpansOn(carrier, outer, inner);
+        var spans = RelationReads.CoveredSpansOn(carrier, outer, inner);
 
         Assert.Equal(
             new[]
@@ -2679,7 +2679,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(inverse, 0),
             new CarrierLocation(inverse, 8));
 
-        var spans = Relation.CoveredSpansOn(forward, segment);
+        var spans = RelationReads.CoveredSpansOn(forward, segment);
 
         Assert.Equal(
             new[]
@@ -2700,7 +2700,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 5),
             new CarrierLocation(carrier, 8));
 
-        var spans = Relation.CoveredSpansOn(carrier, first, second);
+        var spans = RelationReads.CoveredSpansOn(carrier, first, second);
 
         Assert.Equal(
             new[]
@@ -2720,7 +2720,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(y, 0),
             new CarrierLocation(y, 8));
 
-        Assert.Empty(Relation.CoveredSpansOn(x, invisible));
+        Assert.Empty(RelationReads.CoveredSpansOn(x, invisible));
     }
 
     [Fact]
@@ -2734,7 +2734,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 0));
 
-        var states = Relation.SupportStatesOn(carrier, forward, reverse);
+        var states = RelationReads.SupportStatesOn(carrier, forward, reverse);
 
         Assert.Equal(
             new[]
@@ -2760,7 +2760,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 5),
             new CarrierLocation(carrier, 8));
 
-        var states = Relation.SupportStatesOn(carrier, first, second);
+        var states = RelationReads.SupportStatesOn(carrier, first, second);
 
         Assert.Equal(
             new[]
@@ -2784,7 +2784,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(inverse, 0),
             new CarrierLocation(inverse, 8));
 
-        var states = Relation.SupportStatesOn(forward, opposed);
+        var states = RelationReads.SupportStatesOn(forward, opposed);
 
         Assert.Equal(
             new[]
@@ -2810,7 +2810,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 10),
             new CarrierLocation(carrier, 2));
 
-        var states = Relation.SupportStatesOn(carrier, firstForward, secondForward, reverse);
+        var states = RelationReads.SupportStatesOn(carrier, firstForward, secondForward, reverse);
 
         Assert.Contains(
             new Relation(
@@ -2833,7 +2833,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 10),
             new CarrierLocation(carrier, 4));
 
-        var states = Relation.SupportStatesWithinOn(carrier, scope, forward, reverse);
+        var states = RelationReads.SupportStatesWithinOn(carrier, scope, forward, reverse);
 
         Assert.Equal(
             new[]
@@ -2862,9 +2862,9 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 10),
             new CarrierLocation(carrier, 4));
 
-        var support = Relation.SupportWithinOn(carrier, scope, forward, reverse);
-        var tension = Relation.TensionWithinOn(carrier, scope, forward, reverse);
-        var exclusive = Relation.ExclusiveWithinOn(carrier, scope, forward, reverse);
+        var support = RelationReads.SupportWithinOn(carrier, scope, forward, reverse);
+        var tension = RelationReads.TensionWithinOn(carrier, scope, forward, reverse);
+        var exclusive = RelationReads.ExclusiveWithinOn(carrier, scope, forward, reverse);
 
         Assert.Equal(
             new[]
@@ -2984,7 +2984,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 0));
 
-        var support = Relation.SupportOn(carrier, forward, reverse);
+        var support = RelationReads.SupportOn(carrier, forward, reverse);
 
         Assert.Equal(
             new[]
@@ -3010,7 +3010,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 0));
 
-        var tension = Relation.TensionOn(carrier, forward, reverse);
+        var tension = RelationReads.TensionOn(carrier, forward, reverse);
 
         Assert.Equal(
             new[]
@@ -3033,7 +3033,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 0));
 
-        var exclusive = Relation.ExclusiveOn(carrier, forward, reverse);
+        var exclusive = RelationReads.ExclusiveOn(carrier, forward, reverse);
 
         Assert.Equal(
             new[]
@@ -3053,8 +3053,8 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 8));
 
-        Assert.Empty(Relation.TensionOn(carrier, forward));
-        Assert.Equal(Relation.SupportOn(carrier, forward), Relation.ExclusiveOn(carrier, forward));
+        Assert.Empty(RelationReads.TensionOn(carrier, forward));
+        Assert.Equal(RelationReads.SupportOn(carrier, forward), RelationReads.ExclusiveOn(carrier, forward));
     }
 
     [Fact]
@@ -3068,9 +3068,9 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 0));
 
-        Assert.Equal(Relation.SupportOn(carrier, forward, reverse), BooleanStyleReads.OrOn(carrier, forward, reverse));
-        Assert.Equal(Relation.TensionOn(carrier, forward, reverse), BooleanStyleReads.AndOn(carrier, forward, reverse));
-        Assert.Equal(Relation.ExclusiveOn(carrier, forward, reverse), BooleanStyleReads.XorOn(carrier, forward, reverse));
+        Assert.Equal(RelationReads.SupportOn(carrier, forward, reverse), BooleanStyleReads.OrOn(carrier, forward, reverse));
+        Assert.Equal(RelationReads.TensionOn(carrier, forward, reverse), BooleanStyleReads.AndOn(carrier, forward, reverse));
+        Assert.Equal(RelationReads.ExclusiveOn(carrier, forward, reverse), BooleanStyleReads.XorOn(carrier, forward, reverse));
     }
 
     [Fact]
@@ -3084,7 +3084,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 5));
 
-        var uncovered = Relation.UncoveredSpansOn(carrier, scope, blocked);
+        var uncovered = RelationReads.UncoveredSpansOn(carrier, scope, blocked);
 
         Assert.Equal(
             new[]
@@ -3106,7 +3106,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
 
-        var uncovered = Relation.UncoveredSpansOn(carrier, scope, blocked);
+        var uncovered = RelationReads.UncoveredSpansOn(carrier, scope, blocked);
 
         Assert.Empty(uncovered);
     }
@@ -3123,7 +3123,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(other, 2),
             new CarrierLocation(other, 5));
 
-        var uncovered = Relation.UncoveredSpansOn(carrier, scope, invisible);
+        var uncovered = RelationReads.UncoveredSpansOn(carrier, scope, invisible);
 
         Assert.Equal(
             new[]
@@ -3147,7 +3147,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 7),
             new CarrierLocation(carrier, 10));
 
-        var uncovered = Relation.UncoveredSpansOn(carrier, scope, leftBlocked, rightBlocked);
+        var uncovered = RelationReads.UncoveredSpansOn(carrier, scope, leftBlocked, rightBlocked);
 
         Assert.Equal(
             new[]
@@ -3171,7 +3171,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 7),
             new CarrierLocation(carrier, 10));
 
-        var covered = Relation.CoveredSpansWithinOn(carrier, scope, leftSupported, rightSupported);
+        var covered = RelationReads.CoveredSpansWithinOn(carrier, scope, leftSupported, rightSupported);
 
         Assert.Equal(
             new[]
@@ -3194,10 +3194,10 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 5));
 
         Assert.Equal(
-            Relation.CoveredSpansWithinOn(carrier, scope, supported),
+            RelationReads.CoveredSpansWithinOn(carrier, scope, supported),
             BooleanStyleReads.PassOn(carrier, scope, supported));
         Assert.Equal(
-            Relation.UncoveredSpansOn(carrier, scope, supported),
+            RelationReads.UncoveredSpansOn(carrier, scope, supported),
             BooleanStyleReads.BlockOn(carrier, scope, supported));
     }
 
@@ -3213,7 +3213,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 5));
 
         Assert.Equal(
-            Relation.UncoveredSpansOn(carrier, scope, blocked),
+            RelationReads.UncoveredSpansOn(carrier, scope, blocked),
             BooleanStyleReads.NotOn(carrier, scope, blocked));
     }
 
@@ -3412,3 +3412,4 @@ public sealed class CarrierReadTests
         Assert.Equal(new CarrierLocation(y, 0), tension);
     }
 }
+
