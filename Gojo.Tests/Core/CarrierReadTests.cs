@@ -860,6 +860,85 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void ReceiverCapacityCanExposeReceivedTensionAfterTransfer()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var incoming = new CarrierLocation(source, 12);
+        var route = new Relation(
+            new CarrierLocation(source, 10),
+            new CarrierLocation(target, 3));
+        var receiverCapacity = new Relation(
+            new CarrierLocation(target, 0),
+            new CarrierLocation(target, 8));
+
+        var transfer = incoming.TransferThrough(source, route, target, receiverCapacity);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(source, 10),
+                    new CarrierLocation(source, 2)),
+                new Relation(
+                    new CarrierLocation(target, 8),
+                    new CarrierLocation(target, 5))),
+            transfer);
+    }
+
+    [Fact]
+    public void ReceiverCapacityCanFullyAbsorbReceivedSurface()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var incoming = new CarrierLocation(source, 5);
+        var route = new Relation(
+            new CarrierLocation(source, 5),
+            new CarrierLocation(target, 3));
+        var receiverCapacity = new Relation(
+            new CarrierLocation(target, 0),
+            new CarrierLocation(target, 8));
+
+        var transfer = incoming.TransferThrough(source, route, target, receiverCapacity);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(source, 5),
+                    new CarrierLocation(source, 0)),
+                new Relation(
+                    new CarrierLocation(target, 8),
+                    new CarrierLocation(target, 0))),
+            transfer);
+    }
+
+    [Fact]
+    public void ReceiverCapacityDoesNotAccountInvisibleReceivedSurface()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var capacityCarrier = new Carrier(30);
+        var incoming = new CarrierLocation(source, 5);
+        var route = new Relation(
+            new CarrierLocation(source, 5),
+            new CarrierLocation(target, 3));
+        var receiverCapacity = new Relation(
+            new CarrierLocation(capacityCarrier, 0),
+            new CarrierLocation(capacityCarrier, 8));
+
+        var transfer = incoming.TransferThrough(source, route, capacityCarrier, receiverCapacity);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(source, 5),
+                    new CarrierLocation(source, 0)),
+                new Relation(
+                    new CarrierLocation(target, 0),
+                    new CarrierLocation(target, 0))),
+            transfer);
+    }
+
+    [Fact]
     public void ResolvedRouteDoesNotTransferThroughZeroSourceCapacity()
     {
         var source = new Carrier(10);

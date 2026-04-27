@@ -108,6 +108,12 @@ Current executable foothold:
   transfer leaves excess visible as tension. If the receiving side is nested,
   the transfer preserves that nested relation shape, giving branch-like
   receiver updates without introducing a graph object.
+- `CarrierLocation.TransferThrough(reader, route, receiverReader,
+  receiverCapacity)` composes a receiver-side accounting read after source
+  transfer. The returned shape is `source split -> receiver split`, so source
+  excess and receiver excess remain distinct tensions that can settle in later
+  route passes. If the receiver reader cannot see the received carrier, no
+  receiver tension is visible in that frame.
 - `CarrierLocation.TransferThroughRoutes(reader, routes...)` reads an ordered
   route sequence. Each route receives only the source tension left by earlier
   routes, and traversal stops once no visible tension remains.

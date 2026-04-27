@@ -77,6 +77,14 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks) : IE
         return new(sourceRead, Receive(route.Right, sourceRead.LeftLocation));
     }
 
+    public Relation TransferThrough(Carrier reader, Relation route, Carrier receiverReader, Relation receiverCapacity)
+    {
+        var transfer = TransferThrough(reader, route);
+        return transfer.Right is CarrierLocation received
+            ? new Relation(transfer.Left, received.AccountedBy(receiverReader, receiverCapacity))
+            : transfer;
+    }
+
     public Relation[] TransferThroughRoutes(Carrier reader, params Relation[] routes)
     {
         var remaining = this;

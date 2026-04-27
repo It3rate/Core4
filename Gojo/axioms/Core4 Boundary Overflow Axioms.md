@@ -298,6 +298,14 @@ So a route with source capacity `10` and target site `3` receiving incoming
 `15` reads as source `10 + 5 tension` and target `13`. No route wrapper is
 introduced; the route role comes from asking to transfer through that relation.
 
+Receiver capacity composes as another accounting read after the transfer. A
+received carrier surface can be read against receiver-side capacity and return
+`source split -> receiver split`. This intentionally does not pretend to solve
+the whole interaction at once: source excess and receiver excess are both real
+intermediate tensions that later routes may absorb, observe, or leave
+unresolved. If the receiver read frame cannot see the received carrier, then no
+receiver-side tension is visible in that frame.
+
 If the receiving side is itself a relation, the same accounted participation is
 read through each receiver slot while the source is accounted once. This gives
 the first executable branch shape: for example, one boundary crossing can update
