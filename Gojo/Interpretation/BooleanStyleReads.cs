@@ -1,6 +1,7 @@
 using Gojo.Core;
+using Gojo.Reads;
 
-namespace Gojo.Reads;
+namespace Gojo.Interpretation;
 
 public static class BooleanStyleReads
 {

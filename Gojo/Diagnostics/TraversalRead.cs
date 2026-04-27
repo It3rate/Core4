@@ -1,6 +1,7 @@
 using Gojo.Core;
+using Gojo.Reads;
 
-namespace Gojo.Reads;
+namespace Gojo.Diagnostics;
 
 public readonly struct TraversalRead
 {

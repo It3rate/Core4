@@ -1,4 +1,6 @@
 using Gojo.Core;
+using Gojo.Diagnostics;
+using Gojo.Interpretation;
 using Gojo.Reads;
 
 namespace Gojo.Tests.Core;
@@ -2544,7 +2546,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 5));
 
-        var read = RelationReads.Traverse(carrier, travel, support);
+        var read = TraversalDiagnostics.Traverse(carrier, travel, support);
 
         Assert.Equal(
             new[]
@@ -2592,7 +2594,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 6),
             new CarrierLocation(carrier, 4));
 
-        var read = RelationReads.Traverse(carrier, travel, forward, reverse);
+        var read = TraversalDiagnostics.Traverse(carrier, travel, forward, reverse);
 
         Assert.Equal(RelationReads.TraversedBoundaryPointsOn(carrier, travel, forward, reverse), read.BoundaryPoints);
         Assert.Equal(RelationReads.TraversedBoundaryStatesOn(carrier, travel, forward, reverse), read.BoundaryStates);

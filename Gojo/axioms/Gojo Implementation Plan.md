@@ -56,10 +56,14 @@ Current executable foothold:
 - `Relation` is now a minimal ordered pair of elements. It carries no route,
   event, support, or endpoint policy by itself; context gives its two slots
   their current read.
-- `Gojo.Reads` holds named read passes and exploration vocabulary over the same
-  core structures. These helpers are not a second ontology; they keep traversal,
-  support, boolean-style, residual, and route-sequence projections from
-  crowding the primitive carrier/relation types.
+- `Gojo.Reads` holds consequential read passes over the same core structures.
+  These helpers are not a second ontology; they keep traversal, support,
+  residual, and route-sequence projections from crowding the primitive
+  carrier/relation types.
+- `Gojo.Diagnostics` holds inspection surfaces that are useful for tests and
+  numeric exploration but are not action machinery by themselves.
+- `Gojo.Interpretation` holds named lower-projection vocabulary, such as
+  boolean-style aliases, when the name is useful but not primitive.
 - `CarrierLocation.ReadThroughBoundary(earlierCarrier, boundary)` returns a
   `Relation` whose left slot is the earlier carrier-layer ticks and whose right
   slot is the later carrier-layer ticks that did not cross the boundary. This
@@ -127,14 +131,15 @@ Current executable foothold:
   source or receiver excess without manually unwrapping the nested relation
   shape. It is a context read over result surfaces, not a global claim that
   every relation endpoint is tension.
-- `Gojo.Reads.ResidualReads.ResidualLoadOn(reader)` lowers visible residuals to
-  a reverse/forward carrier pair in the reader frame. A zero pair means the
-  result surface is settled for that frame; nonzero participation means another
-  balancing pass has visible tension to work with.
-- `Gojo.Reads.ResidualRouteReads` contains exploration/read-pass helpers that
-  feed visible residuals into the same transfer, observation, and open-gather
-  route reads. They are explicit projections for a balancing pass, not an
-  automatic solver, and they intentionally sit outside the core relation type.
+- Diagnostic or test code may lower visible residuals to a reverse/forward
+  carrier pair for easier assertions, but the kernel should adapt from the
+  residual carrier locations themselves rather than from a stored or queried
+  settled status. A result that is quiet in one frame may expose new residuals
+  in a later frame.
+- `Gojo.Reads.ResidualRouteReads` contains read-pass helpers that feed visible
+  residuals into the same transfer, observation, and open-gather route reads.
+  They are explicit projections for a balancing pass, not an automatic solver,
+  and they intentionally sit outside the core relation type.
 - `Gojo.Reads.RouteSequenceReads.TransferThroughRoutes` reads an ordered route
   sequence. Each route receives only the source tension left by earlier routes,
   and traversal stops once no visible tension remains. This is a read utility,
@@ -218,12 +223,12 @@ Current executable foothold:
 - `TraversedPassOn` and `TraversedBlockOn` are path filter projections:
   passing is supported traversal, and blocking is unsupported traversal. They
   are not route objects or truth values.
-- `RelationReads.Traverse(reader, travel, relations...)` returns a
-  `TraversalRead` that groups the same traversal sequence in discoverable
-  order: boundary points, boundary states, spans, span states, support states,
-  support/tension/exclusive projections, and pass/block projections. It is a
-  read-pass surface over the existing relation-shaped outputs, not a new
-  numeric object replacing those outputs.
+- `Gojo.Diagnostics.TraversalDiagnostics.Traverse(reader, travel, relations...)`
+  returns a `TraversalRead` that groups the same traversal sequence in
+  discoverable order: boundary points, boundary states, spans, span states,
+  support states, support/tension/exclusive projections, and pass/block
+  projections. It is an inspection surface over the existing relation-shaped
+  outputs, not a new numeric object replacing those outputs.
 - TODO: Revisit whether `TraversalRead` should remain a named projection bundle
   or be replaced by a richer Core4-shaped traversal observation. The current
   shape is useful for tests and inspection, but a mature numeric investigator
@@ -253,11 +258,11 @@ Current executable foothold:
 - Scoped projections `SupportWithinOn`, `TensionWithinOn`, and
   `ExclusiveWithinOn` apply the same support/tension/exclusive reads inside a
   chosen interval.
-- `Gojo.Reads.BooleanStyleReads` provides boolean-style vocabulary as aliases
-  over those projections: `OrOn` is support, `AndOn` is tension/shared opposed
-  participation, and `XorOn` is exclusive unopposed participation. These names
-  live outside the primitive relation type because they are lower projections,
-  not new structure.
+- `Gojo.Interpretation.BooleanStyleReads` provides boolean-style vocabulary as
+  aliases over those projections: `OrOn` is support, `AndOn` is tension/shared
+  opposed participation, and `XorOn` is exclusive unopposed participation.
+  These names live outside the primitive relation type because they are lower
+  projections, not new structure.
 - `RelationReads.UncoveredSpansOn(reader, scope, covered...)` reads scoped absence
   by splitting one visible scope relation around covered intervals. `NotOn` is
   only this scoped absence projection; there is no global negation outside a

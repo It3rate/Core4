@@ -320,10 +320,10 @@ receiver excess without knowing the exact nesting shape. It is a contextual
 read of a result surface, not a global rule that an arbitrary segment endpoint
 is tension.
 
-Residual load is the same read lowered to a reverse/forward carrier pair in the
-reader frame. A result surface is settled for that frame when the residual load
-is `0/0`; otherwise the nonzero side records visible tension that later passes
-may route. This keeps settlement numeric instead of adding a boolean status.
+Diagnostic or test code may lower residuals to a reverse/forward carrier pair,
+but the dynamic system should adapt from the residual carrier locations
+themselves. A quiet residual read in one frame is not a permanent settled state;
+new frames, routes, or carrier attachments may expose new residuals.
 
 Those residuals can then feed the same route reads as any other carrier
 participation. A balancing pass may transfer visible residuals, observe them, or

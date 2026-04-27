@@ -1,8 +1,8 @@
 using Gojo.Core;
 
-namespace Gojo.Reads;
+namespace Gojo.Tests.Core;
 
-public static class ResidualReads
+internal static class TestReadUtilities
 {
     public static Relation ResidualLoadOn(this Relation result, Carrier reader)
     {
