@@ -105,6 +105,14 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks) : IE
         return new(sourceRead, Receive(route.Right, observed));
     }
 
+    public Relation[] ObserveThroughRoutes(Carrier reader, params Relation[] routes)
+    {
+        var source = this;
+        return routes
+            .Select(route => source.ObserveThrough(reader, route))
+            .ToArray();
+    }
+
     public Relation GatherThrough(Carrier reader, Relation route)
     {
         var sourceRead = AccountedBy(reader);

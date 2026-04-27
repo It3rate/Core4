@@ -308,6 +308,18 @@ to later routes. If an earlier route fully accounts for the incoming
 participation, traversal stops and later routes do not wake. This is an initial
 capacity/saturation rule, not a separate scheduler.
 
+This is conserved branch behavior. A fixed amount of source participation is
+accounted once as it moves through the route sequence. If `8` units meet two
+transfer routes with capacity `5` each, the first route may receive `5`, the
+second may receive `3`, and no route receives more than the remaining visible
+source tension.
+
+If the receiving side of one resolved route is nested, the same accounted
+crossing updates the nested receiver surface. This is coupled fanout rather
+than a conserved split: the source is accounted once, and several receiver
+locations record the effect of that same crossing. This supports shapes such as
+wrapped continuation plus counter without inventing a branch flag.
+
 A zero-unit route observes or claims the newly visible tension:
 
 - the route can sense that new tension appeared
@@ -325,6 +337,12 @@ shape but with a different context:
 So an incoming source value of `7` observed through `4/0` into marker `100`
 reads as source `0 + 7 tension` and marker `104`. The observation is bounded by
 what the reader can see; invisible incoming participation marks nothing.
+
+Several observation routes may read the same source. Each route is bounded by
+its own observable capacity, but the source remains undrained for all of them.
+This is the carrier-native shape for display, sensor, record, or information
+fanout: the information surface updates while the underlying source
+participation remains available.
 
 An open route accepts potential but has no committed transfer law yet:
 

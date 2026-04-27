@@ -111,6 +111,9 @@ Current executable foothold:
 - `CarrierLocation.TransferThroughRoutes(reader, routes...)` reads an ordered
   route sequence. Each route receives only the source tension left by earlier
   routes, and traversal stops once no visible tension remains.
+- Conserved branch behavior is currently this same ordered route read. If
+  source `8` meets route capacities `5` and `5`, the first route can account
+  for `5` and the second can account only for the remaining `3`.
 - Transfer into an opposed carrier already gives the first reflection shape.
   The opposed carrier stores positive ticks in its own direction, and those
   ticks can route back through a later relation when read from the original
@@ -125,6 +128,10 @@ Current executable foothold:
   the source is read with no drain, so the full visible incoming participation
   remains new tension. The right side receives the observed amount as a marker,
   counter, or claim.
+- `CarrierLocation.ObserveThroughRoutes(reader, routes...)` reads each
+  observation route against the same undrained source. This is the first
+  observation fanout shape: several displays, sensors, or claims may each read
+  the same visible participation without splitting the source.
 - `CarrierLocation.GatherThrough(reader, route)` is the first open-route
   projection. The source is read with no drain, and the incoming visible
   tension gathers into the route's left side while the route's right side
