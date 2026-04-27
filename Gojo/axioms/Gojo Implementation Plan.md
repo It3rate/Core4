@@ -214,6 +214,12 @@ Current executable foothold:
 - `TraversedPassOn` and `TraversedBlockOn` are path filter projections:
   passing is supported traversal, and blocking is unsupported traversal. They
   are not route objects or truth values.
+- `RelationReads.Traverse(reader, travel, relations...)` returns a
+  `TraversalRead` that groups the same traversal sequence in discoverable
+  order: boundary points, boundary states, spans, span states, support states,
+  support/tension/exclusive projections, and pass/block projections. It is a
+  read-pass surface over the existing relation-shaped outputs, not a new
+  numeric object replacing those outputs.
 - `RelationReads.CoveredSpansOn(reader, relations...)` returns adjacent carrier-local
   `Relation` intervals between those boundary points, skipping gaps where no
   input relation covers the interval. Opposed surfaces stay on the opposed

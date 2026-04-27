@@ -4,6 +4,9 @@ namespace Gojo.Reads;
 
 public static class RelationReads
 {
+    public static TraversalRead Traverse(Carrier reader, Relation travel, params Relation[] relations) =>
+        new(reader, travel, relations);
+
     public static CarrierLocation[] BoundaryPointsOn(Carrier reader, params Relation[] relations)
     {
         return relations

@@ -2478,6 +2478,79 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void TraversalReadGroupsTheNaturalTraversalSequence()
+    {
+        var carrier = new Carrier(10);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 10));
+        var support = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 5));
+
+        var read = RelationReads.Traverse(carrier, travel, support);
+
+        Assert.Equal(
+            new[]
+            {
+                new CarrierLocation(carrier, 2),
+                new CarrierLocation(carrier, 5)
+            },
+            read.BoundaryPoints);
+        Assert.Equal(
+            new[]
+            {
+                new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
+                new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 5)),
+                new Relation(new CarrierLocation(carrier, 5), new CarrierLocation(carrier, 10))
+            },
+            read.Spans);
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 5)),
+                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1)))
+            },
+            read.Pass);
+        Assert.Equal(
+            new[]
+            {
+                new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
+                new Relation(new CarrierLocation(carrier, 5), new CarrierLocation(carrier, 10))
+            },
+            read.Block);
+    }
+
+    [Fact]
+    public void TraversalReadMirrorsIndividualTraversalReads()
+    {
+        var carrier = new Carrier(10);
+        var travel = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, 10));
+        var forward = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 8));
+        var reverse = new Relation(
+            new CarrierLocation(carrier, 6),
+            new CarrierLocation(carrier, 4));
+
+        var read = RelationReads.Traverse(carrier, travel, forward, reverse);
+
+        Assert.Equal(RelationReads.TraversedBoundaryPointsOn(carrier, travel, forward, reverse), read.BoundaryPoints);
+        Assert.Equal(RelationReads.TraversedBoundaryStatesOn(carrier, travel, forward, reverse), read.BoundaryStates);
+        Assert.Equal(RelationReads.TraversedSpansOn(carrier, travel, forward, reverse), read.Spans);
+        Assert.Equal(RelationReads.TraversedSpanStatesOn(carrier, travel, forward, reverse), read.SpanStates);
+        Assert.Equal(RelationReads.TraversedSupportStatesOn(carrier, travel, forward, reverse), read.SupportStates);
+        Assert.Equal(RelationReads.TraversedSupportOn(carrier, travel, forward, reverse), read.Support);
+        Assert.Equal(RelationReads.TraversedTensionOn(carrier, travel, forward, reverse), read.Tension);
+        Assert.Equal(RelationReads.TraversedExclusiveOn(carrier, travel, forward, reverse), read.Exclusive);
+        Assert.Equal(RelationReads.TraversedPassOn(carrier, travel, forward, reverse), read.Pass);
+        Assert.Equal(RelationReads.TraversedBlockOn(carrier, travel, forward, reverse), read.Block);
+    }
+
+    [Fact]
     public void RelationTraversedSupportStatesReadReversePathSpansByCoveredInterval()
     {
         var carrier = new Carrier(10);
