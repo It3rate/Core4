@@ -320,6 +320,13 @@ than a conserved split: the source is accounted once, and several receiver
 locations record the effect of that same crossing. This supports shapes such as
 wrapped continuation plus counter without inventing a branch flag.
 
+The conserved merge mirror is several sources feeding one receiver surface.
+Each source is still read through the route's source-side capacity in the
+current reader frame, so every source keeps its own accounted/tension split.
+The receiver surface accumulates only the accounted participation. A source
+that is invisible, orthogonal, or otherwise incompatible in that reader frame
+does not silently contribute to the merge.
+
 A zero-unit route observes or claims the newly visible tension:
 
 - the route can sense that new tension appeared
@@ -343,6 +350,11 @@ its own observable capacity, but the source remains undrained for all of them.
 This is the carrier-native shape for display, sensor, record, or information
 fanout: the information surface updates while the underlying source
 participation remains available.
+
+Observation merge is the same non-draining read in the other direction: several
+sources can update one receiver surface, and each source remains unchanged by
+that observation. The receiver records the combined readings, not a transfer of
+the underlying source participation.
 
 An open route accepts potential but has no committed transfer law yet:
 

@@ -1166,6 +1166,127 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void ConservedMergeAccumulatesTransferredSourcesIntoOneReceiver()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var first = new CarrierLocation(source, 5);
+        var second = new CarrierLocation(source, 7);
+        var route = new Relation(
+            new CarrierLocation(source, 10),
+            new CarrierLocation(target, 100));
+
+        var transfers = CarrierLocation.TransferSourcesThrough(source, route, first, second);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(source, 5),
+                        new CarrierLocation(source, 0)),
+                    new CarrierLocation(target, 105)),
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(source, 7),
+                        new CarrierLocation(source, 0)),
+                    new CarrierLocation(target, 112))
+            },
+            transfers);
+    }
+
+    [Fact]
+    public void ConservedMergePreservesEachSourceTension()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var first = new CarrierLocation(source, 8);
+        var second = new CarrierLocation(source, 6);
+        var route = new Relation(
+            new CarrierLocation(source, 5),
+            new CarrierLocation(target, 100));
+
+        var transfers = CarrierLocation.TransferSourcesThrough(source, route, first, second);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(source, 5),
+                        new CarrierLocation(source, 3)),
+                    new CarrierLocation(target, 105)),
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(source, 5),
+                        new CarrierLocation(source, 1)),
+                    new CarrierLocation(target, 110))
+            },
+            transfers);
+    }
+
+    [Fact]
+    public void MergeIgnoresSourcesInvisibleInReaderFrame()
+    {
+        var source = new Carrier(10);
+        var other = new Carrier(20);
+        var target = new Carrier(30);
+        var visible = new CarrierLocation(source, 5);
+        var invisible = new CarrierLocation(other, 7);
+        var route = new Relation(
+            new CarrierLocation(source, 10),
+            new CarrierLocation(target, 100));
+
+        var transfers = CarrierLocation.TransferSourcesThrough(source, route, visible, invisible);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(source, 5),
+                        new CarrierLocation(source, 0)),
+                    new CarrierLocation(target, 105)),
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(other, 0),
+                        new CarrierLocation(other, 0)),
+                    new CarrierLocation(target, 105))
+            },
+            transfers);
+    }
+
+    [Fact]
+    public void ObservationMergeAccumulatesReadSourcesWithoutDrainingThem()
+    {
+        var source = new Carrier(10);
+        var display = new Carrier(20);
+        var first = new CarrierLocation(source, 3);
+        var second = new CarrierLocation(source, 4);
+        var route = new Relation(
+            new CarrierLocation(source, 10),
+            new CarrierLocation(display, 100));
+
+        var observations = CarrierLocation.ObserveSourcesThrough(source, route, first, second);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(source, 0),
+                        first),
+                    new CarrierLocation(display, 103)),
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(source, 0),
+                        second),
+                    new CarrierLocation(display, 107))
+            },
+            observations);
+    }
+
+    [Fact]
     public void ObservationRouteMarksReceiverWithoutDrainingSource()
     {
         var source = new Carrier(10);

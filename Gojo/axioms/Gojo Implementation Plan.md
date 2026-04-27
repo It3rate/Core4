@@ -114,6 +114,11 @@ Current executable foothold:
 - Conserved branch behavior is currently this same ordered route read. If
   source `8` meets route capacities `5` and `5`, the first route can account
   for `5` and the second can account only for the remaining `3`.
+- `CarrierLocation.TransferSourcesThrough(reader, route, sources...)` is the
+  first conserved merge projection. Each source is accounted independently by
+  the route's source side, and the receiver surface accumulates the accounted
+  participation from each source in order. Source tension remains attached to
+  the source that could not transfer.
 - Transfer into an opposed carrier already gives the first reflection shape.
   The opposed carrier stores positive ticks in its own direction, and those
   ticks can route back through a later relation when read from the original
@@ -132,6 +137,10 @@ Current executable foothold:
   observation route against the same undrained source. This is the first
   observation fanout shape: several displays, sensors, or claims may each read
   the same visible participation without splitting the source.
+- `CarrierLocation.ObserveSourcesThrough(reader, route, sources...)` is the
+  observation-merge mirror. Several sources can update one receiver surface
+  without being drained; each source still reports its own unchanged visible
+  tension.
 - `CarrierLocation.GatherThrough(reader, route)` is the first open-route
   projection. The source is read with no drain, and the incoming visible
   tension gathers into the route's left side while the route's right side

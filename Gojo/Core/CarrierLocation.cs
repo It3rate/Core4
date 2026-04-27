@@ -98,6 +98,20 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks) : IE
         return [.. transfers];
     }
 
+    public static Relation[] TransferSourcesThrough(Carrier reader, Relation route, params CarrierLocation[] sources)
+    {
+        var currentRoute = route;
+        var transfers = new List<Relation>();
+        foreach (var source in sources)
+        {
+            var transfer = source.TransferThrough(reader, currentRoute);
+            transfers.Add(transfer);
+            currentRoute = new Relation(currentRoute.Left, transfer.Right);
+        }
+
+        return [.. transfers];
+    }
+
     public Relation ObserveThrough(Carrier reader, Relation route)
     {
         var sourceRead = AccountedBy(reader);
@@ -111,6 +125,20 @@ public readonly record struct CarrierLocation(Carrier Carrier, ulong Ticks) : IE
         return routes
             .Select(route => source.ObserveThrough(reader, route))
             .ToArray();
+    }
+
+    public static Relation[] ObserveSourcesThrough(Carrier reader, Relation route, params CarrierLocation[] sources)
+    {
+        var currentRoute = route;
+        var observations = new List<Relation>();
+        foreach (var source in sources)
+        {
+            var observation = source.ObserveThrough(reader, currentRoute);
+            observations.Add(observation);
+            currentRoute = new Relation(currentRoute.Left, observation.Right);
+        }
+
+        return [.. observations];
     }
 
     public Relation GatherThrough(Carrier reader, Relation route)
