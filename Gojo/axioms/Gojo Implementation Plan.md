@@ -118,6 +118,15 @@ Current executable foothold:
   receiving carrier. Later passes can transfer it, observe it, gather it into
   an open site, or leave it unresolved using the same route reads as any other
   tension.
+- `Relation.ResidualsOn(reader)` projects visible right-side residuals from a
+  composed result surface in one reader frame. This lets later passes discover
+  source or receiver excess without manually unwrapping the nested relation
+  shape. It is a context read over result surfaces, not a global claim that
+  every relation endpoint is tension.
+- `TransferResidualsThrough`, `ObserveResidualsThrough`, and
+  `GatherResidualsThrough` feed those visible residuals into the same transfer,
+  observation, and open-gather route reads. They are explicit projections for a
+  balancing pass, not an automatic solver.
 - `CarrierLocation.TransferThroughRoutes(reader, routes...)` reads an ordered
   route sequence. Each route receives only the source tension left by earlier
   routes, and traversal stops once no visible tension remains.

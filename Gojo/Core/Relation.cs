@@ -336,6 +336,19 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         return [.. LeftCarrierLocations(), .. RightCarrierLocations()];
     }
 
+    public CarrierLocation[] ResidualsOn(Carrier reader) => ResidualsOf(this, reader);
+
+    public Relation[] TransferResidualsThrough(Carrier reader, Relation route) =>
+        CarrierLocation.TransferSourcesThrough(reader, route, ResidualsOn(reader));
+
+    public Relation[] ObserveResidualsThrough(Carrier reader, Relation route) =>
+        CarrierLocation.ObserveSourcesThrough(reader, route, ResidualsOn(reader));
+
+    public Relation[] GatherResidualsThrough(Carrier reader, Relation route) =>
+        ResidualsOn(reader)
+            .Select(residual => residual.GatherThrough(reader, route))
+            .ToArray();
+
     public CarrierLocation[] LeftCarrierLocations() => CarrierLocationsOf(Left);
 
     public CarrierLocation[] RightCarrierLocations() => CarrierLocationsOf(Right);
@@ -368,6 +381,20 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         Relation relation => relation.CarrierLocations(),
         _ => []
     };
+
+    private static CarrierLocation[] ResidualsOf(IElement element, Carrier reader) => element switch
+    {
+        Relation relation when relation.TryGetCarrierLocations(out var left, out var right) && IsResidualPair(reader, left, right) => [right],
+        Relation relation => [.. ResidualsOf(relation.Left, reader), .. ResidualsOf(relation.Right, reader)],
+        _ => []
+    };
+
+    private static bool IsResidualPair(Carrier reader, CarrierLocation left, CarrierLocation right)
+    {
+        var leftSign = reader.ReadSignOf(left.Carrier);
+        var rightRead = right.ReadFrom(reader);
+        return leftSign != 0 && rightRead.IsVisible && Math.Sign(leftSign) == rightRead.Direction;
+    }
 
     private static bool IsCovered(ulong start, ulong end, Relation[] boundaries) =>
         boundaries.Any(boundary => boundary.LeftLocation.Ticks <= start && boundary.RightLocation.Ticks >= end);

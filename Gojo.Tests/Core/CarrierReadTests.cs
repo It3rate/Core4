@@ -1034,6 +1034,192 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void ResultSurfaceExposesSourceAndReceiverResidualsByReader()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var incoming = new CarrierLocation(source, 12);
+        var route = new Relation(
+            new CarrierLocation(source, 10),
+            new CarrierLocation(target, 3));
+        var receiverCapacity = new Relation(
+            new CarrierLocation(target, 0),
+            new CarrierLocation(target, 8));
+
+        var transfer = incoming.TransferThrough(source, route, target, receiverCapacity);
+
+        Assert.Equal(
+            new[] { new CarrierLocation(source, 2) },
+            transfer.ResidualsOn(source));
+        Assert.Equal(
+            new[] { new CarrierLocation(target, 5) },
+            transfer.ResidualsOn(target));
+    }
+
+    [Fact]
+    public void ResultSurfaceResidualCanRouteWithoutManualUnwrapping()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var overflow = new Carrier(30);
+        var incoming = new CarrierLocation(source, 12);
+        var route = new Relation(
+            new CarrierLocation(source, 10),
+            new CarrierLocation(target, 3));
+        var receiverCapacity = new Relation(
+            new CarrierLocation(target, 0),
+            new CarrierLocation(target, 8));
+        var transfer = incoming.TransferThrough(source, route, target, receiverCapacity);
+        var overflowRoute = new Relation(
+            new CarrierLocation(target, 4),
+            new CarrierLocation(overflow, 100));
+
+        var routed = transfer.ResidualsOn(target)[0].TransferThrough(target, overflowRoute);
+
+        Assert.Equal(
+            new Relation(
+                new Relation(
+                    new CarrierLocation(target, 4),
+                    new CarrierLocation(target, 1)),
+                new CarrierLocation(overflow, 104)),
+            routed);
+    }
+
+    [Fact]
+    public void ObservationResultExposesUndrainedSourceResidual()
+    {
+        var source = new Carrier(10);
+        var marker = new Carrier(20);
+        var incoming = new CarrierLocation(source, 7);
+        var route = new Relation(
+            new CarrierLocation(source, 4),
+            new CarrierLocation(marker, 100));
+
+        var observation = incoming.ObserveThrough(source, route);
+
+        Assert.Equal(
+            new[] { incoming },
+            observation.ResidualsOn(source));
+        Assert.Empty(observation.ResidualsOn(marker));
+    }
+
+    [Fact]
+    public void FullyAccountedResultSurfaceHasNoResidual()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var incoming = new CarrierLocation(source, 5);
+        var route = new Relation(
+            new CarrierLocation(source, 5),
+            new CarrierLocation(target, 3));
+        var receiverCapacity = new Relation(
+            new CarrierLocation(target, 0),
+            new CarrierLocation(target, 8));
+
+        var transfer = incoming.TransferThrough(source, route, target, receiverCapacity);
+
+        Assert.Empty(transfer.ResidualsOn(source));
+        Assert.Empty(transfer.ResidualsOn(target));
+    }
+
+    [Fact]
+    public void ResultSurfaceCanTransferResidualsThroughRoute()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var overflow = new Carrier(30);
+        var incoming = new CarrierLocation(source, 12);
+        var route = new Relation(
+            new CarrierLocation(source, 10),
+            new CarrierLocation(target, 3));
+        var receiverCapacity = new Relation(
+            new CarrierLocation(target, 0),
+            new CarrierLocation(target, 8));
+        var transfer = incoming.TransferThrough(source, route, target, receiverCapacity);
+        var overflowRoute = new Relation(
+            new CarrierLocation(target, 4),
+            new CarrierLocation(overflow, 100));
+
+        var routed = transfer.TransferResidualsThrough(target, overflowRoute);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(target, 4),
+                        new CarrierLocation(target, 1)),
+                    new CarrierLocation(overflow, 104))
+            },
+            routed);
+    }
+
+    [Fact]
+    public void ResultSurfaceCanObserveResidualsThroughRoute()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var marker = new Carrier(30);
+        var incoming = new CarrierLocation(source, 12);
+        var route = new Relation(
+            new CarrierLocation(source, 10),
+            new CarrierLocation(target, 3));
+        var receiverCapacity = new Relation(
+            new CarrierLocation(target, 0),
+            new CarrierLocation(target, 8));
+        var transfer = incoming.TransferThrough(source, route, target, receiverCapacity);
+        var markerRoute = new Relation(
+            new CarrierLocation(target, 3),
+            new CarrierLocation(marker, 100));
+
+        var observed = transfer.ObserveResidualsThrough(target, markerRoute);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(target, 0),
+                        new CarrierLocation(target, 5)),
+                    new CarrierLocation(marker, 103))
+            },
+            observed);
+    }
+
+    [Fact]
+    public void ResultSurfaceCanGatherResidualsThroughRoute()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var incoming = new CarrierLocation(source, 12);
+        var route = new Relation(
+            new CarrierLocation(source, 10),
+            new CarrierLocation(target, 3));
+        var receiverCapacity = new Relation(
+            new CarrierLocation(target, 0),
+            new CarrierLocation(target, 8));
+        var transfer = incoming.TransferThrough(source, route, target, receiverCapacity);
+        var open = new Relation(
+            new CarrierLocation(target, 2),
+            new CarrierLocation(Carrier.Unknown, 0));
+
+        var gathered = transfer.GatherResidualsThrough(target, open);
+
+        Assert.Equal(
+            new[]
+            {
+                new Relation(
+                    new Relation(
+                        new CarrierLocation(target, 0),
+                        new CarrierLocation(target, 5)),
+                    new Relation(
+                        new CarrierLocation(target, 7),
+                        new CarrierLocation(Carrier.Unknown, 0)))
+            },
+            gathered);
+    }
+
+    [Fact]
     public void ResolvedRouteDoesNotTransferThroughZeroSourceCapacity()
     {
         var source = new Carrier(10);

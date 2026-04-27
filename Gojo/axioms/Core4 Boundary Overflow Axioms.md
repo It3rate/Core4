@@ -313,6 +313,18 @@ as open potential, or let it remain as unresolved tension. This keeps the
 system dynamic: each pass lowers the tension it can see rather than forcing a
 single final solution.
 
+A composed result surface may be read for visible residuals in a chosen reader
+frame. This projection follows right-side residual participation through nested
+relation results, allowing the next balancing pass to find source excess or
+receiver excess without knowing the exact nesting shape. It is a contextual
+read of a result surface, not a global rule that an arbitrary segment endpoint
+is tension.
+
+Those residuals can then feed the same route reads as any other carrier
+participation. A balancing pass may transfer visible residuals, observe them, or
+gather them into an open route. This is still explicit routing: the kernel does
+not silently chase every possible route to a final answer.
+
 If the receiving side is itself a relation, the same accounted participation is
 read through each receiver slot while the source is accounted once. This gives
 the first executable branch shape: for example, one boundary crossing can update
