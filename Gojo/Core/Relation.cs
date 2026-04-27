@@ -99,6 +99,29 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             .Select(span => new Relation(span, span.FlowOn(reader)))
             .ToArray();
 
+    public static Relation[] TraversedSupportStatesOn(Carrier reader, Relation travel, params Relation[] support) =>
+        TraversedSpansOn(reader, travel, support)
+            .Select(span => new Relation(span, SupportStateOn(span, reader, support)))
+            .ToArray();
+
+    public static Relation[] TraversedSupportOn(Carrier reader, Relation travel, params Relation[] support) =>
+        ProjectTraversedStatesOn(reader, travel, state => state.SupportOn(reader), support);
+
+    public static Relation[] TraversedTensionOn(Carrier reader, Relation travel, params Relation[] support) =>
+        ProjectTraversedStatesOn(reader, travel, state => state.TensionOn(reader), support);
+
+    public static Relation[] TraversedExclusiveOn(Carrier reader, Relation travel, params Relation[] support) =>
+        ProjectTraversedStatesOn(reader, travel, state => state.ExclusiveOn(reader), support);
+
+    public static Relation[] TraversedPassOn(Carrier reader, Relation travel, params Relation[] support) =>
+        TraversedSupportOn(reader, travel, support);
+
+    public static Relation[] TraversedBlockOn(Carrier reader, Relation travel, params Relation[] support) =>
+        TraversedSupportStatesOn(reader, travel, support)
+            .Where(state => state.Left is Relation && state.Right is Relation supportState && !supportState.HasStateParticipationOn(reader))
+            .Select(state => (Relation)state.Left)
+            .ToArray();
+
     public static Relation[] CoveredSpansOn(Carrier reader, params Relation[] relations)
     {
         var boundaries = relations
@@ -416,15 +439,27 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             .Where(state => state.Right is Relation projected && projected.HasStateParticipationOn(reader))
             .ToArray();
 
+    private static Relation[] ProjectTraversedStatesOn(
+        Carrier reader,
+        Relation travel,
+        Func<Relation, Relation> projection,
+        Relation[] relations) =>
+        TraversedSupportStatesOn(reader, travel, relations)
+            .Select(state => new Relation(state.Left, projection(state)))
+            .Where(state => state.Right is Relation projected && projected.HasStateParticipationOn(reader))
+            .ToArray();
+
     private static Relation SupportStateOn(Relation span, Carrier reader, Relation[] relations)
     {
         var reverse = 0UL;
         var forward = 0UL;
+        var spanStart = Math.Min(span.LeftLocation.Ticks, span.RightLocation.Ticks);
+        var spanEnd = Math.Max(span.LeftLocation.Ticks, span.RightLocation.Ticks);
         foreach (var relation in relations)
         {
             var boundaries = relation.BoundariesOn(reader);
             if (boundaries.LeftLocation.Carrier != span.LeftLocation.Carrier ||
-                !IsCovered(span.LeftLocation.Ticks, span.RightLocation.Ticks, [boundaries]))
+                !IsCovered(spanStart, spanEnd, [boundaries]))
             {
                 continue;
             }

@@ -164,6 +164,16 @@ Current executable foothold:
 - `Relation.TraversedSpanStatesOn(reader, travel, relations...)` pairs each
   traversed span with its local flow, so path occupancy and path flow can be
   inspected separately.
+- `Relation.TraversedSupportStatesOn(reader, travel, support...)` reads the
+  support state on every traversed path span. Unsupported path spans stay
+  present as zero reverse/forward support, so blocked traversal remains visible
+  instead of disappearing during projection.
+- Traversed path projections `TraversedSupportOn`, `TraversedTensionOn`, and
+  `TraversedExclusiveOn` apply the same reverse/forward state reads to only the
+  path occupied by the travel relation.
+- `TraversedPassOn` and `TraversedBlockOn` are path filter projections:
+  passing is supported traversal, and blocking is unsupported traversal. They
+  are not route objects or truth values.
 - `Relation.CoveredSpansOn(reader, relations...)` returns adjacent carrier-local
   `Relation` intervals between those boundary points, skipping gaps where no
   input relation covers the interval. Opposed surfaces stay on the opposed
@@ -202,6 +212,11 @@ Current executable foothold:
   from origin to that value, reading pass/block spans inside it, and then using
   span widths as transfer capacity or open gathered tension. Selection is
   therefore span splitting plus ordinary route reads.
+- A traversed support filter composes the same way. `TraversedPassOn` returns
+  `span -> state` relations, so the path span remains inspectable separately
+  from its support state. The span width can become route capacity, and for
+  reverse travel that capacity is projected onto the inverse path-flow carrier
+  before accounting.
 - With no compatible accounting surface, the full visible participation remains
   new tension. A zero-size accounting surface does not consume participation by
   itself; observation and claim behavior must come from relation context.

@@ -177,6 +177,13 @@ flow. Reverse travel on the same carrier keeps the occupied sites on that
 carrier, while the local flow is carried by the inverse carrier. This separates
 "where the path is" from "which way tension moves through it."
 
+Path support composes this traversal read with the same reverse/forward support
+state used by carrier support spans. Every occupied path span remains visible:
+supported spans carry forward and/or reverse participation, while unsupported
+spans carry a zero support pair. Pass, block, support, tension, and exclusive
+path reads are lower projections of that relation-shaped state. This lets a
+blocked path gather or route as tension without inventing a filter token.
+
 At the current Gojo pass, an event does not need its own object. It is a read of
 newly visible tension in context. If routing later needs an explicit value, it
 should reuse the same general relation structure as layer relations rather than
@@ -630,6 +637,13 @@ interval from origin to that value. Pass intervals become carrier spans whose
 widths can serve as transfer capacities. Blocked intervals can gather as open
 tension or route to another receiver. No filter object is required for the
 first pass; support splitting and ordinary route reads do the work.
+
+Path selection follows the same rule over traversal. A traversed pass returns a
+relation from the occupied path span to the support state on that span. The
+span width can size a transfer route, while the travel flow supplies the carrier
+direction being accounted. For reverse travel, the occupied interval can remain
+on the carrier while the capacity that accounts flow is carried by the inverse
+carrier. Unsupported traversed spans can gather as unresolved path tension.
 
 The first executable merge projection is equally small: when several relations
 cover the same carrier interval, their compatible flow participations add into
