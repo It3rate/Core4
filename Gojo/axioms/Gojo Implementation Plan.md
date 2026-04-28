@@ -9,6 +9,8 @@ carrier-layer reading:
 - sign is a cross-carrier read
 - operations are carrier layers
 - each layer has one carrier value in its transform slot
+- cross-carrier relations are transform/attachment structure, not generic
+  holders waiting for external method names
 - an event is the appearance of newly visible tension
 - boundary overflow leaves attached-layer state or new tension unless routed
 
@@ -28,14 +30,16 @@ This phase proves that location and read are separate.
 
 Add one-transform-per-layer paths:
 
-- bare `CarrierLocation` values in transform slots
-- expansive reads
-- contractive reads
-- reverse reads with attached-layer state or tension
-- zero transform as additive or non-mixing attachment
+- point-to-point cross-carrier transforms
+- origin-to-origin attachment without automatic modification
+- point-to-origin carry/reset accumulation
+- segment-to-segment stretch/scale transforms
+- repeated segment relations as power-like behavior
 
 This phase should cover multiplication-like and division-like reads without
 ordinary algebraic operator tags.
+
+See `Gojo Structural Transform Relations.md`.
 
 ## Phase 3. Layered Reads And New Tension
 
@@ -309,6 +313,15 @@ Add route structures:
 - segment end-to-start closure
 
 This phase should make boundary behavior compositional instead of flag-driven.
+
+Next consolidation target:
+
+- See `Gojo Route Generalization Notes.md`.
+- See `Gojo Structural Transform Relations.md`.
+- Treat `TransferThrough`, `ObserveThrough`, and `GatherThrough` as executable
+  scaffolding until equivalent behavior can be discovered from relation shape.
+- Keep their behavior, but avoid deepening external route parameterization.
+- Prefer relation shape and read context over drain/observe/gather flags.
 
 ## Phase 5. Filters And Support
 

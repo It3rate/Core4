@@ -1,6 +1,6 @@
 namespace Gojo.Core;
 
-public readonly record struct Carrier
+public readonly record struct Carrier : IElement
 {
     public Carrier(ulong id)
         : this(id, id, 1)
