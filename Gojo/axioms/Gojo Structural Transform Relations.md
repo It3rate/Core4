@@ -305,16 +305,24 @@ The current behavior is intentionally small:
 - a structure can be represented as current carrier-position surface related to
   an internal relation surface
 - adding a carrier location into that structure returns a new settled structure
-- one settle frame snapshots the relation nodes present at frame start, then
-  repeatedly applies that relation surface until the visible carrier positions
-  and relation surface stop changing
-- segment-to-segment relations are applied once per frame inside that generic
-  relation pass because current carrier positions do not yet distinguish
-  independent participation from participation derived by that same relation
+- one settle frame snapshots the relation nodes present at frame start and then
+  repeatedly applies that relation surface until its contribution surface and
+  relation surface stop changing
+- carrier position is no longer only a flattened `carrier -> ticks` map inside
+  the settle frame. It is a contribution surface: each visible contribution has
+  a source element, a carrier location, and, for segment-derived contributions,
+  a scale contribution
+- a segment relation replaces its own contribution on the upper carrier instead
+  of multiplying the carrier total it produced on an earlier pass
 - origin-to-origin point transform preserves the incoming local value and does
   not accumulate
 - nonzero-point-to-origin transform carries by threshold and leaves local
   residue
+- point carry replaces the source carrier with a relation-shaped residual
+  contribution and places the carried contribution on the upper carrier
+- the residual contribution left by point carry is visible as post-accounting
+  structure; segment relations do not re-stretch that residual in the same
+  settle frame
 - same-carrier point-to-point relations are read as local segment structure,
   not as point transforms; this prevents a segment from accidentally behaving
   like a carry/reset relation
@@ -340,12 +348,6 @@ The current behavior is intentionally small:
 - repeated segment transform chains carry the previous stretch forward, giving
   the first internal power-like behavior
 
-Segment stretch is intentionally not applied in an unconstrained fixed-point
-loop yet. Existing upper carrier participation can stretch once in the current
-frame; blindly re-stretching that already transformed value would invent
-growth. Later work should make derived and independent carrier participation
-separable enough that segment relations can also settle by repeated lowering.
-
 Here, independent participation means carrier-local load that arrived from the
 outside of the relation being applied, or from a different already-accounted
 structure. Derived participation means load produced by the same relation
@@ -353,10 +355,14 @@ during the current frame. For example, if `lower 7` stretches `upper` to `7`,
 the new `upper 7` is derived from that stretch. Reapplying the same stretch to
 that derived `upper 7` as if it were independent would invent `49`. If `upper`
 already carried an independent `3`, then stretching that independent `3` by
-the lower `7` can produce `21` in the current executable model. The missing
-numeric distinction is provenance: not metadata tags, but relation-shaped
-accounting that lets the kernel see which participation came from which
-relation path in the current frame.
+the lower `7` can produce `21` in the current executable model.
+
+The current executable answer is provenance by contribution. This is still an
+internal settle-frame surface, not the final public carrier state, but it moves
+the model in the intended direction: source relation plus carrier location says
+who put the visible value there. Segment scale is still stored as frame-local
+contribution data; a later pass should make that scale visible as ordinary
+Core4 relation structure too.
 
 The implementation should keep pruning named intermediate passes toward this
 single relation-application algorithm as the numeric state becomes rich enough
