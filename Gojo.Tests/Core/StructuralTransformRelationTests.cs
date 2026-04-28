@@ -147,10 +147,113 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(Segment(upper, 0, 10), read);
     }
 
+    [Fact]
+    public void StructureSettlesPointTransformInternallyAfterAddition()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 0)),
+            new Relation(Point(lower, 10), Point(upper, 0)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 11));
+
+        Assert.Equal(new CarrierLocation(lower, 1), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 1), settled.PositionOn(upper));
+    }
+
+    [Fact]
+    public void SettledStructureDoesNotLeaveWholeCrossingOnLowerCarrier()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 0)),
+            new Relation(Point(lower, 10), Point(upper, 0)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 27));
+
+        Assert.NotEqual(new CarrierLocation(lower, 27), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(lower, 7), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 2), settled.PositionOn(upper));
+    }
+
+    [Fact]
+    public void StructureCarriesThroughInternalBaseTenRelationsUntilSettled()
+    {
+        var ones = new Carrier(10);
+        var tens = new Carrier(20);
+        var hundreds = new Carrier(30);
+        var structure = Structure(
+            Surface(Point(ones, 0), Point(tens, 0), Point(hundreds, 0)),
+            Surface(
+                new Relation(Point(ones, 10), Point(tens, 0)),
+                new Relation(Point(tens, 10), Point(hundreds, 0))));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(ones, 375));
+
+        Assert.Equal(new CarrierLocation(ones, 5), settled.PositionOn(ones));
+        Assert.Equal(new CarrierLocation(tens, 7), settled.PositionOn(tens));
+        Assert.Equal(new CarrierLocation(hundreds, 3), settled.PositionOn(hundreds));
+    }
+
+    [Fact]
+    public void InternalCarryComposesWithExistingCarrierPositions()
+    {
+        var ones = new Carrier(10);
+        var tens = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(ones, 9), Point(tens, 2)),
+            new Relation(Point(ones, 10), Point(tens, 0)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(ones, 2));
+
+        Assert.Equal(new CarrierLocation(ones, 1), settled.PositionOn(ones));
+        Assert.Equal(new CarrierLocation(tens, 3), settled.PositionOn(tens));
+    }
+
+    [Fact]
+    public void OriginAttachmentDoesNotMoveAddedValueIntoUpperCarrier()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 0)),
+            new Relation(Point(lower, 0), Point(upper, 0)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 11));
+
+        Assert.Equal(new CarrierLocation(lower, 11), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 0), settled.PositionOn(upper));
+    }
+
+    [Fact]
+    public void UnconnectedCarrierKeepsAddedValueAsLocalPosition()
+    {
+        var carrier = new Carrier(10);
+        var structure = Structure(Point(carrier, 0), Point(Carrier.Unknown, 0));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(carrier, 11));
+
+        Assert.Equal(new CarrierLocation(carrier, 11), settled.PositionOn(carrier));
+    }
+
     private static Relation Point(Carrier carrier, ulong ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
 
     private static Relation Segment(Carrier carrier, ulong start, ulong end) =>
         new(Point(carrier, start), Point(carrier, end));
 
+    private static Relation Structure(IElement positions, IElement relations) =>
+        new(positions, relations);
+
+    private static IElement Surface(params IElement[] elements)
+    {
+        return elements.Length switch
+        {
+            0 => Point(Carrier.Unknown, 0),
+            1 => elements[0],
+            _ => new Relation(elements[0], Surface(elements[1..]))
+        };
+    }
 }

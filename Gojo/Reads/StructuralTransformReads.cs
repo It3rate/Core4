@@ -4,6 +4,46 @@ namespace Gojo.Reads;
 
 public static class StructuralTransformReads
 {
+    public static Relation AddAndSettle(this Relation structure, CarrierLocation incoming)
+    {
+        var positions = ReadPositionSurface(structure.Left);
+        var transforms = ReadPointTransforms(structure.Right);
+
+        Add(positions, incoming.Carrier, incoming.Ticks);
+        var moved = true;
+        while (moved)
+        {
+            moved = false;
+            foreach (var transform in transforms)
+            {
+                if (transform.Lower.Location.Ticks == 0)
+                {
+                    continue;
+                }
+
+                var lowerTicks = positions.GetValueOrDefault(transform.Lower.Carrier);
+                if (lowerTicks < transform.Lower.Location.Ticks)
+                {
+                    continue;
+                }
+
+                var carried = lowerTicks / transform.Lower.Location.Ticks;
+                var residue = lowerTicks % transform.Lower.Location.Ticks;
+                positions[transform.Lower.Carrier] = residue;
+                Add(positions, transform.Upper.Carrier, carried);
+                moved = true;
+            }
+        }
+
+        return new(BuildPositionSurface(positions), structure.Right);
+    }
+
+    public static CarrierLocation PositionOn(this Relation structure, Carrier carrier)
+    {
+        var positions = ReadPositionSurface(structure.Left);
+        return new CarrierLocation(carrier, positions.GetValueOrDefault(carrier));
+    }
+
     public static Relation ReadThroughStructuralTransform(this CarrierLocation incoming, Relation transform)
     {
         return ReadThroughStructuralTransform(incoming, transform, 1, out _);
@@ -127,6 +167,82 @@ public static class StructuralTransformReads
         return false;
     }
 
+    private static PointTransformShape[] ReadPointTransforms(IElement surface)
+    {
+        var transforms = new List<PointTransformShape>();
+        Visit(surface);
+        return [.. transforms];
+
+        void Visit(IElement element)
+        {
+            if (element is not Relation relation)
+            {
+                return;
+            }
+
+            if (TryGetPointTransform(relation, out var lowerPoint, out var upperPoint))
+            {
+                transforms.Add(new(lowerPoint, upperPoint));
+                return;
+            }
+
+            Visit(relation.Left);
+            Visit(relation.Right);
+        }
+    }
+
+    private static Dictionary<Carrier, ulong> ReadPositionSurface(IElement surface)
+    {
+        var positions = new Dictionary<Carrier, ulong>();
+        Visit(surface);
+        return positions;
+
+        void Visit(IElement element)
+        {
+            if (element is not Relation relation)
+            {
+                return;
+            }
+
+            if (TryGetPoint(relation, out var point))
+            {
+                Add(positions, point.Carrier, point.Location.Ticks);
+                return;
+            }
+
+            Visit(relation.Left);
+            Visit(relation.Right);
+        }
+    }
+
+    private static IElement BuildPositionSurface(Dictionary<Carrier, ulong> positions)
+    {
+        var points = positions
+            .OrderBy(position => position.Key.Lineage)
+            .ThenBy(position => position.Key.Id)
+            .ThenBy(position => position.Key.Flow)
+            .Select(position => Point(position.Key, position.Value))
+            .Cast<IElement>()
+            .ToArray();
+
+        return BuildSurface(points);
+    }
+
+    private static IElement BuildSurface(IElement[] elements)
+    {
+        return elements.Length switch
+        {
+            0 => Point(Carrier.Unknown, 0),
+            1 => elements[0],
+            _ => new Relation(elements[0], BuildSurface(elements[1..]))
+        };
+    }
+
+    private static void Add(Dictionary<Carrier, ulong> positions, Carrier carrier, ulong ticks)
+    {
+        positions[carrier] = checked(positions.GetValueOrDefault(carrier) + ticks);
+    }
+
     private static bool TryGetSegmentTransform(
         Relation transform,
         out SegmentShape lowerSegment,
@@ -182,6 +298,8 @@ public static class StructuralTransformReads
         new(new CarrierLocation(carrier, ticks), carrier);
 
     private readonly record struct PointShape(CarrierLocation Location, Carrier Carrier);
+
+    private readonly record struct PointTransformShape(PointShape Lower, PointShape Upper);
 
     private readonly record struct SegmentShape(Carrier Carrier, ulong Start, ulong End)
     {

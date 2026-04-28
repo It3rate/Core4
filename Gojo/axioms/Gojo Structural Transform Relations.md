@@ -207,6 +207,9 @@ It recognizes relation shape rather than method-specific route declarations:
 
 The current behavior is intentionally small:
 
+- a structure can be represented as current carrier-position surface related to
+  an internal relation surface
+- adding a carrier location into that structure returns a new settled structure
 - origin-to-origin point transform preserves the incoming local value and does
   not accumulate
 - nonzero-point-to-origin transform carries by threshold and leaves local
@@ -216,6 +219,23 @@ The current behavior is intentionally small:
   value and both segment lengths
 - repeated segment transform chains carry the previous stretch forward, giving
   the first power-like behavior
+
+For a point transform such as:
+
+```text
+(lower 10 -> lower carrier) -> (upper 0 -> upper carrier)
+```
+
+adding `11` to the lower carrier does not leave an external value of `11`
+waiting to be interpreted. The structure settles to:
+
+```text
+lower position = 1
+upper position = 1
+```
+
+The whole crossing is absorbed by the upper carrier relation, and the lower
+carrier keeps only its residue.
 
 This does not preserve the old route API as the preferred model. It gives a
 new structural foothold so route, overflow, observation, and gather behavior can
@@ -253,11 +273,13 @@ more named route helpers.
 
 Recommended order:
 
-1. Re-express current overflow, transfer, observation, and gather helpers as
+1. Move more behavior from external read-through-transform calls into
+   add-and-settle structure reads.
+2. Re-express current overflow, transfer, observation, and gather helpers as
    transitional conveniences over structural relation reads.
-2. Demote or remove external route parameterization once relation shape carries
+3. Demote or remove external route parameterization once relation shape carries
    the behavior.
-3. Extend structural reads to underflow/refill, opposed carriers, and tension
+4. Extend structural reads to underflow/refill, opposed carriers, and tension
    surfaces.
 
 Do not delete the current executable model until the structural version covers

@@ -71,8 +71,15 @@ Current executable foothold:
 - `Gojo.Reads.StructuralTransformReads` is the first relation-shape transform
   reader. It treats a point as `(carrier location -> carrier)`, a segment as
   `(point -> point)`, and transform as relation-to-relation. It currently
-  distinguishes origin attachment, point carry/reset, segment stretch, base-like
-  carry chains, and repeated segment power-like chains without route tags.
+  distinguishes origin attachment, internal add-and-settle point carry/reset,
+  segment stretch, base-like carry chains, and repeated segment power-like
+  chains without route tags.
+- The first structural settling shape is `position surface -> relation surface`.
+  Adding a carrier location updates the position surface and repeatedly applies
+  internal point transforms until no carrier can carry further. A relation
+  `(lower 10 -> lower carrier) -> (upper 0 -> upper carrier)` therefore settles
+  lower `11` as lower `1` and upper `1`; the value `11` does not remain as an
+  externally meaningful carrier value.
 - `CarrierLocation.ReadThroughBoundary(earlierCarrier, boundary)` returns a
   `Relation` whose left slot is the earlier carrier-layer ticks and whose right
   slot is the later carrier-layer ticks that did not cross the boundary. This
