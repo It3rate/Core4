@@ -24,111 +24,6 @@ public static class StructuralTransformReads
         return structure.Left.ContributionTotalOn(carrier);
     }
 
-    public static Relation ReadThroughStructuralTransform(this CarrierLocation incoming, Relation transform)
-    {
-        return ReadThroughStructuralTransform(incoming, transform, 1, out _);
-    }
-
-    public static Relation[] ReadThroughStructuralTransforms(this CarrierLocation incoming, params Relation[] transforms)
-    {
-        var current = incoming;
-        var scale = 1UL;
-        var reads = new List<Relation>();
-        foreach (var transform in transforms)
-        {
-            var read = ReadThroughStructuralTransform(current, transform, scale, out scale);
-            reads.Add(read);
-            current = NextInputFrom(read);
-        }
-
-        return [.. reads];
-    }
-
-    private static Relation ReadThroughStructuralTransform(
-        CarrierLocation incoming,
-        Relation transform,
-        ulong scale,
-        out ulong nextScale)
-    {
-        if (TryGetPointTransform(transform, out var lowerPoint, out var upperPoint))
-        {
-            nextScale = 1;
-            return ReadPointTransform(incoming, lowerPoint, upperPoint);
-        }
-
-        if (TryGetSegmentTransform(transform, out var lowerSegment, out var upperSegment))
-        {
-            return ReadSegmentTransform(incoming, lowerSegment, upperSegment, scale, out nextScale);
-        }
-
-        var zero = new CarrierLocation(incoming.Carrier, 0);
-        nextScale = 1;
-        return new(zero, incoming);
-    }
-
-    private static Relation ReadPointTransform(
-        CarrierLocation incoming,
-        PointShape lowerPoint,
-        PointShape upperPoint)
-    {
-        var read = incoming.ReadFrom(lowerPoint.Carrier);
-        if (read.Direction <= 0)
-        {
-            return new(upperPoint.Location, new CarrierLocation(incoming.Carrier, 0));
-        }
-
-        if (lowerPoint.Location.Ticks == 0)
-        {
-            return new(upperPoint.Location, incoming);
-        }
-
-        return new(
-            new CarrierLocation(upperPoint.Carrier, upperPoint.Location.Ticks + (read.Magnitude / lowerPoint.Location.Ticks)),
-            new CarrierLocation(lowerPoint.Carrier, read.Magnitude % lowerPoint.Location.Ticks));
-    }
-
-    private static Relation ReadSegmentTransform(
-        CarrierLocation incoming,
-        SegmentShape lowerSegment,
-        SegmentShape upperSegment,
-        ulong scale,
-        out ulong nextScale)
-    {
-        var read = incoming.ReadFrom(lowerSegment.Carrier);
-        if (read.Direction <= 0)
-        {
-            nextScale = 1;
-            return Segment(upperSegment.Carrier, upperSegment.Start, upperSegment.Start);
-        }
-
-        var lowerSpan = lowerSegment.Length;
-        if (lowerSpan == 0)
-        {
-            nextScale = 1;
-            return Segment(upperSegment.Carrier, upperSegment.Start, upperSegment.Start);
-        }
-
-        var upperSpan = upperSegment.Length;
-        var stretched = checked((read.Magnitude * scale * upperSpan) / lowerSpan);
-        nextScale = stretched == 0 ? 1 : stretched;
-        return Segment(upperSegment.Carrier, upperSegment.Start, upperSegment.Start + stretched);
-    }
-
-    private static CarrierLocation NextInputFrom(Relation read)
-    {
-        if (TryGetSegment(read, out var segment))
-        {
-            return new CarrierLocation(segment.Carrier, segment.Length);
-        }
-
-        if (read.Left is CarrierLocation next)
-        {
-            return next;
-        }
-
-        return read.CarrierLocations().FirstOrDefault();
-    }
-
     private static bool TryGetPointTransform(
         Relation transform,
         out PointShape lowerPoint,
@@ -373,9 +268,6 @@ public static class StructuralTransformReads
         point = default;
         return false;
     }
-
-    private static Relation Segment(Carrier carrier, ulong start, ulong end) =>
-        new(Point(carrier, start), Point(carrier, end));
 
     private static Relation Point(Carrier carrier, ulong ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);

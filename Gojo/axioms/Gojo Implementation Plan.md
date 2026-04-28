@@ -75,6 +75,9 @@ Current executable foothold:
   internal segment stretch, base-like carry chains, segment-produced point
   carry, segment-to-point endpoint scaling, and repeated segment power-like
   chains without route tags.
+- The older one-shot structural transform calculator has been removed. Current
+  transform tests now build a structure, add incoming participation, settle,
+  and read the resulting carrier surfaces.
 - `Gojo Operation Shape Catalog.md` keeps a compact list of operation-like
   relation shapes such as `P(C0,k) -> P(C1,0)` for carry and `S0 -> S1.P1`
   for multiplication-like endpoint scaling.

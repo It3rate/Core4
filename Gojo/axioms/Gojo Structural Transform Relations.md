@@ -304,6 +304,9 @@ The current behavior is intentionally small:
 
 - a structure can be represented as current carrier-position surface related to
   an internal relation surface
+- structural transform behavior enters through settlement of a structure; the
+  older one-shot transform calculator has been removed so tests and callers
+  must put participation into relation structure and inspect the settled result
 - adding a carrier location or incoming relation surface into that structure
   returns a new settled structure
 - one settle frame snapshots the relation nodes present at frame start and then

@@ -56,106 +56,121 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
-    public void PointToOriginTransformCarriesAndLeavesResidue()
+    public void PointToOriginRelationSettlesCarryAndResidue()
     {
         var lower = new Carrier(10);
         var upper = new Carrier(20);
         var transform = new Relation(Point(lower, 10), Point(upper, 0));
-        var incoming = new CarrierLocation(lower, 27);
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 0)),
+            transform);
 
-        var read = incoming.ReadThroughStructuralTransform(transform);
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 27));
 
-        Assert.Equal(
-            new Relation(new CarrierLocation(upper, 2), new CarrierLocation(lower, 7)),
-            read);
+        Assert.Equal(new CarrierLocation(lower, 7), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 2), settled.PositionOn(upper));
     }
 
     [Fact]
-    public void SegmentToSegmentTransformStretchesContinuousExtent()
+    public void SegmentToSegmentRelationSettlesStretchedExtent()
     {
         var lower = new Carrier(10);
         var upper = new Carrier(20);
         var transform = new Relation(Segment(lower, 0, 1), Segment(upper, 0, 1));
-        var incoming = new CarrierLocation(lower, 7);
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 0)),
+            transform);
 
-        var read = incoming.ReadThroughStructuralTransform(transform);
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 7));
 
-        Assert.Equal(Segment(upper, 0, 7), read);
+        Assert.Equal(new CarrierLocation(lower, 7), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 7), settled.PositionOn(upper));
     }
 
     [Fact]
-    public void RepeatedSegmentRelationsComposeAsPowers()
+    public void RepeatedSegmentRelationsSettleAsPowers()
     {
         var a = new Carrier(10);
         var b = new Carrier(20);
         var c = new Carrier(30);
         var first = new Relation(Segment(a, 0, 1), Segment(b, 0, 1));
         var second = new Relation(Segment(b, 0, 1), Segment(c, 0, 1));
+        var structure = Structure(
+            Surface(Point(a, 0), Point(b, 0), Point(c, 0)),
+            Surface(first, second));
 
-        var reads = new CarrierLocation(a, 3).ReadThroughStructuralTransforms(first, second);
+        var settled = structure.AddAndSettle(new CarrierLocation(a, 3));
 
-        Assert.Equal(Segment(b, 0, 3), reads[0]);
-        Assert.Equal(Segment(c, 0, 9), reads[1]);
+        Assert.Equal(new CarrierLocation(a, 3), settled.PositionOn(a));
+        Assert.Equal(new CarrierLocation(b, 3), settled.PositionOn(b));
+        Assert.Equal(new CarrierLocation(c, 9), settled.PositionOn(c));
     }
 
     [Fact]
-    public void OriginToOriginAttachmentDoesNotAccumulate()
+    public void OriginToOriginAttachmentSettlesWithoutAccumulating()
     {
         var lower = new Carrier(10);
         var upper = new Carrier(20);
         var transform = new Relation(Point(lower, 0), Point(upper, 0));
-        var incoming = new CarrierLocation(lower, 7);
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 0)),
+            transform);
 
-        var read = incoming.ReadThroughStructuralTransform(transform);
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 7));
 
-        Assert.Equal(
-            new Relation(new CarrierLocation(upper, 0), incoming),
-            read);
+        Assert.Equal(new CarrierLocation(lower, 7), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 0), settled.PositionOn(upper));
     }
 
     [Fact]
-    public void PointTransformsCanCarryThroughBaseTenChain()
+    public void PointRelationsCanCarryThroughBaseTenChain()
     {
         var ones = new Carrier(10);
         var tens = new Carrier(20);
         var hundreds = new Carrier(30);
         var onesToTens = new Relation(Point(ones, 10), Point(tens, 0));
         var tensToHundreds = new Relation(Point(tens, 10), Point(hundreds, 0));
+        var structure = Structure(
+            Surface(Point(ones, 0), Point(tens, 0), Point(hundreds, 0)),
+            Surface(onesToTens, tensToHundreds));
 
-        var reads = new CarrierLocation(ones, 375).ReadThroughStructuralTransforms(onesToTens, tensToHundreds);
+        var settled = structure.AddAndSettle(new CarrierLocation(ones, 375));
 
-        Assert.Equal(
-            new Relation(new CarrierLocation(tens, 37), new CarrierLocation(ones, 5)),
-            reads[0]);
-        Assert.Equal(
-            new Relation(new CarrierLocation(hundreds, 3), new CarrierLocation(tens, 7)),
-            reads[1]);
+        Assert.Equal(new CarrierLocation(ones, 5), settled.PositionOn(ones));
+        Assert.Equal(new CarrierLocation(tens, 7), settled.PositionOn(tens));
+        Assert.Equal(new CarrierLocation(hundreds, 3), settled.PositionOn(hundreds));
     }
 
     [Fact]
-    public void PointTransformCanUseBinaryBoundary()
+    public void PointRelationCanUseBinaryBoundary()
     {
         var bit = new Carrier(10);
         var next = new Carrier(20);
         var transform = new Relation(Point(bit, 2), Point(next, 0));
+        var structure = Structure(
+            Surface(Point(bit, 0), Point(next, 0)),
+            transform);
 
-        var read = new CarrierLocation(bit, 13).ReadThroughStructuralTransform(transform);
+        var settled = structure.AddAndSettle(new CarrierLocation(bit, 13));
 
-        Assert.Equal(
-            new Relation(new CarrierLocation(next, 6), new CarrierLocation(bit, 1)),
-            read);
+        Assert.Equal(new CarrierLocation(bit, 1), settled.PositionOn(bit));
+        Assert.Equal(new CarrierLocation(next, 6), settled.PositionOn(next));
     }
 
     [Fact]
-    public void SegmentTransformUsesBothSegmentLengths()
+    public void SegmentRelationSettlementUsesBothSegmentLengths()
     {
         var lower = new Carrier(10);
         var upper = new Carrier(20);
         var transform = new Relation(Segment(lower, 0, 2), Segment(upper, 0, 5));
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 0)),
+            transform);
 
-        var read = new CarrierLocation(lower, 4).ReadThroughStructuralTransform(transform);
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 4));
 
-        Assert.Equal(Segment(upper, 0, 10), read);
+        Assert.Equal(new CarrierLocation(lower, 4), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 10), settled.PositionOn(upper));
     }
 
     [Fact]
