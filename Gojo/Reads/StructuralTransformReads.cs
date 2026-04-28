@@ -7,33 +7,13 @@ public static class StructuralTransformReads
     public static Relation AddAndSettle(this Relation structure, CarrierLocation incoming)
     {
         var positions = ReadPositionSurface(structure.Left);
-        var transforms = ReadPointTransforms(structure.Right);
+        var pointTransforms = ReadPointTransforms(structure.Right);
+        var segmentTransforms = ReadSegmentTransforms(structure.Right);
 
         Add(positions, incoming.Carrier, incoming.Ticks);
-        var moved = true;
-        while (moved)
-        {
-            moved = false;
-            foreach (var transform in transforms)
-            {
-                if (transform.Lower.Location.Ticks == 0)
-                {
-                    continue;
-                }
-
-                var lowerTicks = positions.GetValueOrDefault(transform.Lower.Carrier);
-                if (lowerTicks < transform.Lower.Location.Ticks)
-                {
-                    continue;
-                }
-
-                var carried = lowerTicks / transform.Lower.Location.Ticks;
-                var residue = lowerTicks % transform.Lower.Location.Ticks;
-                positions[transform.Lower.Carrier] = residue;
-                Add(positions, transform.Upper.Carrier, carried);
-                moved = true;
-            }
-        }
+        SettlePointTransforms(positions, pointTransforms);
+        ApplySegmentTransforms(positions, segmentTransforms);
+        SettlePointTransforms(positions, pointTransforms);
 
         return new(BuildPositionSurface(positions), structure.Right);
     }
@@ -191,6 +171,89 @@ public static class StructuralTransformReads
         }
     }
 
+    private static SegmentTransformShape[] ReadSegmentTransforms(IElement surface)
+    {
+        var transforms = new List<SegmentTransformShape>();
+        Visit(surface);
+        return [.. transforms];
+
+        void Visit(IElement element)
+        {
+            if (element is not Relation relation)
+            {
+                return;
+            }
+
+            if (TryGetSegmentTransform(relation, out var lowerSegment, out var upperSegment))
+            {
+                transforms.Add(new(lowerSegment, upperSegment));
+                return;
+            }
+
+            Visit(relation.Left);
+            Visit(relation.Right);
+        }
+    }
+
+    private static void SettlePointTransforms(
+        Dictionary<Carrier, ulong> positions,
+        PointTransformShape[] transforms)
+    {
+        var moved = true;
+        while (moved)
+        {
+            moved = false;
+            foreach (var transform in transforms)
+            {
+                if (transform.Lower.Location.Ticks == 0)
+                {
+                    continue;
+                }
+
+                var lowerTicks = positions.GetValueOrDefault(transform.Lower.Carrier);
+                if (lowerTicks < transform.Lower.Location.Ticks)
+                {
+                    continue;
+                }
+
+                var carried = lowerTicks / transform.Lower.Location.Ticks;
+                var residue = lowerTicks % transform.Lower.Location.Ticks;
+                positions[transform.Lower.Carrier] = residue;
+                Add(positions, transform.Upper.Carrier, carried);
+                moved = true;
+            }
+        }
+    }
+
+    private static void ApplySegmentTransforms(
+        Dictionary<Carrier, ulong> positions,
+        SegmentTransformShape[] transforms)
+    {
+        var carrierScales = new Dictionary<Carrier, ulong>();
+        foreach (var transform in transforms)
+        {
+            var lowerTicks = positions.GetValueOrDefault(transform.Lower.Carrier);
+            if (lowerTicks == 0 || transform.Lower.Length == 0)
+            {
+                continue;
+            }
+
+            var upperSpan = transform.Upper.Length;
+            var lowerScale = carrierScales.GetValueOrDefault(transform.Lower.Carrier, 1UL);
+            var stretch = checked((lowerTicks * lowerScale * upperSpan) / transform.Lower.Length);
+            if (stretch == 0)
+            {
+                continue;
+            }
+
+            var upperTicks = positions.GetValueOrDefault(transform.Upper.Carrier);
+            positions[transform.Upper.Carrier] = upperTicks == 0
+                ? stretch
+                : checked(upperTicks * stretch);
+            carrierScales[transform.Upper.Carrier] = stretch;
+        }
+    }
+
     private static Dictionary<Carrier, ulong> ReadPositionSurface(IElement surface)
     {
         var positions = new Dictionary<Carrier, ulong>();
@@ -300,6 +363,8 @@ public static class StructuralTransformReads
     private readonly record struct PointShape(CarrierLocation Location, Carrier Carrier);
 
     private readonly record struct PointTransformShape(PointShape Lower, PointShape Upper);
+
+    private readonly record struct SegmentTransformShape(SegmentShape Lower, SegmentShape Upper);
 
     private readonly record struct SegmentShape(Carrier Carrier, ulong Start, ulong End)
     {

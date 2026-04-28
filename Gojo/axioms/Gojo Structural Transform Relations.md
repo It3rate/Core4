@@ -215,10 +215,14 @@ The current behavior is intentionally small:
 - nonzero-point-to-origin transform carries by threshold and leaves local
   residue
 - chains of point transforms carry residue upward through base-like layers
-- segment-to-segment transform stretches the target segment by the incoming
-  value and both segment lengths
+- segment-to-segment transforms now also participate in add-and-settle:
+  they do not clear the lower carrier, but stretch or create upper carrier
+  participation from the lower carrier position and both segment lengths
+- existing upper carrier participation stretches with the segment relation
+- segment-produced participation can feed point carries in the same settled
+  structure
 - repeated segment transform chains carry the previous stretch forward, giving
-  the first power-like behavior
+  the first internal power-like behavior
 
 For a point transform such as:
 
@@ -273,13 +277,11 @@ more named route helpers.
 
 Recommended order:
 
-1. Move more behavior from external read-through-transform calls into
-   add-and-settle structure reads.
-2. Re-express current overflow, transfer, observation, and gather helpers as
+1. Re-express current overflow, transfer, observation, and gather helpers as
    transitional conveniences over structural relation reads.
-3. Demote or remove external route parameterization once relation shape carries
+2. Demote or remove external route parameterization once relation shape carries
    the behavior.
-4. Extend structural reads to underflow/refill, opposed carriers, and tension
+3. Extend structural reads to underflow/refill, opposed carriers, and tension
    surfaces.
 
 Do not delete the current executable model until the structural version covers

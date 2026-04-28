@@ -72,8 +72,8 @@ Current executable foothold:
   reader. It treats a point as `(carrier location -> carrier)`, a segment as
   `(point -> point)`, and transform as relation-to-relation. It currently
   distinguishes origin attachment, internal add-and-settle point carry/reset,
-  segment stretch, base-like carry chains, and repeated segment power-like
-  chains without route tags.
+  internal segment stretch, base-like carry chains, segment-produced point
+  carry, and repeated segment power-like chains without route tags.
 - The first structural settling shape is `position surface -> relation surface`.
   Adding a carrier location updates the position surface and repeatedly applies
   internal point transforms until no carrier can carry further. A relation

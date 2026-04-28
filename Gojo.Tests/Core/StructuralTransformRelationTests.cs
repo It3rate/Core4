@@ -238,6 +238,89 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(new CarrierLocation(carrier, 11), settled.PositionOn(carrier));
     }
 
+    [Fact]
+    public void StructureSettlesSegmentTransformInternallyAfterAddition()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 0)),
+            new Relation(Segment(lower, 0, 1), Segment(upper, 0, 1)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 7));
+
+        Assert.Equal(new CarrierLocation(lower, 7), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 7), settled.PositionOn(upper));
+    }
+
+    [Fact]
+    public void InternalSegmentTransformStretchesExistingUpperPosition()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 3)),
+            new Relation(Segment(lower, 0, 1), Segment(upper, 0, 1)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 7));
+
+        Assert.Equal(new CarrierLocation(lower, 7), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 21), settled.PositionOn(upper));
+    }
+
+    [Fact]
+    public void InternalSegmentTransformUsesBothSegmentLengths()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 0)),
+            new Relation(Segment(lower, 0, 2), Segment(upper, 0, 5)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 4));
+
+        Assert.Equal(new CarrierLocation(lower, 4), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 10), settled.PositionOn(upper));
+    }
+
+    [Fact]
+    public void InternalSegmentChainSettlesPowerLikePositions()
+    {
+        var a = new Carrier(10);
+        var b = new Carrier(20);
+        var c = new Carrier(30);
+        var structure = Structure(
+            Surface(Point(a, 0), Point(b, 0), Point(c, 0)),
+            Surface(
+                new Relation(Segment(a, 0, 1), Segment(b, 0, 1)),
+                new Relation(Segment(b, 0, 1), Segment(c, 0, 1))));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(a, 3));
+
+        Assert.Equal(new CarrierLocation(a, 3), settled.PositionOn(a));
+        Assert.Equal(new CarrierLocation(b, 3), settled.PositionOn(b));
+        Assert.Equal(new CarrierLocation(c, 9), settled.PositionOn(c));
+    }
+
+    [Fact]
+    public void InternalSegmentSettlingCanFeedPointCarry()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var carried = new Carrier(30);
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 3), Point(carried, 0)),
+            Surface(
+                new Relation(Segment(lower, 0, 1), Segment(upper, 0, 1)),
+                new Relation(Point(upper, 10), Point(carried, 0))));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 7));
+
+        Assert.Equal(new CarrierLocation(lower, 7), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 1), settled.PositionOn(upper));
+        Assert.Equal(new CarrierLocation(carried, 2), settled.PositionOn(carried));
+    }
+
     private static Relation Point(Carrier carrier, ulong ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
 
