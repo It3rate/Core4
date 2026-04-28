@@ -71,8 +71,9 @@ accidentally moving every matching point in the surface.
 | Shape | Read |
 |---|---|
 | `P(C0,k) -> P(counter,0)` | crossing counter |
-| `P(C0,k) -> P(C0_inverse,0)` | opposed/refill or reflection foothold; inverse handling still needs structural tests |
-| `P(C,k) -> P(C,0)` | same-oriented cycle/reset candidate; output returns to the same carrier origin |
+| `P(C0,k) -> P(C0_inverse,0)` | opposed/refill or reflection foothold; forward crossing settles as positive ticks on the opposed carrier |
+| `P(C0,k) -> P(C0_inverse,0)` plus `P(C0_inverse,k) -> P(C0,0)` | opposed return loop/ping-pong candidate; lossy or thresholded return can settle without signed storage |
+| `P(C,k) -> P(C,0)` | same-oriented cycle/reset candidate; needs point/site identity before it should be treated as modulo or restart |
 | `S(C,a,b).P1 -> S(C,a,b).P0` | segment end-to-start cycle candidate; restart without traversing a return path |
 | `S(C,a,b).P1 -> S(C_inverse,0)` | loop/ping-pong candidate; flow traverses an opposed return path before it can come forward again |
 | `S0 -> (P(C1,n) -> P(C2,m))` | segment flow into a relation surface; possible coupled fanout/general receiver surface |
@@ -82,6 +83,16 @@ Cycling and looping are intentionally separated here. A cycle restarts at a
 related origin or point. A loop has a return journey, usually through an
 opposed carrier or explicit return relation, so the return path can carry its
 own tension, residue, or blockage.
+
+Same-carrier cycles are not yet executable as true cycles. A relation such as
+`P(C,k) -> P(C,0)` currently cannot distinguish residue storage from the return
+site on the same carrier. Treating it as modulo would hide the missing
+site/point identity. Using `C_inverse` gives a structural return path that can
+be inspected now.
+
+Lossless point loops are allowed as structures, but settling stops when a full
+pass returns to the same carrier positions. The remaining load is visible
+participation for a later frame or a different relation surface, not an error.
 
 ## Boolean And Filter Footholds
 

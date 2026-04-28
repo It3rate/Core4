@@ -228,10 +228,10 @@ public static class StructuralTransformReads
         Dictionary<Carrier, ulong> positions,
         PointTransformShape[] transforms)
     {
-        var moved = true;
-        while (moved)
+        while (true)
         {
-            moved = false;
+            var before = new Dictionary<Carrier, ulong>(positions);
+            var moved = false;
             foreach (var transform in transforms)
             {
                 if (transform.Lower.Location.Ticks == 0)
@@ -251,7 +251,27 @@ public static class StructuralTransformReads
                 Add(positions, transform.Upper.Carrier, carried);
                 moved = true;
             }
+
+            if (!moved || SamePositions(before, positions))
+            {
+                return;
+            }
         }
+    }
+
+    private static bool SamePositions(
+        Dictionary<Carrier, ulong> left,
+        Dictionary<Carrier, ulong> right)
+    {
+        foreach (var carrier in left.Keys.Concat(right.Keys).Distinct())
+        {
+            if (left.GetValueOrDefault(carrier) != right.GetValueOrDefault(carrier))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static void ApplySegmentTransforms(

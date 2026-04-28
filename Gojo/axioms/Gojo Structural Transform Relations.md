@@ -96,6 +96,8 @@ Examples:
   produce one upper tick.
 - `lower 10 -> upper 0` creates decimal-style grouping: lower ticks `0..9`
   remain local, crossing `10` moves one tick upward and leaves residue.
+- `forward 10 -> forward_inverse 0` stores the crossing as positive
+  participation on the opposed carrier rather than as a negative number.
 
 A chain of point-to-origin transforms gives positional carrier layering:
 
@@ -138,6 +140,29 @@ digit6 10 -> digit7 0
 Reading an earlier digit layer after settlement gives the residue/modulo for
 that layer. Reading the final carried layer gives the distributed quotient that
 made it through the stack.
+
+Opposed point layers can also be related back to the original carrier:
+
+```text
+forward 10 -> forward_inverse 0
+forward_inverse 10 -> forward 0
+```
+
+This is the first executable loop/ping-pong foothold. Flow can make a return
+journey through the opposed carrier, and both sides still store only positive
+ticks in their own direction. If the return has unresolved residue, that
+residue remains visible on the opposed carrier.
+
+Point-loop settlement only lowers while the carrier positions actually change.
+A lossless loop such as `a 1 -> b 0` and `b 1 -> a 0` does not silently solve
+itself. If one full settle pass returns to the same visible positions, the
+load remains visible in that frame as unresolved participation.
+
+This is deliberately different from a same-carrier cycle such as
+`forward 10 -> forward 0`. Same-carrier restart needs a way to distinguish the
+carrier's residue storage from the return site. Until point/site identity is
+numeric structure, treating that shape as a true modulo restart would erase
+meaning.
 
 ## 5. Point Transform Direction
 
@@ -253,6 +278,9 @@ The current behavior is intentionally small:
   carry/reset rather than multiplying basis length
 - reading a lower carry layer after settlement gives modulo/residue while
   reading higher layers gives the positional distributed value
+- point carry can target an opposed carrier, and a second relation can carry
+  opposed participation back through the original carrier without signed
+  storage
 - segment-to-segment transforms now also participate in add-and-settle:
   they do not clear the lower carrier, but stretch or create upper carrier
   participation from the lower carrier position and both segment lengths

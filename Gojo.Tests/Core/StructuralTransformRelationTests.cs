@@ -290,6 +290,55 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
+    public void PointCarryCanFlowIntoOpposedCarrier()
+    {
+        var forward = new Carrier(10);
+        var opposed = forward.Inverse();
+        var structure = Structure(
+            Surface(Point(forward, 0), Point(opposed, 0)),
+            new Relation(Point(forward, 10), Point(opposed, 0)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(forward, 27));
+
+        Assert.Equal(new CarrierLocation(forward, 7), settled.PositionOn(forward));
+        Assert.Equal(new CarrierLocation(opposed, 2), settled.PositionOn(opposed));
+    }
+
+    [Fact]
+    public void OpposedPointCarryCanReturnThroughSecondRelation()
+    {
+        var forward = new Carrier(10);
+        var opposed = forward.Inverse();
+        var structure = Structure(
+            Surface(Point(forward, 0), Point(opposed, 0)),
+            Surface(
+                new Relation(Point(forward, 10), Point(opposed, 0)),
+                new Relation(Point(opposed, 10), Point(forward, 0))));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(forward, 120));
+
+        Assert.Equal(new CarrierLocation(forward, 1), settled.PositionOn(forward));
+        Assert.Equal(new CarrierLocation(opposed, 2), settled.PositionOn(opposed));
+    }
+
+    [Fact]
+    public void LosslessPointLoopLeavesLoadVisibleWhenNoSettlementOccurs()
+    {
+        var first = new Carrier(10);
+        var second = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(first, 0), Point(second, 0)),
+            Surface(
+                new Relation(Point(first, 1), Point(second, 0)),
+                new Relation(Point(second, 1), Point(first, 0))));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(first, 7));
+
+        Assert.Equal(new CarrierLocation(first, 7), settled.PositionOn(first));
+        Assert.Equal(new CarrierLocation(second, 0), settled.PositionOn(second));
+    }
+
+    [Fact]
     public void OriginAttachmentDoesNotMoveAddedValueIntoUpperCarrier()
     {
         var lower = new Carrier(10);
