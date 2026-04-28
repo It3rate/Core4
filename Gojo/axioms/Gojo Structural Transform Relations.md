@@ -35,6 +35,9 @@ transform = (point -> point) or (segment -> segment)
 The aim is not to create separate point and segment wrapper types. The shape of
 the relation carries the meaning.
 
+For a compact list of operation-like shapes that follow from this notation, see
+`Gojo Operation Shape Catalog.md`.
+
 ## 2. Cross-Carrier Relation Means Transform
 
 A relation between different carriers should generally be read as a transform
@@ -221,6 +224,9 @@ The current behavior is intentionally small:
 - existing upper carrier participation stretches with the segment relation
 - segment-produced participation can feed point carries in the same settled
   structure
+- segment-to-point transforms move the target point while preserving the
+  relation topology around that point; this is the first basis-scaling /
+  multiplication-like structural update
 - repeated segment transform chains carry the previous stretch forward, giving
   the first internal power-like behavior
 

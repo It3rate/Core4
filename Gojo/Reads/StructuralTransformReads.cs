@@ -8,14 +8,19 @@ public static class StructuralTransformReads
     {
         var positions = ReadPositionSurface(structure.Left);
         var pointTransforms = ReadPointTransforms(structure.Right);
-        var segmentTransforms = ReadSegmentTransforms(structure.Right);
+        var relationSurface = structure.Right;
 
         Add(positions, incoming.Carrier, incoming.Ticks);
         SettlePointTransforms(positions, pointTransforms);
+        relationSurface = ApplySegmentToPointTransforms(
+            positions,
+            relationSurface,
+            ReadSegmentPointTransforms(relationSurface));
+        var segmentTransforms = ReadSegmentTransforms(relationSurface);
         ApplySegmentTransforms(positions, segmentTransforms);
         SettlePointTransforms(positions, pointTransforms);
 
-        return new(BuildPositionSurface(positions), structure.Right);
+        return new(BuildPositionSurface(positions), relationSurface);
     }
 
     public static CarrierLocation PositionOn(this Relation structure, Carrier carrier)
@@ -195,6 +200,30 @@ public static class StructuralTransformReads
         }
     }
 
+    private static SegmentPointTransformShape[] ReadSegmentPointTransforms(IElement surface)
+    {
+        var transforms = new List<SegmentPointTransformShape>();
+        Visit(surface);
+        return [.. transforms];
+
+        void Visit(IElement element)
+        {
+            if (element is not Relation relation)
+            {
+                return;
+            }
+
+            if (TryGetSegmentPointTransform(relation, out var lowerSegment, out var upperPoint))
+            {
+                transforms.Add(new(lowerSegment, upperPoint));
+                return;
+            }
+
+            Visit(relation.Left);
+            Visit(relation.Right);
+        }
+    }
+
     private static void SettlePointTransforms(
         Dictionary<Carrier, ulong> positions,
         PointTransformShape[] transforms)
@@ -252,6 +281,41 @@ public static class StructuralTransformReads
                 : checked(upperTicks * stretch);
             carrierScales[transform.Upper.Carrier] = stretch;
         }
+    }
+
+    private static IElement ApplySegmentToPointTransforms(
+        Dictionary<Carrier, ulong> positions,
+        IElement surface,
+        SegmentPointTransformShape[] transforms)
+    {
+        foreach (var transform in transforms)
+        {
+            var lowerTicks = positions.GetValueOrDefault(transform.Lower.Carrier);
+            if (lowerTicks == 0 || transform.Lower.Length == 0 || transform.Upper.Location.Ticks == 0)
+            {
+                continue;
+            }
+
+            var mapped = checked((transform.Upper.Location.Ticks * lowerTicks) / transform.Lower.Length);
+            surface = MovePoint(surface, transform.Upper, mapped);
+        }
+
+        return surface;
+    }
+
+    private static IElement MovePoint(IElement element, PointShape target, ulong ticks)
+    {
+        if (element is not Relation relation)
+        {
+            return element;
+        }
+
+        if (TryGetPoint(relation, out var point) && point == target)
+        {
+            return Point(point.Carrier, ticks);
+        }
+
+        return new Relation(MovePoint(relation.Left, target, ticks), MovePoint(relation.Right, target, ticks));
     }
 
     private static Dictionary<Carrier, ulong> ReadPositionSurface(IElement surface)
@@ -324,6 +388,24 @@ public static class StructuralTransformReads
         return false;
     }
 
+    private static bool TryGetSegmentPointTransform(
+        Relation transform,
+        out SegmentShape lowerSegment,
+        out PointShape upperPoint)
+    {
+        if (transform.Left is Relation left &&
+            transform.Right is Relation right &&
+            TryGetSegment(left, out lowerSegment) &&
+            TryGetPoint(right, out upperPoint))
+        {
+            return true;
+        }
+
+        lowerSegment = default;
+        upperPoint = default;
+        return false;
+    }
+
     private static bool TryGetSegment(Relation relation, out SegmentShape segment)
     {
         if (relation.Left is Relation leftPoint &&
@@ -365,6 +447,8 @@ public static class StructuralTransformReads
     private readonly record struct PointTransformShape(PointShape Lower, PointShape Upper);
 
     private readonly record struct SegmentTransformShape(SegmentShape Lower, SegmentShape Upper);
+
+    private readonly record struct SegmentPointTransformShape(SegmentShape Lower, PointShape Upper);
 
     private readonly record struct SegmentShape(Carrier Carrier, ulong Start, ulong End)
     {

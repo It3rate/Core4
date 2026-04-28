@@ -73,7 +73,11 @@ Current executable foothold:
   `(point -> point)`, and transform as relation-to-relation. It currently
   distinguishes origin attachment, internal add-and-settle point carry/reset,
   internal segment stretch, base-like carry chains, segment-produced point
-  carry, and repeated segment power-like chains without route tags.
+  carry, segment-to-point endpoint scaling, and repeated segment power-like
+  chains without route tags.
+- `Gojo Operation Shape Catalog.md` keeps a compact list of operation-like
+  relation shapes such as `P(C0,k) -> P(C1,0)` for carry and `S0 -> S1.P1`
+  for multiplication-like endpoint scaling.
 - The first structural settling shape is `position surface -> relation surface`.
   Adding a carrier location updates the position surface and repeatedly applies
   internal point transforms until no carrier can carry further. A relation

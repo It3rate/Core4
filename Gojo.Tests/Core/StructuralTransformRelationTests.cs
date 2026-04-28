@@ -321,6 +321,51 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(new CarrierLocation(carried, 2), settled.PositionOn(carried));
     }
 
+    [Fact]
+    public void SegmentToPointTransformMovesEndpointAndPreservesSegmentTopology()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var lowerSegment = Segment(lower, 0, 1);
+        var upperSegment = Segment(upper, 0, 1);
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 0)),
+            Surface(
+                upperSegment,
+                new Relation(lowerSegment, Point(upper, 1))));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 7));
+
+        Assert.Equal(new CarrierLocation(lower, 7), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 0), settled.PositionOn(upper));
+        Assert.Equal(
+            Surface(
+                Segment(upper, 0, 7),
+                new Relation(lowerSegment, Point(upper, 7))),
+            settled.Right);
+    }
+
+    [Fact]
+    public void SegmentToPointTransformUsesSourceSegmentLength()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var lowerSegment = Segment(lower, 0, 5);
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 0)),
+            Surface(
+                Segment(upper, 0, 5),
+                new Relation(lowerSegment, Point(upper, 5))));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 10));
+
+        Assert.Equal(
+            Surface(
+                Segment(upper, 0, 10),
+                new Relation(lowerSegment, Point(upper, 10))),
+            settled.Right);
+    }
+
     private static Relation Point(Carrier carrier, ulong ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
 
