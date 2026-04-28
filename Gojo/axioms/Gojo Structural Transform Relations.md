@@ -304,10 +304,19 @@ The current behavior is intentionally small:
 
 - a structure can be represented as current carrier-position surface related to
   an internal relation surface
-- adding a carrier location into that structure returns a new settled structure
+- adding a carrier location or incoming relation surface into that structure
+  returns a new settled structure
 - one settle frame snapshots the relation nodes present at frame start and then
   repeatedly applies that relation surface until its contribution surface and
   relation surface stop changing
+- incoming relation surfaces are decomposed into fresh frame contributions:
+  a bare carrier location can enter as carrier participation when it is the
+  incoming surface itself, points enter as carrier-position contributions, and
+  existing contribution relations enter as already-accounted frame
+  contributions
+- bare carrier locations nested inside arbitrary relation structure do not
+  automatically become position contributions; the relation context may be a
+  span, route, boundary, or support surface rather than local load
 - carrier position is no longer only a flattened `carrier -> ticks` map inside
   the settle frame. It is a contribution surface: each visible contribution has
   a source element, a carrier location, and a visible carrier-local scale
@@ -393,6 +402,24 @@ source -> (carrier location -> carrier-local scale location)
 
 The total and scale reads are lower projections over the contribution surface.
 They are conveniences for action and tests, not a separate state model.
+
+The contribution surface should not be treated as an optimized runtime cache or
+as predictive memory for a future perturbed structure. It is the visible
+accounting surface for one settled frame. A later runtime may throw this whole
+surface away and recompute it from the underlying carrier/relation structure on
+every pass.
+
+For the current executable shape, preserving the settled contribution surface
+is still useful when a settled frame is fed through the same relation surface
+again. If it were collapsed to only carrier totals, a segment-derived upper
+position would look independent on the next pass and could be stretched again.
+The contribution surface prevents that double accounting without adding a
+separate symbolic flag.
+
+TODO: when Gojo has an explicit runtime/source boundary, revisit whether
+`AddAndSettle` should return only canonical source structure plus a disposable
+settlement projection. Do not build dynamic optimization policy into this
+surface yet.
 
 The implementation should keep pruning named intermediate passes toward this
 single relation-application algorithm as the numeric state becomes rich enough

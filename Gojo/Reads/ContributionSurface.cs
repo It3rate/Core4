@@ -29,11 +29,32 @@ internal sealed class ContributionSurface
     public static ContributionSurface From(IElement surface)
     {
         var positions = new ContributionSurface();
-        Visit(surface);
+        positions.AddSurface(surface);
         return positions;
+    }
 
-        void Visit(IElement element)
+    public void AddSurface(IElement surface)
+    {
+        Visit(surface, allowBareLocation: true);
+
+        void AddLocation(CarrierLocation location)
         {
+            Add(new Relation(Point(location.Carrier, 0), location), location);
+        }
+
+        void AddPoint(Relation point, CarrierLocation location)
+        {
+            Add(point, location);
+        }
+
+        void Visit(IElement element, bool allowBareLocation)
+        {
+            if (allowBareLocation && element is CarrierLocation location)
+            {
+                AddLocation(location);
+                return;
+            }
+
             if (element is not Relation relation)
             {
                 return;
@@ -41,18 +62,18 @@ internal sealed class ContributionSurface
 
             if (Contribution.TryRead(relation, out var contribution))
             {
-                positions.Add(contribution);
+                Add(contribution);
                 return;
             }
 
             if (TryGetPoint(relation, out var point))
             {
-                positions.Add(relation, point);
+                AddPoint(relation, point);
                 return;
             }
 
-            Visit(relation.Left);
-            Visit(relation.Right);
+            Visit(relation.Left, allowBareLocation: false);
+            Visit(relation.Right, allowBareLocation: false);
         }
     }
 
@@ -176,6 +197,9 @@ internal sealed class ContributionSurface
             _ => new Relation(elements[0], BuildSurface(elements[1..]))
         };
     }
+
+    private static Relation Point(Carrier carrier, ulong ticks) =>
+        new(new CarrierLocation(carrier, ticks), carrier);
 
     private static bool TryGetPoint(Relation relation, out CarrierLocation point)
     {

@@ -4,13 +4,16 @@ namespace Gojo.Reads;
 
 public static class StructuralTransformReads
 {
-    public static Relation AddAndSettle(this Relation structure, CarrierLocation incoming)
+    public static Relation AddAndSettle(this Relation structure, CarrierLocation incoming) =>
+        structure.AddAndSettle((IElement)incoming);
+
+    public static Relation AddAndSettle(this Relation structure, IElement incoming)
     {
         var positions = ContributionSurface.From(structure.Left);
         var relationSurface = structure.Right;
         var relations = RelationsOf(relationSurface);
 
-        positions.Add(new Relation(Point(incoming.Carrier, 0), incoming), incoming);
+        positions.AddSurface(incoming);
         relationSurface = ApplyRelationsUntilQuiet(positions, relationSurface, relations);
 
         return new(positions.Surface(), relationSurface);

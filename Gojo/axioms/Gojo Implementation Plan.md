@@ -79,15 +79,18 @@ Current executable foothold:
   relation shapes such as `P(C0,k) -> P(C1,0)` for carry and `S0 -> S1.P1`
   for multiplication-like endpoint scaling.
 - The first structural settling shape is `position surface -> relation surface`.
-  Adding a carrier location updates the position surface and repeatedly applies
-  internal point transforms until no carrier can carry further. A relation
-  `(lower 10 -> lower carrier) -> (upper 0 -> upper carrier)` therefore settles
-  lower `11` as lower `1` and upper `1`; the value `11` does not remain as an
-  externally meaningful carrier value.
+  Adding a carrier location or incoming relation surface updates a fresh frame
+  accounting surface and repeatedly applies internal point transforms until no
+  carrier can carry further. A relation `(lower 10 -> lower carrier) -> (upper
+  0 -> upper carrier)` therefore settles lower `11` as lower `1` and upper
+  `1`; the value `11` does not remain as an externally meaningful carrier
+  value.
 - The settled position surface is now a contribution surface rather than a
   flattened carrier map. `Gojo.Reads.ContributionReads` exposes raw
   contribution relations and lower total/scale projections, so provenance and
-  post-accounting scale marks remain inspectable as relation structure.
+  post-accounting scale marks remain inspectable as relation structure. This
+  is a frame accounting surface, not an optimized runtime cache; future dynamic
+  passes may discard and recompute it whenever relation structure is perturbed.
 - `CarrierLocation.ReadThroughBoundary(earlierCarrier, boundary)` returns a
   `Relation` whose left slot is the earlier carrier-layer ticks and whose right
   slot is the later carrier-layer ticks that did not cross the boundary. This

@@ -328,6 +328,52 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
+    public void IncomingRelationSurfaceCanCarryMultiplePointsIntoSettlement()
+    {
+        var ones = new Carrier(10);
+        var tens = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(ones, 0), Point(tens, 0)),
+            new Relation(Point(ones, 10), Point(tens, 0)));
+        var incoming = Surface(Point(ones, 7), Point(ones, 5));
+
+        var settled = structure.AddAndSettle(incoming);
+
+        Assert.Equal(new CarrierLocation(ones, 2), settled.PositionOn(ones));
+        Assert.Equal(new CarrierLocation(tens, 1), settled.PositionOn(tens));
+    }
+
+    [Fact]
+    public void IncomingRelationSurfaceCanProvideIndependentSegmentParticipation()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var transform = new Relation(Segment(lower, 0, 1), Segment(upper, 0, 1));
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 0)),
+            transform);
+        var incoming = Surface(Point(lower, 7), Point(upper, 3));
+
+        var settled = structure.AddAndSettle(incoming);
+
+        Assert.Equal(new CarrierLocation(lower, 7), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 21), settled.PositionOn(upper));
+        Assert.Equal(
+            Surface(
+                Contribution(
+                    Point(lower, 7),
+                    new CarrierLocation(lower, 7)),
+                Contribution(
+                    Point(upper, 3),
+                    new CarrierLocation(upper, 3)),
+                Contribution(
+                    transform,
+                    new CarrierLocation(upper, 18),
+                    7)),
+            settled.Left);
+    }
+
+    [Fact]
     public void ContributionReadsLiftPlainPointsIntoVisibleContributions()
     {
         var lower = new Carrier(10);
@@ -343,6 +389,27 @@ public sealed class StructuralTransformRelationTests
             surface.Contributions());
         Assert.Equal(new CarrierLocation(lower, 2), surface.ContributionTotalOn(lower));
         Assert.Equal(new CarrierLocation(upper, 5), surface.ContributionTotalOn(upper));
+    }
+
+    [Fact]
+    public void ContributionReadsKeepBareLocationsContextual()
+    {
+        var carrier = new Carrier(10);
+        var location = new CarrierLocation(carrier, 7);
+        var span = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 5));
+
+        Assert.Equal(
+            new[]
+            {
+                Contribution(
+                    new Relation(Point(carrier, 0), location),
+                    location)
+            },
+            location.Contributions());
+        Assert.Empty(span.Contributions());
+        Assert.Equal(new CarrierLocation(carrier, 0), span.ContributionTotalOn(carrier));
     }
 
     [Fact]
@@ -407,6 +474,24 @@ public sealed class StructuralTransformRelationTests
             },
             settled.Left.ContributionScalesOn(upper));
         Assert.Equal(new CarrierLocation(upper, 7), settled.Left.ContributionScaleOn(upper));
+    }
+
+    [Fact]
+    public void SettledSegmentContributionSurfaceCanFeedNextFrameWithoutRestretching()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var transform = new Relation(Segment(lower, 0, 1), Segment(upper, 0, 1));
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 3)),
+            transform);
+
+        var first = structure.AddAndSettle(new CarrierLocation(lower, 7));
+        var second = first.AddAndSettle(new CarrierLocation(lower, 0));
+
+        Assert.Equal(new CarrierLocation(lower, 7), second.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 21), second.PositionOn(upper));
+        Assert.Equal(first.Left, second.Left);
     }
 
     [Fact]
