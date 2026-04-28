@@ -108,6 +108,37 @@ hundreds 10 -> thousands 0
 The same mechanism also supports other bases, counters, and grouped
 discernment.
 
+Repeated point layers are additive powers rather than multiplicative powers.
+For example:
+
+```text
+a 1 -> b 0
+b 1 -> c 0
+c 1 -> d 0
+```
+
+Every tick crosses every point layer, but the amount does not stretch. A value
+of `15` entering `a` settles as `15` on `d`, not as `15 * 15 * 15`. This is
+still a repeated relation shape; it is just the point/carry family rather than
+the segment/stretch family.
+
+A finite positive integer read is the same point/carry shape repeated at the
+chosen base. An eight-digit decimal calculator stack is:
+
+```text
+digit0 10 -> digit1 0
+digit1 10 -> digit2 0
+digit2 10 -> digit3 0
+digit3 10 -> digit4 0
+digit4 10 -> digit5 0
+digit5 10 -> digit6 0
+digit6 10 -> digit7 0
+```
+
+Reading an earlier digit layer after settlement gives the residue/modulo for
+that layer. Reading the final carried layer gives the distributed quotient that
+made it through the stack.
+
 ## 5. Point Transform Direction
 
 Increment and decrement have different natural starting sides.
@@ -218,6 +249,10 @@ The current behavior is intentionally small:
 - nonzero-point-to-origin transform carries by threshold and leaves local
   residue
 - chains of point transforms carry residue upward through base-like layers
+- repeated point layers behave as additive powers: they preserve count through
+  carry/reset rather than multiplying basis length
+- reading a lower carry layer after settlement gives modulo/residue while
+  reading higher layers gives the positional distributed value
 - segment-to-segment transforms now also participate in add-and-settle:
   they do not clear the lower carrier, but stretch or create upper carrier
   participation from the lower carrier position and both segment lengths

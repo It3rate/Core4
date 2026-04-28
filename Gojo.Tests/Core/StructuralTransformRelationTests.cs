@@ -198,6 +198,83 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
+    public void CarryLayerResidueIsModuloRead()
+    {
+        var ones = new Carrier(10);
+        var tens = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(ones, 0), Point(tens, 0)),
+            new Relation(Point(ones, 10), Point(tens, 0)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(ones, 37));
+
+        Assert.Equal(new CarrierLocation(ones, 7), settled.PositionOn(ones));
+        Assert.Equal(new CarrierLocation(tens, 3), settled.PositionOn(tens));
+    }
+
+    [Fact]
+    public void RepeatedAdditiveLayersCarrySameLoadWithoutScaling()
+    {
+        var layers = Enumerable
+            .Range(0, 4)
+            .Select(index => new Carrier((ulong)(100 + index)))
+            .ToArray();
+        var structure = Structure(
+            Surface(layers.Select(layer => Point(layer, 0)).Cast<IElement>().ToArray()),
+            Surface(Enumerable
+                .Range(0, layers.Length - 1)
+                .Select(index => new Relation(Point(layers[index], 1), Point(layers[index + 1], 0)))
+                .Cast<IElement>()
+                .ToArray()));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(layers[0], 15));
+
+        Assert.Equal(new CarrierLocation(layers[0], 0), settled.PositionOn(layers[0]));
+        Assert.Equal(new CarrierLocation(layers[1], 0), settled.PositionOn(layers[1]));
+        Assert.Equal(new CarrierLocation(layers[2], 0), settled.PositionOn(layers[2]));
+        Assert.Equal(new CarrierLocation(layers[3], 15), settled.PositionOn(layers[3]));
+    }
+
+    [Fact]
+    public void PointCarryIntoExistingCarrierPositionActsAsShift()
+    {
+        var source = new Carrier(10);
+        var shifted = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(source, 0), Point(shifted, 5)),
+            new Relation(Point(source, 1), Point(shifted, 0)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(source, 7));
+
+        Assert.Equal(new CarrierLocation(source, 0), settled.PositionOn(source));
+        Assert.Equal(new CarrierLocation(shifted, 12), settled.PositionOn(shifted));
+    }
+
+    [Fact]
+    public void EightDigitBaseTenCarryStackSettlesPositiveInteger()
+    {
+        var digits = Enumerable
+            .Range(0, 8)
+            .Select(index => new Carrier((ulong)(200 + index)))
+            .ToArray();
+        var structure = Structure(
+            Surface(digits.Select(digit => Point(digit, 0)).Cast<IElement>().ToArray()),
+            Surface(Enumerable
+                .Range(0, digits.Length - 1)
+                .Select(index => new Relation(Point(digits[index], 10), Point(digits[index + 1], 0)))
+                .Cast<IElement>()
+                .ToArray()));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(digits[0], 12_345_678));
+        var expectedDigits = new ulong[] { 8, 7, 6, 5, 4, 3, 2, 1 };
+
+        for (var index = 0; index < digits.Length; index++)
+        {
+            Assert.Equal(new CarrierLocation(digits[index], expectedDigits[index]), settled.PositionOn(digits[index]));
+        }
+    }
+
+    [Fact]
     public void InternalCarryComposesWithExistingCarrierPositions()
     {
         var ones = new Carrier(10);
