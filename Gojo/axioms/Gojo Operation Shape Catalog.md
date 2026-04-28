@@ -33,6 +33,11 @@ Notation:
 | `S0 -> P(C1,n)` | move a point from source segment flow; if that point is an endpoint of a segment, the segment stretches |
 | `S(C,5,5)` | zero-length segment; point-like now, but still two related points that can later separate |
 
+A same-carrier segment such as `S(C,2,5)` remains segment structure. It is not
+read as `P(C,2) -> P(C,5)` point carry, because that would collapse local
+extent into overflow behavior and make ordinary segments unsafe to carry in a
+relation surface.
+
 ## Repetition And Powers
 
 | Shape | Read |

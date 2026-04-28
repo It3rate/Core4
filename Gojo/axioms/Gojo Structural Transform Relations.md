@@ -269,14 +269,19 @@ The current behavior is intentionally small:
 - a structure can be represented as current carrier-position surface related to
   an internal relation surface
 - adding a carrier location into that structure returns a new settled structure
-- one settle frame is staged rather than a blind equation solve:
-  point/carry relations close, segment-to-point relations may move endpoints,
-  segment-to-segment relations stretch carrier positions once, then point/carry
-  and endpoint movement get one more chance to account for the new positions
+- one settle frame snapshots the relation nodes present at frame start, then
+  repeatedly applies that relation surface until the visible carrier positions
+  and relation surface stop changing
+- segment-to-segment relations are applied once per frame inside that generic
+  relation pass because current carrier positions do not yet distinguish
+  independent participation from participation derived by that same relation
 - origin-to-origin point transform preserves the incoming local value and does
   not accumulate
 - nonzero-point-to-origin transform carries by threshold and leaves local
   residue
+- same-carrier point-to-point relations are read as local segment structure,
+  not as point transforms; this prevents a segment from accidentally behaving
+  like a carry/reset relation
 - chains of point transforms carry residue upward through base-like layers
 - repeated point layers behave as additive powers: they preserve count through
   carry/reset rather than multiplying basis length
@@ -304,6 +309,9 @@ loop yet. Existing upper carrier participation can stretch once in the current
 frame; blindly re-stretching that already transformed value would invent
 growth. Later work should make derived and independent carrier participation
 separable enough that segment relations can also settle by repeated lowering.
+The implementation should keep pruning named intermediate passes toward this
+single relation-application algorithm as the numeric state becomes rich enough
+to make every pass idempotent.
 
 For a point transform such as:
 

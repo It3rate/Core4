@@ -30,6 +30,17 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
+    public void SameCarrierSegmentDoesNotBehaveAsPointTransform()
+    {
+        var carrier = new Carrier(10);
+        var structure = Structure(Point(carrier, 7), Segment(carrier, 2, 5));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(carrier, 0));
+
+        Assert.Equal(new CarrierLocation(carrier, 7), settled.PositionOn(carrier));
+    }
+
+    [Fact]
     public void PointAndSegmentTransformsAreBothRelationToRelationShapes()
     {
         var lower = new Carrier(10);

@@ -8,13 +8,12 @@ public static class StructuralTransformReads
     {
         var positions = ReadPositionSurface(structure.Left);
         var relationSurface = structure.Right;
-        var segmentPointTransforms = ReadSegmentPointTransforms(relationSurface);
+        var relations = RelationsOf(relationSurface);
 
         Add(positions, incoming.Carrier, incoming.Ticks);
-        relationSurface = SettlePointCarryAndEndpointMovement(positions, relationSurface, segmentPointTransforms);
-        ApplySegmentTransforms(positions, ReadSegmentTransforms(relationSurface));
-        relationSurface = SettlePointCarryAndEndpointMovement(positions, relationSurface, segmentPointTransforms);
-        SettlePointTransforms(positions, ReadPointTransforms(relationSurface));
+        relationSurface = ApplyRelationsUntilQuiet(positions, relationSurface, relations);
+        relationSurface = ApplyRelationsOnce(positions, relationSurface, relations, includeSegmentRelations: true);
+        relationSurface = ApplyRelationsUntilQuiet(positions, relationSurface, relations);
 
         return new(BuildPositionSurface(positions), relationSurface);
     }
@@ -138,7 +137,8 @@ public static class StructuralTransformReads
         if (transform.Left is Relation left &&
             transform.Right is Relation right &&
             TryGetPoint(left, out lowerPoint) &&
-            TryGetPoint(right, out upperPoint))
+            TryGetPoint(right, out upperPoint) &&
+            lowerPoint.Carrier != upperPoint.Carrier)
         {
             return true;
         }
@@ -148,11 +148,11 @@ public static class StructuralTransformReads
         return false;
     }
 
-    private static PointTransformShape[] ReadPointTransforms(IElement surface)
+    private static Relation[] RelationsOf(IElement surface)
     {
-        var transforms = new List<PointTransformShape>();
+        var relations = new List<Relation>();
         Visit(surface);
-        return [.. transforms];
+        return [.. relations];
 
         void Visit(IElement element)
         {
@@ -161,107 +161,144 @@ public static class StructuralTransformReads
                 return;
             }
 
-            if (TryGetPointTransform(relation, out var lowerPoint, out var upperPoint))
-            {
-                transforms.Add(new(lowerPoint, upperPoint));
-                return;
-            }
-
+            relations.Add(relation);
             Visit(relation.Left);
             Visit(relation.Right);
         }
     }
 
-    private static SegmentTransformShape[] ReadSegmentTransforms(IElement surface)
-    {
-        var transforms = new List<SegmentTransformShape>();
-        Visit(surface);
-        return [.. transforms];
-
-        void Visit(IElement element)
-        {
-            if (element is not Relation relation)
-            {
-                return;
-            }
-
-            if (TryGetSegmentTransform(relation, out var lowerSegment, out var upperSegment))
-            {
-                transforms.Add(new(lowerSegment, upperSegment));
-                return;
-            }
-
-            Visit(relation.Left);
-            Visit(relation.Right);
-        }
-    }
-
-    private static SegmentPointTransformShape[] ReadSegmentPointTransforms(IElement surface)
-    {
-        var transforms = new List<SegmentPointTransformShape>();
-        Visit(surface);
-        return [.. transforms];
-
-        void Visit(IElement element)
-        {
-            if (element is not Relation relation)
-            {
-                return;
-            }
-
-            if (TryGetSegmentPointTransform(relation, out var lowerSegment, out var upperPoint))
-            {
-                transforms.Add(new(lowerSegment, upperPoint));
-                return;
-            }
-
-            Visit(relation.Left);
-            Visit(relation.Right);
-        }
-    }
-
-    private static IElement SettlePointCarryAndEndpointMovement(
+    private static IElement ApplyRelationsUntilQuiet(
         Dictionary<Carrier, ulong> positions,
         IElement relationSurface,
-        SegmentPointTransformShape[] segmentPointTransforms)
-    {
-        SettlePointTransforms(positions, ReadPointTransforms(relationSurface));
-        return ApplySegmentToPointTransforms(positions, relationSurface, segmentPointTransforms);
-    }
-
-    private static void SettlePointTransforms(
-        Dictionary<Carrier, ulong> positions,
-        PointTransformShape[] transforms)
+        Relation[] relations)
     {
         while (true)
         {
-            var before = new Dictionary<Carrier, ulong>(positions);
-            var moved = false;
-            foreach (var transform in transforms)
+            var beforePositions = new Dictionary<Carrier, ulong>(positions);
+            var beforeSurface = relationSurface;
+            relationSurface = ApplyRelationsOnce(
+                positions,
+                relationSurface,
+                relations,
+                includeSegmentRelations: false);
+
+            if (SamePositions(beforePositions, positions) && Equals(beforeSurface, relationSurface))
             {
-                if (transform.Lower.Location.Ticks == 0)
-                {
-                    continue;
-                }
-
-                var lowerTicks = positions.GetValueOrDefault(transform.Lower.Carrier);
-                if (lowerTicks < transform.Lower.Location.Ticks)
-                {
-                    continue;
-                }
-
-                var carried = lowerTicks / transform.Lower.Location.Ticks;
-                var residue = lowerTicks % transform.Lower.Location.Ticks;
-                positions[transform.Lower.Carrier] = residue;
-                Add(positions, transform.Upper.Carrier, carried);
-                moved = true;
-            }
-
-            if (!moved || SamePositions(before, positions))
-            {
-                return;
+                return relationSurface;
             }
         }
+    }
+
+    private static IElement ApplyRelationsOnce(
+        Dictionary<Carrier, ulong> positions,
+        IElement relationSurface,
+        Relation[] relations,
+        bool includeSegmentRelations)
+    {
+        var segmentScales = new Dictionary<Carrier, ulong>();
+        foreach (var relation in relations)
+        {
+            relationSurface = ApplyRelation(
+                positions,
+                relationSurface,
+                relation,
+                segmentScales,
+                includeSegmentRelations);
+        }
+
+        return relationSurface;
+    }
+
+    private static IElement ApplyRelation(
+        Dictionary<Carrier, ulong> positions,
+        IElement relationSurface,
+        Relation relation,
+        Dictionary<Carrier, ulong> segmentScales,
+        bool includeSegmentRelations)
+    {
+        if (TryGetPointTransform(relation, out var lowerPoint, out var upperPoint))
+        {
+            ApplyPointRelation(positions, lowerPoint, upperPoint);
+            return relationSurface;
+        }
+
+        if (TryGetSegmentPointTransform(relation, out var lowerSegment, out var upperPointTarget))
+        {
+            return ApplySegmentPointRelation(positions, relationSurface, lowerSegment, upperPointTarget);
+        }
+
+        if (includeSegmentRelations &&
+            TryGetSegmentTransform(relation, out var lowerSegmentSource, out var upperSegment))
+        {
+            ApplySegmentRelation(positions, segmentScales, lowerSegmentSource, upperSegment);
+        }
+
+        return relationSurface;
+    }
+
+    private static void ApplyPointRelation(
+        Dictionary<Carrier, ulong> positions,
+        PointShape lowerPoint,
+        PointShape upperPoint)
+    {
+        if (lowerPoint.Location.Ticks == 0)
+        {
+            return;
+        }
+
+        var lowerTicks = positions.GetValueOrDefault(lowerPoint.Carrier);
+        if (lowerTicks < lowerPoint.Location.Ticks)
+        {
+            return;
+        }
+
+        var carried = lowerTicks / lowerPoint.Location.Ticks;
+        var residue = lowerTicks % lowerPoint.Location.Ticks;
+        positions[lowerPoint.Carrier] = residue;
+        Add(positions, upperPoint.Carrier, carried);
+    }
+
+    private static void ApplySegmentRelation(
+        Dictionary<Carrier, ulong> positions,
+        Dictionary<Carrier, ulong> segmentScales,
+        SegmentShape lowerSegment,
+        SegmentShape upperSegment)
+    {
+        var lowerTicks = positions.GetValueOrDefault(lowerSegment.Carrier);
+        if (lowerTicks == 0 || lowerSegment.Length == 0)
+        {
+            return;
+        }
+
+        var upperSpan = upperSegment.Length;
+        var lowerScale = segmentScales.GetValueOrDefault(lowerSegment.Carrier, 1UL);
+        var stretch = checked((lowerTicks * lowerScale * upperSpan) / lowerSegment.Length);
+        if (stretch == 0)
+        {
+            return;
+        }
+
+        var upperTicks = positions.GetValueOrDefault(upperSegment.Carrier);
+        positions[upperSegment.Carrier] = upperTicks == 0
+            ? stretch
+            : checked(upperTicks * stretch);
+        segmentScales[upperSegment.Carrier] = stretch;
+    }
+
+    private static IElement ApplySegmentPointRelation(
+        Dictionary<Carrier, ulong> positions,
+        IElement surface,
+        SegmentShape lowerSegment,
+        PointShape upperPoint)
+    {
+        var lowerTicks = positions.GetValueOrDefault(lowerSegment.Carrier);
+        if (lowerTicks == 0 || lowerSegment.Length == 0 || upperPoint.Location.Ticks == 0)
+        {
+            return surface;
+        }
+
+        var mapped = checked((upperPoint.Location.Ticks * lowerTicks) / lowerSegment.Length);
+        return MovePoint(surface, upperPoint, mapped);
     }
 
     private static bool SamePositions(
@@ -277,55 +314,6 @@ public static class StructuralTransformReads
         }
 
         return true;
-    }
-
-    private static void ApplySegmentTransforms(
-        Dictionary<Carrier, ulong> positions,
-        SegmentTransformShape[] transforms)
-    {
-        var carrierScales = new Dictionary<Carrier, ulong>();
-        foreach (var transform in transforms)
-        {
-            var lowerTicks = positions.GetValueOrDefault(transform.Lower.Carrier);
-            if (lowerTicks == 0 || transform.Lower.Length == 0)
-            {
-                continue;
-            }
-
-            var upperSpan = transform.Upper.Length;
-            var lowerScale = carrierScales.GetValueOrDefault(transform.Lower.Carrier, 1UL);
-            var stretch = checked((lowerTicks * lowerScale * upperSpan) / transform.Lower.Length);
-            if (stretch == 0)
-            {
-                continue;
-            }
-
-            var upperTicks = positions.GetValueOrDefault(transform.Upper.Carrier);
-            positions[transform.Upper.Carrier] = upperTicks == 0
-                ? stretch
-                : checked(upperTicks * stretch);
-            carrierScales[transform.Upper.Carrier] = stretch;
-        }
-    }
-
-    private static IElement ApplySegmentToPointTransforms(
-        Dictionary<Carrier, ulong> positions,
-        IElement surface,
-        SegmentPointTransformShape[] transforms)
-    {
-        foreach (var transform in transforms)
-        {
-            var lowerTicks = positions.GetValueOrDefault(transform.Lower.Carrier);
-            if (lowerTicks == 0 || transform.Lower.Length == 0 || transform.Upper.Location.Ticks == 0)
-            {
-                continue;
-            }
-
-            var mapped = checked((transform.Upper.Location.Ticks * lowerTicks) / transform.Lower.Length);
-            surface = MovePoint(surface, transform.Upper, mapped);
-        }
-
-        return surface;
     }
 
     private static IElement MovePoint(IElement element, PointShape target, ulong ticks)
