@@ -377,6 +377,23 @@ the segment stretch as its scale. A point-carry residue carries scale `0`,
 which makes the residue visible as already-accounted participation for this
 settle frame instead of fresh stretch input.
 
+This surface is now readable as relation structure. A plain point on the left
+surface is lifted into the same contribution shape with the point itself as
+source and scale `1`. A settled contribution surface can be inspected in three
+levels without changing the stored structure:
+
+```text
+source -> (carrier location -> carrier-local scale location)
+```
+
+- contribution read: returns the raw contribution relations
+- total read: sums carrier locations for a requested carrier
+- scale read: reads the carrier-local scale marks that downstream segment
+  relations use
+
+The total and scale reads are lower projections over the contribution surface.
+They are conveniences for action and tests, not a separate state model.
+
 The implementation should keep pruning named intermediate passes toward this
 single relation-application algorithm as the numeric state becomes rich enough
 to make every pass idempotent.

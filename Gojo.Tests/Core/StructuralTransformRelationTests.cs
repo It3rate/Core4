@@ -328,6 +328,88 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
+    public void ContributionReadsLiftPlainPointsIntoVisibleContributions()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var surface = Surface(Point(lower, 2), Point(upper, 5));
+
+        Assert.Equal(
+            new[]
+            {
+                Contribution(Point(lower, 2), new CarrierLocation(lower, 2)),
+                Contribution(Point(upper, 5), new CarrierLocation(upper, 5))
+            },
+            surface.Contributions());
+        Assert.Equal(new CarrierLocation(lower, 2), surface.ContributionTotalOn(lower));
+        Assert.Equal(new CarrierLocation(upper, 5), surface.ContributionTotalOn(upper));
+    }
+
+    [Fact]
+    public void ContributionReadsExposeSettledContributionRelations()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var transform = new Relation(Segment(lower, 0, 1), Segment(upper, 0, 1));
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 3)),
+            transform);
+
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 7));
+
+        Assert.Equal(
+            new[]
+            {
+                Contribution(
+                    new Relation(Point(lower, 0), new CarrierLocation(lower, 7)),
+                    new CarrierLocation(lower, 7)),
+                Contribution(
+                    Point(upper, 3),
+                    new CarrierLocation(upper, 3)),
+                Contribution(
+                    transform,
+                    new CarrierLocation(upper, 18),
+                    7)
+            },
+            settled.Left.Contributions());
+        Assert.Equal(
+            new[]
+            {
+                Contribution(
+                    Point(upper, 3),
+                    new CarrierLocation(upper, 3)),
+                Contribution(
+                    transform,
+                    new CarrierLocation(upper, 18),
+                    7)
+            },
+            settled.Left.ContributionsOn(upper));
+    }
+
+    [Fact]
+    public void ContributionReadsProjectTotalsAndScaleMarksFromVisibleStructure()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var transform = new Relation(Segment(lower, 0, 1), Segment(upper, 0, 1));
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(upper, 3)),
+            transform);
+
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, 7));
+
+        Assert.Equal(new CarrierLocation(upper, 21), settled.Left.ContributionTotalOn(upper));
+        Assert.Equal(
+            new[]
+            {
+                new CarrierLocation(upper, 1),
+                new CarrierLocation(upper, 7)
+            },
+            settled.Left.ContributionScalesOn(upper));
+        Assert.Equal(new CarrierLocation(upper, 7), settled.Left.ContributionScaleOn(upper));
+    }
+
+    [Fact]
     public void PointCarryCanFlowIntoOpposedCarrier()
     {
         var forward = new Carrier(10);

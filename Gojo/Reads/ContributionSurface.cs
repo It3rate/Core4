@@ -26,6 +26,36 @@ internal sealed class ContributionSurface
 {
     private readonly List<Contribution> contributions = [];
 
+    public static ContributionSurface From(IElement surface)
+    {
+        var positions = new ContributionSurface();
+        Visit(surface);
+        return positions;
+
+        void Visit(IElement element)
+        {
+            if (element is not Relation relation)
+            {
+                return;
+            }
+
+            if (Contribution.TryRead(relation, out var contribution))
+            {
+                positions.Add(contribution);
+                return;
+            }
+
+            if (TryGetPoint(relation, out var point))
+            {
+                positions.Add(relation, point);
+                return;
+            }
+
+            Visit(relation.Left);
+            Visit(relation.Right);
+        }
+    }
+
     public void Add(Contribution contribution) =>
         Add(contribution.Source, contribution.Location, contribution.Scale);
 
@@ -83,24 +113,18 @@ internal sealed class ContributionSurface
         contribution.Location.Carrier == carrier &&
         contribution.Scale.Ticks == 0);
 
-    public Dictionary<Carrier, ulong> Totals()
-    {
-        var totals = new Dictionary<Carrier, ulong>();
-        foreach (var contribution in contributions)
-        {
-            Add(totals, contribution.Location.Carrier, contribution.Location.Ticks);
-        }
+    public Relation[] Relations() => [.. OrderedContributions()
+        .Select(contribution => contribution.Surface)];
 
-        return totals;
-    }
+    public Relation[] RelationsOn(Carrier carrier) => [.. OrderedContributions()
+        .Where(contribution => contribution.Location.Carrier == carrier)
+        .Select(contribution => contribution.Surface)];
 
-    public IElement Surface() => BuildSurface([.. contributions
-        .OrderBy(contribution => contribution.Location.Carrier.Lineage)
-        .ThenBy(contribution => contribution.Location.Carrier.Id)
-        .ThenBy(contribution => contribution.Location.Carrier.Flow)
-        .ThenBy(contribution => ElementKey(contribution.Source))
-        .ThenBy(contribution => contribution.Location.Ticks)
-        .ThenBy(contribution => contribution.Scale.Ticks)
+    public CarrierLocation[] ScalesOn(Carrier carrier) => [.. OrderedContributions()
+        .Where(contribution => contribution.Location.Carrier == carrier)
+        .Select(contribution => contribution.Scale)];
+
+    public IElement Surface() => BuildSurface([.. OrderedContributions()
         .Select(contribution => (IElement)contribution.Surface)]);
 
     public string[] Snapshot() => [.. contributions
@@ -109,6 +133,14 @@ internal sealed class ContributionSurface
 
     public bool SameAs(string[] snapshot) =>
         Snapshot().SequenceEqual(snapshot);
+
+    private IOrderedEnumerable<Contribution> OrderedContributions() => contributions
+        .OrderBy(contribution => contribution.Location.Carrier.Lineage)
+        .ThenBy(contribution => contribution.Location.Carrier.Id)
+        .ThenBy(contribution => contribution.Location.Carrier.Flow)
+        .ThenBy(contribution => ElementKey(contribution.Source))
+        .ThenBy(contribution => contribution.Location.Ticks)
+        .ThenBy(contribution => contribution.Scale.Ticks);
 
     private void Add(IElement source, CarrierLocation location, CarrierLocation scale)
     {
@@ -145,9 +177,18 @@ internal sealed class ContributionSurface
         };
     }
 
-    private static void Add(Dictionary<Carrier, ulong> positions, Carrier carrier, ulong ticks)
+    private static bool TryGetPoint(Relation relation, out CarrierLocation point)
     {
-        positions[carrier] = checked(positions.GetValueOrDefault(carrier) + ticks);
+        if (relation.Left is CarrierLocation location &&
+            relation.Right is Carrier carrier &&
+            location.Carrier == carrier)
+        {
+            point = location;
+            return true;
+        }
+
+        point = default;
+        return false;
     }
 
     private static string ElementKey(IElement element) => element switch

@@ -6,7 +6,7 @@ public static class StructuralTransformReads
 {
     public static Relation AddAndSettle(this Relation structure, CarrierLocation incoming)
     {
-        var positions = ReadContributionSurface(structure.Left);
+        var positions = ContributionSurface.From(structure.Left);
         var relationSurface = structure.Right;
         var relations = RelationsOf(relationSurface);
 
@@ -18,8 +18,7 @@ public static class StructuralTransformReads
 
     public static CarrierLocation PositionOn(this Relation structure, Carrier carrier)
     {
-        var positions = ReadPositionSurface(structure.Left);
-        return new CarrierLocation(carrier, positions.GetValueOrDefault(carrier));
+        return structure.Left.ContributionTotalOn(carrier);
     }
 
     public static Relation ReadThroughStructuralTransform(this CarrierLocation incoming, Relation transform)
@@ -304,71 +303,6 @@ public static class StructuralTransformReads
         }
 
         return new Relation(MovePoint(relation.Left, target, ticks), MovePoint(relation.Right, target, ticks));
-    }
-
-    private static Dictionary<Carrier, ulong> ReadPositionSurface(IElement surface)
-    {
-        var positions = new Dictionary<Carrier, ulong>();
-        Visit(surface);
-        return positions;
-
-        void Visit(IElement element)
-        {
-            if (element is not Relation relation)
-            {
-                return;
-            }
-
-            if (Contribution.TryRead(relation, out var contribution))
-            {
-                Add(positions, contribution.Location.Carrier, contribution.Location.Ticks);
-                return;
-            }
-
-            if (TryGetPoint(relation, out var point))
-            {
-                Add(positions, point.Carrier, point.Location.Ticks);
-                return;
-            }
-
-            Visit(relation.Left);
-            Visit(relation.Right);
-        }
-    }
-
-    private static ContributionSurface ReadContributionSurface(IElement surface)
-    {
-        var positions = new ContributionSurface();
-        Visit(surface);
-        return positions;
-
-        void Visit(IElement element)
-        {
-            if (element is not Relation relation)
-            {
-                return;
-            }
-
-            if (Contribution.TryRead(relation, out var contribution))
-            {
-                positions.Add(contribution);
-                return;
-            }
-
-            if (TryGetPoint(relation, out var point))
-            {
-                positions.Add(relation, point.Location);
-                return;
-            }
-
-            Visit(relation.Left);
-            Visit(relation.Right);
-        }
-    }
-
-    private static void Add(Dictionary<Carrier, ulong> positions, Carrier carrier, ulong ticks)
-    {
-        positions[carrier] = checked(positions.GetValueOrDefault(carrier) + ticks);
     }
 
     private static bool TryGetSegmentTransform(

@@ -84,6 +84,10 @@ Current executable foothold:
   `(lower 10 -> lower carrier) -> (upper 0 -> upper carrier)` therefore settles
   lower `11` as lower `1` and upper `1`; the value `11` does not remain as an
   externally meaningful carrier value.
+- The settled position surface is now a contribution surface rather than a
+  flattened carrier map. `Gojo.Reads.ContributionReads` exposes raw
+  contribution relations and lower total/scale projections, so provenance and
+  post-accounting scale marks remain inspectable as relation structure.
 - `CarrierLocation.ReadThroughBoundary(earlierCarrier, boundary)` returns a
   `Relation` whose left slot is the earlier carrier-layer ticks and whose right
   slot is the later carrier-layer ticks that did not cross the boundary. This
