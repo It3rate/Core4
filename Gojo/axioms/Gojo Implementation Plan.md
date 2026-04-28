@@ -94,7 +94,10 @@ Current executable foothold:
   post-accounting scale marks remain inspectable as relation structure. This
   is a frame accounting surface, not an optimized runtime cache; future dynamic
   passes may discard and recompute it whenever relation structure is perturbed.
-- `CarrierLocation.ReadThroughBoundary(earlierCarrier, boundary)` returns a
+- `CarrierLocation` has been reduced back toward substrate storage. Boundary,
+  accounting, transfer, observation, gathering, and segment-boundary behavior
+  now live as transitional extension reads in `Gojo.Reads.CarrierLocationReads`.
+- `ReadThroughBoundary(earlierCarrier, boundary)` returns a
   `Relation` whose left slot is the earlier carrier-layer ticks and whose right
   slot is the later carrier-layer ticks that did not cross the boundary. This
   replaces the former dedicated layered-read wrapper.
@@ -103,12 +106,12 @@ Current executable foothold:
   route relation. A nested receiving side can update both a wrapped whole
   carrier and a counter, while any route saturation remains visible as overflow
   tension beside the residue.
-- `CarrierLocation.ReadRefillThroughBoundary(earlierCarrier, boundary)` is the
+- `ReadRefillThroughBoundary(earlierCarrier, boundary)` is the
   refill/underflow mirror of `ReadThroughBoundary`. Reverse partition flow
   reads as borrowed ticks on an earlier inverse carrier plus positive refill
   residue on the partition carrier. Those borrowed ticks route through the same
   transfer/observe/gather machinery as overflow.
-- `CarrierLocation.ReadThroughSegment(reader, segment, lapCarrier)` lets a
+- `ReadThroughSegment(reader, segment, lapCarrier)` lets a
   directed segment act as a boundary. It reads whole segment crossings on the
   lap carrier and preserves residue as a carrier location on the segment
   surface. Reading exactly at the segment end returns one lap and the segment
@@ -117,13 +120,13 @@ Current executable foothold:
   A refill draw routed into `counter.Inverse()` can be compared with existing
   forward counter ticks through `TensionOn` and `ExclusiveOn`; remaining forward
   count or opposed overdraw is visible without signed storage.
-- `CarrierLocation.NewTensionAfter(accounted, reader)` returns the carrier
+- `NewTensionAfter(accounted, reader)` returns the carrier
   ticks that remain newly visible after the current read frame subtracts what
   local structure already accounts for.
-- `CarrierLocation.NewTensionAfter(reader, accounted...)` accumulates multiple
+- `NewTensionAfter(reader, accounted...)` accumulates multiple
   compatible accounting surfaces before reporting new tension, giving route
   capacity a numeric foothold without adding a route wrapper yet.
-- `CarrierLocation.AccountedBy(reader, accounted...)` returns a `Relation`
+- `AccountedBy(reader, accounted...)` returns a `Relation`
   whose left slot is the participation accounted by the current read and whose
   right slot is the newly visible tension.
 - Clamp is currently this same accounting read with no continuation route. The
@@ -139,14 +142,14 @@ Current executable foothold:
 - `Relation.CarrierLocations()` now traverses nested relation surfaces.
   `LeftCarrierLocations()` and `RightCarrierLocations()` keep the ordered side
   distinction when context needs it.
-- `CarrierLocation.TransferThrough(reader, route)` is the first resolved-route
+- `TransferThrough(reader, route)` is the first resolved-route
   projection. The route's left side is read as source-side capacity; the
   route's right side is read as the receiving carrier surface. The returned
   relation is `source accounting split -> received surface`, so partial
   transfer leaves excess visible as tension. If the receiving side is nested,
   the transfer preserves that nested relation shape, giving branch-like
   receiver updates without introducing a graph object.
-- `CarrierLocation.TransferThrough(reader, route, receiverReader,
+- `TransferThrough(reader, route, receiverReader,
   receiverCapacity)` composes a receiver-side accounting read after source
   transfer. The returned shape is `source split -> receiver split`, so source
   excess and receiver excess remain distinct tensions that can settle in later
@@ -191,7 +194,7 @@ Current executable foothold:
   its source-side split exposes the unreturned tension. Opposed loop closure is
   the same composition through an inverse carrier, giving ping-pong without a
   reflection token.
-- `CarrierLocation.ObserveThrough(reader, route)` is the first zero-unit
+- `ObserveThrough(reader, route)` is the first zero-unit
   observation projection. The route's left side sizes what can be observed, but
   the source is read with no drain, so the full visible incoming participation
   remains new tension. The right side receives the observed amount as a marker,
@@ -204,7 +207,7 @@ Current executable foothold:
   observation-merge mirror. Several sources can update one receiver surface
   without being drained; each source still reports its own unchanged visible
   tension.
-- `CarrierLocation.GatherThrough(reader, route)` is the first open-route
+- `GatherThrough(reader, route)` is the first open-route
   projection. The source is read with no drain, and the incoming visible
   tension gathers into the route's left side while the route's right side
   remains open. This turns `0/0` into `m/0`; the gathered `m` can later harden

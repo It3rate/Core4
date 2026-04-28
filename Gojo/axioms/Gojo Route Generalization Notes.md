@@ -14,16 +14,16 @@ relation reads.
 
 The current route system is already relation-shaped:
 
-- `CarrierLocation.AccountedBy(reader, accounted...)` splits a source into:
+- `AccountedBy(reader, accounted...)` splits a source into:
   - left: participation accounted in this reader frame
   - right: newly visible residual tension
-- `CarrierLocation.TransferThrough(reader, route)` reads the route's left side
+- `TransferThrough(reader, route)` reads the route's left side
   as source-side capacity and emits the accounted source participation onto the
   route's right side.
-- `CarrierLocation.ObserveThrough(reader, route)` reads a bounded amount through
+- `ObserveThrough(reader, route)` reads a bounded amount through
   the route's left side, emits that amount to the right side, and leaves the
   source undrained.
-- `CarrierLocation.GatherThrough(reader, route)` leaves the source undrained and
+- `GatherThrough(reader, route)` leaves the source undrained and
   gathers the visible source tension into the route's left side while the right
   side remains open.
 - Nested receiver surfaces update every compatible carrier location by the same
@@ -128,27 +128,29 @@ These should remain route compositions, not separate tags.
 
 ## 6. Transitional Code Direction
 
-One possible low-risk transitional implementation step is to factor the existing
-`TransferThrough`, `ObserveThrough`, and `GatherThrough` bodies around one
-private or internal route-read helper:
+Current low-risk transitional status:
+
+- boundary, accounting, transfer, observation, and gathering reads have been
+  moved out of `Gojo.Core.CarrierLocation` into
+  `Gojo.Reads.CarrierLocationReads`
+- `TransferThrough`, `ObserveThrough`, and `GatherThrough` now share one
+  private route-read helper:
 
 ```text
 source split + emitted carrier location + receiver surface -> relation result
 ```
 
-This helper should not introduce a public route type. It would simply make the
-common route mechanics obvious and prevent the three public reads from drifting
-apart while structural transform reads are being built.
+This helper does not introduce a public route type. It simply makes the common
+route mechanics obvious and prevents the three public reads from drifting apart
+while structural relation reads are being built.
 
 After that, move outward:
 
-1. make route sequence and residual route reads call the shared helper through
-   the existing public reads
-2. consider moving public route reads from `Gojo.Core.CarrierLocation` to
-   `Gojo.Reads` if `CarrierLocation` starts feeling too behavioral
-3. represent route collections as relation surfaces rather than arrays once the
-   shape is clear
-4. add a balancing pass that repeatedly reads visible residuals and routes what
+1. route sequence and residual route reads currently call the shared helper
+   through the existing public extension reads
+2. make route collections relation surfaces rather than arrays once the shape
+   is clear
+3. add a balancing pass that repeatedly reads visible residuals and routes what
    local structure can account for, without adding a global settled status
 
 ## 7. Caution
