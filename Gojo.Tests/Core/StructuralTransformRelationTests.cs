@@ -448,6 +448,35 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
+    public void SegmentSettlingCanFeedSegmentToPointMovementInSameFrame()
+    {
+        var source = new Carrier(10);
+        var middle = new Carrier(20);
+        var target = new Carrier(30);
+        var sourceSegment = Segment(source, 0, 1);
+        var middleSegment = Segment(middle, 0, 1);
+        var targetSegment = Segment(target, 0, 1);
+        var structure = Structure(
+            Surface(Point(source, 0), Point(middle, 0), Point(target, 0)),
+            Surface(
+                targetSegment,
+                new Relation(sourceSegment, middleSegment),
+                new Relation(middleSegment, Point(target, 1))));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(source, 7));
+
+        Assert.Equal(new CarrierLocation(source, 7), settled.PositionOn(source));
+        Assert.Equal(new CarrierLocation(middle, 7), settled.PositionOn(middle));
+        Assert.Equal(new CarrierLocation(target, 0), settled.PositionOn(target));
+        Assert.Equal(
+            Surface(
+                Segment(target, 0, 7),
+                new Relation(sourceSegment, middleSegment),
+                new Relation(middleSegment, Point(target, 7))),
+            settled.Right);
+    }
+
+    [Fact]
     public void SegmentToPointTransformMovesEndpointAndPreservesSegmentTopology()
     {
         var lower = new Carrier(10);

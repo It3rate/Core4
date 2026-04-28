@@ -7,18 +7,14 @@ public static class StructuralTransformReads
     public static Relation AddAndSettle(this Relation structure, CarrierLocation incoming)
     {
         var positions = ReadPositionSurface(structure.Left);
-        var pointTransforms = ReadPointTransforms(structure.Right);
         var relationSurface = structure.Right;
+        var segmentPointTransforms = ReadSegmentPointTransforms(relationSurface);
 
         Add(positions, incoming.Carrier, incoming.Ticks);
-        SettlePointTransforms(positions, pointTransforms);
-        relationSurface = ApplySegmentToPointTransforms(
-            positions,
-            relationSurface,
-            ReadSegmentPointTransforms(relationSurface));
-        var segmentTransforms = ReadSegmentTransforms(relationSurface);
-        ApplySegmentTransforms(positions, segmentTransforms);
-        SettlePointTransforms(positions, pointTransforms);
+        relationSurface = SettlePointCarryAndEndpointMovement(positions, relationSurface, segmentPointTransforms);
+        ApplySegmentTransforms(positions, ReadSegmentTransforms(relationSurface));
+        relationSurface = SettlePointCarryAndEndpointMovement(positions, relationSurface, segmentPointTransforms);
+        SettlePointTransforms(positions, ReadPointTransforms(relationSurface));
 
         return new(BuildPositionSurface(positions), relationSurface);
     }
@@ -222,6 +218,15 @@ public static class StructuralTransformReads
             Visit(relation.Left);
             Visit(relation.Right);
         }
+    }
+
+    private static IElement SettlePointCarryAndEndpointMovement(
+        Dictionary<Carrier, ulong> positions,
+        IElement relationSurface,
+        SegmentPointTransformShape[] segmentPointTransforms)
+    {
+        SettlePointTransforms(positions, ReadPointTransforms(relationSurface));
+        return ApplySegmentToPointTransforms(positions, relationSurface, segmentPointTransforms);
     }
 
     private static void SettlePointTransforms(

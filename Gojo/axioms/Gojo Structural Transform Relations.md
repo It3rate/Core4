@@ -269,6 +269,10 @@ The current behavior is intentionally small:
 - a structure can be represented as current carrier-position surface related to
   an internal relation surface
 - adding a carrier location into that structure returns a new settled structure
+- one settle frame is staged rather than a blind equation solve:
+  point/carry relations close, segment-to-point relations may move endpoints,
+  segment-to-segment relations stretch carrier positions once, then point/carry
+  and endpoint movement get one more chance to account for the new positions
 - origin-to-origin point transform preserves the incoming local value and does
   not accumulate
 - nonzero-point-to-origin transform carries by threshold and leaves local
@@ -290,8 +294,16 @@ The current behavior is intentionally small:
 - segment-to-point transforms move the target point while preserving the
   relation topology around that point; this is the first basis-scaling /
   multiplication-like structural update
+- a carrier position produced by segment stretch can activate a
+  segment-to-point endpoint move in the same frame
 - repeated segment transform chains carry the previous stretch forward, giving
   the first internal power-like behavior
+
+Segment stretch is intentionally not applied in an unconstrained fixed-point
+loop yet. Existing upper carrier participation can stretch once in the current
+frame; blindly re-stretching that already transformed value would invent
+growth. Later work should make derived and independent carrier participation
+separable enough that segment relations can also settle by repeated lowering.
 
 For a point transform such as:
 
