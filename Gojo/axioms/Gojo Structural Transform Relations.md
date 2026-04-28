@@ -35,6 +35,42 @@ transform = (point -> point) or (segment -> segment)
 The aim is not to create separate point and segment wrapper types. The shape of
 the relation carries the meaning.
 
+The current executable pass grounds both ends of a same-carrier segment as
+points:
+
+```text
+S(C,2,5) = P(C,2) -> P(C,5)
+```
+
+That is a useful concrete simplification, not the only possible relation
+construction. A more literal ordered construction can ground the first site and
+relate later values through it:
+
+```text
+a = P(C,2)
+b = a -> 5
+```
+
+In that construction, `2` is related to the carrier, while `5` is related to
+the grounded site `a`; `5` is not independently grounded to the carrier until
+some later relation supplies that grounding. This matters for metaphor and
+reuse. A carrierless relation such as:
+
+```text
+2 -> 5
+```
+
+is a floating expression. It is not meaningless, but it is unbound. It carries
+an ordered relational shape that can later be applied to a carrier, much like
+words such as "double", "half", or "between" carry available structure before
+they are attached to a particular domain. One way to think about metaphor is:
+remove or loosen the original carrier grounding, preserve the relation shape,
+then re-ground that shape on a different carrier.
+
+The current code does not yet have a bare carrierless numeric element, so this
+is a conceptual direction rather than an executable representation. `Carrier`
+and `CarrierLocation` still provide the concrete substrate for this pass.
+
 For a compact list of operation-like shapes that follow from this notation, see
 `Gojo Operation Shape Catalog.md`.
 
@@ -309,6 +345,19 @@ loop yet. Existing upper carrier participation can stretch once in the current
 frame; blindly re-stretching that already transformed value would invent
 growth. Later work should make derived and independent carrier participation
 separable enough that segment relations can also settle by repeated lowering.
+
+Here, independent participation means carrier-local load that arrived from the
+outside of the relation being applied, or from a different already-accounted
+structure. Derived participation means load produced by the same relation
+during the current frame. For example, if `lower 7` stretches `upper` to `7`,
+the new `upper 7` is derived from that stretch. Reapplying the same stretch to
+that derived `upper 7` as if it were independent would invent `49`. If `upper`
+already carried an independent `3`, then stretching that independent `3` by
+the lower `7` can produce `21` in the current executable model. The missing
+numeric distinction is provenance: not metadata tags, but relation-shaped
+accounting that lets the kernel see which participation came from which
+relation path in the current frame.
+
 The implementation should keep pruning named intermediate passes toward this
 single relation-application algorithm as the numeric state becomes rich enough
 to make every pass idempotent.
