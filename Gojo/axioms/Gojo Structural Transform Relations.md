@@ -310,8 +310,13 @@ The current behavior is intentionally small:
   relation surface stop changing
 - carrier position is no longer only a flattened `carrier -> ticks` map inside
   the settle frame. It is a contribution surface: each visible contribution has
-  a source element, a carrier location, and, for segment-derived contributions,
-  a scale contribution
+  a source element, a carrier location, and a visible carrier-local scale
+  location
+- settled structures keep that contribution surface on their left side; lower
+  reads such as `PositionOn` collapse it to carrier totals when a total is what
+  the caller wants
+- because the contribution surface is returned as ordinary structure, it can
+  feed the next settle frame without first being flattened back to points
 - a segment relation replaces its own contribution on the upper carrier instead
   of multiplying the carrier total it produced on an earlier pass
 - origin-to-origin point transform preserves the incoming local value and does
@@ -321,8 +326,8 @@ The current behavior is intentionally small:
 - point carry replaces the source carrier with a relation-shaped residual
   contribution and places the carried contribution on the upper carrier
 - the residual contribution left by point carry is visible as post-accounting
-  structure; segment relations do not re-stretch that residual in the same
-  settle frame
+  structure with scale `0`; segment relations do not re-stretch that residual
+  in the same settle frame
 - same-carrier point-to-point relations are read as local segment structure,
   not as point transforms; this prevents a segment from accidentally behaving
   like a carry/reset relation
@@ -357,12 +362,20 @@ that derived `upper 7` as if it were independent would invent `49`. If `upper`
 already carried an independent `3`, then stretching that independent `3` by
 the lower `7` can produce `21` in the current executable model.
 
-The current executable answer is provenance by contribution. This is still an
-internal settle-frame surface, not the final public carrier state, but it moves
-the model in the intended direction: source relation plus carrier location says
-who put the visible value there. Segment scale is still stored as frame-local
-contribution data; a later pass should make that scale visible as ordinary
-Core4 relation structure too.
+The current executable answer is provenance by contribution. A contribution is
+ordinary relation structure:
+
+```text
+source -> (carrier location -> carrier-local scale location)
+```
+
+The source says where the contribution came from. The carrier location says
+what visible participation it contributes. The scale location says how that
+contribution should participate in downstream segment scale reads. A scale of
+`1` is ordinary carrier participation. A segment-derived contribution carries
+the segment stretch as its scale. A point-carry residue carries scale `0`,
+which makes the residue visible as already-accounted participation for this
+settle frame instead of fresh stretch input.
 
 The implementation should keep pruning named intermediate passes toward this
 single relation-application algorithm as the numeric state becomes rich enough

@@ -213,14 +213,25 @@ public sealed class StructuralTransformRelationTests
     {
         var ones = new Carrier(10);
         var tens = new Carrier(20);
+        var transform = new Relation(Point(ones, 10), Point(tens, 0));
         var structure = Structure(
             Surface(Point(ones, 0), Point(tens, 0)),
-            new Relation(Point(ones, 10), Point(tens, 0)));
+            transform);
 
         var settled = structure.AddAndSettle(new CarrierLocation(ones, 37));
 
         Assert.Equal(new CarrierLocation(ones, 7), settled.PositionOn(ones));
         Assert.Equal(new CarrierLocation(tens, 3), settled.PositionOn(tens));
+        Assert.Equal(
+            Surface(
+                Contribution(
+                    new Relation(transform, new CarrierLocation(ones, 10)),
+                    new CarrierLocation(ones, 7),
+                    0),
+                Contribution(
+                    transform,
+                    new CarrierLocation(tens, 3))),
+            settled.Left);
     }
 
     [Fact]
@@ -298,6 +309,22 @@ public sealed class StructuralTransformRelationTests
 
         Assert.Equal(new CarrierLocation(ones, 1), settled.PositionOn(ones));
         Assert.Equal(new CarrierLocation(tens, 3), settled.PositionOn(tens));
+    }
+
+    [Fact]
+    public void SettledContributionSurfaceCanFeedNextFrame()
+    {
+        var ones = new Carrier(10);
+        var tens = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(ones, 0), Point(tens, 0)),
+            new Relation(Point(ones, 10), Point(tens, 0)));
+
+        var first = structure.AddAndSettle(new CarrierLocation(ones, 7));
+        var second = first.AddAndSettle(new CarrierLocation(ones, 5));
+
+        Assert.Equal(new CarrierLocation(ones, 2), second.PositionOn(ones));
+        Assert.Equal(new CarrierLocation(tens, 1), second.PositionOn(tens));
     }
 
     [Fact]
@@ -380,14 +407,25 @@ public sealed class StructuralTransformRelationTests
     {
         var lower = new Carrier(10);
         var upper = new Carrier(20);
+        var transform = new Relation(Segment(lower, 0, 1), Segment(upper, 0, 1));
         var structure = Structure(
             Surface(Point(lower, 0), Point(upper, 0)),
-            new Relation(Segment(lower, 0, 1), Segment(upper, 0, 1)));
+            transform);
 
         var settled = structure.AddAndSettle(new CarrierLocation(lower, 7));
 
         Assert.Equal(new CarrierLocation(lower, 7), settled.PositionOn(lower));
         Assert.Equal(new CarrierLocation(upper, 7), settled.PositionOn(upper));
+        Assert.Equal(
+            Surface(
+                Contribution(
+                    new Relation(Point(lower, 0), new CarrierLocation(lower, 7)),
+                    new CarrierLocation(lower, 7)),
+                Contribution(
+                    transform,
+                    new CarrierLocation(upper, 7),
+                    7)),
+            settled.Left);
     }
 
     [Fact]
@@ -395,14 +433,28 @@ public sealed class StructuralTransformRelationTests
     {
         var lower = new Carrier(10);
         var upper = new Carrier(20);
+        var transform = new Relation(Segment(lower, 0, 1), Segment(upper, 0, 1));
         var structure = Structure(
             Surface(Point(lower, 0), Point(upper, 3)),
-            new Relation(Segment(lower, 0, 1), Segment(upper, 0, 1)));
+            transform);
 
         var settled = structure.AddAndSettle(new CarrierLocation(lower, 7));
 
         Assert.Equal(new CarrierLocation(lower, 7), settled.PositionOn(lower));
         Assert.Equal(new CarrierLocation(upper, 21), settled.PositionOn(upper));
+        Assert.Equal(
+            Surface(
+                Contribution(
+                    new Relation(Point(lower, 0), new CarrierLocation(lower, 7)),
+                    new CarrierLocation(lower, 7)),
+                Contribution(
+                    Point(upper, 3),
+                    new CarrierLocation(upper, 3)),
+                Contribution(
+                    transform,
+                    new CarrierLocation(upper, 18),
+                    7)),
+            settled.Left);
     }
 
     [Fact]
@@ -537,6 +589,9 @@ public sealed class StructuralTransformRelationTests
 
     private static Relation Segment(Carrier carrier, ulong start, ulong end) =>
         new(Point(carrier, start), Point(carrier, end));
+
+    private static Relation Contribution(IElement source, CarrierLocation location, ulong scale = 1) =>
+        new(source, new Relation(location, new CarrierLocation(location.Carrier, scale)));
 
     private static Relation Structure(IElement positions, IElement relations) =>
         new(positions, relations);

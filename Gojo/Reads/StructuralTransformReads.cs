@@ -6,14 +6,14 @@ public static class StructuralTransformReads
 {
     public static Relation AddAndSettle(this Relation structure, CarrierLocation incoming)
     {
-        var positions = ReadPositionState(structure.Left);
+        var positions = ReadContributionSurface(structure.Left);
         var relationSurface = structure.Right;
         var relations = RelationsOf(relationSurface);
 
         positions.Add(new Relation(Point(incoming.Carrier, 0), incoming), incoming);
         relationSurface = ApplyRelationsUntilQuiet(positions, relationSurface, relations);
 
-        return new(BuildPositionSurface(positions.Totals()), relationSurface);
+        return new(positions.Surface(), relationSurface);
     }
 
     public static CarrierLocation PositionOn(this Relation structure, Carrier carrier)
@@ -166,7 +166,7 @@ public static class StructuralTransformReads
     }
 
     private static IElement ApplyRelationsUntilQuiet(
-        PositionState positions,
+        ContributionSurface positions,
         IElement relationSurface,
         Relation[] relations)
     {
@@ -184,7 +184,7 @@ public static class StructuralTransformReads
     }
 
     private static IElement ApplyRelationsOnce(
-        PositionState positions,
+        ContributionSurface positions,
         IElement relationSurface,
         Relation[] relations)
     {
@@ -197,7 +197,7 @@ public static class StructuralTransformReads
     }
 
     private static IElement ApplyRelation(
-        PositionState positions,
+        ContributionSurface positions,
         IElement relationSurface,
         Relation relation)
     {
@@ -221,7 +221,7 @@ public static class StructuralTransformReads
     }
 
     private static void ApplyPointRelation(
-        PositionState positions,
+        ContributionSurface positions,
         Relation relation,
         PointShape lowerPoint,
         PointShape upperPoint)
@@ -239,18 +239,18 @@ public static class StructuralTransformReads
 
         var carried = lowerTicks / lowerPoint.Location.Ticks;
         var residue = lowerTicks % lowerPoint.Location.Ticks;
-        positions.ReplaceCarrier(lowerPoint.Carrier, new Relation(relation, lowerPoint.Location), residue);
+        positions.ReplaceCarrier(lowerPoint.Carrier, new Relation(relation, lowerPoint.Location), residue, scale: 0);
         positions.Set(relation, upperPoint.Carrier, carried);
     }
 
     private static void ApplySegmentRelation(
-        PositionState positions,
+        ContributionSurface positions,
         Relation relation,
         SegmentShape lowerSegment,
         SegmentShape upperSegment)
     {
-        if (positions.HasPointResidueOn(lowerSegment.Carrier) ||
-            positions.HasPointResidueOn(upperSegment.Carrier))
+        if (positions.HasZeroScaleOn(lowerSegment.Carrier) ||
+            positions.HasZeroScaleOn(upperSegment.Carrier))
         {
             return;
         }
@@ -276,7 +276,7 @@ public static class StructuralTransformReads
     }
 
     private static IElement ApplySegmentPointRelation(
-        PositionState positions,
+        ContributionSurface positions,
         IElement surface,
         SegmentShape lowerSegment,
         PointShape upperPoint)
@@ -319,6 +319,12 @@ public static class StructuralTransformReads
                 return;
             }
 
+            if (Contribution.TryRead(relation, out var contribution))
+            {
+                Add(positions, contribution.Location.Carrier, contribution.Location.Ticks);
+                return;
+            }
+
             if (TryGetPoint(relation, out var point))
             {
                 Add(positions, point.Carrier, point.Location.Ticks);
@@ -330,9 +336,9 @@ public static class StructuralTransformReads
         }
     }
 
-    private static PositionState ReadPositionState(IElement surface)
+    private static ContributionSurface ReadContributionSurface(IElement surface)
     {
-        var positions = new PositionState();
+        var positions = new ContributionSurface();
         Visit(surface);
         return positions;
 
@@ -340,6 +346,12 @@ public static class StructuralTransformReads
         {
             if (element is not Relation relation)
             {
+                return;
+            }
+
+            if (Contribution.TryRead(relation, out var contribution))
+            {
+                positions.Add(contribution);
                 return;
             }
 
@@ -352,29 +364,6 @@ public static class StructuralTransformReads
             Visit(relation.Left);
             Visit(relation.Right);
         }
-    }
-
-    private static IElement BuildPositionSurface(Dictionary<Carrier, ulong> positions)
-    {
-        var points = positions
-            .OrderBy(position => position.Key.Lineage)
-            .ThenBy(position => position.Key.Id)
-            .ThenBy(position => position.Key.Flow)
-            .Select(position => Point(position.Key, position.Value))
-            .Cast<IElement>()
-            .ToArray();
-
-        return BuildSurface(points);
-    }
-
-    private static IElement BuildSurface(IElement[] elements)
-    {
-        return elements.Length switch
-        {
-            0 => Point(Carrier.Unknown, 0),
-            1 => elements[0],
-            _ => new Relation(elements[0], BuildSurface(elements[1..]))
-        };
     }
 
     private static void Add(Dictionary<Carrier, ulong> positions, Carrier carrier, ulong ticks)
@@ -459,126 +448,5 @@ public static class StructuralTransformReads
     private readonly record struct SegmentShape(Carrier Carrier, ulong Start, ulong End)
     {
         public ulong Length => End >= Start ? End - Start : 0;
-    }
-
-    private readonly record struct Contribution(IElement Source, CarrierLocation Location, ulong Scale);
-
-    private readonly record struct ContributionSnapshot(string Source, Carrier Carrier, ulong Ticks, ulong Scale);
-
-    private sealed class PositionState
-    {
-        private readonly List<Contribution> contributions = [];
-
-        public void Add(IElement source, CarrierLocation location)
-        {
-            if (location.Ticks == 0)
-            {
-                return;
-            }
-
-            var index = contributions.FindIndex(contribution =>
-                Equals(contribution.Source, source) &&
-                contribution.Location.Carrier == location.Carrier);
-            if (index < 0)
-            {
-                contributions.Add(new(source, location, 1));
-                return;
-            }
-
-            var contribution = contributions[index];
-            contributions[index] = contribution with
-            {
-                Location = new CarrierLocation(
-                    location.Carrier,
-                    checked(contribution.Location.Ticks + location.Ticks))
-            };
-        }
-
-        public void Set(IElement source, Carrier carrier, ulong ticks, ulong scale = 1)
-        {
-            contributions.RemoveAll(contribution =>
-                Equals(contribution.Source, source) &&
-                contribution.Location.Carrier == carrier);
-
-            if (ticks != 0)
-            {
-                contributions.Add(new(source, new CarrierLocation(carrier, ticks), scale == 0 ? 1 : scale));
-            }
-        }
-
-        public void ReplaceCarrier(Carrier carrier, IElement source, ulong ticks)
-        {
-            contributions.RemoveAll(contribution => contribution.Location.Carrier == carrier);
-            Set(source, carrier, ticks);
-        }
-
-        public ulong TotalOn(Carrier carrier) => contributions
-            .Where(contribution => contribution.Location.Carrier == carrier)
-            .Aggregate(0UL, (total, contribution) => checked(total + contribution.Location.Ticks));
-
-        public ulong TotalOn(Carrier carrier, IElement except) => contributions
-            .Where(contribution =>
-                contribution.Location.Carrier == carrier &&
-                !Equals(contribution.Source, except))
-            .Aggregate(0UL, (total, contribution) => checked(total + contribution.Location.Ticks));
-
-        public ulong ScaleOn(Carrier carrier)
-        {
-            var scale = 1UL;
-            foreach (var contribution in contributions)
-            {
-                if (contribution.Location.Carrier == carrier && contribution.Scale > 1)
-                {
-                    scale = checked(scale * contribution.Scale);
-                }
-            }
-
-            return scale;
-        }
-
-        public bool HasPointResidueOn(Carrier carrier) => contributions.Any(contribution =>
-            contribution.Location.Carrier == carrier &&
-            IsPointResidueSource(contribution.Source));
-
-        public Dictionary<Carrier, ulong> Totals()
-        {
-            var totals = new Dictionary<Carrier, ulong>();
-            foreach (var contribution in contributions)
-            {
-                StructuralTransformReads.Add(totals, contribution.Location.Carrier, contribution.Location.Ticks);
-            }
-
-            return totals;
-        }
-
-        public ContributionSnapshot[] Snapshot() => [.. contributions
-            .Select(contribution => new ContributionSnapshot(
-                ElementKey(contribution.Source),
-                contribution.Location.Carrier,
-                contribution.Location.Ticks,
-                contribution.Scale))
-            .OrderBy(snapshot => snapshot.Carrier.Lineage)
-            .ThenBy(snapshot => snapshot.Carrier.Id)
-            .ThenBy(snapshot => snapshot.Carrier.Flow)
-            .ThenBy(snapshot => snapshot.Source)
-            .ThenBy(snapshot => snapshot.Ticks)
-            .ThenBy(snapshot => snapshot.Scale)];
-
-        public bool SameAs(ContributionSnapshot[] snapshot) =>
-            Snapshot().SequenceEqual(snapshot);
-
-        private static string ElementKey(IElement element) => element switch
-        {
-            Carrier carrier => $"C({carrier.Lineage},{carrier.Id},{carrier.Flow})",
-            CarrierLocation location => $"L({location.Carrier.Lineage},{location.Carrier.Id},{location.Carrier.Flow},{location.Ticks})",
-            Relation relation => $"R({ElementKey(relation.Left)}>{ElementKey(relation.Right)})",
-            _ => element.GetType().FullName ?? string.Empty
-        };
-
-        private static bool IsPointResidueSource(IElement source) =>
-            source is Relation relation &&
-            relation.Left is Relation transform &&
-            relation.Right is CarrierLocation &&
-            TryGetPointTransform(transform, out _, out _);
     }
 }
