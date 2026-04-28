@@ -1,4 +1,5 @@
 using Gojo.Core;
+using Gojo.Reads;
 
 namespace Gojo.Tests.Core;
 
@@ -43,7 +44,7 @@ public sealed class StructuralTransformRelationTests
         Assert.IsType<Relation>(segmentTransform.Right);
     }
 
-    [Fact(Skip = "Target behavior: structural point transforms should carry/reset by relation shape, not external route methods.")]
+    [Fact]
     public void PointToOriginTransformCarriesAndLeavesResidue()
     {
         var lower = new Carrier(10);
@@ -51,14 +52,14 @@ public sealed class StructuralTransformRelationTests
         var transform = new Relation(Point(lower, 10), Point(upper, 0));
         var incoming = new CarrierLocation(lower, 27);
 
-        var read = ReadThroughStructuralTransform(incoming, transform);
+        var read = incoming.ReadThroughStructuralTransform(transform);
 
         Assert.Equal(
             new Relation(new CarrierLocation(upper, 2), new CarrierLocation(lower, 7)),
             read);
     }
 
-    [Fact(Skip = "Target behavior: structural segment transforms should stretch, not clear like point transforms.")]
+    [Fact]
     public void SegmentToSegmentTransformStretchesContinuousExtent()
     {
         var lower = new Carrier(10);
@@ -66,12 +67,12 @@ public sealed class StructuralTransformRelationTests
         var transform = new Relation(Segment(lower, 0, 1), Segment(upper, 0, 1));
         var incoming = new CarrierLocation(lower, 7);
 
-        var read = ReadThroughStructuralTransform(incoming, transform);
+        var read = incoming.ReadThroughStructuralTransform(transform);
 
         Assert.Equal(Segment(upper, 0, 7), read);
     }
 
-    [Fact(Skip = "Target behavior: repeated segment-to-segment relations should compose as power-like scaling.")]
+    [Fact]
     public void RepeatedSegmentRelationsComposeAsPowers()
     {
         var a = new Carrier(10);
@@ -80,11 +81,70 @@ public sealed class StructuralTransformRelationTests
         var first = new Relation(Segment(a, 0, 1), Segment(b, 0, 1));
         var second = new Relation(Segment(b, 0, 1), Segment(c, 0, 1));
 
-        var firstRead = ReadThroughStructuralTransform(new CarrierLocation(a, 3), first);
-        var secondRead = ReadThroughStructuralTransform(new CarrierLocation(b, 3), second);
+        var reads = new CarrierLocation(a, 3).ReadThroughStructuralTransforms(first, second);
 
-        Assert.Equal(Segment(b, 0, 3), firstRead);
-        Assert.Equal(Segment(c, 0, 9), secondRead);
+        Assert.Equal(Segment(b, 0, 3), reads[0]);
+        Assert.Equal(Segment(c, 0, 9), reads[1]);
+    }
+
+    [Fact]
+    public void OriginToOriginAttachmentDoesNotAccumulate()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var transform = new Relation(Point(lower, 0), Point(upper, 0));
+        var incoming = new CarrierLocation(lower, 7);
+
+        var read = incoming.ReadThroughStructuralTransform(transform);
+
+        Assert.Equal(
+            new Relation(new CarrierLocation(upper, 0), incoming),
+            read);
+    }
+
+    [Fact]
+    public void PointTransformsCanCarryThroughBaseTenChain()
+    {
+        var ones = new Carrier(10);
+        var tens = new Carrier(20);
+        var hundreds = new Carrier(30);
+        var onesToTens = new Relation(Point(ones, 10), Point(tens, 0));
+        var tensToHundreds = new Relation(Point(tens, 10), Point(hundreds, 0));
+
+        var reads = new CarrierLocation(ones, 375).ReadThroughStructuralTransforms(onesToTens, tensToHundreds);
+
+        Assert.Equal(
+            new Relation(new CarrierLocation(tens, 37), new CarrierLocation(ones, 5)),
+            reads[0]);
+        Assert.Equal(
+            new Relation(new CarrierLocation(hundreds, 3), new CarrierLocation(tens, 7)),
+            reads[1]);
+    }
+
+    [Fact]
+    public void PointTransformCanUseBinaryBoundary()
+    {
+        var bit = new Carrier(10);
+        var next = new Carrier(20);
+        var transform = new Relation(Point(bit, 2), Point(next, 0));
+
+        var read = new CarrierLocation(bit, 13).ReadThroughStructuralTransform(transform);
+
+        Assert.Equal(
+            new Relation(new CarrierLocation(next, 6), new CarrierLocation(bit, 1)),
+            read);
+    }
+
+    [Fact]
+    public void SegmentTransformUsesBothSegmentLengths()
+    {
+        var lower = new Carrier(10);
+        var upper = new Carrier(20);
+        var transform = new Relation(Segment(lower, 0, 2), Segment(upper, 0, 5));
+
+        var read = new CarrierLocation(lower, 4).ReadThroughStructuralTransform(transform);
+
+        Assert.Equal(Segment(upper, 0, 10), read);
     }
 
     private static Relation Point(Carrier carrier, ulong ticks) =>
@@ -93,10 +153,4 @@ public sealed class StructuralTransformRelationTests
     private static Relation Segment(Carrier carrier, ulong start, ulong end) =>
         new(Point(carrier, start), Point(carrier, end));
 
-    private static Relation ReadThroughStructuralTransform(CarrierLocation incoming, Relation transform)
-    {
-        _ = incoming;
-        _ = transform;
-        throw new NotImplementedException();
-    }
 }

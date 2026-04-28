@@ -68,6 +68,11 @@ Current executable foothold:
   numeric exploration but are not action machinery by themselves.
 - `Gojo.Interpretation` holds named lower-projection vocabulary, such as
   boolean-style aliases, when the name is useful but not primitive.
+- `Gojo.Reads.StructuralTransformReads` is the first relation-shape transform
+  reader. It treats a point as `(carrier location -> carrier)`, a segment as
+  `(point -> point)`, and transform as relation-to-relation. It currently
+  distinguishes origin attachment, point carry/reset, segment stretch, base-like
+  carry chains, and repeated segment power-like chains without route tags.
 - `CarrierLocation.ReadThroughBoundary(earlierCarrier, boundary)` returns a
   `Relation` whose left slot is the earlier carrier-layer ticks and whose right
   slot is the later carrier-layer ticks that did not cross the boundary. This

@@ -193,7 +193,35 @@ If a carrier has no connection that can account for overflow or underflow,
 that unaccounted participation remains as tension. It can be inspected later
 and distributed when some relation structure can account for it.
 
-## 10. Consequence For Routes
+## 10. Current Executable Pass
+
+The first executable structural transform pass lives in
+`Gojo.Reads.StructuralTransformReads`.
+
+It recognizes relation shape rather than method-specific route declarations:
+
+- point: `(carrier location -> carrier)`
+- segment: `(point -> point)`
+- point transform: `point -> point`
+- segment transform: `segment -> segment`
+
+The current behavior is intentionally small:
+
+- origin-to-origin point transform preserves the incoming local value and does
+  not accumulate
+- nonzero-point-to-origin transform carries by threshold and leaves local
+  residue
+- chains of point transforms carry residue upward through base-like layers
+- segment-to-segment transform stretches the target segment by the incoming
+  value and both segment lengths
+- repeated segment transform chains carry the previous stretch forward, giving
+  the first power-like behavior
+
+This does not preserve the old route API as the preferred model. It gives a
+new structural foothold so route, overflow, observation, and gather behavior can
+be re-expressed through relation shape.
+
+## 11. Consequence For Routes
 
 The current route methods are executable scaffolding, but the long-term model
 should not depend on external parameterization.
@@ -218,27 +246,25 @@ the system should be able to inspect relation shape:
 The answer should come from carrier relation structure, not from a method name
 or tag.
 
-## 11. Implementation Direction
+## 12. Implementation Direction
 
 The next kernel pass should prioritize structural relation reads over adding
 more named route helpers.
 
 Recommended order:
 
-1. Add tests that distinguish point-to-origin transform from segment-to-segment
-   transform using only relation shape.
-2. Implement point transform reads for base-like carry/reset behavior.
-3. Implement segment transform reads for stretch/scale behavior.
-4. Re-express current overflow, transfer, observation, and gather helpers as
+1. Re-express current overflow, transfer, observation, and gather helpers as
    transitional conveniences over structural relation reads.
-5. Demote or remove external route parameterization once relation shape carries
+2. Demote or remove external route parameterization once relation shape carries
    the behavior.
+3. Extend structural reads to underflow/refill, opposed carriers, and tension
+   surfaces.
 
 Do not delete the current executable model until the structural version covers
 the same tests. The current code is useful scaffolding; the correction is that
 it should not be the final public mechanism.
 
-## 12. Guardrail
+## 13. Guardrail
 
 Carriers are low-level position holders.
 
