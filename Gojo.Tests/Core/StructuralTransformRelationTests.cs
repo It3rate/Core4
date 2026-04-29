@@ -128,6 +128,74 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
+    public void UnderflowStaysOnCarrierWithoutRelatedInverseReceiver()
+    {
+        var source = new Carrier(10);
+        var inverse = new Carrier(isInverse: true);
+        source.AddUnderflow(23);
+        var structure = Structure(
+            Surface(source, inverse),
+            Point(Carrier.Unknown, 0));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(source, 0));
+
+        Assert.Equal(23UL, source.Underflow);
+        Assert.Equal(new CarrierLocation(inverse, 0), settled.PositionOn(inverse));
+    }
+
+    [Fact]
+    public void UnderflowRoutesThroughRelatedInversePointReceiver()
+    {
+        var source = new Carrier(10);
+        var inverse = new Carrier(isInverse: true);
+        source.AddUnderflow(23);
+        var structure = Structure(
+            Surface(source, inverse),
+            new Relation(Point(source, 10), Point(inverse, 0)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(source, 0));
+
+        Assert.Equal(3UL, source.Underflow);
+        Assert.Equal(new CarrierLocation(inverse, 2), settled.PositionOn(inverse));
+    }
+
+    [Fact]
+    public void RelatedInverseCarrierBalancesOpposedVisibleValues()
+    {
+        var source = new Carrier(10);
+        var inverse = new Carrier(isInverse: true);
+        source.Add(5);
+        var structure = Structure(
+            Surface(source, inverse),
+            new Relation(Point(source, 1), Point(inverse, 0)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(inverse, 7));
+
+        Assert.Equal(new CarrierLocation(source, 0), settled.PositionOn(source));
+        Assert.Equal(new CarrierLocation(inverse, 2), settled.PositionOn(inverse));
+    }
+
+    [Fact]
+    public void OpposedResidualRemainsFreshForLaterRelationsInSameFrame()
+    {
+        var source = new Carrier(10);
+        var inverse = new Carrier(isInverse: true);
+        var target = new Carrier(20);
+        source.Add(5);
+        var structure = Structure(
+            Surface(source, inverse, target),
+            Surface(
+                new Relation(Point(source, 1), Point(inverse, 0)),
+                new Relation(Segment(inverse, 0, 1), Segment(target, 0, 10))));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(inverse, 7));
+
+        Assert.Equal(new CarrierLocation(source, 0), settled.PositionOn(source));
+        Assert.Equal(new CarrierLocation(inverse, 2), settled.PositionOn(inverse));
+        Assert.Equal(new CarrierLocation(target, 20), settled.PositionOn(target));
+    }
+
+    [Fact]
     public void ExtentRelationProjectsFreshParticipationAcrossCarrierSpans()
     {
         var source = new Carrier(10);
@@ -181,14 +249,16 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void ContributionReadsProjectCarrierOwnedState()
     {
-        var source = new Carrier(10).WithState(7, 3);
+        var source = new Carrier(10);
+        source.Add(7);
+        source.AddOverflow(3);
 
         Assert.Equal(new CarrierLocation(source, 7), source.ContributionTotalOn(source));
         Assert.Equal(new CarrierLocation(source, 3), source.ContributionTensionOn(source));
         Assert.Equal(
             new[]
             {
-                Contribution(Point(new Carrier(10), 0), new CarrierLocation(new Carrier(10), 7))
+                Contribution(Point(source, 0), new CarrierLocation(source, 7))
             },
             source.Contributions());
     }
@@ -202,8 +272,13 @@ public sealed class StructuralTransformRelationTests
     private static Relation Contribution(IElement source, CarrierLocation location, ulong scale = 1) =>
         new(source, new Relation(location, new CarrierLocation(location.Carrier, scale)));
 
-    private static Carrier State(Carrier carrier, ulong value, ulong tension = 0) =>
-        carrier.WithState(value, tension);
+    private static Carrier State(Carrier carrier, ulong value, ulong tension = 0)
+    {
+        carrier.SetValue(value);
+        carrier.SetOverflow(tension);
+        carrier.SetUnderflow(0);
+        return carrier;
+    }
 
     private static Relation Structure(IElement positions, IElement relations) =>
         new(positions, relations);

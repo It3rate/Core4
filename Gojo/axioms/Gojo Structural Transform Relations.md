@@ -13,7 +13,7 @@ settled   = add incoming participation, then repeatedly apply relation surface
 The pass does not ask for a point-transform object, segment-transform object,
 route object, boundary event, or operation tag. It walks relation structure,
 finds carrier sites, and lets the related sites determine what a carrier can
-account for and where tension can flow.
+account for and where overflow or underflow can flow.
 
 ## 1. Primitive Shapes
 
@@ -39,18 +39,21 @@ but Gojo does not yet have a bare numeric element for them.
 Each carrier instance can hold:
 
 ```text
-Value   = positive participation currently accounted on that carrier
-Tension = positive participation the carrier could not locally account for
+Id        = unique physical identity; ordinary construction always allocates it
+IsInverse = local orientation marker, not a pairing rule by itself
+Value     = positive participation currently accounted on that carrier
+Overflow  = participation above what the carrier could locally account for
+Underflow = participation below zero that the carrier could locally account for
 ```
 
-The carrier line is still identified by `Id`, `Lineage`, and `Flow`. Full
-carrier equality includes `Value` and `Tension`, because two carriers with the
-same line and different held state are different carrier instances in the
-settled surface.
+`Carrier.Unknown` is the one carrier with `Id = 0`. User-created carriers do
+not receive caller-supplied IDs. Two structurally identical carriers with
+different IDs are physically different carriers.
 
-Carrier value and tension are not points on the carrier line. They belong to
-the carrier instance. Relation structure such as `P(C,10)` remains the
-carrier-local shape that tells the settlement pass what can be accounted.
+Carrier value, overflow, and underflow are not points on the carrier line.
+They belong to the carrier instance. Relation structure such as `P(C,10)`
+remains the carrier-local shape that tells the settlement pass what can be
+accounted.
 
 ## 3. Local Accounting
 
@@ -66,11 +69,11 @@ to:
 
 ```text
 C.Value   = 3
-C.Tension = 20
+C.Overflow = 20
 ```
 
 The value `23` no longer remains as the carrier value. The carrier has
-hardened what it can locally hold, and the crossing amount is visible tension.
+hardened what it can locally hold, and the crossing amount is visible overflow.
 
 ```text
 P(C,k) -> P(C,k)
@@ -80,16 +83,16 @@ This is a clamp boundary. If `23` enters with `k = 10`, the carrier settles to:
 
 ```text
 C.Value   = 10
-C.Tension = 13
+C.Overflow = 13
 ```
 
 Both forms are ordinary same-carrier relations. The pass does not store a
 boundary kind.
 
-## 4. Tension Routing
+## 4. Overflow And Underflow Routing
 
 When a cross-carrier relation ends at a point-like receiver, the source side can
-route carrier tension into the receiver carrier.
+route carrier overflow into the receiver carrier.
 
 Compact carry:
 
@@ -101,7 +104,7 @@ Adding `37` to `C0` settles as:
 
 ```text
 C0.Value   = 7
-C0.Tension = 0
+C0.Overflow = 0
 C1.Value   = 3
 ```
 
@@ -115,12 +118,34 @@ Explicit carry:
 ```
 
 This exposes the local boundary as a relation in its own right. If the outer
-route is absent, the tension remains on `C0`. If the route is present now or in
-a later frame, compatible tension can be absorbed by `C1`.
+route is absent, the overflow remains on `C0`. If the route is present now or
+in a later frame, compatible overflow can be absorbed by `C1`.
 
 The routed amount is quotient-like, but the underlying participation is not
-destroyed. The source tension is read through the source boundary unit, and any
-remainder stays as source tension.
+destroyed. The source overflow is read through the source boundary unit, and
+any remainder stays as source overflow.
+
+Underflow mirrors overflow. If a source carrier has underflow and is related to
+an inverse-oriented point receiver, the receiver can absorb that underflow
+through the same unit shape:
+
+```text
+P(C0,10) -> P(C1_inverse,0)
+```
+
+If `C0.Underflow = 23`, this relation settles as:
+
+```text
+C0.Underflow = 3
+C1_inverse.Value = 2
+```
+
+An inverse carrier does not absorb anything merely because `IsInverse = true`.
+The relation is what makes the underflow route active.
+
+When opposed carriers are related, visible values cancel through that relation
+before residue remains on either side. This is the first executable foothold
+for signed-capable carrier assemblies without signed carrier storage.
 
 ## 5. Fresh Extent Projection
 
@@ -149,8 +174,8 @@ hidden scale provenance.
 1. Read the left side of `structure` into an ephemeral carrier-state surface.
 2. Add incoming participation as fresh frame input.
 3. Collect relation nodes from the right side of `structure`.
-4. Repeatedly apply the relation nodes until carrier values and tensions stop
-   changing.
+4. Repeatedly apply the relation nodes until carrier values, overflow, and
+   underflow stop changing.
 5. Return a new structure whose left side is carrier instances with held state
    and whose right side is the original relation surface.
 
@@ -172,7 +197,9 @@ Current executable behavior is limited to:
 
 - unbounded carrier accumulation
 - same-carrier reset/clamp accounting
-- cross-carrier point tension routing
+- cross-carrier point overflow routing
+- inverse point underflow routing
+- opposed value cancellation across a relation
 - explicit boundary relation routing
 - fresh extent-to-extent projection
 - chained fresh projection inside one settle frame
@@ -187,11 +214,12 @@ Known gaps:
 - structural route hardening beyond the simple point receiver
 
 These are not contradictions. They are intentionally left out until the same
-small carrier/relation/tension mechanism can express them.
+small carrier/relation/overflow/underflow mechanism can express them.
 
 ## 8. Guardrail
 
-Carriers hold positive participation and positive unresolved tension.
+Carriers hold positive participation, positive overflow, and positive
+underflow.
 
 Relations bind the meaning of carrier sites.
 

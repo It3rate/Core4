@@ -8,13 +8,27 @@ namespace Gojo.Tests.Core;
 public sealed class CarrierReadTests
 {
     [Fact]
-    public void CarrierEqualityIncludesHeldValueAndTension()
+    public void CarrierKeepsPhysicalStateOnItsOwnInstance()
     {
-        var empty = new Carrier(10);
-        var loaded = empty.WithState(7, 3);
+        var carrier = new Carrier(10);
 
-        Assert.NotEqual(empty, loaded);
-        Assert.True(empty.SameIdentityAs(loaded));
+        carrier.Add(7);
+        carrier.AddOverflow(3);
+
+        Assert.Equal(7UL, carrier.Value);
+        Assert.Equal(3UL, carrier.Overflow);
+        Assert.Equal(0UL, carrier.Underflow);
+    }
+
+    [Fact]
+    public void CarrierIdsAreAutomaticAndUnknownIsZero()
+    {
+        var first = new Carrier(10);
+        var second = new Carrier(10);
+
+        Assert.Equal(0UL, Carrier.Unknown.Id);
+        Assert.NotEqual(first.Id, second.Id);
+        Assert.False(first.SameIdentityAs(second));
     }
 
     [Fact]
@@ -379,7 +393,7 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
-    public void RelationBoundaryReadPreservesDuplicateCarrierLineage()
+    public void RelationBoundaryReadDoesNotMergeIndependentDuplicateCarrier()
     {
         var source = new Carrier(10);
         var duplicate = source.Duplicate(11);
@@ -391,8 +405,8 @@ public sealed class CarrierReadTests
 
         Assert.Equal(
             new Relation(
-                new CarrierLocation(duplicate, 2),
-                new CarrierLocation(duplicate, 8)),
+                new CarrierLocation(duplicate, 0),
+                new CarrierLocation(duplicate, 0)),
             boundaries);
     }
 
@@ -1705,7 +1719,7 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
-    public void SameLineageCarrierAccountingCanAbsorbAcrossDuplicateCarrier()
+    public void DuplicateCarrierAccountingDoesNotAbsorbWithoutRelation()
     {
         var source = new Carrier(10);
         var duplicate = source.Duplicate(11);
@@ -1715,7 +1729,7 @@ public sealed class CarrierReadTests
             duplicate,
             new CarrierLocation(source, 6));
 
-        Assert.Equal(new CarrierLocation(duplicate, 4), tension);
+        Assert.Equal(incoming, tension);
     }
 
     [Fact]

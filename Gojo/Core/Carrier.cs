@@ -1,88 +1,147 @@
 namespace Gojo.Core;
 
-public readonly record struct Carrier : IElement
+public sealed class Carrier : IElement
 {
-    public Carrier(ulong id)
-        : this(id, id, 1, 0, 0)
+    private static ulong idCounter = 1;
+
+    private Carrier? inverse;
+
+    public Carrier()
+        : this(isInverse: false)
     {
     }
 
-    public Carrier(ulong id, ulong lineage, long flow)
-        : this(id, lineage, flow, 0, 0)
+    public Carrier(ulong _)
+        : this(isInverse: false)
     {
     }
 
-    public Carrier(ulong id, ulong lineage, long flow, ulong value, ulong tension)
+    public Carrier(bool isInverse)
+        : this(NextId(), isInverse)
+    {
+    }
+
+    private Carrier(ulong id, bool isInverse)
     {
         Id = id;
-        Lineage = lineage;
-        Flow = Math.Sign(flow);
-        Value = value;
-        Tension = tension;
+        IsInverse = isInverse;
     }
 
-    public static Carrier Unknown => new(0, 0, 1);
+    public static Carrier Unknown { get; } = new(0, isInverse: false);
 
     public static Carrier Unbound => Unknown;
 
-    public static Carrier Primary => new(1);
+    public static Carrier Primary => new();
 
     public ulong Id { get; }
 
-    public ulong Lineage { get; }
+    public bool IsInverse { get; }
 
-    public long Flow { get; }
+    public ulong Value { get; private set; }
 
-    public ulong Value { get; }
+    public ulong Overflow { get; private set; }
 
-    public ulong Tension { get; }
+    public ulong Underflow { get; private set; }
 
-    public Carrier Inverse() => new(Id, Lineage == 0 ? Id : Lineage, -ReadableFlow);
+    public bool HasState => Value != 0 || Overflow != 0 || Underflow != 0;
 
-    public Carrier Duplicate(ulong id) => new(id, Lineage == 0 ? Id : Lineage, ReadableFlow);
+    public Carrier Inverse()
+    {
+        if (inverse is not null)
+        {
+            return inverse;
+        }
 
-    public Carrier WithValue(ulong value) => new(Id, Lineage, ReadableFlow, value, Tension);
+        inverse = new Carrier(!IsInverse)
+        {
+            inverse = this
+        };
+        return inverse;
+    }
 
-    public Carrier WithTension(ulong tension) => new(Id, Lineage, ReadableFlow, Value, tension);
+    public Carrier Duplicate(ulong _) => new(IsInverse);
 
-    public Carrier WithState(ulong value, ulong tension) => new(Id, Lineage, ReadableFlow, value, tension);
-
-    public bool HasState => Value != 0 || Tension != 0;
-
-    public bool SameIdentityAs(Carrier other) =>
-        Id == other.Id &&
-        Lineage == other.Lineage &&
-        ReadableFlow == other.ReadableFlow;
+    public bool SameIdentityAs(Carrier other) => ReferenceEquals(this, other);
 
     public long ReadSignOf(Carrier locationCarrier)
     {
-        if (Id == locationCarrier.Id && Lineage == locationCarrier.Lineage)
+        if (SameIdentityAs(locationCarrier))
         {
-            return Math.Sign(ReadableFlow * locationCarrier.ReadableFlow);
+            return 1;
         }
 
-        if (Lineage == 0 || locationCarrier.Lineage == 0)
-        {
-            return SameIdentityAs(locationCarrier) ? 1 : 0;
-        }
-
-        if (Lineage != locationCarrier.Lineage)
-        {
-            return 0;
-        }
-
-        return Math.Sign(ReadableFlow * locationCarrier.ReadableFlow);
+        return IsInverseOf(locationCarrier) ? -1 : 0;
     }
 
-    public override string ToString() => Flow switch
+    public void Add(ulong ticks)
     {
-        < 0 => $"{Lineage}:{Id}-{StateSuffix}",
-        > 0 when Lineage != Id => $"{Lineage}:{Id}+{StateSuffix}",
-        > 0 => $"{Id}+{StateSuffix}",
-        _ => $"{Id}{StateSuffix}"
-    };
+        if (ticks == 0)
+        {
+            return;
+        }
 
-    private long ReadableFlow => Flow == 0 ? 1 : Flow;
+        if (Underflow >= ticks)
+        {
+            Underflow -= ticks;
+            return;
+        }
 
-    private string StateSuffix => HasState ? $"[{Value}|{Tension}]" : string.Empty;
+        ticks -= Underflow;
+        Underflow = 0;
+        Value = checked(Value + ticks);
+    }
+
+    public void Remove(ulong ticks)
+    {
+        if (ticks == 0)
+        {
+            return;
+        }
+
+        if (Value >= ticks)
+        {
+            Value -= ticks;
+            return;
+        }
+
+        ticks -= Value;
+        Value = 0;
+        Underflow = checked(Underflow + ticks);
+    }
+
+    public void SetValue(ulong ticks) => Value = ticks;
+
+    public void AddOverflow(ulong ticks)
+    {
+        if (ticks != 0)
+        {
+            Overflow = checked(Overflow + ticks);
+        }
+    }
+
+    public void SetOverflow(ulong ticks) => Overflow = ticks;
+
+    public void AddUnderflow(ulong ticks)
+    {
+        if (ticks != 0)
+        {
+            Underflow = checked(Underflow + ticks);
+        }
+    }
+
+    public void SetUnderflow(ulong ticks) => Underflow = ticks;
+
+    public override string ToString()
+    {
+        var orientation = IsInverse ? "-" : "+";
+        return HasState
+            ? $"{Id}{orientation}[{Value}|{Overflow}|{Underflow}]"
+            : $"{Id}{orientation}";
+    }
+
+    private bool IsInverseOf(Carrier other) =>
+        ReferenceEquals(inverse, other) ||
+        ReferenceEquals(other.inverse, this);
+
+    private static ulong NextId() => idCounter++;
 }

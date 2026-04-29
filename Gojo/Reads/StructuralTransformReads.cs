@@ -59,6 +59,14 @@ public static class StructuralTransformReads
                 return;
             }
 
+            if (leftSites.Carrier.IsInverse != rightSites.Carrier.IsInverse &&
+                rightSites.Width == 0)
+            {
+                state.BalanceValues(leftSites.Carrier, rightSites.Carrier);
+                RouteUnderflow(state, relation, leftSites, rightSites);
+                return;
+            }
+
             ProjectFreshExtent(state, relation, projected, leftSites, rightSites);
             if (rightSites.Width != 0)
             {
@@ -121,6 +129,29 @@ public static class StructuralTransformReads
         }
 
         state.SetTension(source.Carrier, tension % unit);
+        state.Add(relation, new CarrierLocation(receiver.Carrier, received));
+    }
+
+    private static void RouteUnderflow(
+        ContributionSurface state,
+        Relation relation,
+        CarrierSites source,
+        CarrierSites receiver)
+    {
+        var unit = source.Width == 0 ? source.Max : source.Width;
+        if (unit == 0)
+        {
+            return;
+        }
+
+        var underflow = state.UnderflowOn(source.Carrier);
+        var received = underflow / unit;
+        if (received == 0)
+        {
+            return;
+        }
+
+        state.SetUnderflow(source.Carrier, underflow % unit);
         state.Add(relation, new CarrierLocation(receiver.Carrier, received));
     }
 
@@ -190,8 +221,8 @@ public static class StructuralTransformReads
             return false;
         }
 
-        var key = CarrierKey.From(sites[0].Carrier);
-        if (sites.Any(site => CarrierKey.From(site.Carrier) != key))
+        var key = sites[0].Carrier.Id;
+        if (sites.Any(site => site.Carrier.Id != key))
         {
             carrierSites = default;
             return false;
@@ -206,7 +237,7 @@ public static class StructuralTransformReads
     }
 
     private readonly record struct CarrierSites(
-        CarrierKey Key,
+        ulong Key,
         Carrier Carrier,
         ulong Min,
         ulong Max)
@@ -214,9 +245,4 @@ public static class StructuralTransformReads
         public ulong Width => Max - Min;
     }
 
-    private readonly record struct CarrierKey(ulong Id, ulong Lineage, long Flow)
-    {
-        public static CarrierKey From(Carrier carrier) =>
-            new(carrier.Id, carrier.Lineage, carrier.Flow == 0 ? 1 : carrier.Flow);
-    }
 }

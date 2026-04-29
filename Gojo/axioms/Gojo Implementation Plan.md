@@ -8,10 +8,12 @@ The current model is:
 
 - carriers store positive participation
 - sign is a read across related or opposed carriers, not signed storage
-- carrier state is held by carrier instances as value and tension
+- carrier state is held by physical carrier instances as value, overflow, and
+  underflow
 - relations bind carrier sites into points, segments, boundaries, routes, and
   transforms
-- settlement lowers visible tension by repeatedly applying relation structure
+- settlement lowers visible overflow/underflow by repeatedly applying relation
+  structure
 - behavior should come from numeric relation shape, not tags or helper objects
 
 ## Phase 1. Carrier Reads
@@ -19,11 +21,12 @@ The current model is:
 In place:
 
 - carrier identity
+- automatic unique carrier IDs, with `Carrier.Unknown` fixed at `Id = 0`
 - carrier locations
 - same-carrier positive reads
 - orthogonal reads as zero
 - opposed carrier reads as negative projection without negative storage
-- direct carrier-held `Value` and `Tension`
+- direct carrier-held `Value`, `Overflow`, and `Underflow`
 
 ## Phase 2. Structural Settlement
 
@@ -33,18 +36,22 @@ In place as the first small pass in `Gojo.Reads.StructuralTransformReads`:
 - incoming participation enters the left surface as fresh frame input
 - the right surface is traversed for relation nodes
 - same-carrier relations perform local accounting
-- cross-carrier point receivers route source tension
+- cross-carrier point receivers route source overflow
+- inverse-oriented point receivers can route source underflow
+- related opposed carriers cancel visible values before leaving residue
 - cross-carrier extent receivers project fresh participation by extent ratio
-- settlement repeats until carrier value/tension state is quiet
+- settlement repeats until carrier value/overflow/underflow state is quiet
 
 Current stable examples:
 
 - unbounded carrier input keeps its value
-- `P(C,10) -> P(C,0)` turns `23` into value `3` plus tension `20`
-- `P(C,10) -> P(C,10)` clamps `23` to value `10` plus tension `13`
+- `P(C,10) -> P(C,0)` turns `23` into value `3` plus overflow `20`
+- `P(C,10) -> P(C,10)` clamps `23` to value `10` plus overflow `13`
 - `P(C0,10) -> P(C1,0)` turns `37` into `C0 = 7`, `C1 = 3`
-- `(P(C0,10) -> P(C0,0)) -> P(C1,0)` can absorb tension now or in a later
+- `(P(C0,10) -> P(C0,0)) -> P(C1,0)` can absorb overflow now or in a later
   settle frame
+- `P(C0,10) -> P(C1_inverse,0)` can absorb source underflow through the same
+  relation-shaped unit
 - `S(C0,0,1) -> S(C1,0,5)` maps fresh `4` on `C0` to fresh `20` on `C1`
 - chained extent projections can feed later relations in the same frame
 - settled projected values do not re-stretch in the next frame without fresh
@@ -57,10 +64,10 @@ now assert settled carrier states rather than calling named transform routes.
 
 Next cleanup targets:
 
-- rename or reduce `ContributionReads` and `ContributionSurface`; they are now
+- rename or reduce `ContributionReads` and `ContributionSurface`; they are
   transitional carrier-state projections, not provenance storage
-- keep carrier-line matching small and local; full carrier equality already
-  includes held state
+- keep carrier identity matching small and local; ordinary construction always
+  creates a new physical carrier ID
 - keep `RelationReads` traversal/support utilities as projections until they
   are absorbed into structural settlement
 - delete tests that only protect removed helper APIs
@@ -73,7 +80,7 @@ persisted parallel explanation structure.
 
 Add only when the numeric shape is clear:
 
-- underflow and refill
+- refill and borrow
 - branch and merge negotiation
 - conserved split versus observation fanout
 - opposed loop and cycle behavior
@@ -101,7 +108,7 @@ promote them into a separate boolean algebra.
 
 When support becomes active settlement, express it as ordinary carrier
 relation traversal: split where participation changes, account what can be
-accounted, and preserve the rest as carrier tension.
+accounted, and preserve the rest as carrier overflow or underflow.
 
 ## Migration Rule
 

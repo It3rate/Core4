@@ -62,8 +62,8 @@ internal readonly record struct CarrierTension(CarrierLocation Location)
 
 internal sealed class ContributionSurface
 {
-    private readonly Dictionary<CarrierKey, Carrier> carriers = [];
-    private readonly Dictionary<CarrierKey, ulong> freshValues = [];
+    private readonly Dictionary<ulong, Carrier> carriers = [];
+    private readonly Dictionary<ulong, ulong> freshValues = [];
     private readonly HashSet<IElement> frameSources = [];
 
     public static ContributionSurface From(IElement surface)
@@ -87,7 +87,7 @@ internal sealed class ContributionSurface
             AddCarrier(carrier, isFresh: true);
         }
 
-        foreach (var group in CarrierLocationsOf(surface).GroupBy(location => CarrierKey.From(location.Carrier)))
+        foreach (var group in CarrierLocationsOf(surface).GroupBy(location => location.Carrier.Id))
         {
             var carrier = group.First().Carrier;
             AddValue(
@@ -134,9 +134,13 @@ internal sealed class ContributionSurface
     public ulong TotalOn(Carrier carrier, IElement except) => TotalOn(carrier);
 
     public ulong FreshOn(Carrier carrier) =>
-        freshValues.TryGetValue(CarrierKey.From(carrier), out var ticks) ? ticks : 0;
+        freshValues.TryGetValue(carrier.Id, out var ticks) ? ticks : 0;
 
-    public ulong TensionOn(Carrier carrier) => StateOf(carrier).Tension;
+    public ulong TensionOn(Carrier carrier) => OverflowOn(carrier);
+
+    public ulong OverflowOn(Carrier carrier) => StateOf(carrier).Overflow;
+
+    public ulong UnderflowOn(Carrier carrier) => StateOf(carrier).Underflow;
 
     public ulong ScaleOn(Carrier carrier) => 1;
 
@@ -144,21 +148,60 @@ internal sealed class ContributionSurface
 
     public bool HasSource(IElement source) => frameSources.Contains(source);
 
-    public void AddTension(Carrier carrier, ulong ticks)
+    public void AddTension(Carrier carrier, ulong ticks) =>
+        AddOverflow(carrier, ticks);
+
+    public void AddOverflow(Carrier carrier, ulong ticks)
     {
         if (ticks == 0)
+        {
+            EnsureCarrier(carrier);
+            return;
+        }
+
+        StateOf(carrier).AddOverflow(ticks);
+    }
+
+    public void SetTension(Carrier carrier, ulong ticks) =>
+        SetOverflow(carrier, ticks);
+
+    public void SetOverflow(Carrier carrier, ulong ticks) =>
+        StateOf(carrier).SetOverflow(ticks);
+
+    public void AddUnderflow(Carrier carrier, ulong ticks)
+    {
+        if (ticks == 0)
+        {
+            EnsureCarrier(carrier);
+            return;
+        }
+
+        StateOf(carrier).AddUnderflow(ticks);
+    }
+
+    public void SetUnderflow(Carrier carrier, ulong ticks) =>
+        StateOf(carrier).SetUnderflow(ticks);
+
+    public void RemoveValue(Carrier carrier, ulong ticks)
+    {
+        StateOf(carrier).Remove(ticks);
+        freshValues.Remove(carrier.Id);
+    }
+
+    public void BalanceValues(Carrier first, Carrier second)
+    {
+        var firstState = StateOf(first);
+        var secondState = StateOf(second);
+        var shared = Math.Min(firstState.Value, secondState.Value);
+        if (shared == 0)
         {
             return;
         }
 
-        var state = StateOf(carrier);
-        SetCarrier(state.WithTension(checked(state.Tension + ticks)));
-    }
-
-    public void SetTension(Carrier carrier, ulong ticks)
-    {
-        var state = StateOf(carrier);
-        SetCarrier(state.WithTension(ticks));
+        firstState.SetValue(firstState.Value - shared);
+        secondState.SetValue(secondState.Value - shared);
+        ReduceFresh(first, shared);
+        ReduceFresh(second, shared);
     }
 
     public Relation[] Relations() => [.. OrderedCarriers()
@@ -178,7 +221,7 @@ internal sealed class ContributionSurface
 
     public string[] Snapshot() => [.. OrderedCarriers()
         .Where(carrier => carrier.HasState)
-        .Select(carrier => ElementKey(carrier))
+        .Select(ElementKey)
         .Order()];
 
     public bool SameAs(string[] snapshot) =>
@@ -211,8 +254,7 @@ internal sealed class ContributionSurface
 
             if (CarrierTension.TryRead(relation, out var tension))
             {
-                var state = StateOf(tension.Location.Carrier);
-                SetCarrier(state.WithTension(checked(state.Tension + tension.Location.Ticks)));
+                AddOverflow(tension.Location.Carrier, tension.Location.Ticks);
                 return;
             }
 
@@ -228,16 +270,11 @@ internal sealed class ContributionSurface
     }
 
     private IEnumerable<Carrier> OrderedCarriers() => carriers.Values
-        .OrderBy(carrier => carrier.Lineage)
-        .ThenBy(carrier => carrier.Id)
-        .ThenBy(carrier => carrier.Flow);
+        .OrderBy(carrier => carrier.Id);
 
     private void AddCarrier(Carrier carrier, bool isFresh)
     {
-        var state = StateOf(carrier);
-        SetCarrier(state.WithState(
-            checked(state.Value + carrier.Value),
-            checked(state.Tension + carrier.Tension)));
+        EnsureCarrier(carrier);
         if (isFresh)
         {
             AddFresh(carrier, carrier.Value);
@@ -246,14 +283,13 @@ internal sealed class ContributionSurface
 
     private void AddValue(Carrier carrier, ulong ticks, bool isFresh)
     {
+        EnsureCarrier(carrier);
         if (ticks == 0)
         {
-            EnsureCarrier(carrier);
             return;
         }
 
-        var state = StateOf(carrier);
-        SetCarrier(state.WithValue(checked(state.Value + ticks)));
+        carrier.Add(ticks);
         if (isFresh)
         {
             AddFresh(carrier, ticks);
@@ -262,9 +298,8 @@ internal sealed class ContributionSurface
 
     private void SetValue(Carrier carrier, ulong ticks)
     {
-        var state = StateOf(carrier);
-        SetCarrier(state.WithValue(ticks));
-        freshValues.Remove(CarrierKey.From(carrier));
+        StateOf(carrier).SetValue(ticks);
+        freshValues.Remove(carrier.Id);
     }
 
     private void AddFresh(Carrier carrier, ulong ticks)
@@ -274,27 +309,34 @@ internal sealed class ContributionSurface
             return;
         }
 
-        var key = CarrierKey.From(carrier);
-        freshValues[key] = checked((freshValues.TryGetValue(key, out var existing) ? existing : 0) + ticks);
+        freshValues[carrier.Id] = checked((freshValues.TryGetValue(carrier.Id, out var existing) ? existing : 0) + ticks);
+    }
+
+    private void ReduceFresh(Carrier carrier, ulong ticks)
+    {
+        if (!freshValues.TryGetValue(carrier.Id, out var fresh))
+        {
+            return;
+        }
+
+        if (fresh <= ticks)
+        {
+            freshValues.Remove(carrier.Id);
+            return;
+        }
+
+        freshValues[carrier.Id] = fresh - ticks;
     }
 
     private Carrier StateOf(Carrier carrier)
     {
-        var key = CarrierKey.From(carrier);
-        return carriers.TryGetValue(key, out var state)
-            ? state
-            : carrier.WithState(0, 0);
+        EnsureCarrier(carrier);
+        return carriers[carrier.Id];
     }
 
     private void EnsureCarrier(Carrier carrier)
     {
-        var key = CarrierKey.From(carrier);
-        carriers.TryAdd(key, carrier.WithState(0, 0));
-    }
-
-    private void SetCarrier(Carrier carrier)
-    {
-        carriers[CarrierKey.From(carrier)] = carrier;
+        carriers.TryAdd(carrier.Id, carrier);
     }
 
     private static IElement BuildSurface(IElement[] elements)
@@ -310,14 +352,11 @@ internal sealed class ContributionSurface
     private static Relation Point(Carrier carrier, ulong ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
 
-    private static Relation ContributionOf(Carrier carrier)
-    {
-        var basis = carrier.WithState(0, 0);
-        return new Contribution(
-            Point(basis, 0),
-            new CarrierLocation(basis, carrier.Value),
-            new CarrierLocation(basis, 1)).Surface;
-    }
+    private static Relation ContributionOf(Carrier carrier) =>
+        new Contribution(
+            Point(carrier, 0),
+            new CarrierLocation(carrier, carrier.Value),
+            new CarrierLocation(carrier, 1)).Surface;
 
     private static Carrier[] CarriersOf(IElement element) => element switch
     {
@@ -349,15 +388,9 @@ internal sealed class ContributionSurface
 
     private static string ElementKey(IElement element) => element switch
     {
-        Carrier carrier => $"C({carrier.Lineage},{carrier.Id},{carrier.Flow},{carrier.Value},{carrier.Tension})",
-        CarrierLocation location => $"L({location.Carrier.Lineage},{location.Carrier.Id},{location.Carrier.Flow},{location.Ticks})",
+        Carrier carrier => $"C({carrier.Id},{carrier.IsInverse},{carrier.Value},{carrier.Overflow},{carrier.Underflow})",
+        CarrierLocation location => $"L({location.Carrier.Id},{location.Carrier.IsInverse},{location.Ticks})",
         Relation relation => $"R({ElementKey(relation.Left)}>{ElementKey(relation.Right)})",
         _ => element.GetType().FullName ?? string.Empty
     };
-
-    private readonly record struct CarrierKey(ulong Id, ulong Lineage, long Flow)
-    {
-        public static CarrierKey From(Carrier carrier) =>
-            new(carrier.Id, carrier.Lineage, carrier.Flow == 0 ? 1 : carrier.Flow);
-    }
 }

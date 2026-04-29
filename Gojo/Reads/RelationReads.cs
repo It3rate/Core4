@@ -11,9 +11,7 @@ public static class RelationReads
             .Where(boundary => boundary.LeftLocation.Ticks != boundary.RightLocation.Ticks)
             .SelectMany(boundary => new[] { boundary.LeftLocation, boundary.RightLocation })
             .Distinct()
-            .OrderBy(location => location.Carrier.Lineage)
-            .ThenBy(location => location.Carrier.Id)
-            .ThenBy(location => location.Carrier.Flow)
+            .OrderBy(location => location.Carrier.Id)
             .ThenBy(location => location.Ticks)
             .ToArray();
     }
