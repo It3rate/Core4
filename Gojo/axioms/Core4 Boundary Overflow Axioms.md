@@ -244,7 +244,7 @@ ten-partition layer:
 - inverse `23|10` reads as `3` inverse whole ticks and `7|10` residue
 
 The borrowed inverse whole ticks can route through ordinary transfer,
-observation, or gathering routes. There is no negative storage.
+observation, or gathering routes. There is no negative value storage.
 
 The current executable foothold composes this rather than adding a special
 boundary-route object. A carrier value first reads through a boundary as
@@ -488,8 +488,10 @@ If an opposed carrier is fused into the structure, underflow can route into
 that opposed carrier. The opposed carrier still receives positive flow in its
 own direction.
 
-So reverse movement is not negative storage. It is routed positive storage on
-an inverse participation.
+So reverse movement is not negative value storage. It is routed positive
+storage on an inverse participation. The executable Gojo carrier may keep a
+signed local `Tension` value for unresolved above-capacity or below-origin
+participation, but accounted carrier `Value` remains positive.
 
 The current executable foothold confirms this directly: a resolved transfer
 route can receive forward flow into the inverse carrier, and a later route can

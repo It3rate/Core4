@@ -16,8 +16,7 @@ public sealed class CarrierReadTests
         carrier.Remove(10);
 
         Assert.Equal(0UL, carrier.Value);
-        Assert.Equal(0UL, carrier.Overflow);
-        Assert.Equal(3UL, carrier.Underflow);
+        Assert.Equal(-3, carrier.Tension);
     }
 
     [Fact]

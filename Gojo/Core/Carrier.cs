@@ -41,11 +41,9 @@ public sealed class Carrier : IElement
 
     public ulong Value { get; private set; }
 
-    public ulong Overflow { get; private set; }
+    public long Tension { get; private set; }
 
-    public ulong Underflow { get; private set; }
-
-    public bool HasState => Value != 0 || Overflow != 0 || Underflow != 0;
+    public bool HasState => Value != 0 || Tension != 0;
 
     public Carrier Inverse()
     {
@@ -91,89 +89,54 @@ public sealed class Carrier : IElement
 
     public void Add(ulong ticks)
     {
-        Receive(ticks);
+        Receive(checked((long)ticks));
         SettleWorld();
     }
 
     public void Remove(ulong ticks)
     {
-        Draw(ticks);
+        Receive(checked(-checked((long)ticks)));
         SettleWorld();
     }
 
     public void SetValue(ulong ticks)
     {
         Value = ticks;
+        Tension = 0;
         SettleWorld();
     }
 
-    internal void Receive(ulong ticks)
+    internal void Receive(long ticks)
     {
         if (ticks == 0)
         {
             return;
         }
 
-        if (Underflow >= ticks)
-        {
-            Underflow -= ticks;
-            return;
-        }
-
-        ticks -= Underflow;
-        Underflow = 0;
-        Value = checked(Value + ticks);
+        Tension = checked(Tension + ticks);
+        AbsorbTension();
     }
 
-    internal void Draw(ulong ticks)
+    internal bool LeaveTension(ulong value, long tension)
     {
-        if (ticks == 0)
-        {
-            return;
-        }
-
-        if (Value >= ticks)
-        {
-            Value -= ticks;
-            return;
-        }
-
-        ticks -= Value;
-        Value = 0;
-        Underflow = checked(Underflow + ticks);
-    }
-
-    internal bool AccountOverflow(ulong value, ulong overflow)
-    {
-        if (Value == value && overflow == 0)
+        if (Value == value && tension == 0)
         {
             return false;
         }
 
         Value = value;
-        AddOverflow(overflow);
+        AddResidualTension(tension);
         return true;
     }
 
-    internal bool KeepOverflowRemainder(ulong ticks)
+    internal bool KeepTensionRemainder(long ticks)
     {
-        if (Overflow == ticks)
+        if (Tension == ticks)
         {
             return false;
         }
 
-        Overflow = ticks;
-        return true;
-    }
-
-    internal bool KeepUnderflowRemainder(ulong ticks)
-    {
-        if (Underflow == ticks)
-        {
-            return false;
-        }
-
-        Underflow = ticks;
+        Tension = ticks;
         return true;
     }
 
@@ -190,31 +153,19 @@ public sealed class Carrier : IElement
         return true;
     }
 
-    internal void AddOverflow(ulong ticks)
+    internal void AddResidualTension(long ticks)
     {
         if (ticks != 0)
         {
-            Overflow = checked(Overflow + ticks);
+            Tension = checked(Tension + ticks);
         }
     }
-
-    internal void SetOverflow(ulong ticks) => Overflow = ticks;
-
-    internal void AddUnderflow(ulong ticks)
-    {
-        if (ticks != 0)
-        {
-            Underflow = checked(Underflow + ticks);
-        }
-    }
-
-    internal void SetUnderflow(ulong ticks) => Underflow = ticks;
 
     public override string ToString()
     {
         var orientation = IsInverse ? "-" : "+";
         return HasState
-            ? $"{Id}{orientation}[{Value}|{Overflow}|{Underflow}]"
+            ? $"{Id}{orientation}[{Value}|{Tension}]"
             : $"{Id}{orientation}";
     }
 
@@ -282,8 +233,34 @@ public sealed class Carrier : IElement
     }
 
     private static string[] Snapshot(Carrier[] carriers) => [.. carriers
-        .Select(carrier => $"{carrier.Id}:{carrier.Value}:{carrier.Overflow}:{carrier.Underflow}")
+        .Select(carrier => $"{carrier.Id}:{carrier.Value}:{carrier.Tension}")
         .Order()];
 
     private static ulong NextId() => idCounter++;
+
+    private void AbsorbTension()
+    {
+        if (Tension > 0)
+        {
+            Value = checked(Value + checked((ulong)Tension));
+            Tension = 0;
+            return;
+        }
+
+        if (Tension == 0)
+        {
+            return;
+        }
+
+        var draw = checked((ulong)-Tension);
+        if (Value >= draw)
+        {
+            Value -= draw;
+            Tension = 0;
+            return;
+        }
+
+        Tension = -checked((long)(draw - Value));
+        Value = 0;
+    }
 }

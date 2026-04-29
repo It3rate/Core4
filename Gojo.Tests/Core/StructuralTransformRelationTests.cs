@@ -23,11 +23,11 @@ public sealed class StructuralTransformRelationTests
         carrier.SetValue(11);
 
         Assert.Equal(11UL, carrier.Value);
-        Assert.Equal(0UL, carrier.Overflow);
+        Assert.Equal(0, carrier.Tension);
     }
 
     [Fact]
-    public void CarrierLocalCapacityCreatesOverflowWithoutExternalSettlement()
+    public void CarrierLocalCapacityCreatesPositiveTensionWithoutExternalSettlement()
     {
         var carrier = new Carrier(10);
         carrier.Attach(new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 10)));
@@ -35,11 +35,11 @@ public sealed class StructuralTransformRelationTests
         carrier.SetValue(11);
 
         Assert.Equal(10UL, carrier.Value);
-        Assert.Equal(1UL, carrier.Overflow);
+        Assert.Equal(1, carrier.Tension);
     }
 
     [Fact]
-    public void SameCarrierResetBoundaryAccountsResidueAndOverflow()
+    public void SameCarrierResetBoundaryAccountsResidueAndPositiveTension()
     {
         var carrier = new Carrier(10);
         carrier.Attach(new Relation(Point(carrier, 10), Point(carrier, 0)));
@@ -47,11 +47,11 @@ public sealed class StructuralTransformRelationTests
         carrier.SetValue(23);
 
         Assert.Equal(3UL, carrier.Value);
-        Assert.Equal(20UL, carrier.Overflow);
+        Assert.Equal(20, carrier.Tension);
     }
 
     [Fact]
-    public void SameCarrierClampBoundaryAccountsLimitAndOverflow()
+    public void SameCarrierClampBoundaryAccountsLimitAndPositiveTension()
     {
         var carrier = new Carrier(10);
         carrier.Attach(new Relation(Point(carrier, 10), Point(carrier, 10)));
@@ -59,11 +59,11 @@ public sealed class StructuralTransformRelationTests
         carrier.SetValue(23);
 
         Assert.Equal(10UL, carrier.Value);
-        Assert.Equal(13UL, carrier.Overflow);
+        Assert.Equal(13, carrier.Tension);
     }
 
     [Fact]
-    public void CrossCarrierPointRelationRoutesOverflow()
+    public void CrossCarrierPointRelationRoutesPositiveTension()
     {
         var residue = new Carrier(10);
         var whole = new Carrier(20);
@@ -72,12 +72,12 @@ public sealed class StructuralTransformRelationTests
         residue.SetValue(37);
 
         Assert.Equal(7UL, residue.Value);
-        Assert.Equal(0UL, residue.Overflow);
+        Assert.Equal(0, residue.Tension);
         Assert.Equal(3UL, whole.Value);
     }
 
     [Fact]
-    public void ExplicitBoundaryRelationRoutesPersistedOverflowWhenAddedLater()
+    public void ExplicitBoundaryRelationRoutesPersistedPositiveTensionWhenAddedLater()
     {
         var residue = new Carrier(10);
         var whole = new Carrier(20);
@@ -87,7 +87,7 @@ public sealed class StructuralTransformRelationTests
         whole.Attach(new Relation(boundary, Point(whole, 0)));
 
         Assert.Equal(3UL, residue.Value);
-        Assert.Equal(0UL, residue.Overflow);
+        Assert.Equal(0, residue.Tension);
         Assert.Equal(2UL, whole.Value);
     }
 
@@ -108,18 +108,18 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
-    public void UnderflowStaysOnCarrierWithoutRelatedInverseReceiver()
+    public void NegativeTensionStaysOnCarrierWithoutRelatedInverseReceiver()
     {
         var source = new Carrier(10);
         _ = new Carrier(isInverse: true);
 
         source.Remove(23);
 
-        Assert.Equal(23UL, source.Underflow);
+        Assert.Equal(-23, source.Tension);
     }
 
     [Fact]
-    public void UnderflowRoutesThroughRelatedInversePointReceiver()
+    public void NegativeTensionRoutesThroughRelatedInversePointReceiver()
     {
         var source = new Carrier(10);
         var inverse = new Carrier(isInverse: true);
@@ -127,7 +127,7 @@ public sealed class StructuralTransformRelationTests
 
         source.Remove(23);
 
-        Assert.Equal(3UL, source.Underflow);
+        Assert.Equal(-3, source.Tension);
         Assert.Equal(2UL, inverse.Value);
     }
 

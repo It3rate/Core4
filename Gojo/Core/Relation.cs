@@ -22,10 +22,10 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             rightSites.Width == 0)
         {
             return leftSites.Carrier.BalanceOpposedValueWith(rightSites.Carrier) |
-                RouteUnderflow(leftSites, rightSites);
+                RouteNegativeTension(leftSites, rightSites);
         }
 
-        return rightSites.Width == 0 && RouteOverflow(leftSites, rightSites);
+        return rightSites.Width == 0 && RoutePositiveTension(leftSites, rightSites);
     }
 
     public Relation SupportOn(Carrier reader)
@@ -230,7 +230,7 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             return false;
         }
 
-        return carrier.AccountOverflow(capacity, carrier.Value - capacity);
+        return carrier.LeaveTension(capacity, checked((long)(carrier.Value - capacity)));
     }
 
     private static bool AccountLocal(
@@ -247,10 +247,10 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             ? Math.Min(carrier.Value, source)
             : checked(target + ((carrier.Value - target) % (source - target)));
         return local != carrier.Value &&
-            carrier.AccountOverflow(local, carrier.Value - local);
+            carrier.LeaveTension(local, checked((long)(carrier.Value - local)));
     }
 
-    private static bool RouteOverflow(CarrierSites source, CarrierSites receiver)
+    private static bool RoutePositiveTension(CarrierSites source, CarrierSites receiver)
     {
         var unit = source.Width == 0 ? source.Max : source.Width;
         if (unit == 0)
@@ -260,18 +260,24 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
 
         var target = source.Width == 0 ? 0 : source.Min;
         var changed = AccountLocal(source.Carrier, source.Max, target);
-        var received = source.Carrier.Overflow / unit;
+        if (source.Carrier.Tension <= 0)
+        {
+            return changed;
+        }
+
+        var tension = checked((ulong)source.Carrier.Tension);
+        var received = tension / unit;
         if (received == 0)
         {
             return changed;
         }
 
-        changed |= source.Carrier.KeepOverflowRemainder(source.Carrier.Overflow % unit);
-        receiver.Carrier.Receive(received);
+        changed |= source.Carrier.KeepTensionRemainder(checked((long)(tension % unit)));
+        receiver.Carrier.Receive(checked((long)received));
         return true;
     }
 
-    private static bool RouteUnderflow(CarrierSites source, CarrierSites receiver)
+    private static bool RouteNegativeTension(CarrierSites source, CarrierSites receiver)
     {
         var unit = source.Width == 0 ? source.Max : source.Width;
         if (unit == 0)
@@ -279,14 +285,20 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             return false;
         }
 
-        var received = source.Carrier.Underflow / unit;
+        if (source.Carrier.Tension >= 0)
+        {
+            return false;
+        }
+
+        var tension = checked((ulong)-source.Carrier.Tension);
+        var received = tension / unit;
         if (received == 0)
         {
             return false;
         }
 
-        var changed = source.Carrier.KeepUnderflowRemainder(source.Carrier.Underflow % unit);
-        receiver.Carrier.Receive(received);
+        var changed = source.Carrier.KeepTensionRemainder(-checked((long)(tension % unit)));
+        receiver.Carrier.Receive(checked((long)received));
         return true;
     }
 

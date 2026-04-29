@@ -3,10 +3,9 @@
 Gojo settlement now lives on the physical carrier/relation world.
 
 There is no structural transform reader, contribution surface, route table, or
-external balancing surface in the current core. A carrier owns value,
-overflow, underflow, and the relations attached to its local world. When a
-carrier value changes, the connected relation world settles from inside that
-world.
+external balancing surface in the current core. A carrier owns value, signed
+tension, and the relations attached to its local world. When carrier tension or
+value changes, the connected relation world settles from inside that world.
 
 ## 1. Primitive Shapes
 
@@ -33,17 +32,21 @@ Each carrier instance can hold:
 Id        = unique physical identity; ordinary construction always allocates it
 IsInverse = local orientation marker, not a pairing rule by itself
 Value     = positive participation currently accounted on that carrier
-Overflow  = participation above what the carrier could locally account for
-Underflow = participation below zero that the carrier could locally account for
+Tension   = signed participation the carrier has not locally accounted for
 ```
 
 `Carrier.Unknown` is the one carrier with `Id = 0`. User-created carriers do
 not receive caller-supplied IDs. Two structurally identical carriers with
 different IDs are physically different carriers.
 
-Carrier value, overflow, and underflow are not points on the carrier line.
-They belong to the carrier instance. Relation structure such as `P(C,10)` tells
-the carrier what it can account for.
+Carrier value and tension are not points on the carrier line. They belong to
+the carrier instance. Relation structure such as `P(C,10)` tells the carrier
+what it can account for.
+
+Input enters a carrier as tension. The carrier absorbs what it can into
+`Value`. Any positive residue remains positive tension. Any below-origin
+residue remains negative tension. Relations may then route that tension into
+other carriers.
 
 ## 3. Local Accounting
 
@@ -57,7 +60,7 @@ If `C.Value` is set to `11`, the carrier settles to:
 
 ```text
 C.Value    = 10
-C.Overflow = 1
+C.Tension  = 1
 ```
 
 A point reset relation is grouped carry:
@@ -70,7 +73,7 @@ If `23` enters `C`, the carrier settles to:
 
 ```text
 C.Value    = 3
-C.Overflow = 20
+C.Tension  = 20
 ```
 
 A same-site point relation clamps:
@@ -83,7 +86,7 @@ If `23` enters `C`, the carrier settles to:
 
 ```text
 C.Value    = 10
-C.Overflow = 13
+C.Tension  = 13
 ```
 
 These are ordinary relation shapes attached to the carrier. There is no stored
@@ -92,7 +95,7 @@ boundary kind.
 ## 4. Routing
 
 When a cross-carrier relation ends at a point-like receiver, the source side can
-route carrier overflow into the receiver carrier:
+route positive carrier tension into the receiver carrier:
 
 ```text
 P(C0,10) -> P(C1,0)
@@ -102,7 +105,7 @@ Adding `37` to `C0` settles as:
 
 ```text
 C0.Value    = 7
-C0.Overflow = 0
+C0.Tension  = 0
 C1.Value    = 3
 ```
 
@@ -115,20 +118,21 @@ The explicit boundary route is also valid:
 (P(C0,10) -> P(C0,0)) -> P(C1,0)
 ```
 
-If the boundary exists first, overflow can remain on `C0`. When the outer route
-is later attached, that existing overflow can be absorbed by `C1`.
+If the boundary exists first, positive tension can remain on `C0`. When the
+outer route is later attached, that existing tension can be absorbed by `C1`.
 
-Underflow mirrors overflow. If a source carrier has underflow and is related to
-an inverse-oriented point receiver, the receiver can absorb that underflow:
+Negative tension mirrors positive tension. If a source carrier has below-origin
+tension and is related to an inverse-oriented point receiver, the receiver can
+absorb that tension:
 
 ```text
 P(C0,10) -> P(C1_inverse,0)
 ```
 
-If `C0.Underflow = 23`, this relation settles as:
+If `C0.Tension = -23`, this relation settles as:
 
 ```text
-C0.Underflow    = 3
+C0.Tension       = -3
 C1_inverse.Value = 2
 ```
 
@@ -185,8 +189,7 @@ inside the connected world.
 
 ## 7. Guardrail
 
-Carriers hold positive participation, positive overflow, and positive
-underflow.
+Carriers hold positive accounted participation and signed unresolved tension.
 
 Relations bind the meaning of carrier sites.
 

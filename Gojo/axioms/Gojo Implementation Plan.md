@@ -7,8 +7,9 @@ Gojo.
 The current model is:
 
 - carriers are physical mutable sites with unique IDs
-- carriers store positive value, positive overflow, and positive underflow
-- sign is a read across related or opposed carriers, not signed storage
+- carriers store positive value and signed unresolved tension
+- sign is a read across related or opposed carriers; carrier value itself
+  remains positive
 - relations bind carrier sites into points, segments, boundaries, routes, and
   transforms
 - settlement happens inside the connected carrier/relation world
@@ -25,7 +26,7 @@ In place:
 - same-carrier positive reads
 - orthogonal reads as zero
 - opposed carrier reads as negative projection without negative storage
-- direct carrier-held `Value`, `Overflow`, and `Underflow`
+- direct carrier-held `Value` and signed `Tension`
 
 ## Phase 2. Internal Structural Settlement
 
@@ -34,22 +35,24 @@ In place:
 - `carrier.Attach(relation)` attaches relation structure to the connected
   carrier world
 - `SetValue`, `Add`, and `Remove` settle that world automatically
+- input enters as signed tension and the carrier absorbs what it can into
+  positive value before relations route the residue
 - a local span such as `L(C,0) -> L(C,10)` gives local capacity
 - same-carrier point relations perform reset/clamp accounting
-- cross-carrier point receivers route source overflow
-- inverse-oriented point receivers can route source underflow
+- cross-carrier point receivers route source positive tension
+- inverse-oriented point receivers can route source negative tension
 - related opposed carriers cancel visible values before leaving residue
 
 Current stable examples:
 
 - unbounded carrier input keeps its value
-- `L(C,0) -> L(C,10)` turns value `11` into value `10` plus overflow `1`
-- `P(C,10) -> P(C,0)` turns `23` into value `3` plus overflow `20`
-- `P(C,10) -> P(C,10)` clamps `23` to value `10` plus overflow `13`
+- `L(C,0) -> L(C,10)` turns value `11` into value `10` plus tension `1`
+- `P(C,10) -> P(C,0)` turns `23` into value `3` plus tension `20`
+- `P(C,10) -> P(C,10)` clamps `23` to value `10` plus tension `13`
 - `P(C0,10) -> P(C1,0)` turns `37` into `C0 = 7`, `C1 = 3`
-- `(P(C0,10) -> P(C0,0)) -> P(C1,0)` can absorb overflow after the
+- `(P(C0,10) -> P(C0,0)) -> P(C1,0)` can absorb positive tension after the
   boundary has already produced it
-- `P(C0,10) -> P(C1_inverse,0)` can absorb source underflow through the same
+- `P(C0,10) -> P(C1_inverse,0)` can absorb source negative tension through the same
   relation-shaped unit
 
 Removed:
