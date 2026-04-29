@@ -128,7 +128,7 @@ The same physical crossing can be expressed locally first:
 ```
 
 This is an active same-carrier reset boundary. If `23` enters a carrier with
-`k = 10`, the carrier hardens to `3` and the unaccounted source tension is
+`k = 10`, the carrier hardens to `3` and the unaccounted carrier tension is
 `20`. That tension is not destroyed. A later relation may absorb it through the
 same boundary unit:
 
@@ -138,7 +138,7 @@ same boundary unit:
 (upper 0 -> upper carrier)
 ```
 
-In that case the source tension `20` reads through the `10:1` boundary and the
+In that case the carrier tension `20` reads through the `10:1` boundary and the
 upper carrier receives `2`.
 
 A same-carrier clamp is the degenerate target-at-boundary form:
@@ -147,7 +147,7 @@ A same-carrier clamp is the degenerate target-at-boundary form:
 (lower k -> lower carrier) -> (lower k -> lower carrier)
 ```
 
-The local carrier hardens to `min(value,k)` and the excess remains source
+The local carrier hardens to `min(value,k)` and the excess remains carrier
 tension.
 
 Because this is point-to-point, there is no segment length to stretch. The
@@ -360,6 +360,16 @@ The current behavior is intentionally small:
   the settle frame. It is a contribution surface: each visible contribution has
   a source element, a carrier location, and a visible carrier-local scale
   location
+- carrier tension is separate from value provenance. Each carrier has one
+  positive-flow tension total in the settle frame. The persisted structure for
+  unresolved carrier tension is numeric relation state:
+
+```text
+P(C,0) -> L(C,tension)
+```
+
+  This says the carrier has unaccounted participation in its own direction. It
+  is not a signed scalar, and it is not a per-relation side table.
 - settled structures keep that contribution surface on their left side; lower
   reads such as `PositionOn` collapse it to carrier totals when a total is what
   the caller wants
@@ -371,13 +381,16 @@ The current behavior is intentionally small:
   not accumulate
 - nonzero-point-to-origin transform carries by threshold and leaves local
   residue
-- point carry replaces the source carrier with a relation-shaped residual
-  contribution and places the carried contribution on the upper carrier
+- point carry first hardens the source carrier, creates carrier tension for the
+  crossing amount, and then routes that tension through the related upper
+  point. The compact cross-carrier point form is therefore executable shorthand
+  for the same local-boundary-then-route mechanism, not a separate external
+  calculation.
 - same-carrier reset/clamp boundaries replace the source carrier with its
-  locally accountable value and place the unaccounted source energy in a
-  visible tension contribution
+  locally accountable value and place the unaccounted source energy in the
+  carrier's visible tension state
 - a relation from that boundary relation to a point on another carrier can
-  absorb the boundary tension through the boundary unit
+  absorb carrier tension through the boundary unit
 - the residual contribution left by point carry is visible as post-accounting
   structure with scale `0`; segment relations do not re-stretch that residual
   in the same settle frame
@@ -413,7 +426,7 @@ source capacity -> receiver surface
 ```
 
   Settlement transfers at most the visible source capacity, leaves remaining
-  source participation as residual tension, and writes the received
+  source participation as local residual value, and writes the received
   participation into the receiver surface. This gives saturating subtraction on
   the source and addition on the receiver without calling a transfer method.
   A transfer route fires once in a settle pass so capacity is not drained
@@ -426,8 +439,8 @@ source capacity -> receiver surface
 source potential -> unknown 0
 ```
 
-  Settlement raises the source potential to cover visible source tension
-  without draining the source. Persisted source tension is not gathered twice;
+  Settlement raises the source potential to cover visible carrier tension
+  without draining the source. Persisted carrier tension is not gathered twice;
   only newly visible tension beyond the current potential changes the route.
 - observation routes now participate in structural settlement when the relation
   surface contains a bare same-carrier span as the left side:
@@ -449,8 +462,9 @@ that derived `upper 7` as if it were independent would invent `49`. If `upper`
 already carried an independent `3`, then stretching that independent `3` by
 the lower `7` can produce `21` in the current executable model.
 
-The current executable answer is provenance by contribution. A contribution is
-ordinary relation structure:
+The current executable answer is value provenance by contribution plus
+carrier-local tension accounting. A value contribution is ordinary relation
+structure:
 
 ```text
 source -> (carrier location -> carrier-local scale location)
@@ -464,10 +478,23 @@ its scale for inspection. A point-carry residue carries scale `0`, which makes
 the residue visible as already-accounted participation for this settle frame
 instead of fresh stretch input.
 
+Tension is not stored as another contribution source. If a carrier cannot
+account for all incoming participation, the unaccounted positive amount is
+kept once on that carrier as:
+
+```text
+P(C,0) -> L(C,tension)
+```
+
+That tension can persist across frames and be absorbed later when a compatible
+boundary route is added. If several receivers can absorb the same carrier
+tension, the later branch/merge negotiation should also be relation structure;
+the current executable pass only covers the single-route case.
+
 This surface is now readable as relation structure. A plain point on the left
 surface is lifted into the same contribution shape with the point itself as
-source and scale `1`. A settled contribution surface can be inspected in three
-levels without changing the stored structure:
+source and scale `1`. A settled surface can be inspected in four lower
+projections without changing the stored structure:
 
 ```text
 source -> (carrier location -> carrier-local scale location)
@@ -477,9 +504,12 @@ source -> (carrier location -> carrier-local scale location)
 - total read: sums carrier locations for a requested carrier
 - scale read: reads the carrier-local scale marks carried by the contribution
   surface
+- tension read: reads the one unresolved positive tension total carried by a
+  requested carrier
 
-The total and scale reads are lower projections over the contribution surface.
-They are conveniences for action and tests, not a separate state model.
+The total, scale, and tension reads are lower projections over the settled
+surface. They are conveniences for action and tests, not a separate state
+model.
 
 The contribution surface should not be treated as an optimized runtime cache or
 as predictive memory for a future perturbed structure. It is the visible

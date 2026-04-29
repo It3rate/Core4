@@ -19,10 +19,10 @@ Notation:
 |---|---|
 | `P(C0,0) -> P(C1,0)` | origin attachment / shared reference; no automatic accumulation |
 | `P(C0,1) -> P(C1,0)` | one-for-one accumulator; every tick crosses upward |
-| `P(C0,k) -> P(C1,0)` | direct base/counter absorption; lower hardens to `value % k`, upper receives `value / k` |
+| `P(C0,k) -> P(C1,0)` | compact base/counter absorption; lower hardens, emits carrier tension, and routes that tension through `k:1` into `C1` |
 | `P(C0,k) -> P(C1,m)` | offset-point candidate; current internal settling treats offset as existing `C1` position rather than consuming `m` from this endpoint |
-| `P(C0,k) -> P(C0,0)` | same-carrier reset boundary; local carrier hardens to `value % k`, unaccounted source tension remains as `value - value % k` |
-| `P(C0,k) -> P(C0,k)` | same-carrier clamp boundary; local carrier hardens to `min(value,k)`, excess remains as source tension |
+| `P(C0,k) -> P(C0,0)` | same-carrier reset boundary; local carrier hardens to `value % k`, unaccounted carrier tension remains as `value - value % k` |
+| `P(C0,k) -> P(C0,k)` | same-carrier clamp boundary; local carrier hardens to `min(value,k)`, excess remains as carrier tension |
 
 ## Segment And Scaling Shapes
 
@@ -62,15 +62,15 @@ they should not fall out of hidden contribution bookkeeping.
 | Shape | Read |
 |---|---|
 | `P(C0,k) -> P(C0,0)`, then read `C0` | modulo/residue read; carrier reports the settled `value % k` layer |
-| `(P(C0,k) -> P(C0,0)) -> P(C1,0)` | explicit counter route; boundary tension on `C0` is absorbed through `k:1` into `C1` |
-| `P(C0,k) -> P(C1,0)`, then read final carried layer | direct distributed quotient/counter read; currently executable as a compact absorber |
+| `(P(C0,k) -> P(C0,0)) -> P(C1,0)` | explicit counter route; carrier tension on `C0` is absorbed through `k:1` into `C1` |
+| `P(C0,k) -> P(C1,0)`, then read final carried layer | compact distributed quotient/counter read; executable as carrier-tension emission plus immediate route |
 | current `P(C1,n)` plus `P(C0,1) -> P(C1,0)` | additive shift; incoming ticks accumulate from an offset carrier position |
 | `S(C,a,b) -> S(C,a+n,b+n)` | segment shift/translation candidate; endpoints move together while segment length is preserved |
 | `S0 -> S1`, then read `S1` | duplicate/projection read of one basis through another |
 
 The current executable settling supports modulo through active same-carrier
 reset boundaries. The carrier value is not left as an uninterpreted larger
-number; it hardens to the local residue and leaves unabsorbed source tension.
+number; it hardens to the local residue and leaves unabsorbed carrier tension.
 General same-carrier segment shift still needs point identity so coincident
 points can move without accidentally moving every matching point in the
 surface.

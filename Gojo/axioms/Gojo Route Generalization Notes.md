@@ -13,11 +13,11 @@ The current executable route-like shapes are:
 - `P(source,k) -> P(source,0)`
   - same-carrier reset boundary
   - hardens local position to residue
-  - exposes unabsorbed crossing energy as source tension
+  - exposes unabsorbed crossing energy as carrier tension
 
 - `(P(source,k) -> P(source,0)) -> P(receiver,0)`
   - explicit counter route
-  - absorbs source boundary tension through the boundary unit
+  - absorbs carrier tension through the boundary unit
   - leaves local residue on the source carrier
 
 - `L(source,k) -> receiver surface`
@@ -25,7 +25,8 @@ The current executable route-like shapes are:
   - drains up to `k` from `source`
   - writes the drained amount into every carrier location in the receiver
     surface
-  - ordered relation surfaces distribute only remaining source tension forward
+  - ordered relation surfaces distribute only remaining source participation
+    forward
   - fires at most once in one settle pass, then may fire again in a later pass
     when new participation appears
 
@@ -37,9 +38,9 @@ The current executable route-like shapes are:
 
 - `L(source,m) -> L(unknown,0)`
   - open gather
-  - raises `m` to cover newly visible source tension
+  - raises `m` to cover newly visible carrier tension
   - does not drain the source
-  - does not gather the same persisted source tension twice
+  - does not gather the same persisted carrier tension twice
   - leaves a numeric attachment potential that may later harden into a
     resolved transfer surface
 

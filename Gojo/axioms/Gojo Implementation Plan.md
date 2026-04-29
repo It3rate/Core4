@@ -94,29 +94,31 @@ Current executable foothold:
   0 -> upper carrier)` therefore settles lower `11` as lower `1` and upper
   `1`; the value `11` does not remain as an externally meaningful carrier
   value.
-- The settled position surface is now a contribution surface rather than a
-  flattened carrier map. `Gojo.Reads.ContributionReads` exposes raw
-  contribution relations and lower total/scale projections, so provenance and
-  post-accounting scale marks remain inspectable as relation structure. This
-  is a frame accounting surface, not an optimized runtime cache; future dynamic
-  passes may discard and recompute it whenever relation structure is perturbed.
+- The settled position surface is now a contribution/tension accounting
+  surface rather than a flattened carrier map. `Gojo.Reads.ContributionReads`
+  exposes raw contribution relations and lower total/scale/tension
+  projections, so provenance, post-accounting scale marks, and unresolved
+  carrier tension remain inspectable as relation structure. This is a frame
+  accounting surface, not an optimized runtime cache; future dynamic passes
+  may discard and recompute it whenever relation structure is perturbed.
 - `CarrierLocation` has been reduced back toward substrate storage. It now
   carries only carrier/tick position plus its direct `ReadFrom` projection.
   Boundary, transfer, observation, and gather behaviors are no longer public
   location methods; they are relation-surface shapes read by
   `Gojo.Reads.StructuralTransformReads`.
 - Boundary-style quotient and residue can be expressed either as the compact
-  direct absorber `P(partition,k) -> P(whole,0)` or as the more explicit
+  absorber `P(partition,k) -> P(whole,0)` or as the more explicit
   same-carrier boundary plus counter route:
   `(P(partition,k) -> P(partition,0)) -> P(whole,0)`. Both settle the local
-  carrier before reads inspect it; the explicit form also exposes unrouted
-  boundary tension when no counter absorbs it.
+  carrier before reads inspect it; the compact form now does this by creating
+  carrier tension and immediately routing it. The explicit form exposes
+  unrouted carrier tension when no counter absorbs it.
 - Active same-carrier accounting is now executable:
   `P(carrier,k) -> P(carrier,0)` hardens local value to `value % k` and leaves
-  `value - value % k` as visible source tension. `P(carrier,k) ->
+  `value - value % k` as visible carrier tension. `P(carrier,k) ->
   P(carrier,k)` clamps local value to `k` and leaves the excess as tension.
   A relation from that boundary relation to a point on another carrier can
-  absorb boundary tension through the boundary unit.
+  absorb carrier tension through the boundary unit.
 - Segment-to-segment settlement is checked against ordinary multiplication by
   layer lengths: `S(C0,0,1) -> S(C1,0,m)` maps `x` on `C0` to `x*m` on `C1`.
   Repeating unit segment copies now copies participation through layers; powers
@@ -147,7 +149,7 @@ Current executable foothold:
 - A carrier can self-absorb larger positive counts only until active structure
   gives it an accounting boundary. For example, `23` ticks on an unbounded
   carrier are just `23`, but `P(partition,10) -> P(partition,0)` settles them
-  as local `3` plus source tension `20`.
+  as local `3` plus carrier tension `20`.
 - A `Relation` can be used as accounting input by reading both slots as carrier
   locations in the current context. This lets route-like capacity, split reads,
   and prior relation results feed the same mechanism without a route class.
@@ -175,7 +177,7 @@ Current executable foothold:
   the source. Several observation relations can fan out from the same source
   without splitting it.
 - Structural open gather is now `L(source,m) -> L(unknown,0)`. Settlement
-  raises `m` to cover visible source tension without draining the source, so
+  raises `m` to cover visible carrier tension without draining the source, so
   the same persisted tension is not gathered twice. The open side leaves an
   attachment potential that can later be replaced by a resolved receiving
   surface.

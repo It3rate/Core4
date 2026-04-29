@@ -337,7 +337,7 @@ read through each receiver slot while the source is accounted once. This gives
 the first executable branch shape: for example, one boundary crossing can update
 a wrapped continuation carrier and a counter carrier as one routed read.
 
-An ordered route sequence reads by feeding only remaining source tension forward
+An ordered route sequence reads by feeding only remaining source-carrier tension forward
 to later routes. If an earlier route fully accounts for the incoming
 participation, traversal stops and later routes do not wake. This is an initial
 capacity/saturation rule, not a separate scheduler.
@@ -346,7 +346,7 @@ This is conserved branch behavior. A fixed amount of source participation is
 accounted once as it moves through the route sequence. If `8` units meet two
 transfer routes with capacity `5` each, the first route may receive `5`, the
 second may receive `3`, and no route receives more than the remaining visible
-source tension.
+source-carrier tension.
 
 If the receiving side of one resolved route is nested, the same accounted
 crossing updates the nested receiver surface. This is coupled fanout rather
@@ -372,7 +372,7 @@ shape but with a different context:
 
 - left side: the observable amount or scope
 - right side: marker, counter, or claim surface
-- output: a relation from unchanged source tension to the marked receiver
+- output: a relation from unchanged source-carrier tension to the marked receiver
   surface
 
 So an incoming source value of `7` observed through `4/0` into marker `100`
@@ -400,7 +400,7 @@ shape again:
 
 - left side: unresolved potential surface
 - right side: open commitment surface
-- output: unchanged source tension paired with the updated open route
+- output: unchanged source-carrier tension paired with the updated open route
 
 So an incoming source value of `7` gathered through `0/0` reads as source
 `0 + 7 tension` and route `7/0`. If that gathered `7` is later paired with a

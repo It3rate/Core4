@@ -238,6 +238,47 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(new CarrierLocation(residue, 0), second.Left.ContributionTensionOn(residue));
     }
 
+    [Fact]
+    public void BoundaryTensionPersistsAsCarrierAccountingAcrossFrames()
+    {
+        var carrier = new Carrier(10);
+        var boundary = new Relation(Point(carrier, 10), Point(carrier, 0));
+        var structure = Structure(Point(carrier, 0), boundary);
+
+        var first = structure.AddAndSettle(new CarrierLocation(carrier, 23));
+        var second = first.AddAndSettle(new CarrierLocation(carrier, 0));
+
+        Assert.Equal(new CarrierLocation(carrier, 3), second.PositionOn(carrier));
+        Assert.Equal(new CarrierLocation(carrier, 20), second.Left.ContributionTensionOn(carrier));
+        Assert.Equal(
+            Surface(
+                Contribution(
+                    new Relation(boundary, new CarrierLocation(carrier, 10)),
+                    new CarrierLocation(carrier, 3),
+                    0),
+                new Relation(Point(carrier, 0), new CarrierLocation(carrier, 20))),
+            second.Left);
+    }
+
+    [Fact]
+    public void PersistedBoundaryTensionCanBeRoutedByLaterRelation()
+    {
+        var residue = new Carrier(10);
+        var whole = new Carrier(20);
+        var boundary = new Relation(Point(residue, 10), Point(residue, 0));
+        var counter = new Relation(boundary, Point(whole, 0));
+        var unabsorbed = Structure(Point(residue, 0), boundary)
+            .AddAndSettle(new CarrierLocation(residue, 23));
+        var routed = Structure(
+                Surface(unabsorbed.Left, Point(whole, 0)),
+                Surface(boundary, counter))
+            .AddAndSettle(new CarrierLocation(residue, 0));
+
+        Assert.Equal(new CarrierLocation(residue, 3), routed.PositionOn(residue));
+        Assert.Equal(new CarrierLocation(whole, 2), routed.PositionOn(whole));
+        Assert.Equal(new CarrierLocation(residue, 0), routed.Left.ContributionTensionOn(residue));
+    }
+
     [Theory]
     [InlineData(0UL, 10UL)]
     [InlineData(7UL, 10UL)]
@@ -257,6 +298,7 @@ public sealed class StructuralTransformRelationTests
 
         Assert.Equal(new CarrierLocation(residue, input % boundary), settled.PositionOn(residue));
         Assert.Equal(new CarrierLocation(whole, input / boundary), settled.PositionOn(whole));
+        Assert.Equal(new CarrierLocation(residue, 0), settled.Left.ContributionTensionOn(residue));
     }
 
     [Fact]

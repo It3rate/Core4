@@ -249,25 +249,7 @@ public static class StructuralTransformReads
         CarrierBoundaryShape boundary,
         PointShape receiver)
     {
-        var tension = positions.TensionOn(boundary.Relation, boundary.Carrier);
-        if (tension == 0 || boundary.Unit == 0)
-        {
-            return;
-        }
-
-        var received = tension / boundary.Unit;
-        if (received == 0)
-        {
-            return;
-        }
-
-        var alreadyReceived = positions.HasSource(relation);
-        positions.SetTension(boundary.Relation, boundary.Carrier, tension % boundary.Unit);
-        positions.Add(
-            relation,
-            new CarrierLocation(
-                receiver.Carrier,
-                checked((alreadyReceived ? 0 : receiver.Location.Ticks) + received)));
+        ApplyCarrierTensionRoute(positions, relation, boundary.Carrier, boundary.Unit, receiver);
     }
 
     private static void ApplyCarrierBoundary(
@@ -294,7 +276,7 @@ public static class StructuralTransformReads
             new Relation(relation, new CarrierLocation(boundary.Carrier, boundary.Source)),
             local,
             scale: 0);
-        positions.AddTension(relation, boundary.Carrier, total - local);
+        positions.AddTension(boundary.Carrier, total - local);
     }
 
     private static bool Contains(IElement element, IElement target)
@@ -332,19 +314,51 @@ public static class StructuralTransformReads
         }
 
         var lowerTicks = positions.TotalOn(lowerPoint.Carrier);
-        if (lowerTicks < lowerPoint.Location.Ticks)
+        if (lowerTicks >= lowerPoint.Location.Ticks)
+        {
+            var residue = lowerTicks % lowerPoint.Location.Ticks;
+            positions.ReplaceCarrier(
+                lowerPoint.Carrier,
+                new Relation(relation, lowerPoint.Location),
+                residue,
+                scale: 0);
+            positions.AddTension(lowerPoint.Carrier, lowerTicks - residue);
+        }
+
+        ApplyCarrierTensionRoute(
+            positions,
+            relation,
+            lowerPoint.Carrier,
+            lowerPoint.Location.Ticks,
+            upperPoint);
+    }
+
+    private static void ApplyCarrierTensionRoute(
+        ContributionSurface positions,
+        Relation relation,
+        Carrier carrier,
+        ulong unit,
+        PointShape receiver)
+    {
+        var tension = positions.TensionOn(carrier);
+        if (tension == 0 || unit == 0)
         {
             return;
         }
 
-        var carried = lowerTicks / lowerPoint.Location.Ticks;
-        var residue = lowerTicks % lowerPoint.Location.Ticks;
-        positions.ReplaceCarrier(lowerPoint.Carrier, new Relation(relation, lowerPoint.Location), residue, scale: 0);
+        var received = tension / unit;
+        if (received == 0)
+        {
+            return;
+        }
+
+        var alreadyReceived = positions.HasSource(relation);
+        positions.SetTension(carrier, tension % unit);
         positions.Add(
             relation,
             new CarrierLocation(
-                upperPoint.Carrier,
-                checked((positions.HasSource(relation) ? 0 : upperPoint.Location.Ticks) + carried)));
+                receiver.Carrier,
+                checked((alreadyReceived ? 0 : receiver.Location.Ticks) + received)));
     }
 
     private static void ApplySegmentRelation(

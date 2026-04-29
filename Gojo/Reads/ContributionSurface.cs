@@ -22,9 +22,48 @@ internal readonly record struct Contribution(IElement Source, CarrierLocation Lo
     }
 }
 
+internal readonly record struct CarrierTension(CarrierLocation Location)
+{
+    public Relation Surface => new(Point(Location.Carrier, 0), Location);
+
+    public static bool TryRead(Relation relation, out CarrierTension tension)
+    {
+        if (relation.Right is CarrierLocation location &&
+            TryGetPoint(relation.Left, out var point) &&
+            point.Carrier == location.Carrier &&
+            point.Ticks == 0)
+        {
+            tension = new(location);
+            return true;
+        }
+
+        tension = default;
+        return false;
+    }
+
+    private static Relation Point(Carrier carrier, ulong ticks) =>
+        new(new CarrierLocation(carrier, ticks), carrier);
+
+    private static bool TryGetPoint(IElement element, out CarrierLocation point)
+    {
+        if (element is Relation relation &&
+            relation.Left is CarrierLocation location &&
+            relation.Right is Carrier carrier &&
+            location.Carrier == carrier)
+        {
+            point = location;
+            return true;
+        }
+
+        point = default;
+        return false;
+    }
+}
+
 internal sealed class ContributionSurface
 {
     private readonly List<Contribution> contributions = [];
+    private readonly Dictionary<Carrier, ulong> tensions = [];
 
     public static ContributionSurface From(IElement surface)
     {
@@ -66,6 +105,12 @@ internal sealed class ContributionSurface
                 return;
             }
 
+            if (CarrierTension.TryRead(relation, out var tension))
+            {
+                AddTension(tension.Location.Carrier, tension.Location.Ticks);
+                return;
+            }
+
             if (TryGetPoint(relation, out var point))
             {
                 AddPoint(relation, point);
@@ -103,35 +148,22 @@ internal sealed class ContributionSurface
     public void ReplaceCarrier(Carrier carrier, IElement source, ulong ticks, ulong scale = 1)
     {
         contributions.RemoveAll(contribution =>
-            contribution.Location.Carrier == carrier &&
-            !IsTension(contribution));
+            contribution.Location.Carrier == carrier);
         Set(source, carrier, ticks, scale);
     }
 
     public ulong TotalOn(Carrier carrier) => contributions
-        .Where(contribution =>
-            contribution.Location.Carrier == carrier &&
-            !IsTension(contribution))
+        .Where(contribution => contribution.Location.Carrier == carrier)
         .Aggregate(0UL, (total, contribution) => checked(total + contribution.Location.Ticks));
 
     public ulong TotalOn(Carrier carrier, IElement except) => contributions
         .Where(contribution =>
             contribution.Location.Carrier == carrier &&
-            !Equals(contribution.Source, except) &&
-            !IsTension(contribution))
+            !Equals(contribution.Source, except))
         .Aggregate(0UL, (total, contribution) => checked(total + contribution.Location.Ticks));
 
-    public ulong TensionOn(Carrier carrier) => contributions
-        .Where(contribution =>
-            contribution.Location.Carrier == carrier &&
-            IsTension(contribution))
-        .Aggregate(0UL, (total, contribution) => checked(total + contribution.Location.Ticks));
-
-    public ulong TensionOn(IElement source, Carrier carrier) => contributions
-        .Where(contribution =>
-            contribution.Location.Carrier == carrier &&
-            Equals(contribution.Source, TensionSource(source, carrier)))
-        .Aggregate(0UL, (total, contribution) => checked(total + contribution.Location.Ticks));
+    public ulong TensionOn(Carrier carrier) =>
+        tensions.TryGetValue(carrier, out var ticks) ? ticks : 0;
 
     public ulong ScaleOn(Carrier carrier)
     {
@@ -149,8 +181,7 @@ internal sealed class ContributionSurface
 
     public bool HasZeroScaleOn(Carrier carrier) => contributions.Any(contribution =>
         contribution.Location.Carrier == carrier &&
-        contribution.Scale.Ticks == 0 &&
-        !IsTension(contribution));
+        contribution.Scale.Ticks == 0);
 
     public bool HasSource(IElement source) => contributions.Any(contribution =>
         Equals(contribution.Source, source));
@@ -178,33 +209,25 @@ internal sealed class ContributionSurface
         }
     }
 
-    public void AddTension(IElement source, Carrier carrier, ulong ticks)
+    public void AddTension(Carrier carrier, ulong ticks)
     {
         if (ticks == 0)
         {
             return;
         }
 
-        Add(
-            TensionSource(source, carrier),
-            new CarrierLocation(carrier, ticks),
-            new CarrierLocation(carrier, 0));
+        tensions[carrier] = checked(TensionOn(carrier) + ticks);
     }
 
-    public void SetTension(IElement source, Carrier carrier, ulong ticks)
+    public void SetTension(Carrier carrier, ulong ticks)
     {
-        var tensionSource = TensionSource(source, carrier);
-        contributions.RemoveAll(contribution =>
-            Equals(contribution.Source, tensionSource) &&
-            contribution.Location.Carrier == carrier);
-
-        if (ticks != 0)
+        if (ticks == 0)
         {
-            Add(
-                tensionSource,
-                new CarrierLocation(carrier, ticks),
-                new CarrierLocation(carrier, 0));
+            tensions.Remove(carrier);
+            return;
         }
+
+        tensions[carrier] = ticks;
     }
 
     public Relation[] Relations() => [.. OrderedContributions()
@@ -218,11 +241,13 @@ internal sealed class ContributionSurface
         .Where(contribution => contribution.Location.Carrier == carrier)
         .Select(contribution => contribution.Scale)];
 
-    public IElement Surface() => BuildSurface([.. OrderedContributions()
-        .Select(contribution => (IElement)contribution.Surface)]);
+    public IElement Surface() => BuildSurface(
+        [.. OrderedContributions().Select(contribution => (IElement)contribution.Surface),
+            .. OrderedTensions().Select(tension => (IElement)tension.Surface)]);
 
-    public string[] Snapshot() => [.. contributions
+    public string[] Snapshot() => [.. OrderedContributions()
         .Select(contribution => ElementKey(contribution.Surface))
+        .Concat(OrderedTensions().Select(tension => ElementKey(tension.Surface)))
         .Order()];
 
     public bool SameAs(string[] snapshot) =>
@@ -235,6 +260,13 @@ internal sealed class ContributionSurface
         .ThenBy(contribution => ElementKey(contribution.Source))
         .ThenBy(contribution => contribution.Location.Ticks)
         .ThenBy(contribution => contribution.Scale.Ticks);
+
+    private IOrderedEnumerable<CarrierTension> OrderedTensions() => tensions
+        .Select(tension => new CarrierTension(new CarrierLocation(tension.Key, tension.Value)))
+        .OrderBy(tension => tension.Location.Carrier.Lineage)
+        .ThenBy(tension => tension.Location.Carrier.Id)
+        .ThenBy(tension => tension.Location.Carrier.Flow)
+        .ThenBy(tension => tension.Location.Ticks);
 
     private void Add(IElement source, CarrierLocation location, CarrierLocation scale)
     {
@@ -273,19 +305,6 @@ internal sealed class ContributionSurface
 
     private static Relation Point(Carrier carrier, ulong ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
-
-    private static Relation TensionSource(IElement source, Carrier carrier) =>
-        new(source, new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 0)));
-
-    private static bool IsTension(Contribution contribution) =>
-        contribution.Source is Relation source &&
-        source.Right is Relation marker &&
-        marker.Left is CarrierLocation left &&
-        marker.Right is CarrierLocation right &&
-        left.Carrier == contribution.Location.Carrier &&
-        right.Carrier == contribution.Location.Carrier &&
-        left.Ticks == 0 &&
-        right.Ticks == 0;
 
     private static CarrierLocation[] CarrierLocationsOf(IElement element) => element switch
     {
