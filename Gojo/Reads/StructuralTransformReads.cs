@@ -62,7 +62,7 @@ public static class StructuralTransformReads
             if (leftSites.Carrier.IsInverse != rightSites.Carrier.IsInverse &&
                 rightSites.Width == 0)
             {
-                state.BalanceValues(leftSites.Carrier, rightSites.Carrier);
+                state.BalanceOpposedValues(leftSites.Carrier, rightSites.Carrier);
                 RouteUnderflow(state, relation, leftSites, rightSites);
                 return;
             }
@@ -88,7 +88,7 @@ public static class StructuralTransformReads
             return;
         }
 
-        var total = state.TotalOn(carrier);
+        var total = state.ValueOn(carrier);
         if (total <= target)
         {
             return;
@@ -102,8 +102,7 @@ public static class StructuralTransformReads
             return;
         }
 
-        state.ReplaceCarrier(carrier, carrier, local);
-        state.AddTension(carrier, total - local);
+        state.AccountOverflow(carrier, local, total - local);
     }
 
     private static void RouteTension(
@@ -121,15 +120,15 @@ public static class StructuralTransformReads
         var target = source.Width == 0 ? 0 : source.Min;
         AccountLocal(state, source.Carrier, source.Max, target);
 
-        var tension = state.TensionOn(source.Carrier);
-        var received = tension / unit;
+        var overflow = state.OverflowOn(source.Carrier);
+        var received = overflow / unit;
         if (received == 0)
         {
             return;
         }
 
-        state.SetTension(source.Carrier, tension % unit);
-        state.Add(relation, new CarrierLocation(receiver.Carrier, received));
+        state.KeepOverflowRemainder(source.Carrier, overflow % unit);
+        state.Receive(relation, new CarrierLocation(receiver.Carrier, received));
     }
 
     private static void RouteUnderflow(
@@ -151,8 +150,8 @@ public static class StructuralTransformReads
             return;
         }
 
-        state.SetUnderflow(source.Carrier, underflow % unit);
-        state.Add(relation, new CarrierLocation(receiver.Carrier, received));
+        state.KeepUnderflowRemainder(source.Carrier, underflow % unit);
+        state.Receive(relation, new CarrierLocation(receiver.Carrier, received));
     }
 
     private static void ProjectFreshExtent(
@@ -169,7 +168,7 @@ public static class StructuralTransformReads
             return;
         }
 
-        var fresh = state.FreshOn(source.Carrier);
+        var fresh = state.FreshValueOn(source.Carrier);
         if (fresh == 0)
         {
             return;
@@ -182,7 +181,7 @@ public static class StructuralTransformReads
         }
 
         projected.Add(relation);
-        state.Add(relation, new CarrierLocation(receiver.Carrier, received));
+        state.Receive(relation, new CarrierLocation(receiver.Carrier, received));
     }
 
     private static Relation[] RelationsOf(IElement surface)

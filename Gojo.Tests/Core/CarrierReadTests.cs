@@ -13,11 +13,11 @@ public sealed class CarrierReadTests
         var carrier = new Carrier(10);
 
         carrier.Add(7);
-        carrier.AddOverflow(3);
+        carrier.Remove(10);
 
-        Assert.Equal(7UL, carrier.Value);
-        Assert.Equal(3UL, carrier.Overflow);
-        Assert.Equal(0UL, carrier.Underflow);
+        Assert.Equal(0UL, carrier.Value);
+        Assert.Equal(0UL, carrier.Overflow);
+        Assert.Equal(3UL, carrier.Underflow);
     }
 
     [Fact]

@@ -64,131 +64,47 @@ internal sealed class ContributionSurface
 {
     private readonly Dictionary<ulong, Carrier> carriers = [];
     private readonly Dictionary<ulong, ulong> freshValues = [];
-    private readonly HashSet<IElement> frameSources = [];
 
-    public static ContributionSurface From(IElement surface)
+    internal static ContributionSurface From(IElement surface)
     {
         var positions = new ContributionSurface();
-        positions.AddSurface(surface);
+        positions.AddSurface(surface, isFresh: false);
         return positions;
     }
 
-    public void AddSurface(IElement surface) =>
-        AddSurface(surface, isFresh: false);
-
-    public void AddIncoming(IElement surface) =>
+    internal void AddIncoming(IElement surface) =>
         AddSurface(surface, isFresh: true);
 
-    public void AddSurface(IElement source, IElement surface)
-    {
-        frameSources.Add(source);
-        foreach (var carrier in CarriersOf(surface))
-        {
-            AddCarrier(carrier, isFresh: true);
-        }
+    internal ulong ValueOn(Carrier carrier) => StateOf(carrier).Value;
 
-        foreach (var group in CarrierLocationsOf(surface).GroupBy(location => location.Carrier.Id))
-        {
-            var carrier = group.First().Carrier;
-            AddValue(
-                carrier,
-                group.Aggregate(0UL, (total, location) => checked(total + location.Ticks)),
-                isFresh: true);
-        }
-    }
-
-    public void SetSurface(IElement source, IElement surface)
-    {
-        frameSources.Add(source);
-        AddSurface(source, surface);
-    }
-
-    public void Add(Contribution contribution) =>
-        Add(contribution.Source, contribution.Location, contribution.Scale);
-
-    public void Add(IElement source, CarrierLocation location)
-    {
-        Add(source, location, new CarrierLocation(location.Carrier, 1));
-    }
-
-    public void Add(IElement source, CarrierLocation location, CarrierLocation scale)
-    {
-        frameSources.Add(source);
-        AddValue(location.Carrier, location.Ticks, isFresh: true);
-    }
-
-    public void Set(IElement source, Carrier carrier, ulong ticks, ulong scale = 1)
-    {
-        frameSources.Add(source);
-        AddValue(carrier, ticks, isFresh: true);
-    }
-
-    public void ReplaceCarrier(Carrier carrier, IElement source, ulong ticks, ulong scale = 1)
-    {
-        frameSources.Add(source);
-        SetValue(carrier, ticks);
-    }
-
-    public ulong TotalOn(Carrier carrier) => StateOf(carrier).Value;
-
-    public ulong TotalOn(Carrier carrier, IElement except) => TotalOn(carrier);
-
-    public ulong FreshOn(Carrier carrier) =>
+    internal ulong FreshValueOn(Carrier carrier) =>
         freshValues.TryGetValue(carrier.Id, out var ticks) ? ticks : 0;
 
-    public ulong TensionOn(Carrier carrier) => OverflowOn(carrier);
+    internal ulong OverflowOn(Carrier carrier) => StateOf(carrier).Overflow;
 
-    public ulong OverflowOn(Carrier carrier) => StateOf(carrier).Overflow;
+    internal ulong UnderflowOn(Carrier carrier) => StateOf(carrier).Underflow;
 
-    public ulong UnderflowOn(Carrier carrier) => StateOf(carrier).Underflow;
-
-    public ulong ScaleOn(Carrier carrier) => 1;
-
-    public bool HasZeroScaleOn(Carrier carrier) => false;
-
-    public bool HasSource(IElement source) => frameSources.Contains(source);
-
-    public void AddTension(Carrier carrier, ulong ticks) =>
-        AddOverflow(carrier, ticks);
-
-    public void AddOverflow(Carrier carrier, ulong ticks)
+    internal void AccountOverflow(Carrier carrier, ulong value, ulong overflow)
     {
-        if (ticks == 0)
-        {
-            EnsureCarrier(carrier);
-            return;
-        }
-
-        StateOf(carrier).AddOverflow(ticks);
-    }
-
-    public void SetTension(Carrier carrier, ulong ticks) =>
-        SetOverflow(carrier, ticks);
-
-    public void SetOverflow(Carrier carrier, ulong ticks) =>
-        StateOf(carrier).SetOverflow(ticks);
-
-    public void AddUnderflow(Carrier carrier, ulong ticks)
-    {
-        if (ticks == 0)
-        {
-            EnsureCarrier(carrier);
-            return;
-        }
-
-        StateOf(carrier).AddUnderflow(ticks);
-    }
-
-    public void SetUnderflow(Carrier carrier, ulong ticks) =>
-        StateOf(carrier).SetUnderflow(ticks);
-
-    public void RemoveValue(Carrier carrier, ulong ticks)
-    {
-        StateOf(carrier).Remove(ticks);
+        var state = StateOf(carrier);
+        state.SetValue(value);
+        state.AddOverflow(overflow);
         freshValues.Remove(carrier.Id);
     }
 
-    public void BalanceValues(Carrier first, Carrier second)
+    internal void KeepOverflowRemainder(Carrier carrier, ulong ticks) =>
+        StateOf(carrier).SetOverflow(ticks);
+
+    internal void KeepUnderflowRemainder(Carrier carrier, ulong ticks) =>
+        StateOf(carrier).SetUnderflow(ticks);
+
+    internal void Receive(IElement source, CarrierLocation location)
+    {
+        _ = source;
+        AddValue(location.Carrier, location.Ticks, isFresh: true);
+    }
+
+    internal void BalanceOpposedValues(Carrier first, Carrier second)
     {
         var firstState = StateOf(first);
         var secondState = StateOf(second);
@@ -204,27 +120,24 @@ internal sealed class ContributionSurface
         ReduceFresh(second, shared);
     }
 
-    public Relation[] Relations() => [.. OrderedCarriers()
+    internal Relation[] Relations() => [.. OrderedCarriers()
         .Where(carrier => carrier.Value != 0)
         .Select(ContributionOf)];
 
-    public Relation[] RelationsOn(Carrier carrier) => [.. OrderedCarriers()
+    internal Relation[] RelationsOn(Carrier carrier) => [.. OrderedCarriers()
         .Where(state => state.SameIdentityAs(carrier) && state.Value != 0)
         .Select(ContributionOf)];
 
-    public CarrierLocation[] ScalesOn(Carrier carrier) =>
-        TotalOn(carrier) == 0 ? [] : [new CarrierLocation(carrier, 1)];
-
-    public IElement Surface() => BuildSurface([.. OrderedCarriers()
+    internal IElement Surface() => BuildSurface([.. OrderedCarriers()
         .Where(carrier => carrier.HasState)
         .Select(carrier => (IElement)carrier)]);
 
-    public string[] Snapshot() => [.. OrderedCarriers()
+    internal string[] Snapshot() => [.. OrderedCarriers()
         .Where(carrier => carrier.HasState)
         .Select(ElementKey)
         .Order()];
 
-    public bool SameAs(string[] snapshot) =>
+    internal bool SameAs(string[] snapshot) =>
         Snapshot().SequenceEqual(snapshot);
 
     private void AddSurface(IElement surface, bool isFresh)
@@ -254,7 +167,7 @@ internal sealed class ContributionSurface
 
             if (CarrierTension.TryRead(relation, out var tension))
             {
-                AddOverflow(tension.Location.Carrier, tension.Location.Ticks);
+                StateOf(tension.Location.Carrier).AddOverflow(tension.Location.Ticks);
                 return;
             }
 
@@ -294,12 +207,6 @@ internal sealed class ContributionSurface
         {
             AddFresh(carrier, ticks);
         }
-    }
-
-    private void SetValue(Carrier carrier, ulong ticks)
-    {
-        StateOf(carrier).SetValue(ticks);
-        freshValues.Remove(carrier.Id);
     }
 
     private void AddFresh(Carrier carrier, ulong ticks)

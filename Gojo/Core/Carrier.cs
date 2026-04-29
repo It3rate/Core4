@@ -111,7 +111,7 @@ public sealed class Carrier : IElement
 
     public void SetValue(ulong ticks) => Value = ticks;
 
-    public void AddOverflow(ulong ticks)
+    internal void AddOverflow(ulong ticks)
     {
         if (ticks != 0)
         {
@@ -119,9 +119,9 @@ public sealed class Carrier : IElement
         }
     }
 
-    public void SetOverflow(ulong ticks) => Overflow = ticks;
+    internal void SetOverflow(ulong ticks) => Overflow = ticks;
 
-    public void AddUnderflow(ulong ticks)
+    internal void AddUnderflow(ulong ticks)
     {
         if (ticks != 0)
         {
@@ -129,7 +129,7 @@ public sealed class Carrier : IElement
         }
     }
 
-    public void SetUnderflow(ulong ticks) => Underflow = ticks;
+    internal void SetUnderflow(ulong ticks) => Underflow = ticks;
 
     public override string ToString()
     {
