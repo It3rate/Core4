@@ -102,18 +102,35 @@ internal sealed class ContributionSurface
 
     public void ReplaceCarrier(Carrier carrier, IElement source, ulong ticks, ulong scale = 1)
     {
-        contributions.RemoveAll(contribution => contribution.Location.Carrier == carrier);
+        contributions.RemoveAll(contribution =>
+            contribution.Location.Carrier == carrier &&
+            !IsTension(contribution));
         Set(source, carrier, ticks, scale);
     }
 
     public ulong TotalOn(Carrier carrier) => contributions
-        .Where(contribution => contribution.Location.Carrier == carrier)
+        .Where(contribution =>
+            contribution.Location.Carrier == carrier &&
+            !IsTension(contribution))
         .Aggregate(0UL, (total, contribution) => checked(total + contribution.Location.Ticks));
 
     public ulong TotalOn(Carrier carrier, IElement except) => contributions
         .Where(contribution =>
             contribution.Location.Carrier == carrier &&
-            !Equals(contribution.Source, except))
+            !Equals(contribution.Source, except) &&
+            !IsTension(contribution))
+        .Aggregate(0UL, (total, contribution) => checked(total + contribution.Location.Ticks));
+
+    public ulong TensionOn(Carrier carrier) => contributions
+        .Where(contribution =>
+            contribution.Location.Carrier == carrier &&
+            IsTension(contribution))
+        .Aggregate(0UL, (total, contribution) => checked(total + contribution.Location.Ticks));
+
+    public ulong TensionOn(IElement source, Carrier carrier) => contributions
+        .Where(contribution =>
+            contribution.Location.Carrier == carrier &&
+            Equals(contribution.Source, TensionSource(source, carrier)))
         .Aggregate(0UL, (total, contribution) => checked(total + contribution.Location.Ticks));
 
     public ulong ScaleOn(Carrier carrier)
@@ -132,7 +149,8 @@ internal sealed class ContributionSurface
 
     public bool HasZeroScaleOn(Carrier carrier) => contributions.Any(contribution =>
         contribution.Location.Carrier == carrier &&
-        contribution.Scale.Ticks == 0);
+        contribution.Scale.Ticks == 0 &&
+        !IsTension(contribution));
 
     public bool HasSource(IElement source) => contributions.Any(contribution =>
         Equals(contribution.Source, source));
@@ -145,6 +163,47 @@ internal sealed class ContributionSurface
                 source,
                 group.Key,
                 group.Aggregate(0UL, (total, location) => checked(total + location.Ticks)));
+        }
+    }
+
+    public void AddSurface(IElement source, IElement surface)
+    {
+        foreach (var group in CarrierLocationsOf(surface).GroupBy(location => location.Carrier))
+        {
+            Add(
+                source,
+                new CarrierLocation(
+                    group.Key,
+                    group.Aggregate(0UL, (total, location) => checked(total + location.Ticks))));
+        }
+    }
+
+    public void AddTension(IElement source, Carrier carrier, ulong ticks)
+    {
+        if (ticks == 0)
+        {
+            return;
+        }
+
+        Add(
+            TensionSource(source, carrier),
+            new CarrierLocation(carrier, ticks),
+            new CarrierLocation(carrier, 0));
+    }
+
+    public void SetTension(IElement source, Carrier carrier, ulong ticks)
+    {
+        var tensionSource = TensionSource(source, carrier);
+        contributions.RemoveAll(contribution =>
+            Equals(contribution.Source, tensionSource) &&
+            contribution.Location.Carrier == carrier);
+
+        if (ticks != 0)
+        {
+            Add(
+                tensionSource,
+                new CarrierLocation(carrier, ticks),
+                new CarrierLocation(carrier, 0));
         }
     }
 
@@ -214,6 +273,19 @@ internal sealed class ContributionSurface
 
     private static Relation Point(Carrier carrier, ulong ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
+
+    private static Relation TensionSource(IElement source, Carrier carrier) =>
+        new(source, new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 0)));
+
+    private static bool IsTension(Contribution contribution) =>
+        contribution.Source is Relation source &&
+        source.Right is Relation marker &&
+        marker.Left is CarrierLocation left &&
+        marker.Right is CarrierLocation right &&
+        left.Carrier == contribution.Location.Carrier &&
+        right.Carrier == contribution.Location.Carrier &&
+        left.Ticks == 0 &&
+        right.Ticks == 0;
 
     private static CarrierLocation[] CarrierLocationsOf(IElement element) => element switch
     {

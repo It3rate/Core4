@@ -12,9 +12,10 @@ public static class StructuralTransformReads
         var positions = ContributionSurface.From(structure.Left);
         var relationSurface = structure.Right;
         var relations = RelationsOf(relationSurface);
+        var appliedTransferRoutes = new HashSet<Relation>();
 
         positions.AddSurface(incoming);
-        relationSurface = ApplyRelationsUntilQuiet(positions, relationSurface, relations);
+        relationSurface = ApplyRelationsUntilQuiet(positions, relationSurface, relations, appliedTransferRoutes);
 
         return new(positions.Surface(), relationSurface);
     }
@@ -73,13 +74,14 @@ public static class StructuralTransformReads
     private static IElement ApplyRelationsUntilQuiet(
         ContributionSurface positions,
         IElement relationSurface,
-        Relation[] relations)
+        Relation[] relations,
+        HashSet<Relation> appliedTransferRoutes)
     {
         while (true)
         {
             var beforePositions = positions.Snapshot();
             var beforeSurface = relationSurface;
-            relationSurface = ApplyRelationsOnce(positions, relationSurface, relations);
+            relationSurface = ApplyRelationsOnce(positions, relationSurface, relations, appliedTransferRoutes);
 
             if (positions.SameAs(beforePositions) && Equals(beforeSurface, relationSurface))
             {
@@ -91,11 +93,12 @@ public static class StructuralTransformReads
     private static IElement ApplyRelationsOnce(
         ContributionSurface positions,
         IElement relationSurface,
-        Relation[] relations)
+        Relation[] relations,
+        HashSet<Relation> appliedTransferRoutes)
     {
         foreach (var relation in relations)
         {
-            relationSurface = ApplyRelation(positions, relationSurface, relation);
+            relationSurface = ApplyRelation(positions, relationSurface, relation, appliedTransferRoutes);
         }
 
         return relationSurface;
@@ -104,7 +107,8 @@ public static class StructuralTransformReads
     private static IElement ApplyRelation(
         ContributionSurface positions,
         IElement relationSurface,
-        Relation relation)
+        Relation relation,
+        HashSet<Relation> appliedTransferRoutes)
     {
         if (TryGetOpenRoute(relation, out var openSource))
         {
@@ -119,7 +123,19 @@ public static class StructuralTransformReads
 
         if (TryGetTransferRoute(relation, out var capacity, out var receiver))
         {
-            ApplyTransferRoute(positions, relation, capacity, receiver);
+            ApplyTransferRoute(positions, appliedTransferRoutes, relation, capacity, receiver);
+            return relationSurface;
+        }
+
+        if (TryGetBoundaryTensionRoute(relation, out var boundaryRoute, out var receiverPoint))
+        {
+            ApplyBoundaryTensionRoute(positions, relation, boundaryRoute, receiverPoint);
+            return relationSurface;
+        }
+
+        if (TryGetCarrierBoundary(relation, out var boundary))
+        {
+            ApplyCarrierBoundary(positions, relation, boundary);
             return relationSurface;
         }
 
@@ -169,11 +185,12 @@ public static class StructuralTransformReads
 
     private static void ApplyTransferRoute(
         ContributionSurface positions,
+        HashSet<Relation> appliedTransferRoutes,
         Relation relation,
         CarrierLocation capacity,
         IElement receiver)
     {
-        if (positions.HasSource(relation) || capacity.Ticks == 0)
+        if (capacity.Ticks == 0 || appliedTransferRoutes.Contains(relation))
         {
             return;
         }
@@ -185,13 +202,24 @@ public static class StructuralTransformReads
         }
 
         var transferred = Math.Min(sourceTicks, capacity.Ticks);
+        if (transferred == 0)
+        {
+            return;
+        }
+
+        appliedTransferRoutes.Add(relation);
         var residual = sourceTicks - transferred;
+        var alreadyReceived = positions.HasSource(relation);
         positions.ReplaceCarrier(
             capacity.Carrier,
             new Relation(relation, capacity),
             residual,
             scale: 0);
-        positions.SetSurface(relation, Receive(receiver, new CarrierLocation(capacity.Carrier, transferred)));
+        positions.AddSurface(
+            relation,
+            alreadyReceived
+                ? ReceiveOnly(receiver, new CarrierLocation(capacity.Carrier, transferred))
+                : Receive(receiver, new CarrierLocation(capacity.Carrier, transferred)));
     }
 
     private static void ApplyObservationRoute(
@@ -213,6 +241,60 @@ public static class StructuralTransformReads
 
         var observed = Math.Min(sourceTicks, window.Length);
         positions.SetSurface(relation, Receive(observer, new CarrierLocation(window.Carrier, observed)));
+    }
+
+    private static void ApplyBoundaryTensionRoute(
+        ContributionSurface positions,
+        Relation relation,
+        CarrierBoundaryShape boundary,
+        PointShape receiver)
+    {
+        var tension = positions.TensionOn(boundary.Relation, boundary.Carrier);
+        if (tension == 0 || boundary.Unit == 0)
+        {
+            return;
+        }
+
+        var received = tension / boundary.Unit;
+        if (received == 0)
+        {
+            return;
+        }
+
+        var alreadyReceived = positions.HasSource(relation);
+        positions.SetTension(boundary.Relation, boundary.Carrier, tension % boundary.Unit);
+        positions.Add(
+            relation,
+            new CarrierLocation(
+                receiver.Carrier,
+                checked((alreadyReceived ? 0 : receiver.Location.Ticks) + received)));
+    }
+
+    private static void ApplyCarrierBoundary(
+        ContributionSurface positions,
+        Relation relation,
+        CarrierBoundaryShape boundary)
+    {
+        var total = positions.TotalOn(boundary.Carrier);
+        if (total <= boundary.Target)
+        {
+            return;
+        }
+
+        var local = boundary.IsClamp
+            ? Math.Min(total, boundary.Source)
+            : checked(boundary.Target + ((total - boundary.Target) % boundary.Unit));
+        if (local == total)
+        {
+            return;
+        }
+
+        positions.ReplaceCarrier(
+            boundary.Carrier,
+            new Relation(relation, new CarrierLocation(boundary.Carrier, boundary.Source)),
+            local,
+            scale: 0);
+        positions.AddTension(relation, boundary.Carrier, total - local);
     }
 
     private static bool Contains(IElement element, IElement target)
@@ -258,7 +340,11 @@ public static class StructuralTransformReads
         var carried = lowerTicks / lowerPoint.Location.Ticks;
         var residue = lowerTicks % lowerPoint.Location.Ticks;
         positions.ReplaceCarrier(lowerPoint.Carrier, new Relation(relation, lowerPoint.Location), residue, scale: 0);
-        positions.Set(relation, upperPoint.Carrier, carried);
+        positions.Add(
+            relation,
+            new CarrierLocation(
+                upperPoint.Carrier,
+                checked((positions.HasSource(relation) ? 0 : upperPoint.Location.Ticks) + carried)));
     }
 
     private static void ApplySegmentRelation(
@@ -356,6 +442,47 @@ public static class StructuralTransformReads
 
         lowerSegment = default;
         upperPoint = default;
+        return false;
+    }
+
+    private static bool TryGetBoundaryTensionRoute(
+        Relation relation,
+        out CarrierBoundaryShape boundary,
+        out PointShape receiver)
+    {
+        if (relation.Left is Relation left &&
+            relation.Right is Relation right &&
+            TryGetCarrierBoundary(left, out boundary) &&
+            TryGetPoint(right, out receiver) &&
+            receiver.Carrier != boundary.Carrier)
+        {
+            return true;
+        }
+
+        boundary = default;
+        receiver = default;
+        return false;
+    }
+
+    private static bool TryGetCarrierBoundary(Relation relation, out CarrierBoundaryShape boundary)
+    {
+        if (relation.Left is Relation left &&
+            relation.Right is Relation right &&
+            TryGetPoint(left, out var source) &&
+            TryGetPoint(right, out var target) &&
+            source.Carrier == target.Carrier &&
+            source.Location.Ticks > 0 &&
+            (target.Location.Ticks == 0 || target.Location.Ticks == source.Location.Ticks))
+        {
+            boundary = new(
+                relation,
+                source.Carrier,
+                source.Location.Ticks,
+                target.Location.Ticks);
+            return true;
+        }
+
+        boundary = default;
         return false;
     }
 
@@ -470,11 +597,29 @@ public static class StructuralTransformReads
         _ => target
     };
 
+    private static IElement ReceiveOnly(IElement target, CarrierLocation accounted) => target switch
+    {
+        CarrierLocation location => new CarrierLocation(location.Carrier, accounted.Ticks),
+        Relation relation => new Relation(ReceiveOnly(relation.Left, accounted), ReceiveOnly(relation.Right, accounted)),
+        _ => target
+    };
+
     private readonly record struct PointShape(CarrierLocation Location, Carrier Carrier);
 
     private readonly record struct BareSpanShape(Carrier Carrier, ulong Start, ulong End)
     {
         public ulong Length => End - Start;
+    }
+
+    private readonly record struct CarrierBoundaryShape(
+        Relation Relation,
+        Carrier Carrier,
+        ulong Source,
+        ulong Target)
+    {
+        public bool IsClamp => Source == Target;
+
+        public ulong Unit => IsClamp ? 1 : Source - Target;
     }
 
     private readonly record struct SegmentShape(Carrier Carrier, ulong Start, ulong End)

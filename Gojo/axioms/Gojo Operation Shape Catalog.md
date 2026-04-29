@@ -19,9 +19,10 @@ Notation:
 |---|---|
 | `P(C0,0) -> P(C1,0)` | origin attachment / shared reference; no automatic accumulation |
 | `P(C0,1) -> P(C1,0)` | one-for-one accumulator; every tick crosses upward |
-| `P(C0,k) -> P(C1,0)` | base/counter carry; lower keeps `value % k`, upper receives `value / k` |
+| `P(C0,k) -> P(C1,0)` | direct base/counter absorption; lower hardens to `value % k`, upper receives `value / k` |
 | `P(C0,k) -> P(C1,m)` | offset-point candidate; current internal settling treats offset as existing `C1` position rather than consuming `m` from this endpoint |
-| `P(C0,k) -> P(C0,0)` | same-carrier reset/counter shape; needs point identity before it is fully safe |
+| `P(C0,k) -> P(C0,0)` | same-carrier reset boundary; local carrier hardens to `value % k`, unaccounted source tension remains as `value - value % k` |
+| `P(C0,k) -> P(C0,k)` | same-carrier clamp boundary; local carrier hardens to `min(value,k)`, excess remains as source tension |
 
 ## Segment And Scaling Shapes
 
@@ -60,17 +61,19 @@ they should not fall out of hidden contribution bookkeeping.
 
 | Shape | Read |
 |---|---|
-| `P(C0,k) -> P(C1,0)`, then read `C0` | modulo/residue read; lower carrier reports the settled `value % k` layer |
-| `P(C0,k) -> P(C1,0)`, then read final carried layer | distributed quotient/counter read |
+| `P(C0,k) -> P(C0,0)`, then read `C0` | modulo/residue read; carrier reports the settled `value % k` layer |
+| `(P(C0,k) -> P(C0,0)) -> P(C1,0)` | explicit counter route; boundary tension on `C0` is absorbed through `k:1` into `C1` |
+| `P(C0,k) -> P(C1,0)`, then read final carried layer | direct distributed quotient/counter read; currently executable as a compact absorber |
 | current `P(C1,n)` plus `P(C0,1) -> P(C1,0)` | additive shift; incoming ticks accumulate from an offset carrier position |
 | `S(C,a,b) -> S(C,a+n,b+n)` | segment shift/translation candidate; endpoints move together while segment length is preserved |
 | `S0 -> S1`, then read `S1` | duplicate/projection read of one basis through another |
 
-The current executable settling already supports modulo by reading the lower
-carry layer after settlement, and offset-style addition when the receiving
-carrier already carries the offset as local position. General same-carrier
-segment shift still needs point identity so coincident points can move without
-accidentally moving every matching point in the surface.
+The current executable settling supports modulo through active same-carrier
+reset boundaries. The carrier value is not left as an uninterpreted larger
+number; it hardens to the local residue and leaves unabsorbed source tension.
+General same-carrier segment shift still needs point identity so coincident
+points can move without accidentally moving every matching point in the
+surface.
 
 ## Routing-Like Shapes
 
@@ -83,7 +86,7 @@ accidentally moving every matching point in the surface.
 | `P(C0,k) -> P(counter,0)` | crossing counter |
 | `P(C0,k) -> P(C0_inverse,0)` | opposed/refill or reflection foothold; forward crossing settles as positive ticks on the opposed carrier |
 | `P(C0,k) -> P(C0_inverse,0)` plus `P(C0_inverse,k) -> P(C0,0)` | opposed return loop/ping-pong candidate; lossy or thresholded return can settle without signed storage |
-| `P(C,k) -> P(C,0)` | same-oriented cycle/reset candidate; needs point/site identity before it should be treated as modulo or restart |
+| `P(C,k) -> P(C,0)` | same-oriented reset boundary; modulo locally, tension externally |
 | `S(C,a,b).P1 -> S(C,a,b).P0` | segment end-to-start cycle candidate; restart without traversing a return path |
 | `S(C,a,b).P1 -> S(C_inverse,0)` | loop/ping-pong candidate; flow traverses an opposed return path before it can come forward again |
 | `S0 -> (P(C1,n) -> P(C2,m))` | segment flow into a relation surface; possible coupled fanout/general receiver surface |
@@ -94,11 +97,10 @@ related origin or point. A loop has a return journey, usually through an
 opposed carrier or explicit return relation, so the return path can carry its
 own tension, residue, or blockage.
 
-Same-carrier cycles are not yet executable as true cycles. A relation such as
-`P(C,k) -> P(C,0)` currently cannot distinguish residue storage from the return
-site on the same carrier. Treating it as modulo would hide the missing
-site/point identity. Using `C_inverse` gives a structural return path that can
-be inspected now.
+Same-carrier reset is executable as local accounting, not as a full path loop:
+`P(C,k) -> P(C,0)` hardens the carrier and exposes crossing tension. A true
+cycle or loop still needs an absorber, counter, opposed carrier, or other
+relation to account for that tension.
 
 Lossless point loops are allowed as structures, but settling stops when a full
 pass returns to the same carrier positions. The remaining load is visible

@@ -10,12 +10,24 @@ relation structure and settled by `Gojo.Reads.StructuralTransformReads`.
 
 The current executable route-like shapes are:
 
+- `P(source,k) -> P(source,0)`
+  - same-carrier reset boundary
+  - hardens local position to residue
+  - exposes unabsorbed crossing energy as source tension
+
+- `(P(source,k) -> P(source,0)) -> P(receiver,0)`
+  - explicit counter route
+  - absorbs source boundary tension through the boundary unit
+  - leaves local residue on the source carrier
+
 - `L(source,k) -> receiver surface`
   - conserved transfer
   - drains up to `k` from `source`
   - writes the drained amount into every carrier location in the receiver
     surface
   - ordered relation surfaces distribute only remaining source tension forward
+  - fires at most once in one settle pass, then may fire again in a later pass
+    when new participation appears
 
 - `(L(source,a) -> L(source,b)) -> receiver surface`
   - observation

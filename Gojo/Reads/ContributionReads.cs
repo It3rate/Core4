@@ -13,6 +13,9 @@ public static class ContributionReads
     public static CarrierLocation ContributionTotalOn(this IElement surface, Carrier carrier) =>
         new(carrier, ContributionSurface.From(surface).TotalOn(carrier));
 
+    public static CarrierLocation ContributionTensionOn(this IElement surface, Carrier carrier) =>
+        new(carrier, ContributionSurface.From(surface).TensionOn(carrier));
+
     public static CarrierLocation ContributionScaleOn(this IElement surface, Carrier carrier) =>
         new(carrier, ContributionSurface.From(surface).ScaleOn(carrier));
 

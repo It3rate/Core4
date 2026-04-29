@@ -157,6 +157,87 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(new CarrierLocation(next, 6), settled.PositionOn(next));
     }
 
+    [Fact]
+    public void SameCarrierResetBoundaryHardensResidueAndLeavesUnabsorbedTension()
+    {
+        var carrier = new Carrier(10);
+        var boundary = new Relation(Point(carrier, 10), Point(carrier, 0));
+        var structure = Structure(Point(carrier, 0), boundary);
+
+        var settled = structure.AddAndSettle(new CarrierLocation(carrier, 23));
+
+        Assert.Equal(new CarrierLocation(carrier, 3), settled.PositionOn(carrier));
+        Assert.Equal(new CarrierLocation(carrier, 20), settled.Left.ContributionTensionOn(carrier));
+    }
+
+    [Fact]
+    public void SameCarrierClampBoundaryHardensLimitAndLeavesExcessTension()
+    {
+        var carrier = new Carrier(10);
+        var boundary = new Relation(Point(carrier, 10), Point(carrier, 10));
+        var structure = Structure(Point(carrier, 0), boundary);
+
+        var settled = structure.AddAndSettle(new CarrierLocation(carrier, 23));
+
+        Assert.Equal(new CarrierLocation(carrier, 10), settled.PositionOn(carrier));
+        Assert.Equal(new CarrierLocation(carrier, 13), settled.Left.ContributionTensionOn(carrier));
+    }
+
+    [Fact]
+    public void BoundaryTensionCanBeAbsorbedByRelatedCounterCarrier()
+    {
+        var residue = new Carrier(10);
+        var whole = new Carrier(20);
+        var boundary = new Relation(Point(residue, 10), Point(residue, 0));
+        var counter = new Relation(boundary, Point(whole, 0));
+        var structure = Structure(
+            Surface(Point(residue, 0), Point(whole, 0)),
+            Surface(boundary, counter));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(residue, 23));
+
+        Assert.Equal(new CarrierLocation(residue, 3), settled.PositionOn(residue));
+        Assert.Equal(new CarrierLocation(whole, 2), settled.PositionOn(whole));
+        Assert.Equal(new CarrierLocation(residue, 0), settled.Left.ContributionTensionOn(residue));
+    }
+
+    [Fact]
+    public void BoundaryTensionRoutePreservesLocalResidueBesideCounter()
+    {
+        var residue = new Carrier(10);
+        var whole = new Carrier(20);
+        var boundary = new Relation(Point(residue, 10), Point(residue, 0));
+        var counter = new Relation(boundary, Point(whole, 0));
+        var structure = Structure(
+            Surface(Point(residue, 0), Point(whole, 0)),
+            Surface(boundary, counter));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(residue, 25));
+
+        Assert.Equal(new CarrierLocation(residue, 5), settled.PositionOn(residue));
+        Assert.Equal(new CarrierLocation(whole, 2), settled.PositionOn(whole));
+        Assert.Equal(new CarrierLocation(residue, 0), settled.Left.ContributionTensionOn(residue));
+    }
+
+    [Fact]
+    public void BoundaryTensionRouteCanAccumulateAcrossFrames()
+    {
+        var residue = new Carrier(10);
+        var whole = new Carrier(20);
+        var boundary = new Relation(Point(residue, 10), Point(residue, 0));
+        var counter = new Relation(boundary, Point(whole, 0));
+        var structure = Structure(
+            Surface(Point(residue, 0), Point(whole, 0)),
+            Surface(boundary, counter));
+
+        var first = structure.AddAndSettle(new CarrierLocation(residue, 23));
+        var second = first.AddAndSettle(new CarrierLocation(residue, 20));
+
+        Assert.Equal(new CarrierLocation(residue, 3), second.PositionOn(residue));
+        Assert.Equal(new CarrierLocation(whole, 4), second.PositionOn(whole));
+        Assert.Equal(new CarrierLocation(residue, 0), second.Left.ContributionTensionOn(residue));
+    }
+
     [Theory]
     [InlineData(0UL, 10UL)]
     [InlineData(7UL, 10UL)]
@@ -387,6 +468,22 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
+    public void SettledPointCarryContributionCanAccumulateAcrossFrames()
+    {
+        var ones = new Carrier(10);
+        var tens = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(ones, 0), Point(tens, 0)),
+            new Relation(Point(ones, 10), Point(tens, 0)));
+
+        var first = structure.AddAndSettle(new CarrierLocation(ones, 27));
+        var second = first.AddAndSettle(new CarrierLocation(ones, 10));
+
+        Assert.Equal(new CarrierLocation(ones, 7), second.PositionOn(ones));
+        Assert.Equal(new CarrierLocation(tens, 3), second.PositionOn(tens));
+    }
+
+    [Fact]
     public void IncomingRelationSurfaceCanCarryMultiplePointsIntoSettlement()
     {
         var ones = new Carrier(10);
@@ -500,6 +597,22 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(new CarrierLocation(source, 3), settled.PositionOn(source));
         Assert.Equal(new CarrierLocation(whole, 102), settled.PositionOn(whole));
         Assert.Equal(new CarrierLocation(counter, 2), settled.PositionOn(counter));
+    }
+
+    [Fact]
+    public void StructuralTransferRouteCanAccumulateAcrossFrames()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(source, 0), Point(target, 0)),
+            new Relation(new CarrierLocation(source, 5), new CarrierLocation(target, 0)));
+
+        var first = structure.AddAndSettle(new CarrierLocation(source, 12));
+        var second = first.AddAndSettle(new CarrierLocation(source, 3));
+
+        Assert.Equal(new CarrierLocation(source, 5), second.PositionOn(source));
+        Assert.Equal(new CarrierLocation(target, 10), second.PositionOn(target));
     }
 
     [Fact]

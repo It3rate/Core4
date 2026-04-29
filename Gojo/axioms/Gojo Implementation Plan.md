@@ -105,10 +105,18 @@ Current executable foothold:
   Boundary, transfer, observation, and gather behaviors are no longer public
   location methods; they are relation-surface shapes read by
   `Gojo.Reads.StructuralTransformReads`.
-- Boundary-style quotient and residue are now expressed by point carry:
-  `P(partition,k) -> P(whole,0)` settles `value` as
-  `partition value % k` and `whole value / k`. This keeps the residue and
-  whole layers structurally visible without a decimal projection helper.
+- Boundary-style quotient and residue can be expressed either as the compact
+  direct absorber `P(partition,k) -> P(whole,0)` or as the more explicit
+  same-carrier boundary plus counter route:
+  `(P(partition,k) -> P(partition,0)) -> P(whole,0)`. Both settle the local
+  carrier before reads inspect it; the explicit form also exposes unrouted
+  boundary tension when no counter absorbs it.
+- Active same-carrier accounting is now executable:
+  `P(carrier,k) -> P(carrier,0)` hardens local value to `value % k` and leaves
+  `value - value % k` as visible source tension. `P(carrier,k) ->
+  P(carrier,k)` clamps local value to `k` and leaves the excess as tension.
+  A relation from that boundary relation to a point on another carrier can
+  absorb boundary tension through the boundary unit.
 - Segment-to-segment settlement is checked against ordinary multiplication by
   layer lengths: `S(C0,0,1) -> S(C1,0,m)` maps `x` on `C0` to `x*m` on `C1`.
   Repeating unit segment copies now copies participation through layers; powers
@@ -136,10 +144,10 @@ Current executable foothold:
   accepted portion stays on the left of the returned relation, and the excess
   stays visible as tension on the right. That excess may then gather into an
   open route or remain unresolved.
-- A carrier can self-absorb larger positive counts until a point relation gives
-  crossing structure. For example, `23` partition ticks are just `23` ticks on
-  that carrier until `P(partition,10) -> P(whole,0)` settles them as
-  `whole 2` and `partition 3`.
+- A carrier can self-absorb larger positive counts only until active structure
+  gives it an accounting boundary. For example, `23` ticks on an unbounded
+  carrier are just `23`, but `P(partition,10) -> P(partition,0)` settles them
+  as local `3` plus source tension `20`.
 - A `Relation` can be used as accounting input by reading both slots as carrier
   locations in the current context. This lets route-like capacity, split reads,
   and prior relation results feed the same mechanism without a route class.
@@ -150,7 +158,9 @@ Current executable foothold:
   `L(source,k) -> receiver surface`. Settlement moves
   `min(source value,k)` from the source carrier into every carrier location on
   the receiver surface and leaves `max(source value-k,0)` visible on the
-  source. Ordered relation surfaces give conserved branch distribution.
+  source. Ordered relation surfaces give conserved branch distribution. A
+  transfer route fires at most once per settle pass, but it can fire again in a
+  later pass if new visible source participation appears.
 - The old route-sequence and residual-route helper APIs have been removed from
   Gojo. Their useful behavior is now tested through settled relation surfaces.
   Residual settlement should be added as relation structure when needed rather

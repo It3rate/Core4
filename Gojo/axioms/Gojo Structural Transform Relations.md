@@ -108,7 +108,7 @@ automatic accumulation, scaling, or overflow.
 It says "these origins are related", not "flow should move through this
 boundary."
 
-## 4. Point-To-Origin Transform
+## 4. Point-To-Origin And Same-Carrier Boundary Transform
 
 A point-to-point relation from a nonzero lower point to an upper origin creates
 a threshold/accumulator relation:
@@ -120,6 +120,35 @@ a threshold/accumulator relation:
 The lower carrier fills until it reaches the related point. When flow crosses
 that point, the crossing can move participation into the upper carrier and the
 lower carrier resets to its local residue.
+
+The same physical crossing can be expressed locally first:
+
+```text
+(lower k -> lower carrier) -> (lower 0 -> lower carrier)
+```
+
+This is an active same-carrier reset boundary. If `23` enters a carrier with
+`k = 10`, the carrier hardens to `3` and the unaccounted source tension is
+`20`. That tension is not destroyed. A later relation may absorb it through the
+same boundary unit:
+
+```text
+((lower 10 -> lower carrier) -> (lower 0 -> lower carrier))
+->
+(upper 0 -> upper carrier)
+```
+
+In that case the source tension `20` reads through the `10:1` boundary and the
+upper carrier receives `2`.
+
+A same-carrier clamp is the degenerate target-at-boundary form:
+
+```text
+(lower k -> lower carrier) -> (lower k -> lower carrier)
+```
+
+The local carrier hardens to `min(value,k)` and the excess remains source
+tension.
 
 Because this is point-to-point, there is no segment length to stretch. The
 natural mechanical behavior is overflow-and-clear rather than resize.
@@ -194,11 +223,11 @@ A lossless loop such as `a 1 -> b 0` and `b 1 -> a 0` does not silently solve
 itself. If one full settle pass returns to the same visible positions, the
 load remains visible in that frame as unresolved participation.
 
-This is deliberately different from a same-carrier cycle such as
-`forward 10 -> forward 0`. Same-carrier restart needs a way to distinguish the
-carrier's residue storage from the return site. Until point/site identity is
-numeric structure, treating that shape as a true modulo restart would erase
-meaning.
+This is deliberately different from a full path loop. Same-carrier reset now
+performs local accounting and exposes crossing tension, but it does not by
+itself claim that the tension has completed a return journey. A loop still
+needs an absorber, counter, opposed carrier, or other relation to account for
+the emitted tension.
 
 ## 5. Point Transform Direction
 
@@ -344,6 +373,11 @@ The current behavior is intentionally small:
   residue
 - point carry replaces the source carrier with a relation-shaped residual
   contribution and places the carried contribution on the upper carrier
+- same-carrier reset/clamp boundaries replace the source carrier with its
+  locally accountable value and place the unaccounted source energy in a
+  visible tension contribution
+- a relation from that boundary relation to a point on another carrier can
+  absorb the boundary tension through the boundary unit
 - the residual contribution left by point carry is visible as post-accounting
   structure with scale `0`; segment relations do not re-stretch that residual
   in the same settle frame
@@ -382,6 +416,9 @@ source capacity -> receiver surface
   source participation as residual tension, and writes the received
   participation into the receiver surface. This gives saturating subtraction on
   the source and addition on the receiver without calling a transfer method.
+  A transfer route fires once in a settle pass so capacity is not drained
+  repeatedly by the quiet loop; if new source participation appears in a later
+  pass, the same route can fire again.
 - open gather routes now participate in structural settlement when the relation
   surface contains:
 
