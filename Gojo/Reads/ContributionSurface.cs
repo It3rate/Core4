@@ -134,6 +134,20 @@ internal sealed class ContributionSurface
         contribution.Location.Carrier == carrier &&
         contribution.Scale.Ticks == 0);
 
+    public bool HasSource(IElement source) => contributions.Any(contribution =>
+        Equals(contribution.Source, source));
+
+    public void SetSurface(IElement source, IElement surface)
+    {
+        foreach (var group in CarrierLocationsOf(surface).GroupBy(location => location.Carrier))
+        {
+            Set(
+                source,
+                group.Key,
+                group.Aggregate(0UL, (total, location) => checked(total + location.Ticks)));
+        }
+    }
+
     public Relation[] Relations() => [.. OrderedContributions()
         .Select(contribution => contribution.Surface)];
 
@@ -200,6 +214,13 @@ internal sealed class ContributionSurface
 
     private static Relation Point(Carrier carrier, ulong ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
+
+    private static CarrierLocation[] CarrierLocationsOf(IElement element) => element switch
+    {
+        CarrierLocation location => [location],
+        Relation relation => relation.CarrierLocations(),
+        _ => []
+    };
 
     private static bool TryGetPoint(Relation relation, out CarrierLocation point)
     {

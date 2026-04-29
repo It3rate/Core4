@@ -101,8 +101,6 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         return [.. LeftCarrierLocations(), .. RightCarrierLocations()];
     }
 
-    public CarrierLocation[] ResidualsOn(Carrier reader) => ResidualsOf(this, reader);
-
     public CarrierLocation[] LeftCarrierLocations() => CarrierLocationsOf(Left);
 
     public CarrierLocation[] RightCarrierLocations() => CarrierLocationsOf(Right);
@@ -135,20 +133,6 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         Relation relation => relation.CarrierLocations(),
         _ => []
     };
-
-    private static CarrierLocation[] ResidualsOf(IElement element, Carrier reader) => element switch
-    {
-        Relation relation when relation.TryGetCarrierLocations(out var left, out var right) && IsResidualPair(reader, left, right) => [right],
-        Relation relation => [.. ResidualsOf(relation.Left, reader), .. ResidualsOf(relation.Right, reader)],
-        _ => []
-    };
-
-    private static bool IsResidualPair(Carrier reader, CarrierLocation left, CarrierLocation right)
-    {
-        var leftSign = reader.ReadSignOf(left.Carrier);
-        var rightRead = right.ReadFrom(reader);
-        return leftSign != 0 && rightRead.IsVisible && Math.Sign(leftSign) == rightRead.Direction;
-    }
 
     private static Relation SlotPair(Carrier reader, ulong reverse, ulong forward) =>
         new(

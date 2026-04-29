@@ -240,9 +240,10 @@ This is multiplication-like behavior, but it is not an operator tag. It is the
 physical result of relating one unit segment to another unit segment and then
 reading participation through the stretched relation.
 
-## 7. Repeated Segment Relations Produce Powers
+## 7. Repeated Segment Relations Project Through Layer Lengths
 
-Repeated segment-to-segment relations create power-like behavior.
+Repeated segment-to-segment relations copy or scale participation through the
+explicit segment lengths in each layer.
 
 For example:
 
@@ -252,11 +253,15 @@ For example:
 (c 0 -> c 1) -> (d 0 -> d 1)
 ```
 
-Reading through three repeated segment relations gives cubed behavior. Adding
-another repeated layer gives fourth-power behavior.
+Reading through these unit segment relations copies visible participation from
+`a` to `b` to `c` to `d`. If a layer relates `0..1` to `0..7`, that layer
+multiplies by `7`; if a later layer relates `0..1` to `0..3`, it then
+multiplies by `3`.
 
-This preserves the earlier Core4 idea that powers emerge from repeated
-self-fusion or repeated unit relation, not from a separate exponent operator.
+Power-like behavior is still expected to emerge from repeated basis-scaling
+structure, especially segment-to-point endpoint motion that changes the basis
+used by later relations. It should not come from hidden contribution
+bookkeeping that multiplies the same scale mark more than once.
 
 ## 8. Point Transform Versus Segment Transform
 
@@ -264,8 +269,10 @@ The distinction is structural:
 
 - point-to-point relation: threshold, overflow, carry, reset, borrow, positional
   accumulation
-- segment-to-segment relation: stretch, scale, multiply, divide, power by
-  repeated relation
+- segment-to-segment relation: stretch, scale, multiply, divide, projection by
+  repeated explicit layer lengths
+- segment-to-point relation: move a point while preserving topology; candidate
+  basis-scaling foothold for powers
 - origin-to-origin point relation: attachment/reference without automatic
   modification
 
@@ -362,8 +369,39 @@ The current behavior is intentionally small:
   multiplication-like structural update
 - a carrier position produced by segment stretch can activate a
   segment-to-point endpoint move in the same frame
-- repeated segment transform chains carry the previous stretch forward, giving
-  the first internal power-like behavior
+- repeated segment transform chains project through each layer's explicit
+  segment length; powers need an explicit repeated basis-scaling structure
+- resolved transfer routes now participate in structural settlement when the
+  relation surface contains a bare carrier-location capacity:
+
+```text
+source capacity -> receiver surface
+```
+
+  Settlement transfers at most the visible source capacity, leaves remaining
+  source participation as residual tension, and writes the received
+  participation into the receiver surface. This gives saturating subtraction on
+  the source and addition on the receiver without calling a transfer method.
+- open gather routes now participate in structural settlement when the relation
+  surface contains:
+
+```text
+source potential -> unknown 0
+```
+
+  Settlement raises the source potential to cover visible source tension
+  without draining the source. Persisted source tension is not gathered twice;
+  only newly visible tension beyond the current potential changes the route.
+- observation routes now participate in structural settlement when the relation
+  surface contains a bare same-carrier span as the left side:
+
+```text
+(source start -> source end) -> observer surface
+```
+
+  Settlement writes up to the span length into the observer surface while
+  leaving source participation undrained. Multiple observation routes can
+  therefore fan out the same visible source without splitting it.
 
 Here, independent participation means carrier-local load that arrived from the
 outside of the relation being applied, or from a different already-accounted
@@ -382,12 +420,12 @@ source -> (carrier location -> carrier-local scale location)
 ```
 
 The source says where the contribution came from. The carrier location says
-what visible participation it contributes. The scale location says how that
-contribution should participate in downstream segment scale reads. A scale of
-`1` is ordinary carrier participation. A segment-derived contribution carries
-the segment stretch as its scale. A point-carry residue carries scale `0`,
-which makes the residue visible as already-accounted participation for this
-settle frame instead of fresh stretch input.
+what visible participation it contributes. The scale location is an
+inspectable carrier-local accounting mark. A scale of `1` is ordinary carrier
+participation. A segment-derived contribution carries the segment stretch as
+its scale for inspection. A point-carry residue carries scale `0`, which makes
+the residue visible as already-accounted participation for this settle frame
+instead of fresh stretch input.
 
 This surface is now readable as relation structure. A plain point on the left
 surface is lifted into the same contribution shape with the point itself as
@@ -400,8 +438,8 @@ source -> (carrier location -> carrier-local scale location)
 
 - contribution read: returns the raw contribution relations
 - total read: sums carrier locations for a requested carrier
-- scale read: reads the carrier-local scale marks that downstream segment
-  relations use
+- scale read: reads the carrier-local scale marks carried by the contribution
+  surface
 
 The total and scale reads are lower projections over the contribution surface.
 They are conveniences for action and tests, not a separate state model.
@@ -445,52 +483,42 @@ upper position = 1
 The whole crossing is absorbed by the upper carrier relation, and the lower
 carrier keeps only its residue.
 
-This does not preserve the old route API as the preferred model. It gives a
-new structural foothold so route, overflow, observation, and gather behavior can
-be re-expressed through relation shape.
+This does not preserve the old route API. It gives a structural foothold so
+route, overflow, observation, and gather behavior are expressed through
+relation shape.
 
 ## 11. Consequence For Routes
 
-The current route methods are executable scaffolding, but the long-term model
-should not depend on external parameterization.
+The named route methods have been removed from Gojo. The system now inspects
+relation shape:
 
-Instead of:
+- point carry: `P(C0,k) -> P(C1,0)`
+- segment stretch/copy: `S(C0,a,b) -> S(C1,c,d)`
+- conserved transfer: `L(C0,k) -> receiver surface`
+- observation: `(L(C0,a) -> L(C0,b)) -> receiver surface`
+- open gather: `L(C0,m) -> L(unknown,0)`
 
-```text
-TransferThrough(reader, relation)
-ObserveThrough(reader, relation)
-GatherThrough(reader, relation)
-```
-
-the system should be able to inspect relation shape:
-
-- is this a point transform?
-- is this a segment transform?
-- does crossing expose overflow?
-- does the related surface provide continuation?
-- does the related surface only observe?
-- is the related surface open `m/0` attachment potential?
-
-The answer should come from carrier relation structure, not from a method name
-or tag.
+The answer comes from carrier relation structure, not from a method name or
+tag. Same-carrier bare spans such as `L(C,2) -> L(C,5)` remain span structure
+and are not consumed as transfer routes.
 
 ## 12. Implementation Direction
 
 The next kernel pass should prioritize structural relation reads over adding
 more named route helpers.
 
-Recommended order:
+Current order:
 
-1. Re-express current overflow, transfer, observation, and gather helpers as
-   transitional conveniences over structural relation reads.
-2. Demote or remove external route parameterization once relation shape carries
-   the behavior.
-3. Extend structural reads to underflow/refill, opposed carriers, and tension
-   surfaces.
+1. Point carry, segment stretch/copy, structural transfer, structural
+   observation, and structural open gather are executable relation-settle
+   shapes.
+2. External route parameterization has been removed.
+3. Next structural gaps are underflow/refill, opposed loop/cycle behavior,
+   route hardening, and tension-surface balancing.
 
-Do not delete the current executable model until the structural version covers
-the same tests. The current code is useful scaffolding; the correction is that
-it should not be the final public mechanism.
+Do not reintroduce a helper API just to make those gaps convenient. Add the
+numeric relation shape first, then a small read utility only if it remains a
+projection over visible structure.
 
 ## 13. Guardrail
 

@@ -27,8 +27,8 @@ Notation:
 
 | Shape | Read |
 |---|---|
-| `S(C0,0,1) -> S(C1,0,1)` | segment-to-segment stretch/projection; also a unit duplicate/copy basis shape |
-| `S(C0,0,k) -> S(C1,0,m)` | ratio stretch from one basis segment to another |
+| `S(C0,0,1) -> S(C1,0,1)` | segment-to-segment projection; unit duplicate/copy basis shape |
+| `S(C0,0,k) -> S(C1,0,m)` | ratio stretch from one basis segment to another; `x` on `C0` reads as `x*m/k` on `C1` in the exact divisible case |
 | `S0 -> S1.P1` | multiplication-like basis scaling; source segment flow moves the endpoint of `S1` while `S1.P0 -> S1.P1` remains intact |
 | `S0 -> P(C1,n)` | move a point from source segment flow; if that point is an endpoint of a segment, the segment stretches |
 | `S(C,5,5)` | zero-length segment; point-like now, but still two related points that can later separate |
@@ -47,13 +47,14 @@ relation surface.
 | `(P(C0,10) -> P(C1,0))^7` | eight decimal digit carrier stack, such as a fixed-width positive calculator read |
 | `(S0 -> S1.P1)^2` | square-like repeated basis scaling |
 | `(S0 -> S1.P1)^3` | cube-like repeated basis scaling |
-| `S0 -> S1`, `S1 -> S2`, `S2 -> S3` | repeated segment relation; power-like behavior when each layer reads the previous stretched basis |
+| `S0 -> S1`, `S1 -> S2`, `S2 -> S3` | repeated segment-to-segment projection; copies/scales by each layer's explicit segment lengths |
 
-The point-chain and segment-chain repeats are both "powers" in the loose
-structural sense that the same relation shape is repeated. They are not the
-same operation. Repeated point layers preserve count through carry/reset.
-Repeated segment-to-point or segment-to-segment layers alter basis length and
-therefore create multiplication-like or power-like reads.
+The point-chain and segment-chain repeats are both repeated relation shapes,
+but they are not the same operation. Repeated point layers preserve count
+through carry/reset. Repeated segment-to-segment layers copy or scale by the
+explicit layer lengths and are tested against ordinary multiplication by those
+lengths. Power-like reads still need an explicit repeated basis-scaling shape;
+they should not fall out of hidden contribution bookkeeping.
 
 ## Residue, Modulo, And Shift Shapes
 
@@ -75,6 +76,10 @@ accidentally moving every matching point in the surface.
 
 | Shape | Read |
 |---|---|
+| `L(C0,k) -> L(C1,n)` | structural transfer route; moves `min(value,k)` from `C0` into `C1+n`, leaves `max(value-k,0)` on `C0` |
+| `L(C0,k) -> receiver surface` | coupled structural transfer; same accounted source updates each carrier location in the receiver surface |
+| `L(C0,m) -> L(unknown,0)` | structural open gather; raises `m` to cover visible `C0` tension without draining `C0` |
+| `(L(C0,a) -> L(C0,b)) -> L(C1,n)` | structural observation window; reads up to `|b-a|` from `C0` into `C1+n` without draining `C0` |
 | `P(C0,k) -> P(counter,0)` | crossing counter |
 | `P(C0,k) -> P(C0_inverse,0)` | opposed/refill or reflection foothold; forward crossing settles as positive ticks on the opposed carrier |
 | `P(C0,k) -> P(C0_inverse,0)` plus `P(C0_inverse,k) -> P(C0,0)` | opposed return loop/ping-pong candidate; lossy or thresholded return can settle without signed storage |

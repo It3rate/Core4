@@ -56,6 +56,14 @@ public static class StructuralTransformReads
                 return;
             }
 
+            if (TryGetOpenRoute(relation, out _) ||
+                TryGetObservationRoute(relation, out _, out _) ||
+                TryGetTransferRoute(relation, out _, out _))
+            {
+                relations.Add(relation);
+                return;
+            }
+
             relations.Add(relation);
             Visit(relation.Left);
             Visit(relation.Right);
@@ -98,6 +106,23 @@ public static class StructuralTransformReads
         IElement relationSurface,
         Relation relation)
     {
+        if (TryGetOpenRoute(relation, out var openSource))
+        {
+            return ApplyOpenRoute(positions, relationSurface, relation, openSource);
+        }
+
+        if (TryGetObservationRoute(relation, out var window, out var observer))
+        {
+            ApplyObservationRoute(positions, relation, window, observer);
+            return relationSurface;
+        }
+
+        if (TryGetTransferRoute(relation, out var capacity, out var receiver))
+        {
+            ApplyTransferRoute(positions, relation, capacity, receiver);
+            return relationSurface;
+        }
+
         if (TryGetPointTransform(relation, out var lowerPoint, out var upperPoint))
         {
             ApplyPointRelation(positions, relation, lowerPoint, upperPoint);
@@ -115,6 +140,102 @@ public static class StructuralTransformReads
         }
 
         return relationSurface;
+    }
+
+    private static IElement ApplyOpenRoute(
+        ContributionSurface positions,
+        IElement surface,
+        Relation relation,
+        CarrierLocation openSource)
+    {
+        if (!Contains(surface, relation))
+        {
+            return surface;
+        }
+
+        var sourceTicks = positions.TotalOn(openSource.Carrier);
+        if (sourceTicks <= openSource.Ticks)
+        {
+            return surface;
+        }
+
+        return Replace(
+            surface,
+            relation,
+            new Relation(
+                new CarrierLocation(openSource.Carrier, sourceTicks),
+                relation.Right));
+    }
+
+    private static void ApplyTransferRoute(
+        ContributionSurface positions,
+        Relation relation,
+        CarrierLocation capacity,
+        IElement receiver)
+    {
+        if (positions.HasSource(relation) || capacity.Ticks == 0)
+        {
+            return;
+        }
+
+        var sourceTicks = positions.TotalOn(capacity.Carrier);
+        if (sourceTicks == 0)
+        {
+            return;
+        }
+
+        var transferred = Math.Min(sourceTicks, capacity.Ticks);
+        var residual = sourceTicks - transferred;
+        positions.ReplaceCarrier(
+            capacity.Carrier,
+            new Relation(relation, capacity),
+            residual,
+            scale: 0);
+        positions.SetSurface(relation, Receive(receiver, new CarrierLocation(capacity.Carrier, transferred)));
+    }
+
+    private static void ApplyObservationRoute(
+        ContributionSurface positions,
+        Relation relation,
+        BareSpanShape window,
+        IElement observer)
+    {
+        if (positions.HasSource(relation) || window.Length == 0)
+        {
+            return;
+        }
+
+        var sourceTicks = positions.TotalOn(window.Carrier);
+        if (sourceTicks == 0)
+        {
+            return;
+        }
+
+        var observed = Math.Min(sourceTicks, window.Length);
+        positions.SetSurface(relation, Receive(observer, new CarrierLocation(window.Carrier, observed)));
+    }
+
+    private static bool Contains(IElement element, IElement target)
+    {
+        if (Equals(element, target))
+        {
+            return true;
+        }
+
+        return element is Relation relation &&
+            (Contains(relation.Left, target) || Contains(relation.Right, target));
+    }
+
+    private static IElement Replace(IElement element, IElement target, IElement replacement)
+    {
+        if (Equals(element, target))
+        {
+            return replacement;
+        }
+
+        return element is Relation relation
+            ? new Relation(Replace(relation.Left, target, replacement), Replace(relation.Right, target, replacement))
+            : element;
     }
 
     private static void ApplyPointRelation(
@@ -159,8 +280,7 @@ public static class StructuralTransformReads
         }
 
         var upperSpan = upperSegment.Length;
-        var lowerScale = positions.ScaleOn(lowerSegment.Carrier);
-        var stretch = checked((lowerTicks * lowerScale * upperSpan) / lowerSegment.Length);
+        var stretch = checked((lowerTicks * upperSpan) / lowerSegment.Length);
         if (stretch == 0)
         {
             return;
@@ -239,6 +359,77 @@ public static class StructuralTransformReads
         return false;
     }
 
+    private static bool TryGetTransferRoute(
+        Relation relation,
+        out CarrierLocation capacity,
+        out IElement receiver)
+    {
+        if (relation.Left is CarrierLocation left &&
+            relation.Right is not Carrier &&
+            !IsSameCarrierSpan(left, relation.Right))
+        {
+            capacity = left;
+            receiver = relation.Right;
+            return true;
+        }
+
+        capacity = default;
+        receiver = default!;
+        return false;
+    }
+
+    private static bool IsSameCarrierSpan(CarrierLocation left, IElement right) =>
+        right is CarrierLocation location &&
+        location.Carrier == left.Carrier;
+
+    private static bool TryGetObservationRoute(
+        Relation relation,
+        out BareSpanShape window,
+        out IElement observer)
+    {
+        if (relation.Left is Relation left &&
+            TryGetBareSpan(left, out window))
+        {
+            observer = relation.Right;
+            return true;
+        }
+
+        window = default;
+        observer = default!;
+        return false;
+    }
+
+    private static bool TryGetBareSpan(Relation relation, out BareSpanShape span)
+    {
+        if (relation.Left is CarrierLocation left &&
+            relation.Right is CarrierLocation right &&
+            left.Carrier == right.Carrier)
+        {
+            span = new(
+                left.Carrier,
+                Math.Min(left.Ticks, right.Ticks),
+                Math.Max(left.Ticks, right.Ticks));
+            return true;
+        }
+
+        span = default;
+        return false;
+    }
+
+    private static bool TryGetOpenRoute(Relation relation, out CarrierLocation source)
+    {
+        if (relation.Left is CarrierLocation left &&
+            relation.Right is CarrierLocation { Carrier: var carrier, Ticks: 0 } &&
+            carrier == Carrier.Unknown)
+        {
+            source = left;
+            return true;
+        }
+
+        source = default;
+        return false;
+    }
+
     private static bool TryGetSegment(Relation relation, out SegmentShape segment)
     {
         if (relation.Left is Relation leftPoint &&
@@ -272,7 +463,19 @@ public static class StructuralTransformReads
     private static Relation Point(Carrier carrier, ulong ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
 
+    private static IElement Receive(IElement target, CarrierLocation accounted) => target switch
+    {
+        CarrierLocation location => new CarrierLocation(location.Carrier, checked(location.Ticks + accounted.Ticks)),
+        Relation relation => new Relation(Receive(relation.Left, accounted), Receive(relation.Right, accounted)),
+        _ => target
+    };
+
     private readonly record struct PointShape(CarrierLocation Location, Carrier Carrier);
+
+    private readonly record struct BareSpanShape(Carrier Carrier, ulong Start, ulong End)
+    {
+        public ulong Length => End - Start;
+    }
 
     private readonly record struct SegmentShape(Carrier Carrier, ulong Start, ulong End)
     {

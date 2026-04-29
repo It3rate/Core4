@@ -34,7 +34,7 @@ Add one-transform-per-layer paths:
 - origin-to-origin attachment without automatic modification
 - point-to-origin carry/reset accumulation
 - segment-to-segment stretch/scale transforms
-- repeated segment relations as power-like behavior
+- repeated segment-to-segment projection through explicit layer lengths
 
 This phase should cover multiplication-like and division-like reads without
 ordinary algebraic operator tags.
@@ -62,7 +62,7 @@ Current executable foothold:
   their current read.
 - `Gojo.Reads` holds consequential read passes over the same core structures.
   These helpers are not a second ontology; they keep traversal, support,
-  residual, and route-sequence projections from crowding the primitive
+  residual, and structural settlement projections from crowding the primitive
   carrier/relation types.
 - `Gojo.Diagnostics` holds inspection surfaces that are useful for tests and
   numeric exploration but are not action machinery by themselves.
@@ -73,11 +73,17 @@ Current executable foothold:
   `(point -> point)`, and transform as relation-to-relation. It currently
   distinguishes origin attachment, internal add-and-settle point carry/reset,
   internal segment stretch, base-like carry chains, segment-produced point
-  carry, segment-to-point endpoint scaling, and repeated segment power-like
-  chains without route tags.
+  carry, segment-to-point endpoint scaling, and repeated segment projection
+  through explicit layer lengths without route tags.
 - The older one-shot structural transform calculator has been removed. Current
   transform tests now build a structure, add incoming participation, settle,
   and read the resulting carrier surfaces.
+- Resolved transfer, open gather, and observation fanout now have structural
+  settlement footholds:
+  `L(source,k) -> receiver`, `L(source,m) -> L(unknown,0)`, and
+  `(L(source,a) -> L(source,b)) -> observer`.
+  These are tested against saturating arithmetic, receiver addition, and
+  non-draining fanout rather than only against older route helper shapes.
 - `Gojo Operation Shape Catalog.md` keeps a compact list of operation-like
   relation shapes such as `P(C0,k) -> P(C1,0)` for carry and `S0 -> S1.P1`
   for multiplication-like endpoint scaling.
@@ -94,32 +100,29 @@ Current executable foothold:
   post-accounting scale marks remain inspectable as relation structure. This
   is a frame accounting surface, not an optimized runtime cache; future dynamic
   passes may discard and recompute it whenever relation structure is perturbed.
-- `CarrierLocation` has been reduced back toward substrate storage. Boundary,
-  accounting, transfer, observation, gathering, and segment-boundary behavior
-  now live as transitional extension reads in `Gojo.Reads.CarrierLocationReads`.
-- `ReadThroughBoundary(earlierCarrier, boundary)` returns a
-  `Relation` whose left slot is the earlier carrier-layer ticks and whose right
-  slot is the later carrier-layer ticks that did not cross the boundary. This
-  replaces the former dedicated layered-read wrapper.
-- Boundary overflow routing composes from existing reads: read through a
-  boundary, then transfer the left overflow carrier ticks through an ordinary
-  route relation. A nested receiving side can update both a wrapped whole
-  carrier and a counter, while any route saturation remains visible as overflow
-  tension beside the residue.
-- `ReadRefillThroughBoundary(earlierCarrier, boundary)` is the
-  refill/underflow mirror of `ReadThroughBoundary`. Reverse partition flow
-  reads as borrowed ticks on an earlier inverse carrier plus positive refill
-  residue on the partition carrier. Those borrowed ticks route through the same
-  transfer/observe/gather machinery as overflow.
-- `ReadThroughSegment(reader, segment, lapCarrier)` lets a
-  directed segment act as a boundary. It reads whole segment crossings on the
-  lap carrier and preserves residue as a carrier location on the segment
-  surface. Reading exactly at the segment end returns one lap and the segment
-  start, so end-to-start closure is ordinary segment-boundary reading.
+- `CarrierLocation` has been reduced back toward substrate storage. It now
+  carries only carrier/tick position plus its direct `ReadFrom` projection.
+  Boundary, transfer, observation, and gather behaviors are no longer public
+  location methods; they are relation-surface shapes read by
+  `Gojo.Reads.StructuralTransformReads`.
+- Boundary-style quotient and residue are now expressed by point carry:
+  `P(partition,k) -> P(whole,0)` settles `value` as
+  `partition value % k` and `whole value / k`. This keeps the residue and
+  whole layers structurally visible without a decimal projection helper.
+- Segment-to-segment settlement is checked against ordinary multiplication by
+  layer lengths: `S(C0,0,1) -> S(C1,0,m)` maps `x` on `C0` to `x*m` on `C1`.
+  Repeating unit segment copies now copies participation through layers; powers
+  should come from an explicit repeated basis-scaling structure, not from
+  reusing contribution bookkeeping as hidden state.
+- Same-carrier bare spans such as `L(C,2) -> L(C,5)` remain boundary/span
+  structure. They are not consumed as transfer routes merely because they are
+  location-to-location relations.
 - Coupled counter decrement is represented as opposed counter participation.
-  A refill draw routed into `counter.Inverse()` can be compared with existing
-  forward counter ticks through `TensionOn` and `ExclusiveOn`; remaining forward
-  count or opposed overdraw is visible without signed storage.
+  A draw routed into `counter.Inverse()` can be compared with existing forward
+  counter ticks through `TensionOn` and `ExclusiveOn`; remaining forward count
+  or opposed overdraw is visible without signed storage. The current structural
+  settle path has only a foothold for opposed point carry; refill/borrow
+  routing still needs a structural pass.
 - `NewTensionAfter(accounted, reader)` returns the carrier
   ticks that remain newly visible after the current read frame subtracts what
   local structure already accounts for.
@@ -133,85 +136,42 @@ Current executable foothold:
   accepted portion stays on the left of the returned relation, and the excess
   stays visible as tension on the right. That excess may then gather into an
   open route or remain unresolved.
-- A carrier can self-absorb larger positive counts until a boundary context
-  asks for overflow. For example, `23` partition ticks are just `23` ticks on
-  that carrier until `ReadThroughBoundary` projects them as `2 3|10`.
+- A carrier can self-absorb larger positive counts until a point relation gives
+  crossing structure. For example, `23` partition ticks are just `23` ticks on
+  that carrier until `P(partition,10) -> P(whole,0)` settles them as
+  `whole 2` and `partition 3`.
 - A `Relation` can be used as accounting input by reading both slots as carrier
   locations in the current context. This lets route-like capacity, split reads,
   and prior relation results feed the same mechanism without a route class.
 - `Relation.CarrierLocations()` now traverses nested relation surfaces.
   `LeftCarrierLocations()` and `RightCarrierLocations()` keep the ordered side
   distinction when context needs it.
-- `TransferThrough(reader, route)` is the first resolved-route
-  projection. The route's left side is read as source-side capacity; the
-  route's right side is read as the receiving carrier surface. The returned
-  relation is `source accounting split -> received surface`, so partial
-  transfer leaves excess visible as tension. If the receiving side is nested,
-  the transfer preserves that nested relation shape, giving branch-like
-  receiver updates without introducing a graph object.
-- `TransferThrough(reader, route, receiverReader,
-  receiverCapacity)` composes a receiver-side accounting read after source
-  transfer. The returned shape is `source split -> receiver split`, so source
-  excess and receiver excess remain distinct tensions that can settle in later
-  route passes. If the receiver reader cannot see the received carrier, no
-  receiver tension is visible in that frame.
-- Receiver excess from that split is still an ordinary carrier location on the
-  receiving carrier. Later passes can transfer it, observe it, gather it into
-  an open site, or leave it unresolved using the same route reads as any other
-  tension.
-- `Relation.ResidualsOn(reader)` projects visible right-side residuals from a
-  composed result surface in one reader frame. This lets later passes discover
-  source or receiver excess without manually unwrapping the nested relation
-  shape. It is a context read over result surfaces, not a global claim that
-  every relation endpoint is tension.
-- Diagnostic or test code may lower visible residuals to a reverse/forward
-  carrier pair for easier assertions, but the kernel should adapt from the
-  residual carrier locations themselves rather than from a stored or queried
-  settled status. A result that is quiet in one frame may expose new residuals
-  in a later frame.
-- `Gojo.Reads.ResidualRouteReads` contains read-pass helpers that feed visible
-  residuals into the same transfer, observation, and open-gather route reads.
-  They are explicit projections for a balancing pass, not an automatic solver,
-  and they intentionally sit outside the core relation type.
-- `Gojo.Reads.RouteSequenceReads.TransferThroughRoutes` reads an ordered route
-  sequence. Each route receives only the source tension left by earlier routes,
-  and traversal stops once no visible tension remains. This is a read utility,
-  not a new carrier primitive.
-- Conserved branch behavior is currently this same ordered route read. If
-  source `8` meets route capacities `5` and `5`, the first route can account
-  for `5` and the second can account only for the remaining `3`.
-- `RouteSequenceReads.TransferSourcesThrough(reader, route, sources...)` is the
-  first conserved merge projection. Each source is accounted independently by
-  the route's source side, and the receiver surface accumulates the accounted
-  participation from each source in order. Source tension remains attached to
-  the source that could not transfer.
+- Structural transfer is now a relation shape:
+  `L(source,k) -> receiver surface`. Settlement moves
+  `min(source value,k)` from the source carrier into every carrier location on
+  the receiver surface and leaves `max(source value-k,0)` visible on the
+  source. Ordered relation surfaces give conserved branch distribution.
+- The old route-sequence and residual-route helper APIs have been removed from
+  Gojo. Their useful behavior is now tested through settled relation surfaces.
+  Residual settlement should be added as relation structure when needed rather
+  than kept as a primitive `Relation` query.
 - Transfer into an opposed carrier already gives the first reflection shape.
   The opposed carrier stores positive ticks in its own direction, and those
   ticks can route back through a later relation when read from the original
   carrier frame.
-- Loop closure is currently plain composition: feed the receiving carrier
-  location from one transfer into the next route. If the return route saturates,
-  its source-side split exposes the unreturned tension. Opposed loop closure is
-  the same composition through an inverse carrier, giving ping-pong without a
-  reflection token.
-- `ObserveThrough(reader, route)` is the first zero-unit
-  observation projection. The route's left side sizes what can be observed, but
-  the source is read with no drain, so the full visible incoming participation
-  remains new tension. The right side receives the observed amount as a marker,
-  counter, or claim.
-- `RouteSequenceReads.ObserveThroughRoutes(reader, routes...)` reads each
-  observation route against the same undrained source. This is the first
-  observation fanout shape: several displays, sensors, or claims may each read
-  the same visible participation without splitting the source.
-- `RouteSequenceReads.ObserveSourcesThrough(reader, route, sources...)` is the
-  observation-merge mirror. Several sources can update one receiver surface
-  without being drained; each source still reports its own unchanged visible
-  tension.
-- `GatherThrough(reader, route)` is the first open-route
-  projection. The source is read with no drain, and the incoming visible
-  tension gathers into the route's left side while the route's right side
-  remains open. This turns `0/0` into `m/0`; the gathered `m` can later harden
-  into transfer capacity by pairing it with a resolved receiving side.
+- Structural observation is now
+  `(L(source,a) -> L(source,b)) -> receiver surface`. Settlement reads up to
+  `|b-a|` from the source carrier into the receiver surface without draining
+  the source. Several observation relations can fan out from the same source
+  without splitting it.
+- Structural open gather is now `L(source,m) -> L(unknown,0)`. Settlement
+  raises `m` to cover visible source tension without draining the source, so
+  the same persisted tension is not gathered twice. The open side leaves an
+  attachment potential that can later be replaced by a resolved receiving
+  surface.
+- Loop, ping-pong, refill, and route hardening are intentionally not fully
+  solved by helper APIs anymore. They should be added as structural relation
+  settlement shapes when the numeric form is clear.
 - `Relation.BoundariesOn(reader)` reads the same ordered pair as carrier-local
   segment boundaries when context asks for endpoint behavior. If the reader
   cannot see both endpoints as aligned participation, the boundary read is zero.
@@ -331,9 +291,10 @@ Current executable foothold:
 
 Add route structures:
 
-- resolved transfer routes (started as `TransferThrough`)
-- zero-unit observation routes (started as `ObserveThrough`)
-- open tension routes (started as `GatherThrough`)
+- resolved transfer route shape: `L(source,k) -> receiver surface`
+- zero-unit observation shape:
+  `(L(source,a) -> L(source,b)) -> receiver surface`
+- open tension shape: `L(source,m) -> L(unknown,0)`
 - route capacity and saturation
 - counters
 - wrap
@@ -347,9 +308,8 @@ Next consolidation target:
 
 - See `Gojo Route Generalization Notes.md`.
 - See `Gojo Structural Transform Relations.md`.
-- Treat `TransferThrough`, `ObserveThrough`, and `GatherThrough` as executable
-  scaffolding until equivalent behavior can be discovered from relation shape.
-- Keep their behavior, but avoid deepening external route parameterization.
+- The old named route helpers have been removed. Keep extending relation
+  settlement rather than rebuilding those helpers under new names.
 - Prefer relation shape and read context over drain/observe/gather flags.
 
 ## Phase 5. Filters And Support

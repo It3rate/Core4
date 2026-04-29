@@ -88,7 +88,7 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
-    public void RepeatedSegmentRelationsSettleAsPowers()
+    public void RepeatedUnitSegmentRelationsCopyParticipationAcrossCarriers()
     {
         var a = new Carrier(10);
         var b = new Carrier(20);
@@ -103,7 +103,7 @@ public sealed class StructuralTransformRelationTests
 
         Assert.Equal(new CarrierLocation(a, 3), settled.PositionOn(a));
         Assert.Equal(new CarrierLocation(b, 3), settled.PositionOn(b));
-        Assert.Equal(new CarrierLocation(c, 9), settled.PositionOn(c));
+        Assert.Equal(new CarrierLocation(c, 3), settled.PositionOn(c));
     }
 
     [Fact]
@@ -157,6 +157,27 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(new CarrierLocation(next, 6), settled.PositionOn(next));
     }
 
+    [Theory]
+    [InlineData(0UL, 10UL)]
+    [InlineData(7UL, 10UL)]
+    [InlineData(10UL, 10UL)]
+    [InlineData(37UL, 10UL)]
+    [InlineData(234UL, 10UL)]
+    [InlineData(127UL, 8UL)]
+    public void PointCarryMatchesIntegerDivisionAndRemainder(ulong input, ulong boundary)
+    {
+        var residue = new Carrier(10);
+        var whole = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(residue, 0), Point(whole, 0)),
+            new Relation(Point(residue, boundary), Point(whole, 0)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(residue, input));
+
+        Assert.Equal(new CarrierLocation(residue, input % boundary), settled.PositionOn(residue));
+        Assert.Equal(new CarrierLocation(whole, input / boundary), settled.PositionOn(whole));
+    }
+
     [Fact]
     public void SegmentRelationSettlementUsesBothSegmentLengths()
     {
@@ -171,6 +192,29 @@ public sealed class StructuralTransformRelationTests
 
         Assert.Equal(new CarrierLocation(lower, 4), settled.PositionOn(lower));
         Assert.Equal(new CarrierLocation(upper, 10), settled.PositionOn(upper));
+    }
+
+    [Theory]
+    [InlineData(0UL, 3UL, 7UL)]
+    [InlineData(1UL, 3UL, 7UL)]
+    [InlineData(2UL, 3UL, 7UL)]
+    [InlineData(5UL, 4UL, 6UL)]
+    public void SegmentChainMatchesMultiplicationByLayerLengths(ulong input, ulong firstFactor, ulong secondFactor)
+    {
+        var lower = new Carrier(10);
+        var middle = new Carrier(20);
+        var upper = new Carrier(30);
+        var structure = Structure(
+            Surface(Point(lower, 0), Point(middle, 0), Point(upper, 0)),
+            Surface(
+                new Relation(Segment(lower, 0, 1), Segment(middle, 0, firstFactor)),
+                new Relation(Segment(middle, 0, 1), Segment(upper, 0, secondFactor))));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(lower, input));
+
+        Assert.Equal(new CarrierLocation(lower, input), settled.PositionOn(lower));
+        Assert.Equal(new CarrierLocation(middle, input * firstFactor), settled.PositionOn(middle));
+        Assert.Equal(new CarrierLocation(upper, input * firstFactor * secondFactor), settled.PositionOn(upper));
     }
 
     [Fact]
@@ -386,6 +430,211 @@ public sealed class StructuralTransformRelationTests
                     new CarrierLocation(upper, 18),
                     7)),
             settled.Left);
+    }
+
+    [Fact]
+    public void StructuralTransferRouteSettlesAsSaturatingSubtractionAndAddition()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(source, 0), Point(target, 0)),
+            new Relation(new CarrierLocation(source, 5), new CarrierLocation(target, 0)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(source, 12));
+
+        Assert.Equal(new CarrierLocation(source, 7), settled.PositionOn(source));
+        Assert.Equal(new CarrierLocation(target, 5), settled.PositionOn(target));
+    }
+
+    [Fact]
+    public void StructuralTransferRouteCanFullyAbsorbSource()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var structure = Structure(
+            Surface(Point(source, 0), Point(target, 0)),
+            new Relation(new CarrierLocation(source, 20), new CarrierLocation(target, 0)));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(source, 12));
+
+        Assert.Equal(new CarrierLocation(source, 0), settled.PositionOn(source));
+        Assert.Equal(new CarrierLocation(target, 12), settled.PositionOn(target));
+    }
+
+    [Fact]
+    public void StructuralTransferRoutesDistributeConservedSourceAcrossOrderedBranches()
+    {
+        var source = new Carrier(10);
+        var first = new Carrier(20);
+        var second = new Carrier(30);
+        var structure = Structure(
+            Surface(Point(source, 0), Point(first, 0), Point(second, 0)),
+            Surface(
+                new Relation(new CarrierLocation(source, 5), new CarrierLocation(first, 0)),
+                new Relation(new CarrierLocation(source, 5), new CarrierLocation(second, 0))));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(source, 8));
+
+        Assert.Equal(new CarrierLocation(source, 0), settled.PositionOn(source));
+        Assert.Equal(new CarrierLocation(first, 5), settled.PositionOn(first));
+        Assert.Equal(new CarrierLocation(second, 3), settled.PositionOn(second));
+    }
+
+    [Fact]
+    public void StructuralTransferRouteCanUpdateNestedReceiverSurface()
+    {
+        var source = new Carrier(10);
+        var whole = new Carrier(20);
+        var counter = new Carrier(30);
+        var structure = Structure(
+            Surface(Point(source, 0), Point(whole, 0), Point(counter, 0)),
+            new Relation(
+                new CarrierLocation(source, 2),
+                new Relation(
+                    new CarrierLocation(whole, 100),
+                    new CarrierLocation(counter, 0))));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(source, 5));
+
+        Assert.Equal(new CarrierLocation(source, 3), settled.PositionOn(source));
+        Assert.Equal(new CarrierLocation(whole, 102), settled.PositionOn(whole));
+        Assert.Equal(new CarrierLocation(counter, 2), settled.PositionOn(counter));
+    }
+
+    [Fact]
+    public void StructuralOpenRouteGathersVisibleTensionWithoutDrainingSource()
+    {
+        var source = new Carrier(10);
+        var open = new Relation(
+            new CarrierLocation(source, 0),
+            new CarrierLocation(Carrier.Unknown, 0));
+        var structure = Structure(Point(source, 0), open);
+
+        var settled = structure.AddAndSettle(new CarrierLocation(source, 7));
+
+        Assert.Equal(new CarrierLocation(source, 7), settled.PositionOn(source));
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(source, 7),
+                new CarrierLocation(Carrier.Unknown, 0)),
+            settled.Right);
+    }
+
+    [Fact]
+    public void StructuralOpenRouteGathersOnlyNewVisibleTension()
+    {
+        var source = new Carrier(10);
+        var open = new Relation(
+            new CarrierLocation(source, 5),
+            new CarrierLocation(Carrier.Unknown, 0));
+        var structure = Structure(Point(source, 0), open);
+
+        var settled = structure.AddAndSettle(new CarrierLocation(source, 7));
+
+        Assert.Equal(new CarrierLocation(source, 7), settled.PositionOn(source));
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(source, 7),
+                new CarrierLocation(Carrier.Unknown, 0)),
+            settled.Right);
+    }
+
+    [Fact]
+    public void StructuralOpenRouteDoesNotGatherSameTensionTwiceAcrossFrames()
+    {
+        var source = new Carrier(10);
+        var open = new Relation(
+            new CarrierLocation(source, 0),
+            new CarrierLocation(Carrier.Unknown, 0));
+        var structure = Structure(Point(source, 0), open);
+
+        var first = structure.AddAndSettle(new CarrierLocation(source, 7));
+        var second = first.AddAndSettle(new CarrierLocation(source, 0));
+
+        Assert.Equal(new CarrierLocation(source, 7), second.PositionOn(source));
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(source, 7),
+                new CarrierLocation(Carrier.Unknown, 0)),
+            second.Right);
+    }
+
+    [Fact]
+    public void StructuralObservationRouteMarksReceiverWithoutDrainingSource()
+    {
+        var source = new Carrier(10);
+        var marker = new Carrier(20);
+        var observation = new Relation(
+            new Relation(
+                new CarrierLocation(source, 0),
+                new CarrierLocation(source, 5)),
+            new CarrierLocation(marker, 100));
+        var structure = Structure(
+            Surface(Point(source, 0), Point(marker, 0)),
+            observation);
+
+        var settled = structure.AddAndSettle(new CarrierLocation(source, 8));
+
+        Assert.Equal(new CarrierLocation(source, 8), settled.PositionOn(source));
+        Assert.Equal(new CarrierLocation(marker, 105), settled.PositionOn(marker));
+    }
+
+    [Fact]
+    public void StructuralObservationRouteCannotObserveMoreThanVisibleSource()
+    {
+        var source = new Carrier(10);
+        var marker = new Carrier(20);
+        var observation = new Relation(
+            new Relation(
+                new CarrierLocation(source, 0),
+                new CarrierLocation(source, 5)),
+            new CarrierLocation(marker, 100));
+        var structure = Structure(
+            Surface(Point(source, 0), Point(marker, 0)),
+            observation);
+
+        var settled = structure.AddAndSettle(new CarrierLocation(source, 3));
+
+        Assert.Equal(new CarrierLocation(source, 3), settled.PositionOn(source));
+        Assert.Equal(new CarrierLocation(marker, 103), settled.PositionOn(marker));
+    }
+
+    [Fact]
+    public void StructuralObservationRoutesFanOutWithoutSplittingSource()
+    {
+        var source = new Carrier(10);
+        var first = new Carrier(20);
+        var second = new Carrier(30);
+        var window = new Relation(
+            new CarrierLocation(source, 0),
+            new CarrierLocation(source, 5));
+        var structure = Structure(
+            Surface(Point(source, 0), Point(first, 0), Point(second, 0)),
+            Surface(
+                new Relation(window, new CarrierLocation(first, 0)),
+                new Relation(window, new CarrierLocation(second, 0))));
+
+        var settled = structure.AddAndSettle(new CarrierLocation(source, 8));
+
+        Assert.Equal(new CarrierLocation(source, 8), settled.PositionOn(source));
+        Assert.Equal(new CarrierLocation(first, 5), settled.PositionOn(first));
+        Assert.Equal(new CarrierLocation(second, 5), settled.PositionOn(second));
+    }
+
+    [Fact]
+    public void SameCarrierBareSpanRemainsBoundaryInsteadOfTransferRoute()
+    {
+        var carrier = new Carrier(10);
+        var span = new Relation(
+            new CarrierLocation(carrier, 2),
+            new CarrierLocation(carrier, 5));
+        var structure = Structure(Point(carrier, 0), span);
+
+        var settled = structure.AddAndSettle(new CarrierLocation(carrier, 7));
+
+        Assert.Equal(new CarrierLocation(carrier, 7), settled.PositionOn(carrier));
+        Assert.Equal(span, settled.Right);
     }
 
     [Fact]
@@ -655,7 +904,7 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
-    public void InternalSegmentChainSettlesPowerLikePositions()
+    public void InternalUnitSegmentChainCopiesPositions()
     {
         var a = new Carrier(10);
         var b = new Carrier(20);
@@ -670,7 +919,7 @@ public sealed class StructuralTransformRelationTests
 
         Assert.Equal(new CarrierLocation(a, 3), settled.PositionOn(a));
         Assert.Equal(new CarrierLocation(b, 3), settled.PositionOn(b));
-        Assert.Equal(new CarrierLocation(c, 9), settled.PositionOn(c));
+        Assert.Equal(new CarrierLocation(c, 3), settled.PositionOn(c));
     }
 
     [Fact]
