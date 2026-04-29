@@ -250,14 +250,7 @@ public sealed class StructuralTransformRelationTests
 
         Assert.Equal(new CarrierLocation(carrier, 3), second.PositionOn(carrier));
         Assert.Equal(new CarrierLocation(carrier, 20), second.Left.ContributionTensionOn(carrier));
-        Assert.Equal(
-            Surface(
-                Contribution(
-                    new Relation(boundary, new CarrierLocation(carrier, 10)),
-                    new CarrierLocation(carrier, 3),
-                    0),
-                new Relation(Point(carrier, 0), new CarrierLocation(carrier, 20))),
-            second.Left);
+        Assert.Equal(State(carrier, 3, 20), second.Left);
     }
 
     [Fact]
@@ -406,13 +399,8 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(new CarrierLocation(tens, 3), settled.PositionOn(tens));
         Assert.Equal(
             Surface(
-                Contribution(
-                    new Relation(transform, new CarrierLocation(ones, 10)),
-                    new CarrierLocation(ones, 7),
-                    0),
-                Contribution(
-                    transform,
-                    new CarrierLocation(tens, 3))),
+                State(ones, 7),
+                State(tens, 3)),
             settled.Left);
     }
 
@@ -558,16 +546,8 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(new CarrierLocation(upper, 21), settled.PositionOn(upper));
         Assert.Equal(
             Surface(
-                Contribution(
-                    Point(lower, 7),
-                    new CarrierLocation(lower, 7)),
-                Contribution(
-                    Point(upper, 3),
-                    new CarrierLocation(upper, 3)),
-                Contribution(
-                    transform,
-                    new CarrierLocation(upper, 18),
-                    7)),
+                State(lower, 7),
+                State(upper, 21)),
             settled.Left);
     }
 
@@ -802,8 +782,8 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(
             new[]
             {
-                Contribution(Point(lower, 2), new CarrierLocation(lower, 2)),
-                Contribution(Point(upper, 5), new CarrierLocation(upper, 5))
+                Contribution(Point(lower, 0), new CarrierLocation(lower, 2)),
+                Contribution(Point(upper, 0), new CarrierLocation(upper, 5))
             },
             surface.Contributions());
         Assert.Equal(new CarrierLocation(lower, 2), surface.ContributionTotalOn(lower));
@@ -822,9 +802,7 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(
             new[]
             {
-                Contribution(
-                    new Relation(Point(carrier, 0), location),
-                    location)
+                Contribution(Point(carrier, 0), location)
             },
             location.Contributions());
         Assert.Empty(span.Contributions());
@@ -846,28 +824,14 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(
             new[]
             {
-                Contribution(
-                    new Relation(Point(lower, 0), new CarrierLocation(lower, 7)),
-                    new CarrierLocation(lower, 7)),
-                Contribution(
-                    Point(upper, 3),
-                    new CarrierLocation(upper, 3)),
-                Contribution(
-                    transform,
-                    new CarrierLocation(upper, 18),
-                    7)
+                Contribution(Point(lower, 0), new CarrierLocation(lower, 7)),
+                Contribution(Point(upper, 0), new CarrierLocation(upper, 21))
             },
             settled.Left.Contributions());
         Assert.Equal(
             new[]
             {
-                Contribution(
-                    Point(upper, 3),
-                    new CarrierLocation(upper, 3)),
-                Contribution(
-                    transform,
-                    new CarrierLocation(upper, 18),
-                    7)
+                Contribution(Point(upper, 0), new CarrierLocation(upper, 21))
             },
             settled.Left.ContributionsOn(upper));
     }
@@ -888,11 +852,10 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(
             new[]
             {
-                new CarrierLocation(upper, 1),
-                new CarrierLocation(upper, 7)
+                new CarrierLocation(upper, 1)
             },
             settled.Left.ContributionScalesOn(upper));
-        Assert.Equal(new CarrierLocation(upper, 7), settled.Left.ContributionScaleOn(upper));
+        Assert.Equal(new CarrierLocation(upper, 1), settled.Left.ContributionScaleOn(upper));
     }
 
     [Fact]
@@ -1004,13 +967,8 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(new CarrierLocation(upper, 7), settled.PositionOn(upper));
         Assert.Equal(
             Surface(
-                Contribution(
-                    new Relation(Point(lower, 0), new CarrierLocation(lower, 7)),
-                    new CarrierLocation(lower, 7)),
-                Contribution(
-                    transform,
-                    new CarrierLocation(upper, 7),
-                    7)),
+                State(lower, 7),
+                State(upper, 7)),
             settled.Left);
     }
 
@@ -1030,16 +988,8 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(new CarrierLocation(upper, 21), settled.PositionOn(upper));
         Assert.Equal(
             Surface(
-                Contribution(
-                    new Relation(Point(lower, 0), new CarrierLocation(lower, 7)),
-                    new CarrierLocation(lower, 7)),
-                Contribution(
-                    Point(upper, 3),
-                    new CarrierLocation(upper, 3)),
-                Contribution(
-                    transform,
-                    new CarrierLocation(upper, 18),
-                    7)),
+                State(lower, 7),
+                State(upper, 21)),
             settled.Left);
     }
 
@@ -1178,6 +1128,9 @@ public sealed class StructuralTransformRelationTests
 
     private static Relation Contribution(IElement source, CarrierLocation location, ulong scale = 1) =>
         new(source, new Relation(location, new CarrierLocation(location.Carrier, scale)));
+
+    private static Carrier State(Carrier carrier, ulong value, ulong tension = 0) =>
+        carrier.WithState(value, tension);
 
     private static Relation Structure(IElement positions, IElement relations) =>
         new(positions, relations);

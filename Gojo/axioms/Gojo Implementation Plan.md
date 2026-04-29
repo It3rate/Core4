@@ -94,13 +94,12 @@ Current executable foothold:
   0 -> upper carrier)` therefore settles lower `11` as lower `1` and upper
   `1`; the value `11` does not remain as an externally meaningful carrier
   value.
-- The settled position surface is now a contribution/tension accounting
-  surface rather than a flattened carrier map. `Gojo.Reads.ContributionReads`
-  exposes raw contribution relations and lower total/scale/tension
-  projections, so provenance, post-accounting scale marks, and unresolved
-  carrier tension remain inspectable as relation structure. This is a frame
-  accounting surface, not an optimized runtime cache; future dynamic passes
-  may discard and recompute it whenever relation structure is perturbed.
+- The settled position surface now contains carrier instances with their own
+  held value and tension rather than a flattened map or persisted provenance
+  surface. Full carrier equality includes value/tension, while structural
+  carrier-line matching uses `SameIdentityAs` over `Id`, `Lineage`, and `Flow`.
+  `Gojo.Reads.ContributionReads` remains as a transitional lower projection
+  over carrier-held state for tests and inspection.
 - `CarrierLocation` has been reduced back toward substrate storage. It now
   carries only carrier/tick position plus its direct `ReadFrom` projection.
   Boundary, transfer, observation, and gather behaviors are no longer public
@@ -121,9 +120,11 @@ Current executable foothold:
   absorb carrier tension through the boundary unit.
 - Segment-to-segment settlement is checked against ordinary multiplication by
   layer lengths: `S(C0,0,1) -> S(C1,0,m)` maps `x` on `C0` to `x*m` on `C1`.
-  Repeating unit segment copies now copies participation through layers; powers
-  should come from an explicit repeated basis-scaling structure, not from
-  reusing contribution bookkeeping as hidden state.
+  Segment relations are driven by fresh frame participation. A stretched value
+  that has already settled onto a carrier does not stretch again in the next
+  frame merely because it remains present. Repeating unit segment copies now
+  copies fresh participation through layers; powers should come from an
+  explicit repeated basis-scaling structure.
 - Same-carrier bare spans such as `L(C,2) -> L(C,5)` remain boundary/span
   structure. They are not consumed as transfer routes merely because they are
   location-to-location relations.

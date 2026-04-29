@@ -8,6 +8,16 @@ namespace Gojo.Tests.Core;
 public sealed class CarrierReadTests
 {
     [Fact]
+    public void CarrierEqualityIncludesHeldValueAndTension()
+    {
+        var empty = new Carrier(10);
+        var loaded = empty.WithState(7, 3);
+
+        Assert.NotEqual(empty, loaded);
+        Assert.True(empty.SameIdentityAs(loaded));
+    }
+
+    [Fact]
     public void SameCarrierReadSeesPositiveTicks()
     {
         var x = new Carrier(10);

@@ -3,15 +3,22 @@ namespace Gojo.Core;
 public readonly record struct Carrier : IElement
 {
     public Carrier(ulong id)
-        : this(id, id, 1)
+        : this(id, id, 1, 0, 0)
     {
     }
 
     public Carrier(ulong id, ulong lineage, long flow)
+        : this(id, lineage, flow, 0, 0)
+    {
+    }
+
+    public Carrier(ulong id, ulong lineage, long flow, ulong value, ulong tension)
     {
         Id = id;
         Lineage = lineage;
         Flow = Math.Sign(flow);
+        Value = value;
+        Tension = tension;
     }
 
     public static Carrier Unknown => new(0, 0, 1);
@@ -26,9 +33,26 @@ public readonly record struct Carrier : IElement
 
     public long Flow { get; }
 
+    public ulong Value { get; }
+
+    public ulong Tension { get; }
+
     public Carrier Inverse() => new(Id, Lineage == 0 ? Id : Lineage, -ReadableFlow);
 
     public Carrier Duplicate(ulong id) => new(id, Lineage == 0 ? Id : Lineage, ReadableFlow);
+
+    public Carrier WithValue(ulong value) => new(Id, Lineage, ReadableFlow, value, Tension);
+
+    public Carrier WithTension(ulong tension) => new(Id, Lineage, ReadableFlow, Value, tension);
+
+    public Carrier WithState(ulong value, ulong tension) => new(Id, Lineage, ReadableFlow, value, tension);
+
+    public bool HasState => Value != 0 || Tension != 0;
+
+    public bool SameIdentityAs(Carrier other) =>
+        Id == other.Id &&
+        Lineage == other.Lineage &&
+        ReadableFlow == other.ReadableFlow;
 
     public long ReadSignOf(Carrier locationCarrier)
     {
@@ -39,7 +63,7 @@ public readonly record struct Carrier : IElement
 
         if (Lineage == 0 || locationCarrier.Lineage == 0)
         {
-            return this == locationCarrier ? 1 : 0;
+            return SameIdentityAs(locationCarrier) ? 1 : 0;
         }
 
         if (Lineage != locationCarrier.Lineage)
@@ -52,11 +76,13 @@ public readonly record struct Carrier : IElement
 
     public override string ToString() => Flow switch
     {
-        < 0 => $"{Lineage}:{Id}-",
-        > 0 when Lineage != Id => $"{Lineage}:{Id}+",
-        > 0 => $"{Id}+",
-        _ => $"{Id}"
+        < 0 => $"{Lineage}:{Id}-{StateSuffix}",
+        > 0 when Lineage != Id => $"{Lineage}:{Id}+{StateSuffix}",
+        > 0 => $"{Id}+{StateSuffix}",
+        _ => $"{Id}{StateSuffix}"
     };
 
     private long ReadableFlow => Flow == 0 ? 1 : Flow;
+
+    private string StateSuffix => HasState ? $"[{Value}|{Tension}]" : string.Empty;
 }

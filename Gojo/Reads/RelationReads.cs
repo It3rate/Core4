@@ -34,7 +34,7 @@ public static class RelationReads
 
         var boundaryCarrier = left.Direction > 0 ? reader : reader.Inverse();
         return BoundaryPointsOn(reader, relations)
-            .Where(point => point.Carrier == boundaryCarrier && IsTraversed(point.Ticks, left.Magnitude, right.Magnitude))
+            .Where(point => point.Carrier.SameIdentityAs(boundaryCarrier) && IsTraversed(point.Ticks, left.Magnitude, right.Magnitude))
             .OrderBy(point => left.Magnitude < right.Magnitude ? point.Ticks : ulong.MaxValue - point.Ticks)
             .ToArray();
     }
@@ -259,7 +259,7 @@ public static class RelationReads
         foreach (var relation in relations)
         {
             var boundaries = relation.BoundariesOn(reader);
-            if (boundaries.LeftLocation.Carrier != span.LeftLocation.Carrier ||
+            if (!boundaries.LeftLocation.Carrier.SameIdentityAs(span.LeftLocation.Carrier) ||
                 !IsCovered(spanStart, spanEnd, [boundaries]))
             {
                 continue;
@@ -294,7 +294,7 @@ public static class RelationReads
 
     private static Relation ClipTo(Relation scope, Relation boundary)
     {
-        if (scope.LeftLocation.Carrier != boundary.LeftLocation.Carrier)
+        if (!scope.LeftLocation.Carrier.SameIdentityAs(boundary.LeftLocation.Carrier))
         {
             var zero = new CarrierLocation(scope.LeftLocation.Carrier, 0);
             return new(zero, zero);

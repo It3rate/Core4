@@ -346,37 +346,29 @@ The current behavior is intentionally small:
 - adding a carrier location or incoming relation surface into that structure
   returns a new settled structure
 - one settle frame snapshots the relation nodes present at frame start and then
-  repeatedly applies that relation surface until its contribution surface and
+  repeatedly applies that relation surface until its carrier states and
   relation surface stop changing
-- incoming relation surfaces are decomposed into fresh frame contributions:
+- incoming relation surfaces are decomposed into fresh frame participation:
   a bare carrier location can enter as carrier participation when it is the
-  incoming surface itself, points enter as carrier-position contributions, and
-  existing contribution relations enter as already-accounted frame
-  contributions
+  incoming surface itself, points enter as carrier-position participation, and
+  carrier instances enter with their held value/tension
 - bare carrier locations nested inside arbitrary relation structure do not
   automatically become position contributions; the relation context may be a
   span, route, boundary, or support surface rather than local load
-- carrier position is no longer only a flattened `carrier -> ticks` map inside
-  the settle frame. It is a contribution surface: each visible contribution has
-  a source element, a carrier location, and a visible carrier-local scale
-  location
-- carrier tension is separate from value provenance. Each carrier has one
-  positive-flow tension total in the settle frame. The persisted structure for
-  unresolved carrier tension is numeric relation state:
-
-```text
-P(C,0) -> L(C,tension)
-```
-
-  This says the carrier has unaccounted participation in its own direction. It
-  is not a signed scalar, and it is not a per-relation side table.
-- settled structures keep that contribution surface on their left side; lower
-  reads such as `PositionOn` collapse it to carrier totals when a total is what
-  the caller wants
-- because the contribution surface is returned as ordinary structure, it can
-  feed the next settle frame without first being flattened back to points
-- a segment relation replaces its own contribution on the upper carrier instead
-  of multiplying the carrier total it produced on an earlier pass
+- carrier state is now held directly by the carrier instance. Full carrier
+  equality includes value and tension. Structural matching uses carrier
+  identity (`Id`, `Lineage`, and `Flow`) through `SameIdentityAs`.
+- each carrier has one positive-flow value and one positive-flow tension total.
+  Value/tension are not carrier-line structure like `P(C,10)`, but they belong
+  to the carrier instance and are persisted with it.
+- settled structures keep carrier instances on their left side; lower reads
+  such as `PositionOn` and `ContributionTensionOn` project those carrier-held
+  values when a carrier-local read is what the caller wants
+- because carrier state is returned as ordinary structure, it can feed the next
+  settle frame without first being flattened back to points
+- a segment relation responds to fresh source participation in the current
+  frame. A value produced by stretch in an earlier frame is ordinary carrier
+  state in the next frame and does not stretch itself again.
 - origin-to-origin point transform preserves the incoming local value and does
   not accumulate
 - nonzero-point-to-origin transform carries by threshold and leaves local
@@ -391,9 +383,9 @@ P(C,0) -> L(C,tension)
   carrier's visible tension state
 - a relation from that boundary relation to a point on another carrier can
   absorb carrier tension through the boundary unit
-- the residual contribution left by point carry is visible as post-accounting
-  structure with scale `0`; segment relations do not re-stretch that residual
-  in the same settle frame
+- the local residue left by point carry is carrier value, and the crossing
+  amount is carrier tension until routed. Segment relations do not re-stretch
+  it in a later frame because no fresh stretch input remains.
 - same-carrier point-to-point relations are read as local segment structure,
   not as point transforms; this prevents a segment from accidentally behaving
   like a carry/reset relation
@@ -407,7 +399,7 @@ P(C,0) -> L(C,tension)
   storage
 - segment-to-segment transforms now also participate in add-and-settle:
   they do not clear the lower carrier, but stretch or create upper carrier
-  participation from the lower carrier position and both segment lengths
+  participation from fresh lower-carrier participation and both segment lengths
 - existing upper carrier participation stretches with the segment relation
 - segment-produced participation can feed point carries in the same settled
   structure
@@ -453,76 +445,32 @@ source potential -> unknown 0
   leaving source participation undrained. Multiple observation routes can
   therefore fan out the same visible source without splitting it.
 
-Here, independent participation means carrier-local load that arrived from the
-outside of the relation being applied, or from a different already-accounted
-structure. Derived participation means load produced by the same relation
-during the current frame. For example, if `lower 7` stretches `upper` to `7`,
-the new `upper 7` is derived from that stretch. Reapplying the same stretch to
-that derived `upper 7` as if it were independent would invent `49`. If `upper`
-already carried an independent `3`, then stretching that independent `3` by
-the lower `7` can produce `21` in the current executable model.
+Fresh participation means carrier-local load that enters during the current
+settle frame, either from outside or from a relation that just routed or
+created it. Settled carrier value is not fresh merely because it exists. For
+example, if `lower 7` stretches `upper` to `7`, the new `upper 7` is fresh for
+downstream relations in that frame. In the next frame it is just `upper.Value =
+7`, so the same relation does not create `49`.
 
-The current executable answer is value provenance by contribution plus
-carrier-local tension accounting. A value contribution is ordinary relation
-structure:
-
-```text
-source -> (carrier location -> carrier-local scale location)
-```
-
-The source says where the contribution came from. The carrier location says
-what visible participation it contributes. The scale location is an
-inspectable carrier-local accounting mark. A scale of `1` is ordinary carrier
-participation. A segment-derived contribution carries the segment stretch as
-its scale for inspection. A point-carry residue carries scale `0`, which makes
-the residue visible as already-accounted participation for this settle frame
-instead of fresh stretch input.
-
-Tension is not stored as another contribution source. If a carrier cannot
+Carrier tension is also held directly by the carrier. If a carrier cannot
 account for all incoming participation, the unaccounted positive amount is
-kept once on that carrier as:
+kept once as `carrier.Tension`. That tension can persist across frames and be
+absorbed later when a compatible boundary route is added. If several receivers
+can absorb the same carrier tension, the later branch/merge negotiation should
+also be relation structure; the current executable pass only covers the
+single-route case.
 
-```text
-P(C,0) -> L(C,tension)
-```
+The remaining `ContributionReads` name is transitional. It now projects from
+carrier-held state for older tests and inspection helpers:
 
-That tension can persist across frames and be absorbed later when a compatible
-boundary route is added. If several receivers can absorb the same carrier
-tension, the later branch/merge negotiation should also be relation structure;
-the current executable pass only covers the single-route case.
+- total read: reads the carrier's held value
+- tension read: reads the carrier's held unresolved tension
+- contribution read: lowers carrier values into simple readable contribution
+  relations for compatibility
+- scale read: currently returns the neutral carrier-local scale unless a richer
+  scale surface is reintroduced structurally
 
-This surface is now readable as relation structure. A plain point on the left
-surface is lifted into the same contribution shape with the point itself as
-source and scale `1`. A settled surface can be inspected in four lower
-projections without changing the stored structure:
-
-```text
-source -> (carrier location -> carrier-local scale location)
-```
-
-- contribution read: returns the raw contribution relations
-- total read: sums carrier locations for a requested carrier
-- scale read: reads the carrier-local scale marks carried by the contribution
-  surface
-- tension read: reads the one unresolved positive tension total carried by a
-  requested carrier
-
-The total, scale, and tension reads are lower projections over the settled
-surface. They are conveniences for action and tests, not a separate state
-model.
-
-The contribution surface should not be treated as an optimized runtime cache or
-as predictive memory for a future perturbed structure. It is the visible
-accounting surface for one settled frame. A later runtime may throw this whole
-surface away and recompute it from the underlying carrier/relation structure on
-every pass.
-
-For the current executable shape, preserving the settled contribution surface
-is still useful when a settled frame is fed through the same relation surface
-again. If it were collapsed to only carrier totals, a segment-derived upper
-position would look independent on the next pass and could be stretched again.
-The contribution surface prevents that double accounting without adding a
-separate symbolic flag.
+These reads are conveniences for action and tests, not a separate state model.
 
 TODO: when Gojo has an explicit runtime/source boundary, revisit whether
 `AddAndSettle` should return only canonical source structure plus a disposable
