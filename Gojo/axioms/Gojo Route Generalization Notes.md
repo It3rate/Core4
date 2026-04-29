@@ -1,53 +1,48 @@
 # Gojo Route Generalization Notes
 
-This note used to describe the transitional helper API named
-`TransferThrough`, `ObserveThrough`, and `GatherThrough`.
+This note used to describe transitional helper APIs such as
+`TransferThrough`, `ObserveThrough`, `GatherThrough`, and the later external
+structural-settle reader.
 
-That API has now been removed from Gojo. The useful behavior is carried by
-relation structure and settled by `Gojo.Reads.StructuralTransformReads`.
+Those APIs have now been removed from Gojo. Route-like behavior should live in
+carrier/relation structure and settle inside the connected carrier world.
 
-## Current Structural Route Shapes
+## Current Executable Route Shapes
 
-The current executable route-like shapes are:
+The current executable shapes are intentionally small:
+
+- `L(source,0) -> L(source,k)`
+  - local capacity
+  - hardens value to the capacity
+  - leaves excess as carrier overflow
 
 - `P(source,k) -> P(source,0)`
   - same-carrier reset boundary
-  - hardens local position to residue
-  - exposes unabsorbed crossing energy as carrier tension
+  - hardens local value to residue
+  - exposes unabsorbed crossing energy as carrier overflow
+
+- `P(source,k) -> P(receiver,0)`
+  - compact counter route
+  - creates source overflow through the boundary unit
+  - routes quotient-like overflow into the receiver carrier
+  - leaves local residue on the source carrier
 
 - `(P(source,k) -> P(source,0)) -> P(receiver,0)`
   - explicit counter route
-  - absorbs carrier tension through the boundary unit
-  - leaves local residue on the source carrier
+  - can absorb carrier overflow produced before the route existed
 
-- `L(source,k) -> receiver surface`
-  - conserved transfer
-  - drains up to `k` from `source`
-  - writes the drained amount into every carrier location in the receiver
-    surface
-  - ordered relation surfaces distribute only remaining source participation
-    forward
-  - fires at most once in one settle pass, then may fire again in a later pass
-    when new participation appears
+- `P(source,k) -> P(receiver_inverse,0)`
+  - underflow route
+  - routes source underflow into an inverse-oriented receiver
 
-- `(L(source,a) -> L(source,b)) -> receiver surface`
-  - observation
-  - reads up to `|b-a|` from `source`
-  - writes the observed amount into the receiver surface
-  - does not drain the source
+- `P(source,1) -> P(receiver_inverse,0)`
+  - opposed visible-value balancing
+  - cancels related positive values before leaving residue
 
-- `L(source,m) -> L(unknown,0)`
-  - open gather
-  - raises `m` to cover newly visible carrier tension
-  - does not drain the source
-  - does not gather the same persisted carrier tension twice
-  - leaves a numeric attachment potential that may later harden into a
-    resolved transfer surface
+These are relation shapes, not tags. A carrier settles them because they are
+attached to its world.
 
-These are relation shapes, not tags. The code should inspect structure and
-settle the relation surface, not require callers to choose a route method.
-
-## What Was Removed
+## Removed Surface Machinery
 
 The following helper layers were deliberately removed:
 
@@ -56,19 +51,21 @@ The following helper layers were deliberately removed:
 - direct carrier-location transfer helpers
 - direct carrier-location observation helpers
 - direct carrier-location gather helpers
-- boundary projection helpers that returned quotient/residue outside a
-  relation surface
+- contribution surfaces
+- external structural-settle readers
+- boundary projection helpers that returned quotient/residue outside the
+  carrier world
 
-The removed tests were mostly testing the helper API against itself. New tests
-should prefer structural settlement checked against ordinary arithmetic where
-that arithmetic is the intended projection, such as division/remainder,
-base-carry, conserved distribution, and multiplication by layer lengths.
+The removed tests mostly tested helper APIs against themselves. New tests
+should attach relation structure to carriers, perturb carrier values, and then
+inspect carrier value/overflow/underflow.
 
 ## Remaining Gap
 
-Underflow/refill, loop hardening, same-carrier cycles, and dynamic balancing are
-not solved by the removed helpers. They should come back only as structural
-relation shapes.
+Extent/stretch projection, refill/borrow, loop hardening, same-carrier cycles,
+branch/merge, and dynamic balancing are not solved by the removed helpers. They
+should come back only as structural relation shapes that carriers can settle
+internally.
 
 The pressure to watch for is API shape: if a behavior needs another named
 method before it can be discovered, try to encode the behavior in carrier

@@ -1,5 +1,4 @@
 using Gojo.Core;
-using Gojo.Reads;
 
 namespace Gojo.Tests.Core;
 
@@ -17,97 +16,79 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
-    public void CarrierKeepsUnroutedIncomingValue()
+    public void CarrierWithoutStructureKeepsInputAsLocalValue()
     {
         var carrier = new Carrier(10);
-        var structure = Structure(Point(carrier, 0), Point(Carrier.Unknown, 0));
 
-        var settled = structure.AddAndSettle(new CarrierLocation(carrier, 11));
+        carrier.SetValue(11);
 
-        Assert.Equal(new CarrierLocation(carrier, 11), settled.PositionOn(carrier));
-        Assert.Same(carrier, settled.Left);
         Assert.Equal(11UL, carrier.Value);
+        Assert.Equal(0UL, carrier.Overflow);
     }
 
     [Fact]
-    public void SameCarrierHighToLowRelationAccountsResidueAndTension()
+    public void CarrierLocalCapacityCreatesOverflowWithoutExternalSettlement()
     {
         var carrier = new Carrier(10);
-        var boundary = new Relation(Point(carrier, 10), Point(carrier, 0));
-        var structure = Structure(Point(carrier, 0), boundary);
+        carrier.Attach(new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 10)));
 
-        var settled = structure.AddAndSettle(new CarrierLocation(carrier, 23));
+        carrier.SetValue(11);
 
-        Assert.Equal(new CarrierLocation(carrier, 3), settled.PositionOn(carrier));
-        Assert.Same(carrier, settled.Left);
+        Assert.Equal(10UL, carrier.Value);
+        Assert.Equal(1UL, carrier.Overflow);
+    }
+
+    [Fact]
+    public void SameCarrierResetBoundaryAccountsResidueAndOverflow()
+    {
+        var carrier = new Carrier(10);
+        carrier.Attach(new Relation(Point(carrier, 10), Point(carrier, 0)));
+
+        carrier.SetValue(23);
+
         Assert.Equal(3UL, carrier.Value);
         Assert.Equal(20UL, carrier.Overflow);
     }
 
     [Fact]
-    public void SameCarrierEqualSiteRelationClampsAndLeavesExcessTension()
+    public void SameCarrierClampBoundaryAccountsLimitAndOverflow()
     {
         var carrier = new Carrier(10);
-        var clamp = new Relation(Point(carrier, 10), Point(carrier, 10));
-        var structure = Structure(Point(carrier, 0), clamp);
+        carrier.Attach(new Relation(Point(carrier, 10), Point(carrier, 10)));
 
-        var settled = structure.AddAndSettle(new CarrierLocation(carrier, 23));
+        carrier.SetValue(23);
 
-        Assert.Equal(new CarrierLocation(carrier, 10), settled.PositionOn(carrier));
+        Assert.Equal(10UL, carrier.Value);
         Assert.Equal(13UL, carrier.Overflow);
     }
 
     [Fact]
-    public void BoundaryRelationCanRouteCarrierTension()
+    public void CrossCarrierPointRelationRoutesOverflow()
     {
         var residue = new Carrier(10);
         var whole = new Carrier(20);
-        var boundary = new Relation(Point(residue, 10), Point(residue, 0));
-        var route = new Relation(boundary, Point(whole, 0));
-        var structure = Structure(
-            Surface(Point(residue, 0), Point(whole, 0)),
-            Surface(boundary, route));
+        residue.Attach(new Relation(Point(residue, 10), Point(whole, 0)));
 
-        var settled = structure.AddAndSettle(new CarrierLocation(residue, 23));
+        residue.SetValue(37);
 
-        Assert.Equal(new CarrierLocation(residue, 3), settled.PositionOn(residue));
-        Assert.Equal(new CarrierLocation(whole, 2), settled.PositionOn(whole));
+        Assert.Equal(7UL, residue.Value);
         Assert.Equal(0UL, residue.Overflow);
+        Assert.Equal(3UL, whole.Value);
     }
 
     [Fact]
-    public void PersistedCarrierTensionCanRouteInLaterFrame()
+    public void ExplicitBoundaryRelationRoutesPersistedOverflowWhenAddedLater()
     {
         var residue = new Carrier(10);
         var whole = new Carrier(20);
-        var boundary = new Relation(Point(residue, 10), Point(residue, 0));
-        var route = new Relation(boundary, Point(whole, 0));
-        var unabsorbed = Structure(Point(residue, 0), boundary)
-            .AddAndSettle(new CarrierLocation(residue, 23));
-        var routed = Structure(
-                Surface(unabsorbed.Left, Point(whole, 0)),
-                Surface(boundary, route))
-            .AddAndSettle(new CarrierLocation(residue, 0));
+        var boundary = residue.Attach(new Relation(Point(residue, 10), Point(residue, 0)));
+        residue.SetValue(23);
 
-        Assert.Equal(new CarrierLocation(residue, 3), routed.PositionOn(residue));
-        Assert.Equal(new CarrierLocation(whole, 2), routed.PositionOn(whole));
+        whole.Attach(new Relation(boundary, Point(whole, 0)));
+
+        Assert.Equal(3UL, residue.Value);
         Assert.Equal(0UL, residue.Overflow);
-    }
-
-    [Fact]
-    public void CrossCarrierPointRelationAccountsSourceAndRoutesTension()
-    {
-        var residue = new Carrier(10);
-        var whole = new Carrier(20);
-        var structure = Structure(
-            Surface(Point(residue, 0), Point(whole, 0)),
-            new Relation(Point(residue, 10), Point(whole, 0)));
-
-        var settled = structure.AddAndSettle(new CarrierLocation(residue, 37));
-
-        Assert.Equal(new CarrierLocation(residue, 7), settled.PositionOn(residue));
-        Assert.Equal(new CarrierLocation(whole, 3), settled.PositionOn(whole));
-        Assert.Equal(0UL, residue.Overflow);
+        Assert.Equal(2UL, whole.Value);
     }
 
     [Fact]
@@ -116,33 +97,25 @@ public sealed class StructuralTransformRelationTests
         var ones = new Carrier(10);
         var tens = new Carrier(20);
         var hundreds = new Carrier(30);
-        var structure = Structure(
-            Surface(Point(ones, 0), Point(tens, 0), Point(hundreds, 0)),
-            Surface(
-                new Relation(Point(ones, 10), Point(tens, 0)),
-                new Relation(Point(tens, 10), Point(hundreds, 0))));
+        ones.Attach(new Relation(Point(ones, 10), Point(tens, 0)));
+        tens.Attach(new Relation(Point(tens, 10), Point(hundreds, 0)));
 
-        var settled = structure.AddAndSettle(new CarrierLocation(ones, 375));
+        ones.SetValue(375);
 
-        Assert.Equal(new CarrierLocation(ones, 5), settled.PositionOn(ones));
-        Assert.Equal(new CarrierLocation(tens, 7), settled.PositionOn(tens));
-        Assert.Equal(new CarrierLocation(hundreds, 3), settled.PositionOn(hundreds));
+        Assert.Equal(5UL, ones.Value);
+        Assert.Equal(7UL, tens.Value);
+        Assert.Equal(3UL, hundreds.Value);
     }
 
     [Fact]
     public void UnderflowStaysOnCarrierWithoutRelatedInverseReceiver()
     {
         var source = new Carrier(10);
-        var inverse = new Carrier(isInverse: true);
-        source.Remove(23);
-        var structure = Structure(
-            Surface(source, inverse),
-            Point(Carrier.Unknown, 0));
+        _ = new Carrier(isInverse: true);
 
-        var settled = structure.AddAndSettle(new CarrierLocation(source, 0));
+        source.Remove(23);
 
         Assert.Equal(23UL, source.Underflow);
-        Assert.Equal(new CarrierLocation(inverse, 0), settled.PositionOn(inverse));
     }
 
     [Fact]
@@ -150,15 +123,12 @@ public sealed class StructuralTransformRelationTests
     {
         var source = new Carrier(10);
         var inverse = new Carrier(isInverse: true);
-        source.Remove(23);
-        var structure = Structure(
-            Surface(source, inverse),
-            new Relation(Point(source, 10), Point(inverse, 0)));
+        source.Attach(new Relation(Point(source, 10), Point(inverse, 0)));
 
-        var settled = structure.AddAndSettle(new CarrierLocation(source, 0));
+        source.Remove(23);
 
         Assert.Equal(3UL, source.Underflow);
-        Assert.Equal(new CarrierLocation(inverse, 2), settled.PositionOn(inverse));
+        Assert.Equal(2UL, inverse.Value);
     }
 
     [Fact]
@@ -166,122 +136,32 @@ public sealed class StructuralTransformRelationTests
     {
         var source = new Carrier(10);
         var inverse = new Carrier(isInverse: true);
+        source.Attach(new Relation(Point(source, 1), Point(inverse, 0)));
         source.Add(5);
-        var structure = Structure(
-            Surface(source, inverse),
-            new Relation(Point(source, 1), Point(inverse, 0)));
 
-        var settled = structure.AddAndSettle(new CarrierLocation(inverse, 7));
+        inverse.Add(7);
 
-        Assert.Equal(new CarrierLocation(source, 0), settled.PositionOn(source));
-        Assert.Equal(new CarrierLocation(inverse, 2), settled.PositionOn(inverse));
+        Assert.Equal(0UL, source.Value);
+        Assert.Equal(2UL, inverse.Value);
     }
 
     [Fact]
-    public void OpposedResidualRemainsFreshForLaterRelationsInSameFrame()
+    public void OpposedResidualCanFeedLaterRelationsInSameWorld()
     {
         var source = new Carrier(10);
         var inverse = new Carrier(isInverse: true);
-        var target = new Carrier(20);
+        var target = new Carrier(isInverse: true);
+        source.Attach(new Relation(Point(source, 1), Point(inverse, 0)));
+        inverse.Attach(new Relation(Point(inverse, 1), Point(target, 0)));
         source.Add(5);
-        var structure = Structure(
-            Surface(source, inverse, target),
-            Surface(
-                new Relation(Point(source, 1), Point(inverse, 0)),
-                new Relation(Segment(inverse, 0, 1), Segment(target, 0, 10))));
 
-        var settled = structure.AddAndSettle(new CarrierLocation(inverse, 7));
+        inverse.Add(7);
 
-        Assert.Equal(new CarrierLocation(source, 0), settled.PositionOn(source));
-        Assert.Equal(new CarrierLocation(inverse, 2), settled.PositionOn(inverse));
-        Assert.Equal(new CarrierLocation(target, 20), settled.PositionOn(target));
-    }
-
-    [Fact]
-    public void ExtentRelationProjectsFreshParticipationAcrossCarrierSpans()
-    {
-        var source = new Carrier(10);
-        var target = new Carrier(20);
-        var structure = Structure(
-            Surface(Point(source, 0), Point(target, 0)),
-            new Relation(Segment(source, 0, 1), Segment(target, 0, 5)));
-
-        var settled = structure.AddAndSettle(new CarrierLocation(source, 4));
-
-        Assert.Equal(new CarrierLocation(source, 4), settled.PositionOn(source));
-        Assert.Equal(new CarrierLocation(target, 20), settled.PositionOn(target));
-    }
-
-    [Fact]
-    public void SettledExtentProjectionDoesNotFireAgainWithoutFreshSource()
-    {
-        var source = new Carrier(10);
-        var target = new Carrier(20);
-        var structure = Structure(
-            Surface(Point(source, 0), Point(target, 0)),
-            new Relation(Segment(source, 0, 1), Segment(target, 0, 5)));
-
-        var first = structure.AddAndSettle(new CarrierLocation(source, 4));
-        var second = first.AddAndSettle(new CarrierLocation(source, 0));
-
-        Assert.Equal(new CarrierLocation(source, 4), second.PositionOn(source));
-        Assert.Equal(new CarrierLocation(target, 20), second.PositionOn(target));
-        Assert.Equal(first.Left, second.Left);
-    }
-
-    [Fact]
-    public void ExtentProjectionCanFeedLaterRelationsInSameFrame()
-    {
-        var source = new Carrier(10);
-        var middle = new Carrier(20);
-        var target = new Carrier(30);
-        var structure = Structure(
-            Surface(Point(source, 0), Point(middle, 0), Point(target, 0)),
-            Surface(
-                new Relation(Segment(source, 0, 1), Segment(middle, 0, 5)),
-                new Relation(Segment(middle, 0, 1), Segment(target, 0, 2))));
-
-        var settled = structure.AddAndSettle(new CarrierLocation(source, 4));
-
-        Assert.Equal(new CarrierLocation(source, 4), settled.PositionOn(source));
-        Assert.Equal(new CarrierLocation(middle, 20), settled.PositionOn(middle));
-        Assert.Equal(new CarrierLocation(target, 40), settled.PositionOn(target));
-    }
-
-    [Fact]
-    public void ContributionReadsProjectCarrierOwnedState()
-    {
-        var source = new Carrier(10);
-        source.Add(7);
-
-        Assert.Equal(new CarrierLocation(source, 7), source.ContributionTotalOn(source));
-        Assert.Equal(
-            new[]
-            {
-                Contribution(Point(source, 0), new CarrierLocation(source, 7))
-            },
-            source.Contributions());
+        Assert.Equal(0UL, source.Value);
+        Assert.Equal(0UL, inverse.Value);
+        Assert.Equal(2UL, target.Value);
     }
 
     private static Relation Point(Carrier carrier, ulong ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
-
-    private static Relation Segment(Carrier carrier, ulong start, ulong end) =>
-        new(Point(carrier, start), Point(carrier, end));
-
-    private static Relation Contribution(IElement source, CarrierLocation location, ulong scale = 1) =>
-        new(source, new Relation(location, new CarrierLocation(location.Carrier, scale)));
-
-    private static Relation Structure(IElement positions, IElement relations) =>
-        new(positions, relations);
-
-    private static IElement Surface(params IElement[] elements)
-    {
-        return elements.Length switch
-        {
-            0 => Point(Carrier.Unknown, 0),
-            1 => elements[0],
-            _ => new Relation(elements[0], Surface(elements[1..]))
-        };
-    }
 }

@@ -2,6 +2,32 @@ namespace Gojo.Core;
 
 public readonly record struct Relation(IElement Left, IElement Right) : IElement
 {
+    internal bool Apply()
+    {
+        var left = CarrierSitesOf(Left);
+        var right = CarrierSitesOf(Right);
+        if (!TryReadOneCarrier(left, out var leftSites) ||
+            !TryReadOneCarrier(right, out var rightSites))
+        {
+            return false;
+        }
+
+        if (leftSites.Carrier.SameIdentityAs(rightSites.Carrier))
+        {
+            return TryApplyCapacity(leftSites.Carrier) ||
+                AccountLocal(leftSites.Carrier, leftSites.Max, rightSites.Min);
+        }
+
+        if (leftSites.Carrier.IsInverse != rightSites.Carrier.IsInverse &&
+            rightSites.Width == 0)
+        {
+            return leftSites.Carrier.BalanceOpposedValueWith(rightSites.Carrier) |
+                RouteUnderflow(leftSites, rightSites);
+        }
+
+        return rightSites.Width == 0 && RouteOverflow(leftSites, rightSites);
+    }
+
     public Relation SupportOn(Carrier reader)
     {
         var (reverse, forward) = ReadStatePair(reader);
@@ -101,6 +127,8 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         return [.. LeftCarrierLocations(), .. RightCarrierLocations()];
     }
 
+    public Carrier[] Carriers() => [.. CarriersOf(Left), .. CarriersOf(Right)];
+
     public CarrierLocation[] LeftCarrierLocations() => CarrierLocationsOf(Left);
 
     public CarrierLocation[] RightCarrierLocations() => CarrierLocationsOf(Right);
@@ -131,6 +159,14 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
     {
         CarrierLocation location => [location],
         Relation relation => relation.CarrierLocations(),
+        _ => []
+    };
+
+    private static Carrier[] CarriersOf(IElement element) => element switch
+    {
+        Carrier carrier => [carrier],
+        CarrierLocation location => [location.Carrier],
+        Relation relation => relation.Carriers(),
         _ => []
     };
 
@@ -172,5 +208,121 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
                 reverse += read.Magnitude;
             }
         }
+    }
+
+    private bool TryApplyCapacity(Carrier carrier)
+    {
+        if (Left is not CarrierLocation left ||
+            Right is not CarrierLocation right ||
+            !left.Carrier.SameIdentityAs(carrier) ||
+            !right.Carrier.SameIdentityAs(carrier))
+        {
+            return false;
+        }
+
+        var capacity = left.Ticks == 0
+            ? right.Ticks
+            : right.Ticks == 0
+                ? left.Ticks
+                : 0;
+        if (capacity == 0 || carrier.Value <= capacity)
+        {
+            return false;
+        }
+
+        return carrier.AccountOverflow(capacity, carrier.Value - capacity);
+    }
+
+    private static bool AccountLocal(
+        Carrier carrier,
+        ulong source,
+        ulong target)
+    {
+        if (source == 0 || source < target || carrier.Value <= target)
+        {
+            return false;
+        }
+
+        var local = source == target
+            ? Math.Min(carrier.Value, source)
+            : checked(target + ((carrier.Value - target) % (source - target)));
+        return local != carrier.Value &&
+            carrier.AccountOverflow(local, carrier.Value - local);
+    }
+
+    private static bool RouteOverflow(CarrierSites source, CarrierSites receiver)
+    {
+        var unit = source.Width == 0 ? source.Max : source.Width;
+        if (unit == 0)
+        {
+            return false;
+        }
+
+        var target = source.Width == 0 ? 0 : source.Min;
+        var changed = AccountLocal(source.Carrier, source.Max, target);
+        var received = source.Carrier.Overflow / unit;
+        if (received == 0)
+        {
+            return changed;
+        }
+
+        changed |= source.Carrier.KeepOverflowRemainder(source.Carrier.Overflow % unit);
+        receiver.Carrier.Receive(received);
+        return true;
+    }
+
+    private static bool RouteUnderflow(CarrierSites source, CarrierSites receiver)
+    {
+        var unit = source.Width == 0 ? source.Max : source.Width;
+        if (unit == 0)
+        {
+            return false;
+        }
+
+        var received = source.Carrier.Underflow / unit;
+        if (received == 0)
+        {
+            return false;
+        }
+
+        var changed = source.Carrier.KeepUnderflowRemainder(source.Carrier.Underflow % unit);
+        receiver.Carrier.Receive(received);
+        return true;
+    }
+
+    private static CarrierLocation[] CarrierSitesOf(IElement element) => element switch
+    {
+        CarrierLocation location => [location],
+        Relation relation => [.. CarrierSitesOf(relation.Left), .. CarrierSitesOf(relation.Right)],
+        _ => []
+    };
+
+    private static bool TryReadOneCarrier(
+        CarrierLocation[] sites,
+        out CarrierSites carrierSites)
+    {
+        if (sites.Length == 0)
+        {
+            carrierSites = default;
+            return false;
+        }
+
+        var carrier = sites[0].Carrier;
+        if (sites.Any(site => !site.Carrier.SameIdentityAs(carrier)))
+        {
+            carrierSites = default;
+            return false;
+        }
+
+        carrierSites = new(
+            carrier,
+            sites.Min(site => site.Ticks),
+            sites.Max(site => site.Ticks));
+        return true;
+    }
+
+    private readonly record struct CarrierSites(Carrier Carrier, ulong Min, ulong Max)
+    {
+        public ulong Width => Max - Min;
     }
 }
