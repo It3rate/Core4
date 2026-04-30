@@ -125,6 +125,29 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             new Relation(new CarrierLocation(flow.Carrier, rightTicks), flow));
     }
 
+    public Relation Project(CarrierLocation location, Carrier reader)
+    {
+        if (!TryReadBasis(Left, out var leftBasis) ||
+            !TryReadBasis(Right, out var rightBasis))
+        {
+            return ProjectionResult(new CarrierLocation(reader, 0), location);
+        }
+
+        if (location.Carrier.SameIdentityAs(leftBasis.Carrier) &&
+            reader.SameIdentityAs(rightBasis.Carrier))
+        {
+            return ProjectBetween(location, reader, leftBasis.Ticks, rightBasis.Ticks);
+        }
+
+        if (location.Carrier.SameIdentityAs(rightBasis.Carrier) &&
+            reader.SameIdentityAs(leftBasis.Carrier))
+        {
+            return ProjectBetween(location, reader, rightBasis.Ticks, leftBasis.Ticks);
+        }
+
+        return ProjectionResult(new CarrierLocation(reader, 0), location);
+    }
+
     public CarrierLocation[] CarrierLocations()
     {
         return [.. LeftCarrierLocations(), .. RightCarrierLocations()];
@@ -192,6 +215,82 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         rightTicks = right.Ticks;
         return true;
     }
+
+    private static bool TryReadBasis(IElement element, out CarrierLocation basis)
+    {
+        if (element is CarrierLocation location)
+        {
+            basis = location;
+            return true;
+        }
+
+        if (element is not Relation relation)
+        {
+            basis = default;
+            return false;
+        }
+
+        if (relation.IsPoint(out var pointLocation, out _))
+        {
+            basis = pointLocation;
+            return true;
+        }
+
+        if (relation.TryGetCarrierLocations(out var left, out var right) &&
+            left.Carrier.SameIdentityAs(right.Carrier))
+        {
+            basis = new CarrierLocation(left.Carrier, right.Ticks - left.Ticks);
+            return true;
+        }
+
+        if (relation.Left is Relation leftPoint &&
+            relation.Right is Relation rightPoint &&
+            leftPoint.IsPoint(out var leftPointLocation, out _) &&
+            rightPoint.IsPoint(out var rightPointLocation, out _) &&
+            leftPointLocation.Carrier.SameIdentityAs(rightPointLocation.Carrier))
+        {
+            basis = new CarrierLocation(
+                leftPointLocation.Carrier,
+                rightPointLocation.Ticks - leftPointLocation.Ticks);
+            return true;
+        }
+
+        basis = default;
+        return false;
+    }
+
+    private static Relation ProjectBetween(
+        CarrierLocation location,
+        Carrier reader,
+        long sourceBasis,
+        long targetBasis)
+    {
+        if (sourceBasis == 0 || targetBasis == 0 || location.Ticks == 0)
+        {
+            return ProjectionResult(new CarrierLocation(reader, 0), location);
+        }
+
+        var sourceMagnitude = MagnitudeOf(sourceBasis);
+        var targetMagnitude = MagnitudeOf(targetBasis);
+        var locationMagnitude = MagnitudeOf(location.Ticks);
+        var scaled = checked(locationMagnitude * targetMagnitude);
+        var projectedMagnitude = scaled / sourceMagnitude;
+        var residueMagnitude = scaled % sourceMagnitude;
+        var sign = Math.Sign(location.Ticks) * Math.Sign(sourceBasis) * Math.Sign(targetBasis);
+
+        return ProjectionResult(
+            new CarrierLocation(reader, SignedTicks(projectedMagnitude, sign)),
+            new CarrierLocation(location.Carrier, SignedTicks(residueMagnitude, Math.Sign(location.Ticks))));
+    }
+
+    private static Relation ProjectionResult(CarrierLocation projected, CarrierLocation residue) =>
+        new(projected, residue);
+
+    private static ulong MagnitudeOf(long ticks) =>
+        ticks >= 0 ? checked((ulong)ticks) : checked((ulong)-ticks);
+
+    private static long SignedTicks(ulong ticks, int sign) =>
+        sign < 0 ? -checked((long)ticks) : checked((long)ticks);
 
     private static CarrierLocation[] CarrierLocationsOf(IElement element) => element switch
     {

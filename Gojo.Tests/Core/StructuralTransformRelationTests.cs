@@ -104,6 +104,166 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
+    public void CrossCarrierNonzeroPointRelationProjectsExactRatio()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var ratio = new Relation(Point(source, 2), Point(target, 3));
+
+        var projected = ratio.Project(new CarrierLocation(source, 6), target);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(target, 9),
+                new CarrierLocation(source, 0)),
+            projected);
+    }
+
+    [Fact]
+    public void RatioProjectionCanBeReadBackwardsAsDivision()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var ratio = new Relation(Point(source, 2), Point(target, 3));
+
+        var projected = ratio.Project(new CarrierLocation(target, 9), source);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(source, 6),
+                new CarrierLocation(target, 0)),
+            projected);
+    }
+
+    [Fact]
+    public void ContractiveRatioLeavesResidueOnOriginalCarrier()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var ratio = new Relation(Point(source, 3), Point(target, 1));
+
+        var projected = ratio.Project(new CarrierLocation(source, 10), target);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(target, 3),
+                new CarrierLocation(source, 1)),
+            projected);
+    }
+
+    [Fact]
+    public void ExpansiveRatioCanRepresentSubSourceTicksWithoutResidue()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var ratio = new Relation(Point(source, 2), Point(target, 4));
+
+        var projected = ratio.Project(new CarrierLocation(source, 1), target);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(target, 2),
+                new CarrierLocation(source, 0)),
+            projected);
+    }
+
+    [Fact]
+    public void PointToNegativePointProjectsSubtractionShape()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var subtract = new Relation(Point(source, 1), Point(target, -1));
+
+        var projected = subtract.Project(new CarrierLocation(source, 7), target);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(target, -7),
+                new CarrierLocation(source, 0)),
+            projected);
+    }
+
+    [Fact]
+    public void NegativePointToPositivePointAlsoProjectsNegativeRatio()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var negativeRatio = new Relation(Point(source, -2), Point(target, 3));
+
+        var projected = negativeRatio.Project(new CarrierLocation(source, 4), target);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(target, -6),
+                new CarrierLocation(source, 0)),
+            projected);
+    }
+
+    [Fact]
+    public void NegativePointToNegativePointProjectsPositiveRatio()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var positiveRatio = new Relation(Point(source, -2), Point(target, -3));
+
+        var projected = positiveRatio.Project(new CarrierLocation(source, 4), target);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(target, 6),
+                new CarrierLocation(source, 0)),
+            projected);
+    }
+
+    [Fact]
+    public void NegativeRatioCanBeReadBackwardsAsSignedDivision()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var negativeRatio = new Relation(Point(source, 2), Point(target, -3));
+
+        var projected = negativeRatio.Project(new CarrierLocation(target, -9), source);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(source, 6),
+                new CarrierLocation(target, 0)),
+            projected);
+    }
+
+    [Fact]
+    public void SegmentToSegmentRelationProjectsByOrderedBasisLengths()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var ratio = new Relation(Segment(source, 0, 2), Segment(target, 0, 3));
+
+        var projected = ratio.Project(new CarrierLocation(source, 6), target);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(target, 9),
+                new CarrierLocation(source, 0)),
+            projected);
+    }
+
+    [Fact]
+    public void ReversedSourceSegmentProjectsNegativeRatio()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var ratio = new Relation(Segment(source, 2, 0), Segment(target, 0, 3));
+
+        var projected = ratio.Project(new CarrierLocation(source, 4), target);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(target, -6),
+                new CarrierLocation(source, 0)),
+            projected);
+    }
+
+    [Fact]
     public void ExplicitBoundaryRelationRoutesPersistedPositiveTensionWhenAddedLater()
     {
         var residue = new Carrier(10);
@@ -189,6 +349,9 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(2UL, target.Value);
     }
 
-    private static Relation Point(Carrier carrier, ulong ticks) =>
+    private static Relation Point(Carrier carrier, long ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
+
+    private static Relation Segment(Carrier carrier, long left, long right) =>
+        new(Point(carrier, left), Point(carrier, right));
 }

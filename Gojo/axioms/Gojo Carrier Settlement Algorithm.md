@@ -278,8 +278,39 @@ C1 remains Value 0, Tension 0
 ```
 
 That relation says that `2` ticks on `C0` project as `3` ticks on `C1`.
-The projection read is not yet executable as a crystallized carrier value, so
-the relation does not mutate either carrier.
+The projection read is executable as relation-shaped read state, but it does
+not mutate either carrier:
+
+```text
+project(L(C0,6), C1) through P(C0,2) -> P(C1,3)
+    = L(C1,9) -> L(C0,0)
+```
+
+Reading the same relation backward gives division:
+
+```text
+project(L(C1,9), C0)
+    = L(C0,6) -> L(C1,0)
+```
+
+Non-exact projection keeps the source-basis residue on the original carrier:
+
+```text
+project(L(C0,10), C1) through P(C0,3) -> P(C1,1)
+    = L(C1,3) -> L(C0,1)
+```
+
+Signed sites carry scalar sign:
+
+```text
+P(C0,1)  -> P(C1,-1)  gives subtraction-like projection
+P(C0,-2) -> P(C1,3)   gives a negative ratio
+P(C0,-2) -> P(C1,-3)  gives a positive ratio
+```
+
+This is still a read, not material routing. It becomes a crystallized carrier
+value only when a later layer deliberately exposes that read as a carrier
+surface.
 
 ## 7. Negative And Dual-Face Tension Routing
 
@@ -349,7 +380,8 @@ not ordinary scalar sign and is not yet full crystallization.
 The current algorithm intentionally leaves these rows unresolved or partial:
 
 - crystallized ratio read for `P(C0,k) -> P(C1,m)` where `m > 0`
-- `source < target` same-carrier relations
+- material settlement for nonzero receiver sites
+- `source < target` same-carrier hardening relations
 - relation-to-relation stretch where both sides preserve extent
 - segment-to-point endpoint movement
 - segment-to-segment basis projection

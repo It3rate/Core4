@@ -103,13 +103,22 @@ This table names what Gojo currently executes and what is still only a target.
 | `P(C,k) -> P(C,0)` | reset/carry boundary: value hardens to residue and grouped excess remains as positive `Tension` |
 | `P(C,k) -> P(C,k)` | clamp boundary: value hardens to `k` and excess remains as positive `Tension` |
 | `P(C0,k) -> P(C1,0)` | same-orientation route: positive source tension routes into `C1` by `k:1` |
-| `P(C0,k) -> P(C1,m)` where `m > 0` | ratio projection surface: no mutation in the current pass |
+| `P(C0,k) -> P(C1,m)` where `m != 0` | signed ratio projection surface: readable as `m:k`, no carrier mutation |
 | `P(C0,k) -> P(C1*,0)` | explicit dual-face route: negative source tension can route into `C1*` by `k:1`; this is not an ordinary scalar-negative read |
 | explicitly related dual-face values | shared visible value cancels before residue remains |
 
-The projected value for nonzero cross-carrier receiver sites is not executable
-yet. For example, `P(C0,2) -> P(C1,3)` should read `6` on `C0` as `9` through
-`C1`, but it should not store `9` on `C1` or clear `C0`.
+The projected value for nonzero cross-carrier receiver sites is executable as
+a relation-shaped read:
+
+```text
+projected participation -> unresolved source residue
+```
+
+For example, `P(C0,2) -> P(C1,3)` reads `6` on `C0` as
+`L(C1,9) -> L(C0,0)`. Reading the same relation backward gives division.
+Non-exact projection keeps unresolved source-basis residue on the original
+carrier.
+The read does not store the projected value on `C1` or clear `C0`.
 
 The important current correction is that wrap/reset is not caused by the side
 being a point instead of a location. It comes from same-carrier relation order.

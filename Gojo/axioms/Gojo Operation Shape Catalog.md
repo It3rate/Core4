@@ -29,7 +29,10 @@ Notation:
 | `P(C0,0) -> P(C1,0)` | origin attachment / shared reference; no automatic accumulation |
 | `P(C0,1) -> P(C1,0)` | one-for-one accumulator; every tick crosses upward |
 | `P(C0,k) -> P(C1,0)` | compact base/counter absorption; lower hardens, emits carrier tension, and routes that tension through `k:1` into `C1` |
-| `P(C0,k) -> P(C1,m)` | ratio projection candidate when `m > 0`; `k` ticks on `C0` read as `m` ticks on `C1`, with no source clearing |
+| `P(C0,k) -> P(C1,m)` | ratio projection when `m != 0`; `k` ticks on `C0` read as `m` ticks on `C1`, with no source clearing |
+| `P(C0,k) -> P(C1,-m)` | negative ratio projection; positive source participation reads as negative target participation |
+| `P(C0,-k) -> P(C1,m)` | negative ratio projection from the other side; same scalar sign as positive-to-negative |
+| `P(C0,-k) -> P(C1,-m)` | aligned negative basis; reads as a positive ratio |
 | `P(C0,k) -> P(C0,0)` | same-carrier reset boundary; local carrier hardens to `value % k`, unaccounted carrier tension remains as `value - value % k` |
 | `P(C0,k) -> P(C0,k)` | same-carrier clamp boundary; local carrier hardens to `min(value,k)`, excess remains as carrier tension |
 
@@ -43,10 +46,22 @@ tension by itself.
 | Shape | Read |
 |---|---|
 | `S(C0,0,1) -> S(C1,0,1)` | segment-to-segment projection; unit duplicate/copy basis shape |
-| `S(C0,0,k) -> S(C1,0,m)` | ratio stretch from one basis segment to another; `x` on `C0` reads as `x*m/k` on `C1` in the exact divisible case |
+| `S(C0,0,k) -> S(C1,0,m)` | ratio stretch from one basis segment to another; `x` on `C0` reads as `x*m/k` on `C1`; residue remains on `C0` when not exact |
+| `S(C0,k,0) -> S(C1,0,m)` | negative source basis; reads with the same scalar sign behavior as `P(C0,-k) -> P(C1,m)` |
 | `S0 -> S1.P1` | multiplication-like basis scaling; source segment flow moves the endpoint of `S1` while `S1.P0 -> S1.P1` remains intact |
 | `S0 -> P(C1,n)` | move a point from source segment flow; if that point is an endpoint of a segment, the segment stretches |
 | `S(C,5,5)` | zero-length segment; point-like now, but still two related points that can later separate |
+
+The current ratio projection read returns relation-shaped state:
+
+```text
+projected value -> unresolved source residue
+```
+
+For example, reading `L(C0,10)` through `P(C0,3) -> P(C1,1)` gives
+`L(C1,3) -> L(C0,1)`. This is division without decimal collapse. The residue
+is source-basis residue, not a hidden decimal. Reading backward through
+`P(C0,2) -> P(C1,3)` gives the inverse ratio.
 
 A same-carrier segment such as `S(C,2,5)` remains segment structure. It is not
 read as `P(C,2) -> P(C,5)` point carry, because that would collapse local

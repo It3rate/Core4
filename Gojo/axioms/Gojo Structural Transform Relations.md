@@ -141,8 +141,31 @@ P(C0,2) -> P(C1,3)
 ```
 
 This says `2` ticks on `C0` project as `3` ticks on `C1`. A value of `6` on
-`C0` should read as `9` through `C1`, but that crystallized projection read is
-not executable yet, so the relation does not mutate either carrier.
+`C0` reads as:
+
+```text
+L(C1,9) -> L(C0,0)
+```
+
+The left side is the projected read, and the right side is unresolved
+source-basis residue. For non-exact division, the residue remains on the
+original carrier:
+
+```text
+P(C0,3) -> P(C1,1)
+project L(C0,10) on C1 = L(C1,3) -> L(C0,1)
+```
+
+Signed receiver or source sites make signed ratios:
+
+```text
+P(C0,1)  -> P(C1,-1)  gives subtraction-like projection
+P(C0,-2) -> P(C1,3)   gives a negative ratio
+P(C0,-2) -> P(C1,-3)  gives a positive ratio
+```
+
+The relation does not mutate either carrier. It is a read surface until a
+later crystallized layer exposes that projection as carrier state.
 
 The explicit boundary route is also valid:
 
@@ -223,6 +246,7 @@ value and feeds that difference through `Add` or `Remove`.
 Known gaps:
 
 - extent/stretch projection needs to be reintroduced internally
+- material settlement for nonzero receiver projections
 - refill and borrow
 - branch and merge negotiation
 - conserved split versus observation fanout
