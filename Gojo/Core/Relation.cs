@@ -226,11 +226,7 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             return false;
         }
 
-        var capacity = left.Ticks == 0
-            ? right.Ticks
-            : right.Ticks == 0
-                ? left.Ticks
-                : 0;
+        var capacity = left.Ticks == 0 ? right.Ticks : 0;
         if (capacity == 0 || carrier.Value <= capacity)
         {
             return false;

@@ -39,6 +39,18 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
+    public void ReverseCarrierLocationRelationWrapsInsteadOfClamping()
+    {
+        var carrier = new Carrier(10);
+        carrier.Attach(new Relation(new CarrierLocation(carrier, 10), new CarrierLocation(carrier, 0)));
+
+        carrier.SetValue(13);
+
+        Assert.Equal(3UL, carrier.Value);
+        Assert.Equal(10, carrier.Tension);
+    }
+
+    [Fact]
     public void SameCarrierResetBoundaryAccountsResidueAndPositiveTension()
     {
         var carrier = new Carrier(10);

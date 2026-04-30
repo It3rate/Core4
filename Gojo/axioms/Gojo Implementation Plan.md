@@ -39,7 +39,9 @@ In place:
 - `SetValue`, `Add`, and `Remove` settle that world automatically
 - input enters as signed tension and the carrier absorbs what it can into
   positive value before relations route the residue
-- a local span such as `L(C,0) -> L(C,10)` gives local capacity
+- a forward local span such as `L(C,0) -> L(C,10)` gives local capacity
+- a reverse local span such as `L(C,10) -> L(C,0)` gives return/wrap
+  accounting
 - same-carrier point relations perform reset/clamp accounting
 - cross-carrier point receivers route source positive tension
 - inverse-oriented point receivers can route source negative tension
@@ -49,6 +51,7 @@ Current stable examples:
 
 - unbounded carrier input keeps its value
 - `L(C,0) -> L(C,10)` turns value `11` into value `10` plus tension `1`
+- `L(C,10) -> L(C,0)` turns value `13` into value `3` plus tension `10`
 - `P(C,10) -> P(C,0)` turns `23` into value `3` plus tension `20`
 - `P(C,10) -> P(C,10)` clamps `23` to value `10` plus tension `13`
 - `P(C0,10) -> P(C1,0)` turns `37` into `C0 = 7`, `C1 = 3`

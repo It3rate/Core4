@@ -75,7 +75,9 @@ This table names what Gojo currently executes and what is still only a target.
 | Shape | Current settlement |
 |---|---|
 | bare `C` | input tension is absorbed into `C.Value`; no boundary tension remains |
-| `L(C,0) -> L(C,k)` | local capacity: `Value > k` hardens to `k` and leaves positive `Tension` |
+| `L(C,0) -> L(C,k)` | forward local capacity: `Value > k` hardens to `k` and leaves positive `Tension`; no wrap is implied |
+| `L(C,k) -> L(C,0)` | reverse local return: crossing `k` wraps local value back toward origin and leaves the crossed amount as positive `Tension` |
+| `L(C,k) -> L(C,k)` | same-site local stop: value hardens to `k` and excess remains as positive `Tension` |
 | `P(C,k) -> P(C,0)` | reset/carry boundary: value hardens to residue and grouped excess remains as positive `Tension` |
 | `P(C,k) -> P(C,k)` | clamp boundary: value hardens to `k` and excess remains as positive `Tension` |
 | `P(C0,k) -> P(C1,0)` | same-orientation route: positive source tension routes into `C1` by `k:1` |
@@ -85,6 +87,11 @@ This table names what Gojo currently executes and what is still only a target.
 The current code treats `P(C0,k) -> P(C1,m)` mostly like the `m = 0` route.
 The meaning of nonzero receiver offset still needs to be made structural
 instead of quietly ignored.
+
+The important current correction is that wrap/reset is not caused by the side
+being a point instead of a location. It comes from same-carrier relation order.
+`0 -> k` is a forward capacity surface. `k -> 0` is a return surface. `k -> k`
+is a stop surface.
 
 ## 5. Target Relation Shape Table
 

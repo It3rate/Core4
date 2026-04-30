@@ -50,7 +50,7 @@ other carriers.
 
 ## 3. Local Accounting
 
-A bare carrier span from origin to a point is local capacity:
+A bare carrier span from origin to a point is forward local capacity:
 
 ```text
 L(C,0) -> L(C,10)
@@ -61,6 +61,20 @@ If `C.Value` is set to `11`, the carrier settles to:
 ```text
 C.Value    = 10
 C.Tension  = 1
+```
+
+A reverse same-carrier location relation is a return surface rather than the
+same capacity read:
+
+```text
+L(C,10) -> L(C,0)
+```
+
+If `13` enters `C`, the carrier settles to:
+
+```text
+C.Value   = 3
+C.Tension = 10
 ```
 
 A point reset relation is grouped carry:

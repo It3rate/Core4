@@ -18,12 +18,19 @@ Notation:
 
 | Shape | Read |
 |---|---|
+| `L(C0,0) -> L(C0,k)` | forward capacity surface; value beyond `k` hardens at `k` and leaves tension, with no wrap |
+| `L(C0,k) -> L(C0,0)` | reverse return surface; crossing `k` wraps local residue back toward origin and leaves crossed tension |
+| `L(C0,k) -> L(C0,k)` | same-site stop surface; clamp-like hardening at `k` |
 | `P(C0,0) -> P(C1,0)` | origin attachment / shared reference; no automatic accumulation |
 | `P(C0,1) -> P(C1,0)` | one-for-one accumulator; every tick crosses upward |
 | `P(C0,k) -> P(C1,0)` | compact base/counter absorption; lower hardens, emits carrier tension, and routes that tension through `k:1` into `C1` |
 | `P(C0,k) -> P(C1,m)` | offset-point candidate; current internal settling treats offset as existing `C1` position rather than consuming `m` from this endpoint |
 | `P(C0,k) -> P(C0,0)` | same-carrier reset boundary; local carrier hardens to `value % k`, unaccounted carrier tension remains as `value - value % k` |
 | `P(C0,k) -> P(C0,k)` | same-carrier clamp boundary; local carrier hardens to `min(value,k)`, excess remains as carrier tension |
+
+Same-carrier local accounting is directional. Forward `0 -> k` and reverse
+`k -> 0` are different physical shapes even when they mention the same two
+locations.
 
 ## Segment And Scaling Shapes
 
