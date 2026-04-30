@@ -45,6 +45,8 @@ public sealed class Carrier : IElement
 
     public bool HasState => Value != 0 || Tension != 0;
 
+    public Carrier Dual() => Inverse();
+
     public Carrier Inverse()
     {
         if (inverse is not null)
@@ -58,6 +60,8 @@ public sealed class Carrier : IElement
         };
         return inverse;
     }
+
+    IElement IElement.Dual() => Dual();
 
     public Carrier Duplicate(ulong _) => new(IsInverse);
 

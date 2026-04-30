@@ -27,6 +27,8 @@ In place:
 - orthogonal reads as zero
 - opposed carrier reads as negative projection without negative storage
 - direct carrier-held `Value` and signed `Tension`
+- `IElement.Dual`, implemented by carriers, carrier locations, and relations
+- structural `Reverse` for relation traversal order
 
 ## Phase 2. Internal Structural Settlement
 

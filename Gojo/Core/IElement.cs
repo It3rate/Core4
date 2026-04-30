@@ -1,3 +1,6 @@
 namespace Gojo.Core;
 
-public interface IElement;
+public interface IElement
+{
+    IElement Dual();
+}

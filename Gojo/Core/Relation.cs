@@ -2,6 +2,12 @@ namespace Gojo.Core;
 
 public readonly record struct Relation(IElement Left, IElement Right) : IElement
 {
+    public Relation Dual() => new(Left.Dual(), Right.Dual());
+
+    public Relation Reverse() => new(Right, Left);
+
+    IElement IElement.Dual() => Dual();
+
     internal bool Apply()
     {
         var left = CarrierSitesOf(Left);
