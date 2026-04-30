@@ -201,9 +201,13 @@ The current rule is simpler:
 
 ```text
 carrier.Attach(relation)
-carrier.SetValue / Add / Remove
+carrier.Add / Remove
 carrier settles its connected relation world
 ```
+
+`SetValue` is not a primitive direct write in Gojo. It is currently only a
+compatibility convenience that computes the difference from the visible carrier
+value and feeds that difference through `Add` or `Remove`.
 
 Known gaps:
 

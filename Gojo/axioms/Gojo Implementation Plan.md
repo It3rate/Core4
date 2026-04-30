@@ -39,7 +39,9 @@ In place:
 
 - `carrier.Attach(relation)` attaches relation structure to the connected
   carrier world
-- `SetValue`, `Add`, and `Remove` settle that world automatically
+- `Add` and `Remove` feed signed tension and settle that world automatically
+- `SetValue` is only a compatibility convenience over `Add`/`Remove`, not a
+  direct state write
 - input enters as signed tension and the carrier absorbs what it can into
   positive value before relations route the residue
 - a forward local span such as `L(C,0) -> L(C,10)` gives projection/basis

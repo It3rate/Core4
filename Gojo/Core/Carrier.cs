@@ -105,9 +105,14 @@ public sealed class Carrier : IElement
 
     public void SetValue(ulong ticks)
     {
-        Value = ticks;
-        Tension = 0;
-        SettleWorld();
+        if (ticks >= Value)
+        {
+            Add(ticks - Value);
+        }
+        else
+        {
+            Remove(Value - ticks);
+        }
     }
 
     internal void Receive(long ticks)

@@ -20,7 +20,7 @@ public sealed class StructuralTransformRelationTests
     {
         var carrier = new Carrier(10);
 
-        carrier.SetValue(11);
+        carrier.Add(11);
 
         Assert.Equal(11UL, carrier.Value);
         Assert.Equal(0, carrier.Tension);
@@ -32,7 +32,7 @@ public sealed class StructuralTransformRelationTests
         var carrier = new Carrier(10);
         carrier.Attach(new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 10)));
 
-        carrier.SetValue(11);
+        carrier.Add(11);
 
         Assert.Equal(11UL, carrier.Value);
         Assert.Equal(0, carrier.Tension);
@@ -44,7 +44,7 @@ public sealed class StructuralTransformRelationTests
         var carrier = new Carrier(10);
         carrier.Attach(new Relation(new CarrierLocation(carrier, 10), new CarrierLocation(carrier, 0)));
 
-        carrier.SetValue(13);
+        carrier.Add(13);
 
         Assert.Equal(3UL, carrier.Value);
         Assert.Equal(10, carrier.Tension);
@@ -56,7 +56,7 @@ public sealed class StructuralTransformRelationTests
         var carrier = new Carrier(10);
         carrier.Attach(new Relation(Point(carrier, 10), Point(carrier, 0)));
 
-        carrier.SetValue(23);
+        carrier.Add(23);
 
         Assert.Equal(3UL, carrier.Value);
         Assert.Equal(20, carrier.Tension);
@@ -68,7 +68,7 @@ public sealed class StructuralTransformRelationTests
         var carrier = new Carrier(10);
         carrier.Attach(new Relation(Point(carrier, 10), Point(carrier, 10)));
 
-        carrier.SetValue(23);
+        carrier.Add(23);
 
         Assert.Equal(10UL, carrier.Value);
         Assert.Equal(13, carrier.Tension);
@@ -81,7 +81,7 @@ public sealed class StructuralTransformRelationTests
         var whole = new Carrier(20);
         residue.Attach(new Relation(Point(residue, 10), Point(whole, 0)));
 
-        residue.SetValue(37);
+        residue.Add(37);
 
         Assert.Equal(7UL, residue.Value);
         Assert.Equal(0, residue.Tension);
@@ -95,7 +95,7 @@ public sealed class StructuralTransformRelationTests
         var projection = new Carrier(20);
         source.Attach(new Relation(Point(source, 2), Point(projection, 3)));
 
-        source.SetValue(6);
+        source.Add(6);
 
         Assert.Equal(6UL, source.Value);
         Assert.Equal(0, source.Tension);
@@ -109,7 +109,7 @@ public sealed class StructuralTransformRelationTests
         var residue = new Carrier(10);
         var whole = new Carrier(20);
         var boundary = residue.Attach(new Relation(Point(residue, 10), Point(residue, 0)));
-        residue.SetValue(23);
+        residue.Add(23);
 
         whole.Attach(new Relation(boundary, Point(whole, 0)));
 
@@ -127,7 +127,7 @@ public sealed class StructuralTransformRelationTests
         ones.Attach(new Relation(Point(ones, 10), Point(tens, 0)));
         tens.Attach(new Relation(Point(tens, 10), Point(hundreds, 0)));
 
-        ones.SetValue(375);
+        ones.Add(375);
 
         Assert.Equal(5UL, ones.Value);
         Assert.Equal(7UL, tens.Value);

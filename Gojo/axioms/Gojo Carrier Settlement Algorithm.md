@@ -25,6 +25,52 @@ receive(carrier C, signed input):
 another carrier, a future sensor, or a trolley-like traversal. The source does
 not change the first step.
 
+Direct value assignment is not a primitive operation. A request to move a
+carrier from one visible value to another is represented as a perturbation:
+
+```text
+request-value(C, desired):
+    receive(C, desired - C.Value)
+```
+
+A stronger future command such as "make this carrier read 3" should likewise
+act by adding/removing tension, adjusting relations, or repeating perturbation
+until the structure stabilizes. It should not bypass carrier accounting by
+writing value directly.
+
+## 1A. Downward Delta Normalization Target
+
+The current executable pass mostly settles tension upward through return/carry
+relations. The expected next extension is a downward normalization pass for
+ratio-coupled layers.
+
+The guiding idea is:
+
+```text
+stable values do not create tension merely by disagreeing
+changes create tension
+upper-layer tension can move down through inverse ratio relations
+only representable quanta move; the rest remains tension
+the lowest reachable non-crystallized layer absorbs what it can
+ordinary upward settlement then re-expresses the changed base value
+```
+
+For example:
+
+```text
+P(C0,2) -> P(C1,3)
+C1 receives +1 tension
+```
+
+Moving that tension downward through the inverse `3:2` relation may move `2`
+ticks toward `C0` while leaving `1` tick of unresolved tension at `C1`. This is
+not yet proven, but it is the first candidate rule. A resolution/crystal layer
+may later account for smaller quanta.
+
+This is different from ratio-mismatch tension. The relation does not wake up
+because `C0` and `C1` have different stable values. It wakes because new
+tension appeared somewhere in the connected structure.
+
 ## 2. Local Absorption
 
 A primitive carrier face stores positive accounted value. Its signed tension is
