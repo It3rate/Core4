@@ -6,9 +6,9 @@ still exist only because the host number system is weaker than the Gojo number
 system we are building.
 
 In an ideal Gojo-native runtime, adding tension to a carrier would already know
-how to account through carrier-local boundaries, dual faces, relation order,
-and routed tension. The pseudo code below is the current executable shadow of
-that behavior.
+how to account through carrier-local boundaries, signed locations, dual carrier
+faces, relation order, and routed tension. The pseudo code below is the
+current executable shadow of that behavior.
 
 ## 1. Carrier Input
 
@@ -156,9 +156,9 @@ apply-relation(R = A -> B):
     if left and right are on the same carrier face:
         apply-local-relation(left, right)
 
-    else if left and right are on opposed carrier faces
+    else if left and right are on dual carrier faces
          and right is origin point:
-        cancel-visible-opposed-values(left.carrier, right.carrier)
+        cancel-visible-dual-face-values(left.carrier, right.carrier)
         route-negative-tension(left, right)
 
     else if right is origin point:
@@ -281,10 +281,13 @@ That relation says that `2` ticks on `C0` project as `3` ticks on `C1`.
 The projection read is not yet executable as a crystallized carrier value, so
 the relation does not mutate either carrier.
 
-## 7. Negative Tension Routing
+## 7. Negative And Dual-Face Tension Routing
 
-Opposed origin receivers can absorb negative source tension as positive value
-on their own face.
+Ordinary scalar negation is `L(C,-k)` on the same carrier. That is separate
+from carrier duality.
+
+Dual-origin receivers can also absorb negative source tension as positive
+value on their own carrier face when an explicit relation connects them.
 
 ```text
 route-negative-tension(source, receiver):
@@ -320,24 +323,26 @@ C0 local absorption: Value 0, Tension -23
 route by 10: C1* receives 2, C0.Tension = -3
 ```
 
-The receiver does not receive a negative value. It receives positive
-participation on the opposed face.
+The receiver does not receive a negative scalar value. It receives positive
+participation on the dual carrier face. A scalar read from `C0` will not see
+`C1*` unless a later relation or crystallized read makes that higher-grade
+assembly visible.
 
-## 8. Opposed Visible Value Cancellation
+## 8. Dual-Face Visible Value Cancellation
 
-When related opposed carriers both hold visible value, their shared amount
-cancels before residue remains.
+When explicitly related dual carrier faces both hold visible value, their
+shared amount can cancel before residue remains.
 
 ```text
-cancel-visible-opposed-values(A, B):
+cancel-visible-dual-face-values(A, B):
     shared = min(A.Value, B.Value)
 
     A.Value -= shared
     B.Value -= shared
 ```
 
-This is the current foothold for signed-axis assemblies. It is not yet full
-crystallization.
+This is the current foothold for higher-grade opposed-face assemblies. It is
+not ordinary scalar sign and is not yet full crystallization.
 
 ## 9. Current Missing Rows
 

@@ -1,5 +1,11 @@
 # Core4 Carrier Read And Resolution Axioms
 
+> Status: historical / partially superseded for Gojo. The current Gojo rule is
+> that ordinary scalar negation is a signed `CarrierLocation` on the same
+> carrier, e.g. `Dual(L(C,5)) = L(C,-5)`. `Carrier.Dual()` returns a dual
+> carrier face, which is not automatically visible as scalar negative when read
+> from `C`. See `Gojo Duality And Relation Settlement Table.md`.
+
 This note records the current architectural direction for carriers,
 crystallized ticks, cross-carrier reads, resolution, approximation, and
 partition overflow.

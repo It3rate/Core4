@@ -69,12 +69,7 @@ public sealed class Carrier : IElement
 
     public long ReadSignOf(Carrier locationCarrier)
     {
-        if (SameIdentityAs(locationCarrier))
-        {
-            return 1;
-        }
-
-        return IsInverseOf(locationCarrier) ? -1 : 0;
+        return SameIdentityAs(locationCarrier) ? 1 : 0;
     }
 
     public Relation Attach(Relation relation)
@@ -184,10 +179,6 @@ public sealed class Carrier : IElement
             ? $"{Id}{orientation}[{Value}|{Tension}]"
             : $"{Id}{orientation}";
     }
-
-    private bool IsInverseOf(Carrier other) =>
-        ReferenceEquals(inverse, other) ||
-        ReferenceEquals(other.inverse, this);
 
     private void SettleWorld()
     {

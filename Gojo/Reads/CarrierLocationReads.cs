@@ -71,16 +71,17 @@ public static class CarrierLocationReads
                 continue;
             }
 
-            var remaining = location.Ticks - coveredTicks;
-            if (covered.Magnitude >= remaining)
+            var remaining = current.Magnitude - coveredTicks;
+            if (remaining == 0 || covered.Magnitude >= remaining)
             {
                 return new(location.Carrier, 0);
             }
 
-            coveredTicks += covered.Magnitude;
+            coveredTicks = checked(coveredTicks + covered.Magnitude);
         }
 
-        return new(location.Carrier, location.Ticks - coveredTicks);
+        var uncovered = checked((long)(current.Magnitude - coveredTicks));
+        return new(location.Carrier, location.Ticks < 0 ? -uncovered : uncovered);
     }
 
     private static CarrierLocation[] Flatten(Relation first, Relation[] rest)

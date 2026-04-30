@@ -30,7 +30,7 @@ Each carrier instance can hold:
 
 ```text
 Id        = unique physical identity; ordinary construction always allocates it
-IsInverse = local orientation marker, not a pairing rule by itself
+IsInverse = local orientation marker for a dual carrier face, not scalar sign
 Value     = positive participation currently accounted on that carrier
 Tension   = signed participation the carrier has not locally accounted for
 ```
@@ -153,9 +153,16 @@ The explicit boundary route is also valid:
 If the boundary exists first, positive tension can remain on `C0`. When the
 outer route is later attached, that existing tension can be absorbed by `C1`.
 
-Negative tension mirrors positive tension. If a source carrier has below-origin
-tension and is related to an inverse-oriented point receiver, the receiver can
-absorb that tension:
+Ordinary scalar negative locations live on the same carrier:
+
+```text
+Dual(L(C,k)) = L(C,-k)
+```
+
+That is distinct from `C_inverse`, which is a dual carrier face. Negative
+tension mirrors positive tension. If a source carrier has below-origin tension
+and is explicitly related to an inverse-oriented point receiver, the receiver
+can absorb that tension as positive participation on that dual face:
 
 ```text
 P(C0,10) -> P(C1_inverse,0)
@@ -168,13 +175,14 @@ C0.Tension       = -3
 C1_inverse.Value = 2
 ```
 
-An inverse carrier does not absorb anything merely because `IsInverse = true`.
-The relation makes the negative-tension route active.
+An inverse carrier does not absorb anything merely because `IsInverse = true`,
+and a scalar read from `C0` does not see `C1_inverse` merely because it is
+inverse-oriented. The relation makes the negative-tension route active.
 
-## 5. Opposed Values
+## 5. Dual-Face Values
 
-When opposed carriers are related, visible values cancel through that relation
-before residue remains on either side:
+When dual carrier faces are explicitly related, visible values can cancel
+through that relation before residue remains on either side:
 
 ```text
 P(C0,1) -> P(C1_inverse,0)
@@ -187,8 +195,11 @@ C0.Value         = 0
 C1_inverse.Value = 2
 ```
 
-This is the first executable foothold for signed-capable carrier assemblies
-without signed carrier storage.
+This is the first executable foothold for opposed-face carrier assemblies. It
+does not replace ordinary scalar negation; scalar negation is signed
+`CarrierLocation` structure on one carrier. Carrier `Value` storage itself
+remains non-negative, with unresolved below-origin participation held as signed
+tension.
 
 ## 6. Removed Surface Machinery
 

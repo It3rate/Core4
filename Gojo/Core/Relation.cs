@@ -2,7 +2,9 @@ namespace Gojo.Core;
 
 public readonly record struct Relation(IElement Left, IElement Right) : IElement
 {
-    public Relation Dual() => new(Left.Dual(), Right.Dual());
+    public Relation Dual() => IsPoint(out var location, out var carrier)
+        ? new(location.Dual(), carrier)
+        : new(Left.Dual(), Right.Dual());
 
     public Relation Reverse() => new(Right, Left);
 
@@ -62,18 +64,15 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             return new(zero, zero);
         }
 
-        var left = leftLocation.ReadFrom(reader);
-        var right = rightLocation.ReadFrom(reader);
-        if (left.Direction == 0 || right.Direction == 0 || left.Direction != right.Direction)
+        if (!TryReadInCarrier(reader, leftLocation, rightLocation, out var leftTicks, out var rightTicks))
         {
             var zero = new CarrierLocation(reader, 0);
             return new(zero, zero);
         }
 
-        var boundaryCarrier = left.Direction > 0 ? reader : reader.Inverse();
-        var start = Math.Min(left.Magnitude, right.Magnitude);
-        var end = Math.Max(left.Magnitude, right.Magnitude);
-        return new(new CarrierLocation(boundaryCarrier, start), new CarrierLocation(boundaryCarrier, end));
+        var start = Math.Min(leftTicks, rightTicks);
+        var end = Math.Max(leftTicks, rightTicks);
+        return new(new CarrierLocation(reader, start), new CarrierLocation(reader, end));
     }
 
     public CarrierLocation SpanOn(Carrier reader)
@@ -91,17 +90,12 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             return new CarrierLocation(reader, 0);
         }
 
-        var left = leftLocation.ReadFrom(reader);
-        var right = rightLocation.ReadFrom(reader);
-        if (left.Direction == 0 || right.Direction == 0 || left.Direction != right.Direction)
+        if (!TryReadInCarrier(reader, leftLocation, rightLocation, out var leftTicks, out var rightTicks))
         {
             return new CarrierLocation(reader, 0);
         }
 
-        var delta = right.ProjectedTicks - left.ProjectedTicks;
-        return delta >= 0
-            ? new CarrierLocation(reader, checked((ulong)delta))
-            : new CarrierLocation(reader.Inverse(), checked((ulong)-delta));
+        return new CarrierLocation(reader, rightTicks - leftTicks);
     }
 
     public Relation TraversalSitesOn(Carrier reader)
@@ -112,10 +106,14 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
             return new(new Relation(zero, zero), new Relation(zero, zero));
         }
 
-        var left = leftLocation.ReadFrom(reader);
-        var right = rightLocation.ReadFrom(reader);
+        if (!TryReadInCarrier(reader, leftLocation, rightLocation, out var leftTicks, out var rightTicks))
+        {
+            var zero = new CarrierLocation(reader, 0);
+            return new(new Relation(zero, zero), new Relation(zero, zero));
+        }
+
         var flow = FlowOn(reader);
-        if (left.Direction == 0 || right.Direction == 0 || left.Direction != right.Direction || flow.Ticks == 0)
+        if (flow.Ticks == 0)
         {
             var zero = new CarrierLocation(reader, 0);
             return new(new Relation(zero, zero), new Relation(zero, zero));
@@ -123,8 +121,8 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
 
         var zeroFlow = new CarrierLocation(flow.Carrier, 0);
         return new(
-            new Relation(new CarrierLocation(flow.Carrier, left.Magnitude), zeroFlow),
-            new Relation(new CarrierLocation(flow.Carrier, right.Magnitude), flow));
+            new Relation(new CarrierLocation(flow.Carrier, leftTicks), zeroFlow),
+            new Relation(new CarrierLocation(flow.Carrier, rightTicks), flow));
     }
 
     public CarrierLocation[] CarrierLocations()
@@ -160,6 +158,41 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         ? location
         : throw new InvalidOperationException("The right relation slot is not a carrier location.");
 
+    private bool IsPoint(out CarrierLocation location, out Carrier carrier)
+    {
+        if (Left is CarrierLocation leftLocation &&
+            Right is Carrier rightCarrier &&
+            leftLocation.Carrier.SameIdentityAs(rightCarrier))
+        {
+            location = leftLocation;
+            carrier = rightCarrier;
+            return true;
+        }
+
+        location = default;
+        carrier = null!;
+        return false;
+    }
+
+    private static bool TryReadInCarrier(
+        Carrier reader,
+        CarrierLocation left,
+        CarrierLocation right,
+        out long leftTicks,
+        out long rightTicks)
+    {
+        if (!left.Carrier.SameIdentityAs(reader) || !right.Carrier.SameIdentityAs(reader))
+        {
+            leftTicks = 0;
+            rightTicks = 0;
+            return false;
+        }
+
+        leftTicks = left.Ticks;
+        rightTicks = right.Ticks;
+        return true;
+    }
+
     private static CarrierLocation[] CarrierLocationsOf(IElement element) => element switch
     {
         CarrierLocation location => [location],
@@ -177,7 +210,7 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
 
     private static Relation SlotPair(Carrier reader, ulong reverse, ulong forward) =>
         new(
-            new CarrierLocation(reader.Inverse(), reverse),
+            new CarrierLocation(reader, -checked((long)reverse)),
             new CarrierLocation(reader, forward));
 
     private (ulong Reverse, ulong Forward) ReadStatePair(Carrier reader)
@@ -217,17 +250,24 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
 
     private static bool AccountLocal(
         Carrier carrier,
-        ulong source,
-        ulong target)
+        long source,
+        long target)
     {
-        if (source == 0 || source < target || carrier.Value <= target)
+        if (source <= 0 || target < 0 || source < target)
         {
             return false;
         }
 
-        var local = source == target
-            ? Math.Min(carrier.Value, source)
-            : checked(target + ((carrier.Value - target) % (source - target)));
+        var sourceTicks = checked((ulong)source);
+        var targetTicks = checked((ulong)target);
+        if (carrier.Value <= targetTicks)
+        {
+            return false;
+        }
+
+        var local = sourceTicks == targetTicks
+            ? Math.Min(carrier.Value, sourceTicks)
+            : checked(targetTicks + ((carrier.Value - targetTicks) % (sourceTicks - targetTicks)));
         return local != carrier.Value &&
             carrier.LeaveTension(local, checked((long)(carrier.Value - local)));
     }
@@ -235,7 +275,7 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
     private static bool RoutePositiveTension(CarrierSites source, CarrierSites receiver)
     {
         var unit = source.Width == 0 ? source.Max : source.Width;
-        if (unit == 0)
+        if (unit <= 0)
         {
             return false;
         }
@@ -248,13 +288,14 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         }
 
         var tension = checked((ulong)source.Carrier.Tension);
-        var received = tension / unit;
+        var unitTicks = checked((ulong)unit);
+        var received = tension / unitTicks;
         if (received == 0)
         {
             return changed;
         }
 
-        changed |= source.Carrier.KeepTensionRemainder(checked((long)(tension % unit)));
+        changed |= source.Carrier.KeepTensionRemainder(checked((long)(tension % unitTicks)));
         receiver.Carrier.Receive(checked((long)received));
         return true;
     }
@@ -262,7 +303,7 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
     private static bool RouteNegativeTension(CarrierSites source, CarrierSites receiver)
     {
         var unit = source.Width == 0 ? source.Max : source.Width;
-        if (unit == 0)
+        if (unit <= 0)
         {
             return false;
         }
@@ -273,13 +314,14 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         }
 
         var tension = checked((ulong)-source.Carrier.Tension);
-        var received = tension / unit;
+        var unitTicks = checked((ulong)unit);
+        var received = tension / unitTicks;
         if (received == 0)
         {
             return false;
         }
 
-        var changed = source.Carrier.KeepTensionRemainder(-checked((long)(tension % unit)));
+        var changed = source.Carrier.KeepTensionRemainder(-checked((long)(tension % unitTicks)));
         receiver.Carrier.Receive(checked((long)received));
         return true;
     }
@@ -315,9 +357,9 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         return true;
     }
 
-    private readonly record struct CarrierSites(Carrier Carrier, ulong Min, ulong Max)
+    private readonly record struct CarrierSites(Carrier Carrier, long Min, long Max)
     {
-        public ulong Width => Max - Min;
+        public long Width => Max - Min;
 
         public bool IsOrigin => Width == 0 && Min == 0;
     }

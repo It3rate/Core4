@@ -17,19 +17,19 @@ public sealed class ElementDualityTests
     }
 
     [Fact]
-    public void CarrierLocationDualPreservesMagnitudeOnOpposedFace()
+    public void CarrierLocationDualNegatesLocationOnSameCarrier()
     {
         var carrier = new Carrier(10);
         var location = new CarrierLocation(carrier, 5);
 
         var dual = location.Dual();
 
-        Assert.Equal(new CarrierLocation(carrier.Dual(), 5), dual);
+        Assert.Equal(new CarrierLocation(carrier, -5), dual);
         Assert.Equal(-1, dual.ReadFrom(carrier).Direction);
     }
 
     [Fact]
-    public void RelationDualRecursesThroughPointAndSegmentShape()
+    public void RelationDualRecursesThroughPointAndNegatesLocations()
     {
         var carrier = new Carrier(10);
         var segment = new Relation(Point(carrier, 2), Point(carrier, 5));
@@ -37,7 +37,7 @@ public sealed class ElementDualityTests
         var dual = segment.Dual();
 
         Assert.Equal(
-            new Relation(Point(carrier.Dual(), 2), Point(carrier.Dual(), 5)),
+            new Relation(Point(carrier, -2), Point(carrier, -5)),
             dual);
     }
 
@@ -62,6 +62,6 @@ public sealed class ElementDualityTests
         Assert.Equal(segment.Dual().Reverse(), segment.Reverse().Dual());
     }
 
-    private static Relation Point(Carrier carrier, ulong ticks) =>
+    private static Relation Point(Carrier carrier, long ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
 }

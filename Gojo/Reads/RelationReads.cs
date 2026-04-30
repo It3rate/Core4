@@ -23,17 +23,15 @@ public static class RelationReads
             return [];
         }
 
-        var left = leftLocation.ReadFrom(reader);
-        var right = rightLocation.ReadFrom(reader);
-        if (left.Direction == 0 || right.Direction == 0 || left.Direction != right.Direction || left.Magnitude == right.Magnitude)
+        if (!TryReadInCarrier(reader, leftLocation, rightLocation, out var start, out var end) ||
+            start == end)
         {
             return [];
         }
 
-        var boundaryCarrier = left.Direction > 0 ? reader : reader.Inverse();
         return BoundaryPointsOn(reader, relations)
-            .Where(point => point.Carrier.SameIdentityAs(boundaryCarrier) && IsTraversed(point.Ticks, left.Magnitude, right.Magnitude))
-            .OrderBy(point => left.Magnitude < right.Magnitude ? point.Ticks : ulong.MaxValue - point.Ticks)
+            .Where(point => point.Carrier.SameIdentityAs(reader) && IsTraversed(point.Ticks, start, end))
+            .OrderBy(point => start < end ? point.Ticks : -point.Ticks)
             .ToArray();
     }
 
@@ -54,17 +52,15 @@ public static class RelationReads
             return [];
         }
 
-        var left = leftLocation.ReadFrom(reader);
-        var right = rightLocation.ReadFrom(reader);
-        if (left.Direction == 0 || right.Direction == 0 || left.Direction != right.Direction || left.Magnitude == right.Magnitude)
+        if (!TryReadInCarrier(reader, leftLocation, rightLocation, out var start, out var end) ||
+            start == end)
         {
             return [];
         }
 
-        var carrier = left.Direction > 0 ? reader : reader.Inverse();
         var points = new List<CarrierLocation>
         {
-            new(carrier, left.Magnitude)
+            new(reader, start)
         };
 
         foreach (var point in TraversedBoundaryPointsOn(reader, travel, relations))
@@ -72,7 +68,7 @@ public static class RelationReads
             AddPoint(point);
         }
 
-        AddPoint(new CarrierLocation(carrier, right.Magnitude));
+        AddPoint(new CarrierLocation(reader, end));
 
         var spans = new List<Relation>();
         for (var i = 0; i < points.Count - 1; i++)
@@ -275,20 +271,39 @@ public static class RelationReads
         }
 
         return new(
-            new CarrierLocation(reader.Inverse(), reverse),
+            new CarrierLocation(reader, -checked((long)reverse)),
             new CarrierLocation(reader, forward));
     }
 
     private static bool HasStateParticipationOn(Relation state, Carrier reader) =>
         state.CarrierLocations().Any(location => location.ReadFrom(reader).IsVisible);
 
-    private static bool IsCovered(ulong start, ulong end, Relation[] boundaries) =>
+    private static bool IsCovered(long start, long end, Relation[] boundaries) =>
         boundaries.Any(boundary => boundary.LeftLocation.Ticks <= start && boundary.RightLocation.Ticks >= end);
 
-    private static bool IsTraversed(ulong point, ulong from, ulong to) =>
+    private static bool IsTraversed(long point, long from, long to) =>
         from < to
             ? point > from && point <= to
             : point < from && point >= to;
+
+    private static bool TryReadInCarrier(
+        Carrier reader,
+        CarrierLocation left,
+        CarrierLocation right,
+        out long leftTicks,
+        out long rightTicks)
+    {
+        if (!left.Carrier.SameIdentityAs(reader) || !right.Carrier.SameIdentityAs(reader))
+        {
+            leftTicks = 0;
+            rightTicks = 0;
+            return false;
+        }
+
+        leftTicks = left.Ticks;
+        rightTicks = right.Ticks;
+        return true;
+    }
 
     private static Relation ClipTo(Relation scope, Relation boundary)
     {

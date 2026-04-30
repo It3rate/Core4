@@ -11,8 +11,10 @@ The current model is:
 
 - carriers are physical mutable sites with unique IDs
 - carriers store positive value and signed unresolved tension
-- sign is a read across related or opposed carriers; carrier value itself
-  remains positive
+- scalar sign is a read of signed locations on the same carrier; carrier
+  value storage itself remains positive
+- carrier duality creates an opposed-flow / higher-grade carrier face, not the
+  ordinary negative side of the scalar carrier
 - relations bind carrier sites into points, segments, boundaries, routes, and
   transforms
 - settlement happens inside the connected carrier/relation world
@@ -27,8 +29,10 @@ In place:
 - automatic unique carrier IDs, with `Carrier.Unknown` fixed at `Id = 0`
 - carrier locations
 - same-carrier positive reads
+- same-carrier negative reads through signed `CarrierLocation` ticks
 - orthogonal reads as zero
-- opposed carrier reads as negative projection without negative storage
+- inverse carrier reads are invisible to the scalar carrier unless an explicit
+  relation/crystallized read connects them
 - direct carrier-held `Value` and signed `Tension`
 - `IElement.Dual`, implemented by carriers, carrier locations, and relations
 - structural `Reverse` for relation traversal order

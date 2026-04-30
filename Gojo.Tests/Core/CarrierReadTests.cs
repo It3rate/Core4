@@ -37,10 +37,24 @@ public sealed class CarrierReadTests
         var location = new CarrierLocation(x, 5);
         var read = location.ReadFrom(x);
 
-        Assert.Equal(5UL, location.Ticks);
+        Assert.Equal(5, location.Ticks);
         Assert.True(read.IsVisible);
         Assert.Equal(1, read.Direction);
         Assert.Equal(5, read.ProjectedTicks);
+    }
+
+    [Fact]
+    public void SameCarrierNegativeLocationReadsAsNegativeTicks()
+    {
+        var x = new Carrier(10);
+        var location = new CarrierLocation(x, -5);
+        var read = location.ReadFrom(x);
+
+        Assert.Equal(-5, location.Ticks);
+        Assert.True(read.IsVisible);
+        Assert.Equal(-1, read.Direction);
+        Assert.Equal(5UL, read.Magnitude);
+        Assert.Equal(-5, read.ProjectedTicks);
     }
 
     [Fact]
@@ -57,7 +71,7 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
-    public void OpposedCarrierReadProjectsNegativeWithoutNegativeStorage()
+    public void InverseCarrierReadIsOrthogonalToScalarCarrierRead()
     {
         var forward = new Carrier(10);
         var inverse = forward.Inverse();
@@ -66,9 +80,10 @@ public sealed class CarrierReadTests
         var readFromForward = location.ReadFrom(forward);
         var readFromInverse = location.ReadFrom(inverse);
 
-        Assert.Equal(5UL, location.Ticks);
-        Assert.Equal(-1, readFromForward.Direction);
-        Assert.Equal(-5, readFromForward.ProjectedTicks);
+        Assert.Equal(5, location.Ticks);
+        Assert.Equal(0, readFromForward.Direction);
+        Assert.False(readFromForward.IsVisible);
+        Assert.Equal(0, readFromForward.ProjectedTicks);
         Assert.Equal(1, readFromInverse.Direction);
         Assert.Equal(5, readFromInverse.ProjectedTicks);
     }
@@ -78,15 +93,15 @@ public sealed class CarrierReadTests
     {
         var transformReader = Carrier.Unknown;
         var expansive = new CarrierLocation(transformReader, 3);
-        var contractive = new CarrierLocation(transformReader.Inverse(), 10);
+        var contractive = new CarrierLocation(transformReader, -10);
         var additive = new CarrierLocation(transformReader, 0);
 
         Assert.Equal(1, expansive.ReadFrom(transformReader).Direction);
-        Assert.Equal(3UL, expansive.Ticks);
+        Assert.Equal(3, expansive.Ticks);
         Assert.Equal(-1, contractive.ReadFrom(transformReader).Direction);
-        Assert.Equal(10UL, contractive.Ticks);
+        Assert.Equal(-10, contractive.Ticks);
         Assert.False(additive.ReadFrom(transformReader).IsVisible);
-        Assert.Equal(0UL, additive.Ticks);
+        Assert.Equal(0, additive.Ticks);
     }
 
     [Fact]
@@ -95,16 +110,16 @@ public sealed class CarrierReadTests
         var counter = new Carrier(12);
         var counterState = new Relation(
             new CarrierLocation(counter, 2),
-            new CarrierLocation(counter.Inverse(), 5));
+            new CarrierLocation(counter, -5));
 
         Assert.Equal(
             new Relation(
-                new CarrierLocation(counter.Inverse(), 2),
+                new CarrierLocation(counter, -2),
                 new CarrierLocation(counter, 2)),
             counterState.TensionOn(counter));
         Assert.Equal(
             new Relation(
-                new CarrierLocation(counter.Inverse(), 3),
+                new CarrierLocation(counter, -3),
                 new CarrierLocation(counter, 0)),
             counterState.ExclusiveOn(counter));
     }
@@ -116,9 +131,9 @@ public sealed class CarrierReadTests
         var travel = new Carrier(102);
 
         var positiveOverflow = Alignment(new CarrierLocation(side, 1), new CarrierLocation(travel, 1));
-        var positiveRefill = Alignment(new CarrierLocation(side, 1), new CarrierLocation(travel.Inverse(), 1));
-        var negativeRefill = Alignment(new CarrierLocation(side.Inverse(), 1), new CarrierLocation(travel, 1));
-        var negativeOverflow = Alignment(new CarrierLocation(side.Inverse(), 1), new CarrierLocation(travel.Inverse(), 1));
+        var positiveRefill = Alignment(new CarrierLocation(side, 1), new CarrierLocation(travel, -1));
+        var negativeRefill = Alignment(new CarrierLocation(side, -1), new CarrierLocation(travel, 1));
+        var negativeOverflow = Alignment(new CarrierLocation(side, -1), new CarrierLocation(travel, -1));
 
         Assert.Equal(1, positiveOverflow);
         Assert.Equal(-1, positiveRefill);
@@ -126,7 +141,7 @@ public sealed class CarrierReadTests
         Assert.Equal(1, negativeOverflow);
 
         long Alignment(CarrierLocation sideLocation, CarrierLocation travelLocation) =>
-            Math.Sign(side.ReadSignOf(sideLocation.Carrier) * travel.ReadSignOf(travelLocation.Carrier));
+            Math.Sign(sideLocation.ReadFrom(side).Direction * travelLocation.ReadFrom(travel).Direction);
     }
 
     [Fact]
@@ -410,7 +425,7 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
-    public void RelationBoundaryReadUsesOpposedCarrierWhenReadSeesOpposedEndpoints()
+    public void RelationBoundaryReadReturnsZeroForInverseCarrierEndpoints()
     {
         var forward = new Carrier(10);
         var inverse = forward.Inverse();
@@ -423,10 +438,10 @@ public sealed class CarrierReadTests
 
         Assert.Equal(
             new Relation(
-                new CarrierLocation(inverse, 2),
-                new CarrierLocation(inverse, 8)),
+                new CarrierLocation(forward, 0),
+                new CarrierLocation(forward, 0)),
             boundaries);
-        Assert.Equal(new CarrierLocation(inverse, 6), span);
+        Assert.Equal(new CarrierLocation(forward, 0), span);
     }
 
     [Fact]
@@ -442,11 +457,28 @@ public sealed class CarrierReadTests
             new CarrierLocation(carrier, 2));
 
         Assert.Equal(new CarrierLocation(carrier, 6), forward.FlowOn(carrier));
-        Assert.Equal(new CarrierLocation(carrier.Inverse(), 6), reverse.FlowOn(carrier));
+        Assert.Equal(new CarrierLocation(carrier, -6), reverse.FlowOn(carrier));
     }
 
     [Fact]
-    public void RelationFlowReadTreatsIncreasingOpposedCarrierAsReverseFlow()
+    public void RelationBoundaryAndFlowReadsSeeSignedLocationsThroughOrigin()
+    {
+        var carrier = new Carrier(10);
+        var reverseFromOrigin = new Relation(
+            new CarrierLocation(carrier, 0),
+            new CarrierLocation(carrier, -8));
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier, -8),
+                new CarrierLocation(carrier, 0)),
+            reverseFromOrigin.BoundariesOn(carrier));
+        Assert.Equal(new CarrierLocation(carrier, 8), reverseFromOrigin.SpanOn(carrier));
+        Assert.Equal(new CarrierLocation(carrier, -8), reverseFromOrigin.FlowOn(carrier));
+    }
+
+    [Fact]
+    public void RelationFlowReadReturnsZeroForInverseCarrierEndpoints()
     {
         var forward = new Carrier(10);
         var inverse = forward.Inverse();
@@ -454,7 +486,7 @@ public sealed class CarrierReadTests
             new CarrierLocation(inverse, 2),
             new CarrierLocation(inverse, 8));
 
-        Assert.Equal(new CarrierLocation(inverse, 6), segment.FlowOn(forward));
+        Assert.Equal(new CarrierLocation(forward, 0), segment.FlowOn(forward));
     }
 
     [Fact]
@@ -508,7 +540,7 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
-    public void RelationBoundaryPointsPreserveOpposedCarrierSurface()
+    public void RelationBoundaryPointsIgnoreInverseCarrierSurfaceFromScalarReader()
     {
         var forward = new Carrier(10);
         var inverse = forward.Inverse();
@@ -518,13 +550,7 @@ public sealed class CarrierReadTests
 
         var points = RelationReads.BoundaryPointsOn(forward, segment);
 
-        Assert.Equal(
-            new[]
-            {
-                new CarrierLocation(inverse, 0),
-                new CarrierLocation(inverse, 8)
-            },
-            points);
+        Assert.Empty(points);
     }
 
     [Fact]
@@ -603,7 +629,7 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
-    public void RelationTraversedBoundaryPointsPreserveOpposedCarrierSurface()
+    public void RelationTraversedBoundaryPointsIgnoreInverseCarrierSurfaceFromScalarReader()
     {
         var forward = new Carrier(10);
         var inverse = forward.Inverse();
@@ -616,13 +642,7 @@ public sealed class CarrierReadTests
 
         var points = RelationReads.TraversedBoundaryPointsOn(forward, travel, boundary);
 
-        Assert.Equal(
-            new[]
-            {
-                new CarrierLocation(inverse, 2),
-                new CarrierLocation(inverse, 4)
-            },
-            points);
+        Assert.Empty(points);
     }
 
     [Fact]
@@ -673,7 +693,7 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
-    public void RelationTraversalSitesExposeReverseFlowOnOpposedSurface()
+    public void RelationTraversalSitesExposeReverseFlowAsNegativeLocation()
     {
         var carrier = new Carrier(10);
         var travel = new Relation(
@@ -685,11 +705,11 @@ public sealed class CarrierReadTests
         Assert.Equal(
             new Relation(
                 new Relation(
-                    new CarrierLocation(carrier.Inverse(), 8),
-                    new CarrierLocation(carrier.Inverse(), 0)),
+                    new CarrierLocation(carrier, 8),
+                    new CarrierLocation(carrier, 0)),
                 new Relation(
-                    new CarrierLocation(carrier.Inverse(), 2),
-                    new CarrierLocation(carrier.Inverse(), 6))),
+                    new CarrierLocation(carrier, 2),
+                    new CarrierLocation(carrier, -6))),
             sites);
     }
 
@@ -737,10 +757,10 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new CarrierLocation(carrier, 4),
-                    new CarrierLocation(carrier.Inverse(), 10)),
+                    new CarrierLocation(carrier, -10)),
                 new Relation(
                     new CarrierLocation(carrier, 2),
-                    new CarrierLocation(carrier.Inverse(), 10))
+                    new CarrierLocation(carrier, -10))
             },
             states);
     }
@@ -820,7 +840,7 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
-    public void RelationTraversedSpansPreserveOpposedCarrierSurface()
+    public void RelationTraversedSpansIgnoreInverseCarrierSurfaceFromScalarReader()
     {
         var forward = new Carrier(10);
         var inverse = forward.Inverse();
@@ -833,14 +853,7 @@ public sealed class CarrierReadTests
 
         var spans = RelationReads.TraversedSpansOn(forward, travel, boundary);
 
-        Assert.Equal(
-            new[]
-            {
-                new Relation(new CarrierLocation(inverse, 0), new CarrierLocation(inverse, 2)),
-                new Relation(new CarrierLocation(inverse, 2), new CarrierLocation(inverse, 4)),
-                new Relation(new CarrierLocation(inverse, 4), new CarrierLocation(inverse, 10))
-            },
-            spans);
+        Assert.Empty(spans);
     }
 
     [Fact]
@@ -873,7 +886,7 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
-    public void RelationTraversedSpanStatesKeepReverseSitesOnCarrierAndFlowOnInverse()
+    public void RelationTraversedSpanStatesKeepReverseSitesAndFlowOnSignedCarrier()
     {
         var carrier = new Carrier(10);
         var travel = new Relation(
@@ -890,13 +903,13 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 10), new CarrierLocation(carrier, 4)),
-                    new CarrierLocation(carrier.Inverse(), 6)),
+                    new CarrierLocation(carrier, -6)),
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 4), new CarrierLocation(carrier, 2)),
-                    new CarrierLocation(carrier.Inverse(), 2)),
+                    new CarrierLocation(carrier, -2)),
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 0)),
-                    new CarrierLocation(carrier.Inverse(), 2))
+                    new CarrierLocation(carrier, -2))
             },
             states);
     }
@@ -919,13 +932,13 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 0))),
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 0))),
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 5)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1))),
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 1))),
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 5), new CarrierLocation(carrier, 10)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 0)))
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 0)))
             },
             states);
     }
@@ -949,7 +962,7 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 5)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1)))
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 1)))
             },
             passed);
         Assert.Equal(
@@ -994,7 +1007,7 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 5)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1)))
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 1)))
             },
             read.Pass);
         Assert.Equal(
@@ -1052,13 +1065,13 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 10), new CarrierLocation(carrier, 5)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 0))),
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 0))),
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 5), new CarrierLocation(carrier, 2)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1))),
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 1))),
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 0)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 0)))
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 0)))
             },
             states);
     }
@@ -1085,7 +1098,7 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 4), new CarrierLocation(carrier, 6)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1)))
+                    new Relation(new CarrierLocation(carrier, -1), new CarrierLocation(carrier, 1)))
             },
             tension);
         Assert.Equal(
@@ -1093,10 +1106,10 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 4)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1))),
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 1))),
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 6), new CarrierLocation(carrier, 8)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1)))
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 1)))
             },
             exclusive);
     }
@@ -1125,7 +1138,7 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
-    public void RelationCoveredSpansPreserveOpposedCarrierSurface()
+    public void RelationCoveredSpansIgnoreInverseCarrierSurfaceFromScalarReader()
     {
         var forward = new Carrier(10);
         var inverse = forward.Inverse();
@@ -1135,12 +1148,7 @@ public sealed class CarrierReadTests
 
         var spans = RelationReads.CoveredSpansOn(forward, segment);
 
-        Assert.Equal(
-            new[]
-            {
-                new Relation(new CarrierLocation(inverse, 0), new CarrierLocation(inverse, 8))
-            },
-            spans);
+        Assert.Empty(spans);
     }
 
     [Fact]
@@ -1195,10 +1203,10 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1))),
+                    new Relation(new CarrierLocation(carrier, -1), new CarrierLocation(carrier, 1))),
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 8)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1)))
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 1)))
             },
             states);
     }
@@ -1221,16 +1229,16 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1))),
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 1))),
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 5), new CarrierLocation(carrier, 8)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1)))
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 1)))
             },
             states);
     }
 
     [Fact]
-    public void RelationSupportStatesUseOpposedSlotForOpposedCarrierFlow()
+    public void RelationSupportStatesIgnoreInverseCarrierFlowFromScalarReader()
     {
         var forward = new Carrier(10);
         var inverse = forward.Inverse();
@@ -1240,14 +1248,7 @@ public sealed class CarrierReadTests
 
         var states = RelationReads.SupportStatesOn(forward, opposed);
 
-        Assert.Equal(
-            new[]
-            {
-                new Relation(
-                    new Relation(new CarrierLocation(inverse, 0), new CarrierLocation(inverse, 8)),
-                    new Relation(new CarrierLocation(inverse, 1), new CarrierLocation(forward, 0)))
-            },
-            states);
+        Assert.Empty(states);
     }
 
     [Fact]
@@ -1269,7 +1270,7 @@ public sealed class CarrierReadTests
         Assert.Contains(
             new Relation(
                 new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 8)),
-                new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 2))),
+                new Relation(new CarrierLocation(carrier, -1), new CarrierLocation(carrier, 2))),
             states);
     }
 
@@ -1294,10 +1295,10 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 4)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1))),
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 1))),
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 4), new CarrierLocation(carrier, 6)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1)))
+                    new Relation(new CarrierLocation(carrier, -1), new CarrierLocation(carrier, 1)))
             },
             states);
     }
@@ -1325,10 +1326,10 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 4)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1))),
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 1))),
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 4), new CarrierLocation(carrier, 6)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1)))
+                    new Relation(new CarrierLocation(carrier, -1), new CarrierLocation(carrier, 1)))
             },
             support);
         Assert.Equal(
@@ -1336,7 +1337,7 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 4), new CarrierLocation(carrier, 6)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1)))
+                    new Relation(new CarrierLocation(carrier, -1), new CarrierLocation(carrier, 1)))
             },
             tension);
         Assert.Equal(
@@ -1344,7 +1345,7 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 4)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1)))
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 1)))
             },
             exclusive);
     }
@@ -1354,12 +1355,12 @@ public sealed class CarrierReadTests
     {
         var carrier = new Carrier(10);
         var state = new Relation(
-            new CarrierLocation(carrier.Inverse(), 2),
+            new CarrierLocation(carrier, -2),
             new CarrierLocation(carrier, 3));
 
         Assert.Equal(
             new Relation(
-                new CarrierLocation(carrier.Inverse(), 2),
+                new CarrierLocation(carrier, -2),
                 new CarrierLocation(carrier, 3)),
             state.SupportOn(carrier));
     }
@@ -1369,12 +1370,12 @@ public sealed class CarrierReadTests
     {
         var carrier = new Carrier(10);
         var state = new Relation(
-            new CarrierLocation(carrier.Inverse(), 2),
+            new CarrierLocation(carrier, -2),
             new CarrierLocation(carrier, 3));
 
         Assert.Equal(
             new Relation(
-                new CarrierLocation(carrier.Inverse(), 2),
+                new CarrierLocation(carrier, -2),
                 new CarrierLocation(carrier, 2)),
             state.TensionOn(carrier));
     }
@@ -1384,20 +1385,20 @@ public sealed class CarrierReadTests
     {
         var carrier = new Carrier(10);
         var forwardLarger = new Relation(
-            new CarrierLocation(carrier.Inverse(), 2),
+            new CarrierLocation(carrier, -2),
             new CarrierLocation(carrier, 5));
         var reverseLarger = new Relation(
-            new CarrierLocation(carrier.Inverse(), 5),
+            new CarrierLocation(carrier, -5),
             new CarrierLocation(carrier, 2));
 
         Assert.Equal(
             new Relation(
-                new CarrierLocation(carrier.Inverse(), 0),
+                new CarrierLocation(carrier, 0),
                 new CarrierLocation(carrier, 3)),
             forwardLarger.ExclusiveOn(carrier));
         Assert.Equal(
             new Relation(
-                new CarrierLocation(carrier.Inverse(), 3),
+                new CarrierLocation(carrier, -3),
                 new CarrierLocation(carrier, 0)),
             reverseLarger.ExclusiveOn(carrier));
     }
@@ -1408,21 +1409,21 @@ public sealed class CarrierReadTests
         var carrier = new Carrier(10);
         var state = new Relation(
             new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
-            new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1)));
+            new Relation(new CarrierLocation(carrier, -1), new CarrierLocation(carrier, 1)));
 
         Assert.Equal(
             new Relation(
-                new CarrierLocation(carrier.Inverse(), 1),
+                new CarrierLocation(carrier, -1),
                 new CarrierLocation(carrier, 1)),
             state.SupportOn(carrier));
         Assert.Equal(
             new Relation(
-                new CarrierLocation(carrier.Inverse(), 1),
+                new CarrierLocation(carrier, -1),
                 new CarrierLocation(carrier, 1)),
             state.TensionOn(carrier));
         Assert.Equal(
             new Relation(
-                new CarrierLocation(carrier.Inverse(), 0),
+                new CarrierLocation(carrier, 0),
                 new CarrierLocation(carrier, 0)),
             state.ExclusiveOn(carrier));
     }
@@ -1445,10 +1446,10 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1))),
+                    new Relation(new CarrierLocation(carrier, -1), new CarrierLocation(carrier, 1))),
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 8)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1)))
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 1)))
             },
             support);
     }
@@ -1471,7 +1472,7 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 1), new CarrierLocation(carrier, 1)))
+                    new Relation(new CarrierLocation(carrier, -1), new CarrierLocation(carrier, 1)))
             },
             tension);
     }
@@ -1494,7 +1495,7 @@ public sealed class CarrierReadTests
             {
                 new Relation(
                     new Relation(new CarrierLocation(carrier, 2), new CarrierLocation(carrier, 8)),
-                    new Relation(new CarrierLocation(carrier.Inverse(), 0), new CarrierLocation(carrier, 1)))
+                    new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 1)))
             },
             exclusive);
     }
@@ -1711,7 +1712,7 @@ public sealed class CarrierReadTests
             x,
             new CarrierLocation(x, 3),
             new CarrierLocation(y, 100),
-            new CarrierLocation(x.Inverse(), 100),
+            new CarrierLocation(x, -100),
             new CarrierLocation(x, 4));
 
         Assert.Equal(new CarrierLocation(x, 3), tension);
@@ -1746,14 +1747,14 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
-    public void OpposedCarrierCanBeAccountedWithinTheSameOpposedFlow()
+    public void InverseCarrierCanBeAccountedWithinItsOwnFlow()
     {
         var forward = new Carrier(10);
         var inverse = forward.Inverse();
         var incoming = new CarrierLocation(inverse, 10);
 
         var tension = incoming.NewTensionAfter(
-            forward,
+            inverse,
             new CarrierLocation(inverse, 6));
 
         Assert.Equal(new CarrierLocation(inverse, 4), tension);
@@ -1777,7 +1778,7 @@ public sealed class CarrierReadTests
     {
         var forward = new Carrier(10);
         var incoming = new CarrierLocation(forward, 5);
-        var opposedAccounted = new CarrierLocation(forward.Inverse(), 100);
+        var opposedAccounted = new CarrierLocation(forward, -100);
 
         var tension = incoming.NewTensionAfter(opposedAccounted, forward);
 

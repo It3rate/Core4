@@ -12,24 +12,32 @@ travel in separate flags.
 The smaller structural moves are:
 
 ```text
-Dual(element)      = same magnitude or shape on the opposed orientation face
+Dual(element)      = element-local mirror
 Reverse(relation)  = same relation surface traversed in the opposite order
 Invert(read/use)   = contextual use of Dual, Reverse, or both
 ```
 
 `Dual` is part of the `IElement` contract. Each element constructs its own
-dual; no outside helper owns that meaning. `Reverse` is ordered and should
-always be constructible for a relation. A contextual algebraic inverse is not
-guaranteed to settle cleanly. It may leave tension.
+dual; no outside helper owns that meaning. Carrier duality and location
+duality are different grades of the same mirror:
+
+```text
+Dual(C)      = C*          opposed-flow / orthogonal carrier face
+Dual(L(C,k)) = L(C,-k)     ordinary scalar negation on the same carrier
+```
+
+`Reverse` is ordered and should always be constructible for a relation. A
+contextual algebraic inverse is not guaranteed to settle cleanly. It may leave
+tension.
 
 This keeps `-5` from being a primitive host-language sign:
 
-- value claim: `5` on the dual face
-- operation: a transform slot read through its dual face
-- trolley movement: reverse traversal by magnitude `5`
+- value claim: `L(C,-5)` on the same scalar carrier `C`
+- operation: a transform slot using a negative carrier location
+- trolley movement: reverse traversal by signed magnitude `-5`
 - measurement: a carrier-local read whose origin/basis decides whether the
-  opposite site is a dual face, a backward same-carrier segment, or unresolved
-  tension
+  opposite site is a negative same-carrier location, a backward same-carrier
+  segment, a dual carrier face, or unresolved tension
 
 Those are perspectives over the same small structure, not separate operator
 taxonomies.
@@ -38,14 +46,28 @@ taxonomies.
 
 | Element | Dual | Reverse | Notes |
 |---|---|---|---|
-| `C` | `C*` | none | Opposed carrier face with the same unit claim and opposite native flow. |
-| `L(C,k)` | `L(C*,k)` | none | Magnitude stays positive; opposition comes from the carrier face. |
-| `P(C,k) = L(C,k) -> C` | `P(C*,k)` | `C -> L(C,k)` | Point dual is useful. Point reverse is constructible but not usually a local point. |
-| `S(C,a,b) = P(C,a) -> P(C,b)` | `S(C*,a,b)` | `S(C,b,a)` | Dual changes face; reverse changes traversal/order. |
+| `C` | `C*` | none | Opposed flow carrier. This is not the ordinary negative scalar side of `C`; it is a different carrier face/grade. |
+| `L(C,k)` | `L(C,-k)` | none | Location dual negates the value on the same carrier. This is the ordinary `-k` scalar read on `C`. |
+| `P(C,k) = L(C,k) -> C` | `P(C,-k)` | `C -> L(C,k)` | Point dual negates its carrier location but remains a point on `C`. Point reverse is constructible but not usually a local point. |
+| `S(C,a,b) = P(C,a) -> P(C,b)` | `S(C,-a,-b)` | `S(C,b,a)` | Dual negates locations; reverse changes traversal/order. |
 | `A -> B` | `Dual(A) -> Dual(B)` | `B -> A` | These commute structurally, but a read through them may settle differently. |
 
 `C*` means the stable dual carrier returned by `C.Dual()`. It is a physical
-carrier face, not a negative flag on `C`.
+carrier face, not a negative flag on `C`. A scalar read from `C` does not see
+`C*` merely because the carriers are dual. It sees ordinary negative values as
+negative signed locations on `C`.
+
+The current executable support and traversal reads now use signed locations on
+the reader carrier for reverse participation:
+
+```text
+support state = L(C,-reverse) -> L(C,forward)
+reverse flow  = L(C,-distance)
+```
+
+Dual carrier faces remain valid structures, but they require an explicit
+relation or later crystallized read before they participate in the scalar
+carrier read.
 
 ## 3. Site Magnitude Table
 
@@ -82,8 +104,8 @@ This table names what Gojo currently executes and what is still only a target.
 | `P(C,k) -> P(C,k)` | clamp boundary: value hardens to `k` and excess remains as positive `Tension` |
 | `P(C0,k) -> P(C1,0)` | same-orientation route: positive source tension routes into `C1` by `k:1` |
 | `P(C0,k) -> P(C1,m)` where `m > 0` | ratio projection surface: no mutation in the current pass |
-| `P(C0,k) -> P(C1*,0)` | opposed route: negative source tension routes into the dual face by `k:1` |
-| related opposed visible values | shared visible value cancels before residue remains |
+| `P(C0,k) -> P(C1*,0)` | explicit dual-face route: negative source tension can route into `C1*` by `k:1`; this is not an ordinary scalar-negative read |
+| explicitly related dual-face values | shared visible value cancels before residue remains |
 
 The projected value for nonzero cross-carrier receiver sites is not executable
 yet. For example, `P(C0,2) -> P(C1,3)` should read `6` on `C0` as `9` through
@@ -127,7 +149,8 @@ control.
 
 Examples:
 
-- positive and dual faces crystallize into a signed-axis read
+- signed locations on one carrier crystallize into an ordinary signed-axis read
+- positive and dual carrier faces may crystallize into a higher-grade/opposed-axis read
 - ones/tens/hundreds crystallize into an integer read
 - whole plus partition layers crystallize into a mixed-resolution read
 - length and width can crystallize into an area carrier

@@ -4,6 +4,11 @@ This note gives a compact notation for operation-like behavior that falls out
 of relation shape. It is not a symbolic operator table. It is a checklist of
 structural affordances we have seen or expect to see.
 
+Current Gojo scalar reverse/negative participation is written as signed
+locations on the same carrier, for example `L(C,-5)`. Rows that mention
+`C_inverse` describe explicit dual-face routes, not the ordinary negative
+scalar side of `C`.
+
 Notation:
 
 - `L(C,n)` means a location on a carrier, not a relation: L(C,3)
