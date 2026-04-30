@@ -94,12 +94,19 @@ public sealed class Carrier : IElement
     public void Add(ulong ticks)
     {
         Receive(checked((long)ticks));
+        // TODO: Replace immediate quiet settlement with a time-step scheduler
+        // so several perturbations can enter the same connected world before
+        // relations lower tension. Sequential settlement should remain an
+        // explicit higher-level operation when ordered changes matter.
         SettleWorld();
     }
 
     public void Remove(ulong ticks)
     {
         Receive(checked(-checked((long)ticks)));
+        // TODO: See Add. Public perturbations settle synchronously for the
+        // current executable foothold, but the dynamic model wants batched
+        // per-step settlement across independent structures.
         SettleWorld();
     }
 

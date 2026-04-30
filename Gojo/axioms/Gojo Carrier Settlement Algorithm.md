@@ -119,9 +119,23 @@ settle-connected-world(start):
         world = all carriers connected to start by attached relations
 ```
 
-This is currently a quiet loop. Later dynamic versions may distribute work over
-time, but the underlying motion is the same: carrier state changes wake related
-structure, and unresolved participation remains as tension.
+This is currently a quiet loop triggered by each public `Add` or `Remove`.
+That means one public perturbation settles before the next public perturbation
+enters the world. This is only the executable foothold.
+
+The dynamic target is per-time-step settlement:
+
+```text
+time-step:
+    collect all perturbations for this step
+    apply them as carrier tension
+    settle the affected connected worlds together
+    leave unresolved participation as tension for later steps
+```
+
+Ordered change is still important, but it should be represented by explicit
+sequential operations when order matters. Independent perturbations in the same
+world should eventually be able to participate in the same settlement step.
 
 ## 4. Relation Application
 
