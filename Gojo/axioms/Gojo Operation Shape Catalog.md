@@ -104,6 +104,17 @@ General same-carrier segment shift still needs point identity so coincident
 points can move without accidentally moving every matching point in the
 surface.
 
+Relation identity now provides that foothold. Structural perturbation follows:
+
+```text
+target.Perturb(L(C,+n))              translates matching carrier sites
+target.Perturb(P(C,a) -> P(C,b))     scales participating sites by b:a
+```
+
+The target chooses participants. If the target is a point, only that point
+moves. If the target is a segment/relation surface, its participating child
+points move. A coincident but unshared point does not move.
+
 ## Routing-Like Shapes
 
 | Shape | Read |

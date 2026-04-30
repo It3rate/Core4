@@ -17,6 +17,8 @@ The current model is:
   ordinary negative side of the scalar carrier
 - relations bind carrier sites into points, segments, boundaries, routes, and
   transforms
+- relations have physical identity; structural equality is still useful for
+  tests and read comparison, but identity decides shared participation
 - settlement happens inside the connected carrier/relation world
 - behavior should come from numeric relation shape, not tags, helper objects,
   contribution tables, or external settle readers
@@ -36,6 +38,11 @@ In place:
 - direct carrier-held `Value` and signed `Tension`
 - `IElement.Dual`, implemented by carriers, carrier locations, and relations
 - structural `Reverse` for relation traversal order
+- relation identity separate from shape equality
+- shape-driven structural perturbation:
+  - signed carrier location perturbations translate matching carrier sites
+  - relation-shaped ratio perturbations scale participating sites exactly
+  - inexact scale is left unresolved rather than rounded
 
 ## Phase 2. Internal Structural Settlement
 

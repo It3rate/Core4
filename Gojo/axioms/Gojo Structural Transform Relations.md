@@ -48,6 +48,45 @@ Input enters a carrier as tension. The carrier absorbs what it can into
 residue remains negative tension. Relations may then route that tension into
 other carriers.
 
+## 2A. Structural Participation
+
+`CarrierLocation` is only a coordinate:
+
+```text
+L(C,5)
+```
+
+A point is a relation that participates at that coordinate:
+
+```text
+P0 = L(C,5) -> C
+```
+
+Two points may have the same coordinate without being the same point. A segment
+can share a point by holding the same relation instance:
+
+```text
+S = P0 -> P1
+```
+
+If `P0` moves, `S.0` moves because it is the same physical relation. A fresh
+`P(C,5)` does not move merely because it is coincident.
+
+Structural perturbation is separate from carrier value/tension. The target
+surface decides which sites participate. The perturbation shape decides the
+transform:
+
+```text
+L(C,+3)                     = translate matching carrier locations by +3
+P(C,2) -> P(C,3)            = scale participating locations by 3:2
+S(C,0,2) -> S(C,0,3)        = the same scale read through segment basis
+```
+
+Targeting one point changes that point. Targeting a relation surface walks its
+participating child relations and changes their coordinates. Inexact structural
+scale currently leaves the structure unchanged rather than inventing hidden
+fractional positions; later this should become structural tension.
+
 ## 3. Local Accounting
 
 A bare carrier span from origin to a point is a forward projection/basis

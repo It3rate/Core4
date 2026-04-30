@@ -1,7 +1,22 @@
 namespace Gojo.Core;
 
-public readonly record struct Relation(IElement Left, IElement Right) : IElement
+public sealed class Relation : IElement, IEquatable<Relation>
 {
+    private static ulong idCounter = 1;
+
+    public Relation(IElement left, IElement right)
+    {
+        Id = NextId();
+        Left = left;
+        Right = right;
+    }
+
+    public ulong Id { get; }
+
+    public IElement Left { get; private set; }
+
+    public IElement Right { get; private set; }
+
     public Relation Dual() => IsPoint(out var location, out var carrier)
         ? new(location.Dual(), carrier)
         : new(Left.Dual(), Right.Dual());
@@ -9,6 +24,33 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
     public Relation Reverse() => new(Right, Left);
 
     IElement IElement.Dual() => Dual();
+
+    public bool SameIdentityAs(Relation other) => ReferenceEquals(this, other);
+
+    public bool Perturb(IElement perturbation)
+    {
+        if (perturbation is CarrierLocation delta)
+        {
+            return TryTransformLocations(location =>
+                location.Carrier.SameIdentityAs(delta.Carrier)
+                    ? LocationTransform.To(new CarrierLocation(location.Carrier, checked(location.Ticks + delta.Ticks)))
+                    : LocationTransform.To(location));
+        }
+
+        if (perturbation is Relation relation &&
+            TryReadBasis(relation.Left, out var source) &&
+            TryReadBasis(relation.Right, out var target) &&
+            source.Ticks != 0 &&
+            target.Ticks != 0)
+        {
+            return TryTransformLocations(location =>
+                TryScale(location, source.Ticks, target.Ticks, out var scaled)
+                    ? LocationTransform.To(scaled)
+                    : LocationTransform.Blocked);
+        }
+
+        return false;
+    }
 
     internal bool Apply()
     {
@@ -181,6 +223,17 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         ? location
         : throw new InvalidOperationException("The right relation slot is not a carrier location.");
 
+    public bool Equals(Relation? other) =>
+        other is not null &&
+        Equals(Left, other.Left) &&
+        Equals(Right, other.Right);
+
+    public override bool Equals(object? obj) => obj is Relation other && Equals(other);
+
+    public override int GetHashCode() => HashCode.Combine(Left, Right);
+
+    public override string ToString() => $"{Left} -> {Right}";
+
     private bool IsPoint(out CarrierLocation location, out Carrier carrier)
     {
         if (Left is CarrierLocation leftLocation &&
@@ -259,6 +312,65 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         return false;
     }
 
+    private bool TryTransformLocations(Func<CarrierLocation, LocationTransform> transform)
+    {
+        var updates = new List<LocationUpdate>();
+        if (!TryCollectLocationUpdates(transform, new HashSet<ulong>(), updates))
+        {
+            return false;
+        }
+
+        foreach (var update in updates)
+        {
+            if (update.IsLeft)
+            {
+                update.Relation.Left = update.Next;
+            }
+            else
+            {
+                update.Relation.Right = update.Next;
+            }
+        }
+
+        return updates.Count != 0;
+    }
+
+    private bool TryCollectLocationUpdates(
+        Func<CarrierLocation, LocationTransform> transform,
+        HashSet<ulong> visited,
+        List<LocationUpdate> updates)
+    {
+        if (!visited.Add(Id))
+        {
+            return true;
+        }
+
+        return TryCollect(Left, isLeft: true) &&
+            TryCollect(Right, isLeft: false);
+
+        bool TryCollect(IElement element, bool isLeft)
+        {
+            if (element is CarrierLocation location)
+            {
+                var transformed = transform(location);
+                if (!transformed.CanTransform)
+                {
+                    return false;
+                }
+
+                if (!transformed.Location.Equals(location))
+                {
+                    updates.Add(new LocationUpdate(this, isLeft, transformed.Location));
+                }
+
+                return true;
+            }
+
+            return element is not Relation relation ||
+                relation.TryCollectLocationUpdates(transform, visited, updates);
+        }
+    }
+
     private static Relation ProjectBetween(
         CarrierLocation location,
         Carrier reader,
@@ -291,6 +403,27 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
 
     private static long SignedTicks(ulong ticks, int sign) =>
         sign < 0 ? -checked((long)ticks) : checked((long)ticks);
+
+    private static bool TryScale(
+        CarrierLocation location,
+        long sourceBasis,
+        long targetBasis,
+        out CarrierLocation scaled)
+    {
+        var sourceMagnitude = MagnitudeOf(sourceBasis);
+        var targetMagnitude = MagnitudeOf(targetBasis);
+        var locationMagnitude = MagnitudeOf(location.Ticks);
+        var scaledMagnitude = checked(locationMagnitude * targetMagnitude);
+        if (scaledMagnitude % sourceMagnitude != 0)
+        {
+            scaled = default;
+            return false;
+        }
+
+        var sign = Math.Sign(location.Ticks) * Math.Sign(sourceBasis) * Math.Sign(targetBasis);
+        scaled = new CarrierLocation(location.Carrier, SignedTicks(scaledMagnitude / sourceMagnitude, sign));
+        return true;
+    }
 
     private static CarrierLocation[] CarrierLocationsOf(IElement element) => element switch
     {
@@ -462,4 +595,15 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
 
         public bool IsOrigin => Width == 0 && Min == 0;
     }
+
+    private readonly record struct LocationUpdate(Relation Relation, bool IsLeft, CarrierLocation Next);
+
+    private readonly record struct LocationTransform(bool CanTransform, CarrierLocation Location)
+    {
+        public static LocationTransform Blocked => new(false, default);
+
+        public static LocationTransform To(CarrierLocation location) => new(true, location);
+    }
+
+    private static ulong NextId() => idCounter++;
 }

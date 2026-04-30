@@ -16,6 +16,108 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
+    public void RelationsHaveIdentitySeparateFromShapeEquality()
+    {
+        var carrier = new Carrier(10);
+        var first = Point(carrier, 7);
+        var second = Point(carrier, 7);
+
+        Assert.NotSame(first, second);
+        Assert.NotEqual(first.Id, second.Id);
+        Assert.Equal(first, second);
+        Assert.False(first.SameIdentityAs(second));
+    }
+
+    [Fact]
+    public void SharedPointReferenceMovesWhereItParticipates()
+    {
+        var carrier = new Carrier(10);
+        var start = Point(carrier, 5);
+        var end = Point(carrier, 11);
+        var segment = new Relation(start, end);
+
+        start.Perturb(new CarrierLocation(carrier, 3));
+
+        Assert.Same(start, segment.Left);
+        Assert.Equal(new CarrierLocation(carrier, 8), start.Left);
+        Assert.Equal(new CarrierLocation(carrier, 11), end.Left);
+    }
+
+    [Fact]
+    public void FreshCoincidentPointDoesNotMoveWithUnsharedSegmentPoint()
+    {
+        var carrier = new Carrier(10);
+        var start = Point(carrier, 5);
+        var end = Point(carrier, 11);
+        var segment = new Relation(start, end);
+        var coincident = Point(carrier, 5);
+
+        segment.Perturb(new CarrierLocation(carrier, 3));
+
+        Assert.Equal(new CarrierLocation(carrier, 8), start.Left);
+        Assert.Equal(new CarrierLocation(carrier, 14), end.Left);
+        Assert.Equal(new CarrierLocation(carrier, 5), coincident.Left);
+    }
+
+    [Fact]
+    public void TargetedPointTranslationChangesOnlyThatPoint()
+    {
+        var carrier = new Carrier(10);
+        var start = Point(carrier, 5);
+        var end = Point(carrier, 11);
+        _ = new Relation(start, end);
+
+        end.Perturb(new CarrierLocation(carrier, 3));
+
+        Assert.Equal(new CarrierLocation(carrier, 5), start.Left);
+        Assert.Equal(new CarrierLocation(carrier, 14), end.Left);
+    }
+
+    [Fact]
+    public void TargetedRelationTranslationMovesParticipatingPointsTogether()
+    {
+        var carrier = new Carrier(10);
+        var start = Point(carrier, 5);
+        var end = Point(carrier, 11);
+        var segment = new Relation(start, end);
+
+        segment.Perturb(new CarrierLocation(carrier, 3));
+
+        Assert.Equal(new CarrierLocation(carrier, 8), start.Left);
+        Assert.Equal(new CarrierLocation(carrier, 14), end.Left);
+    }
+
+    [Fact]
+    public void RelationScalePerturbationPreservesCrossCarrierRatio()
+    {
+        var source = new Carrier(10);
+        var target = new Carrier(20);
+        var sourcePoint = Point(source, 2);
+        var targetPoint = Point(target, 4);
+        var coupling = new Relation(sourcePoint, targetPoint);
+        var scale = new Relation(Point(source, 2), Point(source, 3));
+
+        coupling.Perturb(scale);
+
+        Assert.Equal(new CarrierLocation(source, 3), sourcePoint.Left);
+        Assert.Equal(new CarrierLocation(target, 6), targetPoint.Left);
+    }
+
+    [Fact]
+    public void InexactRelationScaleLeavesStructureUnchanged()
+    {
+        var carrier = new Carrier(10);
+        var start = Point(carrier, 1);
+        var end = Point(carrier, 2);
+        var segment = new Relation(start, end);
+        var scale = new Relation(Point(carrier, 2), Point(carrier, 3));
+
+        Assert.False(segment.Perturb(scale));
+        Assert.Equal(new CarrierLocation(carrier, 1), start.Left);
+        Assert.Equal(new CarrierLocation(carrier, 2), end.Left);
+    }
+
+    [Fact]
     public void CarrierWithoutStructureKeepsInputAsLocalValue()
     {
         var carrier = new Carrier(10);

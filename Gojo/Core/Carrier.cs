@@ -76,7 +76,7 @@ public sealed class Carrier : IElement
     {
         foreach (var carrier in relation.Carriers().Distinct())
         {
-            if (!carrier.relations.Contains(relation))
+            if (!carrier.relations.Any(existing => existing.SameIdentityAs(relation)))
             {
                 carrier.relations.Add(relation);
             }
@@ -194,7 +194,9 @@ public sealed class Carrier : IElement
             for (var pass = 0; pass < 256; pass++)
             {
                 var before = Snapshot(carriers);
-                foreach (var relation in carriers.SelectMany(carrier => carrier.relations).Distinct())
+                foreach (var relation in carriers.SelectMany(carrier => carrier.relations)
+                    .GroupBy(relation => relation.Id)
+                    .Select(group => group.First()))
                 {
                     relation.Apply();
                 }
