@@ -75,23 +75,24 @@ This table names what Gojo currently executes and what is still only a target.
 | Shape | Current settlement |
 |---|---|
 | bare `C` | input tension is absorbed into `C.Value`; no boundary tension remains |
-| `L(C,0) -> L(C,k)` | forward local capacity: `Value > k` hardens to `k` and leaves positive `Tension`; no wrap is implied |
+| `L(C,0) -> L(C,k)` | forward projection/basis surface: no carrier mutation or tension by itself |
 | `L(C,k) -> L(C,0)` | reverse local return: crossing `k` wraps local value back toward origin and leaves the crossed amount as positive `Tension` |
 | `L(C,k) -> L(C,k)` | same-site local stop: value hardens to `k` and excess remains as positive `Tension` |
 | `P(C,k) -> P(C,0)` | reset/carry boundary: value hardens to residue and grouped excess remains as positive `Tension` |
 | `P(C,k) -> P(C,k)` | clamp boundary: value hardens to `k` and excess remains as positive `Tension` |
 | `P(C0,k) -> P(C1,0)` | same-orientation route: positive source tension routes into `C1` by `k:1` |
+| `P(C0,k) -> P(C1,m)` where `m > 0` | ratio projection surface: no mutation in the current pass |
 | `P(C0,k) -> P(C1*,0)` | opposed route: negative source tension routes into the dual face by `k:1` |
 | related opposed visible values | shared visible value cancels before residue remains |
 
-The current code treats `P(C0,k) -> P(C1,m)` mostly like the `m = 0` route.
-The meaning of nonzero receiver offset still needs to be made structural
-instead of quietly ignored.
+The projected value for nonzero cross-carrier receiver sites is not executable
+yet. For example, `P(C0,2) -> P(C1,3)` should read `6` on `C0` as `9` through
+`C1`, but it should not store `9` on `C1` or clear `C0`.
 
 The important current correction is that wrap/reset is not caused by the side
 being a point instead of a location. It comes from same-carrier relation order.
-`0 -> k` is a forward capacity surface. `k -> 0` is a return surface. `k -> k`
-is a stop surface.
+`0 -> k` is a forward projection surface. `k -> 0` is a return surface.
+`k -> k` is a stop surface.
 
 ## 5. Target Relation Shape Table
 
@@ -100,7 +101,7 @@ should inspect the relation shape:
 
 | Left shape | Right shape | Same face | Different same-oriented face | Opposed face |
 |---|---|---|---|---|
-| point | point | local boundary/reset/clamp depending on right site | route positive tension by source unit | route negative tension by source unit |
+| point | point | local boundary/reset/clamp depending on right site | origin receiver routes positive tension; nonzero receiver is ratio projection | origin receiver routes negative tension; nonzero receiver is opposed projection |
 | point | segment | move or seed receiver endpoint if the segment exposes that point | shift/stretch target surface from a site | opposed shift/refill target surface |
 | segment | point | source extent moves receiver point; if receiver point anchors a segment, that segment scales | multiplication-like endpoint movement | division/refill-like endpoint movement, possibly tension |
 | segment | segment | preserve local extent relation; do not collapse to point carry | basis projection, copy, ratio scale | inverse basis projection, division/root-like read |

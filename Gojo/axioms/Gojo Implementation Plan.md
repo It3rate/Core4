@@ -4,6 +4,9 @@ Gojo is the current Core4 numeric kernel direction. `Core4.Kernel` and older
 projects remain preserved for comparison, but new kernel work should happen in
 Gojo.
 
+For the current pseudo-code view of carrier input, local accounting, relation
+application, and tension routing, see `Gojo Carrier Settlement Algorithm.md`.
+
 The current model is:
 
 - carriers are physical mutable sites with unique IDs
@@ -39,7 +42,8 @@ In place:
 - `SetValue`, `Add`, and `Remove` settle that world automatically
 - input enters as signed tension and the carrier absorbs what it can into
   positive value before relations route the residue
-- a forward local span such as `L(C,0) -> L(C,10)` gives local capacity
+- a forward local span such as `L(C,0) -> L(C,10)` gives projection/basis
+  structure without hardening the carrier
 - a reverse local span such as `L(C,10) -> L(C,0)` gives return/wrap
   accounting
 - same-carrier point relations perform reset/clamp accounting
@@ -50,11 +54,13 @@ In place:
 Current stable examples:
 
 - unbounded carrier input keeps its value
-- `L(C,0) -> L(C,10)` turns value `11` into value `10` plus tension `1`
+- `L(C,0) -> L(C,10)` leaves value `11` as value `11` with no tension
 - `L(C,10) -> L(C,0)` turns value `13` into value `3` plus tension `10`
 - `P(C,10) -> P(C,0)` turns `23` into value `3` plus tension `20`
 - `P(C,10) -> P(C,10)` clamps `23` to value `10` plus tension `13`
 - `P(C0,10) -> P(C1,0)` turns `37` into `C0 = 7`, `C1 = 3`
+- `P(C0,2) -> P(C1,3)` is a ratio projection surface, not a carry route; the
+  projected read is not executable yet
 - `(P(C0,10) -> P(C0,0)) -> P(C1,0)` can absorb positive tension after the
   boundary has already produced it
 - `P(C0,10) -> P(C1_inverse,0)` can absorb source negative tension through the same

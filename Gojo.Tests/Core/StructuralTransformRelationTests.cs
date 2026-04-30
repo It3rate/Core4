@@ -27,15 +27,15 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
-    public void CarrierLocalCapacityCreatesPositiveTensionWithoutExternalSettlement()
+    public void ForwardCarrierLocationRelationDoesNotCreateTension()
     {
         var carrier = new Carrier(10);
         carrier.Attach(new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 10)));
 
         carrier.SetValue(11);
 
-        Assert.Equal(10UL, carrier.Value);
-        Assert.Equal(1, carrier.Tension);
+        Assert.Equal(11UL, carrier.Value);
+        Assert.Equal(0, carrier.Tension);
     }
 
     [Fact]
@@ -86,6 +86,21 @@ public sealed class StructuralTransformRelationTests
         Assert.Equal(7UL, residue.Value);
         Assert.Equal(0, residue.Tension);
         Assert.Equal(3UL, whole.Value);
+    }
+
+    [Fact]
+    public void CrossCarrierNonzeroPointRelationDoesNotAbsorbAsCarry()
+    {
+        var source = new Carrier(10);
+        var projection = new Carrier(20);
+        source.Attach(new Relation(Point(source, 2), Point(projection, 3)));
+
+        source.SetValue(6);
+
+        Assert.Equal(6UL, source.Value);
+        Assert.Equal(0, source.Tension);
+        Assert.Equal(0UL, projection.Value);
+        Assert.Equal(0, projection.Tension);
     }
 
     [Fact]

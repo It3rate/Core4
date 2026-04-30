@@ -12,28 +12,31 @@ carrier/relation structure and settle inside the connected carrier world.
 The current executable shapes are intentionally small:
 
 - `L(source,0) -> L(source,k)`
-  - local capacity
-  - hardens value to the capacity
-  - leaves excess as carrier overflow
+  - forward projection/basis surface
+  - does not harden value or create tension by itself
 
 - `P(source,k) -> P(source,0)`
   - same-carrier reset boundary
   - hardens local value to residue
-  - exposes unabsorbed crossing energy as carrier overflow
+  - exposes unabsorbed crossing energy as carrier tension
 
 - `P(source,k) -> P(receiver,0)`
   - compact counter route
-  - creates source overflow through the boundary unit
-  - routes quotient-like overflow into the receiver carrier
+  - creates source tension through the boundary unit
+  - routes quotient-like tension into the receiver carrier
   - leaves local residue on the source carrier
 
 - `(P(source,k) -> P(source,0)) -> P(receiver,0)`
   - explicit counter route
-  - can absorb carrier overflow produced before the route existed
+  - can absorb carrier tension produced before the route existed
 
 - `P(source,k) -> P(receiver_inverse,0)`
-  - underflow route
-  - routes source underflow into an inverse-oriented receiver
+  - negative tension route
+  - routes source negative tension into an inverse-oriented receiver
+
+- `P(source,k) -> P(receiver,m)` where `m > 0`
+  - ratio projection surface
+  - does not clear source value or mutate receiver value in the current pass
 
 - `P(source,1) -> P(receiver_inverse,0)`
   - opposed visible-value balancing
@@ -58,7 +61,7 @@ The following helper layers were deliberately removed:
 
 The removed tests mostly tested helper APIs against themselves. New tests
 should attach relation structure to carriers, perturb carrier values, and then
-inspect carrier value/overflow/underflow.
+inspect carrier value and tension.
 
 ## Remaining Gap
 

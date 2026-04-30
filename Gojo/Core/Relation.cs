@@ -20,18 +20,17 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
 
         if (leftSites.Carrier.SameIdentityAs(rightSites.Carrier))
         {
-            return TryApplyCapacity(leftSites.Carrier) ||
-                AccountLocal(leftSites.Carrier, leftSites.Max, rightSites.Min);
+            return AccountLocal(leftSites.Carrier, leftSites.Max, rightSites.Min);
         }
 
         if (leftSites.Carrier.IsInverse != rightSites.Carrier.IsInverse &&
-            rightSites.Width == 0)
+            rightSites.IsOrigin)
         {
             return leftSites.Carrier.BalanceOpposedValueWith(rightSites.Carrier) |
                 RouteNegativeTension(leftSites, rightSites);
         }
 
-        return rightSites.Width == 0 && RoutePositiveTension(leftSites, rightSites);
+        return rightSites.IsOrigin && RoutePositiveTension(leftSites, rightSites);
     }
 
     public Relation SupportOn(Carrier reader)
@@ -216,25 +215,6 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
         }
     }
 
-    private bool TryApplyCapacity(Carrier carrier)
-    {
-        if (Left is not CarrierLocation left ||
-            Right is not CarrierLocation right ||
-            !left.Carrier.SameIdentityAs(carrier) ||
-            !right.Carrier.SameIdentityAs(carrier))
-        {
-            return false;
-        }
-
-        var capacity = left.Ticks == 0 ? right.Ticks : 0;
-        if (capacity == 0 || carrier.Value <= capacity)
-        {
-            return false;
-        }
-
-        return carrier.LeaveTension(capacity, checked((long)(carrier.Value - capacity)));
-    }
-
     private static bool AccountLocal(
         Carrier carrier,
         ulong source,
@@ -338,5 +318,7 @@ public readonly record struct Relation(IElement Left, IElement Right) : IElement
     private readonly record struct CarrierSites(Carrier Carrier, ulong Min, ulong Max)
     {
         public ulong Width => Max - Min;
+
+        public bool IsOrigin => Width == 0 && Min == 0;
     }
 }

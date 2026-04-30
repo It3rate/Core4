@@ -50,18 +50,22 @@ other carriers.
 
 ## 3. Local Accounting
 
-A bare carrier span from origin to a point is forward local capacity:
+A bare carrier span from origin to a point is a forward projection/basis
+surface:
 
 ```text
 L(C,0) -> L(C,10)
 ```
 
-If `C.Value` is set to `11`, the carrier settles to:
+If `C.Value` is set to `11`, the carrier keeps that state:
 
 ```text
-C.Value    = 10
-C.Tension  = 1
+C.Value   = 11
+C.Tension = 0
 ```
+
+The forward relation may later support a projection read, but it does not
+constrain the carrier by itself.
 
 A reverse same-carrier location relation is a return surface rather than the
 same capacity read:
@@ -106,9 +110,12 @@ C.Tension  = 13
 These are ordinary relation shapes attached to the carrier. There is no stored
 boundary kind.
 
+Forward same-carrier relations aligned with carrier flow are not boundaries by
+themselves. Return and stop shapes are the current hardening surfaces.
+
 ## 4. Routing
 
-When a cross-carrier relation ends at a point-like receiver, the source side can
+When a cross-carrier relation ends at an origin receiver, the source side can
 route positive carrier tension into the receiver carrier:
 
 ```text
@@ -125,6 +132,17 @@ C1.Value    = 3
 
 The compact form is local source accounting followed by routing through the
 source unit.
+
+When the receiver point is nonzero, the relation is currently a projection
+surface rather than a carry route:
+
+```text
+P(C0,2) -> P(C1,3)
+```
+
+This says `2` ticks on `C0` project as `3` ticks on `C1`. A value of `6` on
+`C0` should read as `9` through `C1`, but that crystallized projection read is
+not executable yet, so the relation does not mutate either carrier.
 
 The explicit boundary route is also valid:
 
@@ -151,7 +169,7 @@ C1_inverse.Value = 2
 ```
 
 An inverse carrier does not absorb anything merely because `IsInverse = true`.
-The relation makes the underflow route active.
+The relation makes the negative-tension route active.
 
 ## 5. Opposed Values
 
@@ -198,8 +216,8 @@ Known gaps:
 - support/filter routing through settlement rather than separate boolean logic
 
 These are not contradictions. They are intentionally left out until the same
-small carrier/relation/overflow/underflow mechanism can express them from
-inside the connected world.
+small carrier/relation/tension mechanism can express them from inside the
+connected world.
 
 ## 7. Guardrail
 
