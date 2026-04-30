@@ -6,8 +6,8 @@ structural affordances we have seen or expect to see.
 
 Notation:
 
-- `L(C,n)` means a location on a carrier, not fixed by a relation: L(C,3)
-- `P(C,n)` means a point: `(C.n -> C)`
+- `L(C,n)` means a location on a carrier, not a relation: L(C,3)
+- `P(C,n)` means a point, a relation of (L->C): `(C.n -> C)`
 - `S(C,a,b)` means a segment: `P(C,a) -> P(C,b)`
 - `S0.P0` and `S0.P1` mean the first and second point of segment `S0`
 - `A -> B` means an ordinary `Relation(A, B)`
