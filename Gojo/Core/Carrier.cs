@@ -13,11 +13,6 @@ public sealed class Carrier : IElement
     {
     }
 
-    public Carrier(ulong _)
-        : this(isInverse: false)
-    {
-    }
-
     public Carrier(bool isInverse)
         : this(NextId(), isInverse)
     {
@@ -32,8 +27,6 @@ public sealed class Carrier : IElement
     public static Carrier Unknown { get; } = new(0, isInverse: false);
 
     public static Carrier Unbound => Unknown;
-
-    public static Carrier Primary => new();
 
     public ulong Id { get; }
 
@@ -62,8 +55,6 @@ public sealed class Carrier : IElement
     }
 
     IElement IElement.Dual() => Dual();
-
-    public Carrier Duplicate(ulong _) => new(IsInverse);
 
     public bool SameIdentityAs(Carrier other) => ReferenceEquals(this, other);
 
@@ -103,18 +94,6 @@ public sealed class Carrier : IElement
         // current executable foothold, but the dynamic model wants batched
         // per-step settlement across independent structures.
         SettleWorld();
-    }
-
-    public void SetValue(ulong ticks)
-    {
-        if (ticks >= Value)
-        {
-            Add(ticks - Value);
-        }
-        else
-        {
-            Remove(Value - ticks);
-        }
     }
 
     internal void Receive(long ticks)

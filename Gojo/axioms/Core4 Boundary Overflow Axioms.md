@@ -5,7 +5,9 @@
 > carrier. Current Gojo uses signed locations on the same scalar carrier for
 > ordinary negative/reverse reads; inverse carriers are dual faces that require
 > explicit relations or crystallized reads to become visible from the scalar
-> carrier.
+> carrier. Same-lineage duplicate carrier language is also historical; current
+> Gojo gives every constructed carrier a unique identity and uses relations to
+> express shared meaning.
 
 This note records the target model for carrier-layer boundaries, newly visible
 tension, overflow, underflow, route coupling, loop closure, counters, filters,

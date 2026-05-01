@@ -7,7 +7,8 @@ structural affordances we have seen or expect to see.
 Current Gojo scalar reverse/negative participation is written as signed
 locations on the same carrier, for example `L(C,-5)`. Rows that mention
 `C_inverse` describe explicit dual-face routes, not the ordinary negative
-scalar side of `C`.
+scalar side of `C`; those rows are deferred footholds for the later
+inverse-flow / imaginary layer.
 
 Notation:
 
@@ -124,11 +125,11 @@ points move. A coincident but unshared point does not move.
 | `L(C0,m) -> L(unknown,0)` | structural open gather; raises `m` to cover visible `C0` tension without draining `C0` |
 | `(L(C0,a) -> L(C0,b)) -> L(C1,n)` | structural observation window; reads up to `|b-a|` from `C0` into `C1+n` without draining `C0` |
 | `P(C0,k) -> P(counter,0)` | crossing counter |
-| `P(C0,k) -> P(C0_inverse,0)` | opposed/refill or reflection foothold; forward crossing settles as positive ticks on the opposed carrier |
-| `P(C0,k) -> P(C0_inverse,0)` plus `P(C0_inverse,k) -> P(C0,0)` | opposed return loop/ping-pong candidate; lossy or thresholded return can settle without signed storage |
+| `P(C0,k) -> P(C0_inverse,0)` | deferred dual-face/reflection foothold; crossing settles as positive ticks on the opposed carrier |
+| `P(C0,k) -> P(C0_inverse,0)` plus `P(C0_inverse,k) -> P(C0,0)` | deferred opposed return loop/ping-pong candidate; lossy or thresholded return can settle without signed storage |
 | `P(C,k) -> P(C,0)` | same-oriented reset boundary; modulo locally, tension externally |
 | `S(C,a,b).P1 -> S(C,a,b).P0` | segment end-to-start cycle candidate; restart without traversing a return path |
-| `S(C,a,b).P1 -> S(C_inverse,0)` | loop/ping-pong candidate; flow traverses an opposed return path before it can come forward again |
+| `S(C,a,b).P1 -> S(C_inverse,0)` | deferred loop/ping-pong candidate; flow traverses an opposed return path before it can come forward again |
 | `S0 -> (P(C1,n) -> P(C2,m))` | segment flow into a relation surface; possible coupled fanout/general receiver surface |
 | `(source relation) -> (open 0/0 site)` | unresolved gather / attachment potential |
 

@@ -10,7 +10,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void CarrierKeepsPhysicalStateOnItsOwnInstance()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
 
         carrier.Add(7);
         carrier.Remove(10);
@@ -22,10 +22,11 @@ public sealed class CarrierReadTests
     [Fact]
     public void CarrierIdsAreAutomaticAndUnknownIsZero()
     {
-        var first = new Carrier(10);
-        var second = new Carrier(10);
+        var first = new Carrier();
+        var second = new Carrier();
 
         Assert.Equal(0UL, Carrier.Unknown.Id);
+        Assert.Same(Carrier.Unknown, Carrier.Unbound);
         Assert.NotEqual(first.Id, second.Id);
         Assert.False(first.SameIdentityAs(second));
     }
@@ -33,7 +34,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void SameCarrierReadSeesPositiveTicks()
     {
-        var x = new Carrier(10);
+        var x = new Carrier();
         var location = new CarrierLocation(x, 5);
         var read = location.ReadFrom(x);
 
@@ -46,7 +47,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void SameCarrierNegativeLocationReadsAsNegativeTicks()
     {
-        var x = new Carrier(10);
+        var x = new Carrier();
         var location = new CarrierLocation(x, -5);
         var read = location.ReadFrom(x);
 
@@ -60,8 +61,8 @@ public sealed class CarrierReadTests
     [Fact]
     public void OrthogonalCarrierReadReturnsZero()
     {
-        var x = new Carrier(10);
-        var y = new Carrier(20);
+        var x = new Carrier();
+        var y = new Carrier();
         var location = new CarrierLocation(y, 5);
         var read = location.ReadFrom(x);
 
@@ -73,7 +74,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void InverseCarrierReadIsOrthogonalToScalarCarrierRead()
     {
-        var forward = new Carrier(10);
+        var forward = new Carrier();
         var inverse = forward.Inverse();
         var location = new CarrierLocation(inverse, 5);
 
@@ -107,7 +108,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void BoundaryRefillDrawBeyondCounterLeavesOpposedRemainderVisible()
     {
-        var counter = new Carrier(12);
+        var counter = new Carrier();
         var counterState = new Relation(
             new CarrierLocation(counter, 2),
             new CarrierLocation(counter, -5));
@@ -127,8 +128,8 @@ public sealed class CarrierReadTests
     [Fact]
     public void BoundarySideAndTravelCanBePlainCarrierLocations()
     {
-        var side = new Carrier(101);
-        var travel = new Carrier(102);
+        var side = new Carrier();
+        var travel = new Carrier();
 
         var positiveOverflow = Alignment(new CarrierLocation(side, 1), new CarrierLocation(travel, 1));
         var positiveRefill = Alignment(new CarrierLocation(side, 1), new CarrierLocation(travel, -1));
@@ -147,7 +148,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void NewTensionAppearsOnlyPastAccountedCarrierRegion()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var accounted = new CarrierLocation(carrier, 20);
 
         var inside = new CarrierLocation(carrier, 11).NewTensionAfter(accounted, carrier);
@@ -162,7 +163,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void UnaccountedVisibleParticipationIsAllNewTension()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var incoming = new CarrierLocation(carrier, 9);
 
         var read = incoming.AccountedBy(carrier);
@@ -177,7 +178,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void ZeroAccountingSurfaceDoesNotConsumeVisibleTension()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var incoming = new CarrierLocation(carrier, 9);
 
         var read = incoming.AccountedBy(carrier, new CarrierLocation(carrier, 0));
@@ -192,7 +193,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void MultipleCompatibleAccountingSurfacesAccumulateBeforeNewTensionAppears()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var incoming = new CarrierLocation(carrier, 15);
 
         var partial = incoming.NewTensionAfter(
@@ -212,7 +213,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void AccountingReadReturnsAccountedParticipationAndNewTension()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var incoming = new CarrierLocation(carrier, 15);
 
         var read = incoming.AccountedBy(
@@ -230,7 +231,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void ClampReadIsAccountingWithoutContinuationRoute()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var incoming = new CarrierLocation(carrier, 12);
         var clampFace = new CarrierLocation(carrier, 5);
 
@@ -246,7 +247,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void ClampReadCanUseSeveralCompatibleFacesBeforeTensionAppears()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var incoming = new CarrierLocation(carrier, 12);
         var firstFace = new CarrierLocation(carrier, 5);
         var secondFace = new CarrierLocation(carrier, 4);
@@ -263,8 +264,8 @@ public sealed class CarrierReadTests
     [Fact]
     public void AccountingReadReturnsNoParticipationWhenReaderCannotSeeIncomingCarrier()
     {
-        var x = new Carrier(10);
-        var y = new Carrier(20);
+        var x = new Carrier();
+        var y = new Carrier();
         var incoming = new CarrierLocation(y, 15);
 
         var read = incoming.AccountedBy(x, new CarrierLocation(y, 15));
@@ -279,7 +280,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationCanActAsTwoAccountingSurfacesInReaderContext()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var incoming = new CarrierLocation(carrier, 15);
         var routeCapacity = new Relation(
             new CarrierLocation(carrier, 7),
@@ -299,7 +300,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void MultipleRelationsCanActAsAccountingSurfacesInReaderContext()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var incoming = new CarrierLocation(carrier, 15);
         var first = new Relation(
             new CarrierLocation(carrier, 4),
@@ -316,8 +317,8 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationAccountingStillIgnoresIncompatibleSlots()
     {
-        var x = new Carrier(10);
-        var y = new Carrier(20);
+        var x = new Carrier();
+        var y = new Carrier();
         var incoming = new CarrierLocation(x, 15);
         var capacity = new Relation(
             new CarrierLocation(x, 4),
@@ -335,8 +336,8 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationCarrierLocationsTraverseNestedRelationSurface()
     {
-        var x = new Carrier(10);
-        var y = new Carrier(20);
+        var x = new Carrier();
+        var y = new Carrier();
         var relation = new Relation(
             new Relation(
                 new CarrierLocation(x, 1),
@@ -373,7 +374,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationCanBeReadAsOrderedBoundariesInCarrierContext()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var segment = new Relation(
             new CarrierLocation(carrier, 8),
             new CarrierLocation(carrier, 2));
@@ -392,8 +393,8 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationBoundaryReadReturnsZeroWhenReaderCannotSeeBothEndpoints()
     {
-        var x = new Carrier(10);
-        var y = new Carrier(20);
+        var x = new Carrier();
+        var y = new Carrier();
         var segment = new Relation(
             new CarrierLocation(x, 2),
             new CarrierLocation(y, 8));
@@ -407,27 +408,27 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
-    public void RelationBoundaryReadDoesNotMergeIndependentDuplicateCarrier()
+    public void RelationBoundaryReadDoesNotMergeIndependentCarrier()
     {
-        var source = new Carrier(10);
-        var duplicate = source.Duplicate(11);
+        var source = new Carrier();
+        var independent = new Carrier();
         var segment = new Relation(
             new CarrierLocation(source, 2),
-            new CarrierLocation(duplicate, 8));
+            new CarrierLocation(independent, 8));
 
-        var boundaries = segment.BoundariesOn(duplicate);
+        var boundaries = segment.BoundariesOn(independent);
 
         Assert.Equal(
             new Relation(
-                new CarrierLocation(duplicate, 0),
-                new CarrierLocation(duplicate, 0)),
+                new CarrierLocation(independent, 0),
+                new CarrierLocation(independent, 0)),
             boundaries);
     }
 
     [Fact]
     public void RelationBoundaryReadReturnsZeroForInverseCarrierEndpoints()
     {
-        var forward = new Carrier(10);
+        var forward = new Carrier();
         var inverse = forward.Inverse();
         var segment = new Relation(
             new CarrierLocation(inverse, 8),
@@ -447,7 +448,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationFlowReadPreservesTravelDirectionAsCarrierParticipation()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
 
         var forward = new Relation(
             new CarrierLocation(carrier, 2),
@@ -463,7 +464,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationBoundaryAndFlowReadsSeeSignedLocationsThroughOrigin()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var reverseFromOrigin = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, -8));
@@ -480,7 +481,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationFlowReadReturnsZeroForInverseCarrierEndpoints()
     {
-        var forward = new Carrier(10);
+        var forward = new Carrier();
         var inverse = forward.Inverse();
         var segment = new Relation(
             new CarrierLocation(inverse, 2),
@@ -492,7 +493,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationBoundaryPointsSplitWhereCarrierParticipationCanChange()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var outer = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 8));
@@ -516,8 +517,8 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationBoundaryPointsIgnoreInvisibleAndZeroSpans()
     {
-        var x = new Carrier(10);
-        var y = new Carrier(20);
+        var x = new Carrier();
+        var y = new Carrier();
         var visible = new Relation(
             new CarrierLocation(x, 2),
             new CarrierLocation(x, 5));
@@ -542,7 +543,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationBoundaryPointsIgnoreInverseCarrierSurfaceFromScalarReader()
     {
-        var forward = new Carrier(10);
+        var forward = new Carrier();
         var inverse = forward.Inverse();
         var segment = new Relation(
             new CarrierLocation(inverse, 0),
@@ -556,7 +557,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedBoundaryPointsReturnSitesInTravelOrder()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -583,7 +584,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedBoundaryPointsExcludeTravelStartAndIncludeTravelEnd()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 8));
@@ -604,7 +605,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedBoundaryPointsFollowReverseTravelOrder()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 10),
             new CarrierLocation(carrier, 0));
@@ -631,7 +632,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedBoundaryPointsIgnoreInverseCarrierSurfaceFromScalarReader()
     {
-        var forward = new Carrier(10);
+        var forward = new Carrier();
         var inverse = forward.Inverse();
         var travel = new Relation(
             new CarrierLocation(inverse, 0),
@@ -648,8 +649,8 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedBoundaryPointsIgnoreInvisibleSites()
     {
-        var x = new Carrier(10);
-        var y = new Carrier(20);
+        var x = new Carrier();
+        var y = new Carrier();
         var travel = new Relation(
             new CarrierLocation(x, 0),
             new CarrierLocation(x, 10));
@@ -674,7 +675,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversalSitesExposeStartAsOccupiedAndEndAsNewFlow()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 8));
@@ -695,7 +696,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversalSitesExposeReverseFlowAsNegativeLocation()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 8),
             new CarrierLocation(carrier, 2));
@@ -716,7 +717,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedBoundaryStatesPairEachSiteWithTravelFlow()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -742,7 +743,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedBoundaryStatesCarryReverseFlow()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 10),
             new CarrierLocation(carrier, 0));
@@ -768,7 +769,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedSpansSplitTravelAtBoundaryPointsInTravelOrder()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -796,7 +797,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedSpansFollowReverseTravelOrder()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 10),
             new CarrierLocation(carrier, 0));
@@ -824,7 +825,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedSpansReturnWholeTravelWhenNoBoundaryIsCrossed()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -842,7 +843,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedSpansIgnoreInverseCarrierSurfaceFromScalarReader()
     {
-        var forward = new Carrier(10);
+        var forward = new Carrier();
         var inverse = forward.Inverse();
         var travel = new Relation(
             new CarrierLocation(inverse, 0),
@@ -859,7 +860,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedSpanStatesPairEachSpanWithLocalFlow()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -888,7 +889,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedSpanStatesKeepReverseSitesAndFlowOnSignedCarrier()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 10),
             new CarrierLocation(carrier, 0));
@@ -917,7 +918,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedSupportStatesPreserveUnsupportedPathSpans()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -946,7 +947,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedSupportProjectionReturnsOnlySupportedPathSpans()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -977,7 +978,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void TraversalReadGroupsTheNaturalTraversalSequence()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -1022,7 +1023,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void TraversalReadMirrorsIndividualTraversalReads()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -1050,7 +1051,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedSupportStatesReadReversePathSpansByCoveredInterval()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 10),
             new CarrierLocation(carrier, 0));
@@ -1079,7 +1080,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTraversedTensionAndExclusiveReadPathOpposition()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var travel = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -1117,7 +1118,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationCoveredSpansSplitWhereParticipationCanChange()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var outer = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 8));
@@ -1140,7 +1141,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationCoveredSpansIgnoreInverseCarrierSurfaceFromScalarReader()
     {
-        var forward = new Carrier(10);
+        var forward = new Carrier();
         var inverse = forward.Inverse();
         var segment = new Relation(
             new CarrierLocation(inverse, 0),
@@ -1154,7 +1155,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationCoveredSpansSkipUncoveredGaps()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var first = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 2));
@@ -1176,8 +1177,8 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationCoveredSpansIgnoreInvisibleSegments()
     {
-        var x = new Carrier(10);
-        var y = new Carrier(20);
+        var x = new Carrier();
+        var y = new Carrier();
         var invisible = new Relation(
             new CarrierLocation(y, 0),
             new CarrierLocation(y, 8));
@@ -1188,7 +1189,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationSupportStatesReadReverseAndForwardParticipationBySpan()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var forward = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 8));
@@ -1214,7 +1215,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationSupportStatesSkipUncoveredGaps()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var first = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 2));
@@ -1240,7 +1241,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationSupportStatesIgnoreInverseCarrierFlowFromScalarReader()
     {
-        var forward = new Carrier(10);
+        var forward = new Carrier();
         var inverse = forward.Inverse();
         var opposed = new Relation(
             new CarrierLocation(inverse, 0),
@@ -1254,7 +1255,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationSupportStatesMergeMultipleCompatibleParticipations()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var firstForward = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 8));
@@ -1277,7 +1278,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationSupportStatesCanBeScopedToCarrierInterval()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var scope = new Relation(
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 6));
@@ -1306,7 +1307,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationScopedSupportProjectionsPreserveOnlyScopedParticipation()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var scope = new Relation(
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 6));
@@ -1353,7 +1354,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationSupportProjectionPreservesReverseAndForwardSlots()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var state = new Relation(
             new CarrierLocation(carrier, -2),
             new CarrierLocation(carrier, 3));
@@ -1368,7 +1369,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTensionProjectionReadsSharedReverseAndForwardParticipation()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var state = new Relation(
             new CarrierLocation(carrier, -2),
             new CarrierLocation(carrier, 3));
@@ -1383,7 +1384,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationExclusiveProjectionKeepsOnlyLargerFlowSide()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var forwardLarger = new Relation(
             new CarrierLocation(carrier, -2),
             new CarrierLocation(carrier, 5));
@@ -1406,7 +1407,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationSupportProjectionsCanReadNestedSupportState()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var state = new Relation(
             new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 2)),
             new Relation(new CarrierLocation(carrier, -1), new CarrierLocation(carrier, 1)));
@@ -1431,7 +1432,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationSupportSpanProjectionPreservesIntervalsWithAnyParticipation()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var forward = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 8));
@@ -1457,7 +1458,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTensionSpanProjectionPreservesOnlyIntervalsWithSharedOpposedParticipation()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var forward = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 8));
@@ -1480,7 +1481,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationExclusiveSpanProjectionPreservesOnlyUnopposedIntervals()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var forward = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 8));
@@ -1503,7 +1504,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationTensionAndExclusiveSpanProjectionsReturnNoZeroStates()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var forward = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 8));
@@ -1515,7 +1516,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void BooleanStyleSpanReadsAreSupportProjections()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var forward = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 8));
@@ -1531,7 +1532,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationUncoveredSpansReadScopedAbsenceBetweenCoveredIntervals()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var scope = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -1553,7 +1554,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationUncoveredSpansReturnEmptyWhenScopeIsFullyCovered()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var scope = new Relation(
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 8));
@@ -1569,8 +1570,8 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationUncoveredSpansIgnoreInvisibleCoverage()
     {
-        var carrier = new Carrier(10);
-        var other = new Carrier(20);
+        var carrier = new Carrier();
+        var other = new Carrier();
         var scope = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -1591,7 +1592,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationUncoveredSpansClipCoverageToScope()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var scope = new Relation(
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 8));
@@ -1615,7 +1616,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationCoveredSpansCanReadCoverageInsideScope()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var scope = new Relation(
             new CarrierLocation(carrier, 2),
             new CarrierLocation(carrier, 8));
@@ -1640,7 +1641,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationPassAndBlockAreScopedFilterProjections()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var scope = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -1659,7 +1660,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void RelationNotIsScopedAbsenceProjection()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var scope = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -1675,7 +1676,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void SupportFilterCanSplitIncomingExtentIntoPassedAndBlockedSpans()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var incomingScope = new Relation(
             new CarrierLocation(carrier, 0),
             new CarrierLocation(carrier, 10));
@@ -1704,8 +1705,8 @@ public sealed class CarrierReadTests
     [Fact]
     public void MultipleAccountingSurfacesIgnoreOrthogonalAndOpposedParticipation()
     {
-        var x = new Carrier(10);
-        var y = new Carrier(20);
+        var x = new Carrier();
+        var y = new Carrier();
         var incoming = new CarrierLocation(x, 10);
 
         var tension = incoming.NewTensionAfter(
@@ -1719,14 +1720,14 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
-    public void DuplicateCarrierAccountingDoesNotAbsorbWithoutRelation()
+    public void IndependentCarrierAccountingDoesNotAbsorbWithoutRelation()
     {
-        var source = new Carrier(10);
-        var duplicate = source.Duplicate(11);
-        var incoming = new CarrierLocation(duplicate, 10);
+        var source = new Carrier();
+        var independent = new Carrier();
+        var incoming = new CarrierLocation(independent, 10);
 
         var tension = incoming.NewTensionAfter(
-            duplicate,
+            independent,
             new CarrierLocation(source, 6));
 
         Assert.Equal(incoming, tension);
@@ -1735,8 +1736,8 @@ public sealed class CarrierReadTests
     [Fact]
     public void IndependentCarrierAccountingDoesNotAbsorbCoincidentTicks()
     {
-        var source = new Carrier(10);
-        var independent = new Carrier(11);
+        var source = new Carrier();
+        var independent = new Carrier();
         var incoming = new CarrierLocation(source, 10);
 
         var tension = incoming.NewTensionAfter(
@@ -1749,7 +1750,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void InverseCarrierCanBeAccountedWithinItsOwnFlow()
     {
-        var forward = new Carrier(10);
+        var forward = new Carrier();
         var inverse = forward.Inverse();
         var incoming = new CarrierLocation(inverse, 10);
 
@@ -1763,8 +1764,8 @@ public sealed class CarrierReadTests
     [Fact]
     public void OrthogonalAccountingDoesNotAbsorbCarrierTension()
     {
-        var x = new Carrier(10);
-        var y = new Carrier(20);
+        var x = new Carrier();
+        var y = new Carrier();
         var incoming = new CarrierLocation(x, 5);
         var orthogonalAccounted = new CarrierLocation(y, 100);
 
@@ -1776,7 +1777,7 @@ public sealed class CarrierReadTests
     [Fact]
     public void OpposedAccountingDoesNotAbsorbCarrierTensionWithoutRoute()
     {
-        var forward = new Carrier(10);
+        var forward = new Carrier();
         var incoming = new CarrierLocation(forward, 5);
         var opposedAccounted = new CarrierLocation(forward, -100);
 
@@ -1788,8 +1789,8 @@ public sealed class CarrierReadTests
     [Fact]
     public void InvisibleCarrierDoesNotCreateTensionInReaderFrame()
     {
-        var x = new Carrier(10);
-        var y = new Carrier(20);
+        var x = new Carrier();
+        var y = new Carrier();
         var incoming = new CarrierLocation(y, 5);
         var accounted = new CarrierLocation(y, 0);
 

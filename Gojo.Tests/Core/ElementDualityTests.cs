@@ -7,7 +7,7 @@ public sealed class ElementDualityTests
     [Fact]
     public void CarrierDualIsStableOpposedFace()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
 
         var dual = carrier.Dual();
 
@@ -19,7 +19,7 @@ public sealed class ElementDualityTests
     [Fact]
     public void CarrierLocationDualNegatesLocationOnSameCarrier()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var location = new CarrierLocation(carrier, 5);
 
         var dual = location.Dual();
@@ -31,7 +31,7 @@ public sealed class ElementDualityTests
     [Fact]
     public void RelationDualRecursesThroughPointAndNegatesLocations()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var segment = new Relation(Point(carrier, 2), Point(carrier, 5));
 
         var dual = segment.Dual();
@@ -44,7 +44,7 @@ public sealed class ElementDualityTests
     [Fact]
     public void RelationReverseSwapsTraversalWithoutChangingFaces()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var segment = new Relation(Point(carrier, 2), Point(carrier, 5));
 
         var reverse = segment.Reverse();
@@ -56,7 +56,7 @@ public sealed class ElementDualityTests
     [Fact]
     public void DualAndReverseAreIndependentStructuralMoves()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var segment = new Relation(Point(carrier, 2), Point(carrier, 5));
 
         Assert.Equal(segment.Dual().Reverse(), segment.Reverse().Dual());

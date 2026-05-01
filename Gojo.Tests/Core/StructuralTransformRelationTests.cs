@@ -7,7 +7,7 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void PointIsRelationFromLocationToCarrier()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var point = Point(carrier, 7);
 
         Assert.Equal(new CarrierLocation(carrier, 7), point.Left);
@@ -18,7 +18,7 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void RelationsHaveIdentitySeparateFromShapeEquality()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var first = Point(carrier, 7);
         var second = Point(carrier, 7);
 
@@ -31,7 +31,7 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void SharedPointReferenceMovesWhereItParticipates()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var start = Point(carrier, 5);
         var end = Point(carrier, 11);
         var segment = new Relation(start, end);
@@ -46,7 +46,7 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void FreshCoincidentPointDoesNotMoveWithUnsharedSegmentPoint()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var start = Point(carrier, 5);
         var end = Point(carrier, 11);
         var segment = new Relation(start, end);
@@ -62,7 +62,7 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void TargetedPointTranslationChangesOnlyThatPoint()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var start = Point(carrier, 5);
         var end = Point(carrier, 11);
         _ = new Relation(start, end);
@@ -76,7 +76,7 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void TargetedRelationTranslationMovesParticipatingPointsTogether()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var start = Point(carrier, 5);
         var end = Point(carrier, 11);
         var segment = new Relation(start, end);
@@ -90,8 +90,8 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void RelationScalePerturbationPreservesCrossCarrierRatio()
     {
-        var source = new Carrier(10);
-        var target = new Carrier(20);
+        var source = new Carrier();
+        var target = new Carrier();
         var sourcePoint = Point(source, 2);
         var targetPoint = Point(target, 4);
         var coupling = new Relation(sourcePoint, targetPoint);
@@ -106,7 +106,7 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void InexactRelationScaleLeavesStructureUnchanged()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         var start = Point(carrier, 1);
         var end = Point(carrier, 2);
         var segment = new Relation(start, end);
@@ -120,7 +120,7 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void CarrierWithoutStructureKeepsInputAsLocalValue()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
 
         carrier.Add(11);
 
@@ -131,7 +131,7 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void ForwardCarrierLocationRelationDoesNotCreateTension()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         carrier.Attach(new Relation(new CarrierLocation(carrier, 0), new CarrierLocation(carrier, 10)));
 
         carrier.Add(11);
@@ -143,7 +143,7 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void ReverseCarrierLocationRelationWrapsInsteadOfClamping()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         carrier.Attach(new Relation(new CarrierLocation(carrier, 10), new CarrierLocation(carrier, 0)));
 
         carrier.Add(13);
@@ -155,7 +155,7 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void SameCarrierResetBoundaryAccountsResidueAndPositiveTension()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         carrier.Attach(new Relation(Point(carrier, 10), Point(carrier, 0)));
 
         carrier.Add(23);
@@ -167,7 +167,7 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void SameCarrierClampBoundaryAccountsLimitAndPositiveTension()
     {
-        var carrier = new Carrier(10);
+        var carrier = new Carrier();
         carrier.Attach(new Relation(Point(carrier, 10), Point(carrier, 10)));
 
         carrier.Add(23);
@@ -179,8 +179,8 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void CrossCarrierPointRelationRoutesPositiveTension()
     {
-        var residue = new Carrier(10);
-        var whole = new Carrier(20);
+        var residue = new Carrier();
+        var whole = new Carrier();
         residue.Attach(new Relation(Point(residue, 10), Point(whole, 0)));
 
         residue.Add(37);
@@ -193,8 +193,8 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void CrossCarrierNonzeroPointRelationDoesNotAbsorbAsCarry()
     {
-        var source = new Carrier(10);
-        var projection = new Carrier(20);
+        var source = new Carrier();
+        var projection = new Carrier();
         source.Attach(new Relation(Point(source, 2), Point(projection, 3)));
 
         source.Add(6);
@@ -208,8 +208,8 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void CrossCarrierNonzeroPointRelationProjectsExactRatio()
     {
-        var source = new Carrier(10);
-        var target = new Carrier(20);
+        var source = new Carrier();
+        var target = new Carrier();
         var ratio = new Relation(Point(source, 2), Point(target, 3));
 
         var projected = ratio.Project(new CarrierLocation(source, 6), target);
@@ -224,8 +224,8 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void RatioProjectionCanBeReadBackwardsAsDivision()
     {
-        var source = new Carrier(10);
-        var target = new Carrier(20);
+        var source = new Carrier();
+        var target = new Carrier();
         var ratio = new Relation(Point(source, 2), Point(target, 3));
 
         var projected = ratio.Project(new CarrierLocation(target, 9), source);
@@ -240,8 +240,8 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void ContractiveRatioLeavesResidueOnOriginalCarrier()
     {
-        var source = new Carrier(10);
-        var target = new Carrier(20);
+        var source = new Carrier();
+        var target = new Carrier();
         var ratio = new Relation(Point(source, 3), Point(target, 1));
 
         var projected = ratio.Project(new CarrierLocation(source, 10), target);
@@ -256,8 +256,8 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void ExpansiveRatioCanRepresentSubSourceTicksWithoutResidue()
     {
-        var source = new Carrier(10);
-        var target = new Carrier(20);
+        var source = new Carrier();
+        var target = new Carrier();
         var ratio = new Relation(Point(source, 2), Point(target, 4));
 
         var projected = ratio.Project(new CarrierLocation(source, 1), target);
@@ -272,8 +272,8 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void PointToNegativePointProjectsSubtractionShape()
     {
-        var source = new Carrier(10);
-        var target = new Carrier(20);
+        var source = new Carrier();
+        var target = new Carrier();
         var subtract = new Relation(Point(source, 1), Point(target, -1));
 
         var projected = subtract.Project(new CarrierLocation(source, 7), target);
@@ -288,8 +288,8 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void NegativePointToPositivePointAlsoProjectsNegativeRatio()
     {
-        var source = new Carrier(10);
-        var target = new Carrier(20);
+        var source = new Carrier();
+        var target = new Carrier();
         var negativeRatio = new Relation(Point(source, -2), Point(target, 3));
 
         var projected = negativeRatio.Project(new CarrierLocation(source, 4), target);
@@ -304,8 +304,8 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void NegativePointToNegativePointProjectsPositiveRatio()
     {
-        var source = new Carrier(10);
-        var target = new Carrier(20);
+        var source = new Carrier();
+        var target = new Carrier();
         var positiveRatio = new Relation(Point(source, -2), Point(target, -3));
 
         var projected = positiveRatio.Project(new CarrierLocation(source, 4), target);
@@ -320,8 +320,8 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void NegativeRatioCanBeReadBackwardsAsSignedDivision()
     {
-        var source = new Carrier(10);
-        var target = new Carrier(20);
+        var source = new Carrier();
+        var target = new Carrier();
         var negativeRatio = new Relation(Point(source, 2), Point(target, -3));
 
         var projected = negativeRatio.Project(new CarrierLocation(target, -9), source);
@@ -336,8 +336,8 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void SegmentToSegmentRelationProjectsByOrderedBasisLengths()
     {
-        var source = new Carrier(10);
-        var target = new Carrier(20);
+        var source = new Carrier();
+        var target = new Carrier();
         var ratio = new Relation(Segment(source, 0, 2), Segment(target, 0, 3));
 
         var projected = ratio.Project(new CarrierLocation(source, 6), target);
@@ -352,8 +352,8 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void ReversedSourceSegmentProjectsNegativeRatio()
     {
-        var source = new Carrier(10);
-        var target = new Carrier(20);
+        var source = new Carrier();
+        var target = new Carrier();
         var ratio = new Relation(Segment(source, 2, 0), Segment(target, 0, 3));
 
         var projected = ratio.Project(new CarrierLocation(source, 4), target);
@@ -368,8 +368,8 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void ExplicitBoundaryRelationRoutesPersistedPositiveTensionWhenAddedLater()
     {
-        var residue = new Carrier(10);
-        var whole = new Carrier(20);
+        var residue = new Carrier();
+        var whole = new Carrier();
         var boundary = residue.Attach(new Relation(Point(residue, 10), Point(residue, 0)));
         residue.Add(23);
 
@@ -383,9 +383,9 @@ public sealed class StructuralTransformRelationTests
     [Fact]
     public void PointRelationsSettleThroughBaseTenCarryChain()
     {
-        var ones = new Carrier(10);
-        var tens = new Carrier(20);
-        var hundreds = new Carrier(30);
+        var ones = new Carrier();
+        var tens = new Carrier();
+        var hundreds = new Carrier();
         ones.Attach(new Relation(Point(ones, 10), Point(tens, 0)));
         tens.Attach(new Relation(Point(tens, 10), Point(hundreds, 0)));
 
@@ -397,58 +397,13 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
-    public void NegativeTensionStaysOnCarrierWithoutRelatedInverseReceiver()
+    public void NegativeTensionStaysOnCarrierWhenUnderflowIsUnrouted()
     {
-        var source = new Carrier(10);
-        _ = new Carrier(isInverse: true);
+        var source = new Carrier();
 
         source.Remove(23);
 
         Assert.Equal(-23, source.Tension);
-    }
-
-    [Fact]
-    public void NegativeTensionRoutesThroughRelatedInversePointReceiver()
-    {
-        var source = new Carrier(10);
-        var inverse = new Carrier(isInverse: true);
-        source.Attach(new Relation(Point(source, 10), Point(inverse, 0)));
-
-        source.Remove(23);
-
-        Assert.Equal(-3, source.Tension);
-        Assert.Equal(2UL, inverse.Value);
-    }
-
-    [Fact]
-    public void RelatedInverseCarrierBalancesOpposedVisibleValues()
-    {
-        var source = new Carrier(10);
-        var inverse = new Carrier(isInverse: true);
-        source.Attach(new Relation(Point(source, 1), Point(inverse, 0)));
-        source.Add(5);
-
-        inverse.Add(7);
-
-        Assert.Equal(0UL, source.Value);
-        Assert.Equal(2UL, inverse.Value);
-    }
-
-    [Fact]
-    public void OpposedResidualCanFeedLaterRelationsInSameWorld()
-    {
-        var source = new Carrier(10);
-        var inverse = new Carrier(isInverse: true);
-        var target = new Carrier(isInverse: true);
-        source.Attach(new Relation(Point(source, 1), Point(inverse, 0)));
-        inverse.Attach(new Relation(Point(inverse, 1), Point(target, 0)));
-        source.Add(5);
-
-        inverse.Add(7);
-
-        Assert.Equal(0UL, source.Value);
-        Assert.Equal(0UL, inverse.Value);
-        Assert.Equal(2UL, target.Value);
     }
 
     private static Relation Point(Carrier carrier, long ticks) =>

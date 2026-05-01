@@ -6,9 +6,13 @@ still exist only because the host number system is weaker than the Gojo number
 system we are building.
 
 In an ideal Gojo-native runtime, adding tension to a carrier would already know
-how to account through carrier-local boundaries, signed locations, dual carrier
-faces, relation order, and routed tension. The pseudo code below is the
-current executable shadow of that behavior.
+how to account through carrier-local boundaries, signed locations, relation
+order, and routed tension. The pseudo code below is the current executable
+shadow of that behavior.
+
+Sections 1 through 6 are the current ordinary scalar math step. Sections 7 and
+8 document an executable dual-carrier foothold for later inverse-flow /
+imaginary work; they are not ordinary scalar negation.
 
 ## 1. Carrier Input
 
@@ -312,7 +316,7 @@ This is still a read, not material routing. It becomes a crystallized carrier
 value only when a later layer deliberately exposes that read as a carrier
 surface.
 
-## 7. Negative And Dual-Face Tension Routing
+## 7. Deferred Dual-Face Tension Routing
 
 Ordinary scalar negation is `L(C,-k)` on the same carrier. That is separate
 from carrier duality.
@@ -359,7 +363,7 @@ participation on the dual carrier face. A scalar read from `C0` will not see
 `C1*` unless a later relation or crystallized read makes that higher-grade
 assembly visible.
 
-## 8. Dual-Face Visible Value Cancellation
+## 8. Deferred Dual-Face Visible Value Cancellation
 
 When explicitly related dual carrier faces both hold visible value, their
 shared amount can cancel before residue remains.

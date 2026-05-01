@@ -226,6 +226,9 @@ tension mirrors positive tension. If a source carrier has below-origin tension
 and is explicitly related to an inverse-oriented point receiver, the receiver
 can absorb that tension as positive participation on that dual face:
 
+This is an executable foothold for the later dual-flow / imaginary layer. It
+is not part of the completed ordinary scalar math step.
+
 ```text
 P(C0,10) -> P(C1_inverse,0)
 ```
@@ -278,9 +281,9 @@ carrier.Add / Remove
 carrier settles its connected relation world
 ```
 
-`SetValue` is not a primitive direct write in Gojo. It is currently only a
-compatibility convenience that computes the difference from the visible carrier
-value and feeds that difference through `Add` or `Remove`.
+There is currently no direct public value assignment. A change enters as
+tension through `Add` or `Remove`; the connected structure decides what becomes
+visible value and what remains unresolved.
 
 Known gaps:
 
@@ -289,6 +292,8 @@ Known gaps:
 - refill and borrow
 - branch and merge negotiation
 - conserved split versus observation fanout
+- inverse-flow / imaginary operation behavior beyond the first dual-carrier
+  foothold
 - opposed loop and cycle behavior
 - carrierless floating relation expressions
 - support/filter routing through settlement rather than separate boolean logic

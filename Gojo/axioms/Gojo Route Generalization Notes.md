@@ -9,7 +9,7 @@ carrier/relation structure and settle inside the connected carrier world.
 
 ## Current Executable Route Shapes
 
-The current executable shapes are intentionally small:
+The current ordinary scalar executable shapes are intentionally small:
 
 - `L(source,0) -> L(source,k)`
   - forward projection/basis surface
@@ -30,13 +30,18 @@ The current executable shapes are intentionally small:
   - explicit counter route
   - can absorb carrier tension produced before the route existed
 
-- `P(source,k) -> P(receiver_inverse,0)`
-  - negative tension route
-  - routes source negative tension into an inverse-oriented receiver
-
 - `P(source,k) -> P(receiver,m)` where `m > 0`
   - ratio projection surface
   - does not clear source value or mutate receiver value in the current pass
+
+## Deferred Dual-Carrier Foothold
+
+These shapes are executable but belong to the later inverse-flow / imaginary
+layer, not to ordinary scalar negation:
+
+- `P(source,k) -> P(receiver_inverse,0)`
+  - negative tension route
+  - routes source negative tension into an inverse-oriented receiver
 
 - `P(source,1) -> P(receiver_inverse,0)`
   - opposed visible-value balancing

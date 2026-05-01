@@ -4,7 +4,9 @@
 > that ordinary scalar negation is a signed `CarrierLocation` on the same
 > carrier, e.g. `Dual(L(C,5)) = L(C,-5)`. `Carrier.Dual()` returns a dual
 > carrier face, which is not automatically visible as scalar negative when read
-> from `C`. See `Gojo Duality And Relation Settlement Table.md`.
+> from `C`. Same-lineage duplicate carriers are also superseded; current Gojo
+> carriers are unique instances, and relation structure carries sameness. See
+> `Gojo Duality And Relation Settlement Table.md`.
 
 This note records the current architectural direction for carriers,
 crystallized ticks, cross-carrier reads, resolution, approximation, and
@@ -418,8 +420,8 @@ These points remain unsettled:
 - when a coarse read should project back as a label, span, distribution, or
   tension
 - how to encode inverse carrier creation without adding symbolic tags
-- how to preserve same-provenance duplicate carriers versus coincident equal
-  carriers
+- how relation structure should express same-provenance reads now that Gojo no
+  longer has same-lineage duplicate carrier instances
 - how much of this should live in `Carrier`, `Measure`, `RelationFold`, or a
   new frame/read object
 

@@ -23,6 +23,15 @@ The current model is:
 - behavior should come from numeric relation shape, not tags, helper objects,
   contribution tables, or external settle readers
 
+Current step boundary:
+
+- ordinary scalar math uses signed locations on one carrier, point/carry
+  boundaries, ratio projection, backward ratio reads, and structural
+  perturbation
+- dual-carrier / inverse-flow behavior is only an isolated foothold for the
+  later higher-grade or imaginary layer; it must not be treated as ordinary
+  scalar negation
+
 ## Phase 1. Carrier Reads
 
 In place:
@@ -51,8 +60,6 @@ In place:
 - `carrier.Attach(relation)` attaches relation structure to the connected
   carrier world
 - `Add` and `Remove` feed signed tension and settle that world automatically
-- `SetValue` is only a compatibility convenience over `Add`/`Remove`, not a
-  direct state write
 - input enters as signed tension and the carrier absorbs what it can into
   positive value before relations route the residue
 - a forward local span such as `L(C,0) -> L(C,10)` gives projection/basis
@@ -61,8 +68,6 @@ In place:
   accounting
 - same-carrier point relations perform reset/clamp accounting
 - cross-carrier point receivers route source positive tension
-- inverse-oriented point receivers can route source negative tension
-- related opposed carriers cancel visible values before leaving residue
 
 Current stable examples:
 
@@ -73,11 +78,16 @@ Current stable examples:
 - `P(C,10) -> P(C,10)` clamps `23` to value `10` plus tension `13`
 - `P(C0,10) -> P(C1,0)` turns `37` into `C0 = 7`, `C1 = 3`
 - `P(C0,2) -> P(C1,3)` is a ratio projection surface, not a carry route; the
-  projected read is not executable yet
+  projected read is executable through `Relation.Project(...)`
 - `(P(C0,10) -> P(C0,0)) -> P(C1,0)` can absorb positive tension after the
   boundary has already produced it
-- `P(C0,10) -> P(C1_inverse,0)` can absorb source negative tension through the same
-  relation-shaped unit
+
+Deferred dual-carrier foothold:
+
+- inverse-oriented point receivers can route source negative tension
+- related opposed carriers can cancel visible values before leaving residue
+- these behaviors are tested separately from ordinary scalar math because
+  full inverse-flow / imaginary operation semantics are not complete yet
 
 Removed:
 
@@ -104,6 +114,8 @@ Add only when the numeric shape is clear:
 - refill and borrow
 - branch and merge negotiation
 - conserved split versus observation fanout
+- inverse-flow / imaginary operation behavior beyond the first dual-carrier
+  foothold
 - opposed loop and cycle behavior
 - route hardening
 - carrierless floating relation expressions
