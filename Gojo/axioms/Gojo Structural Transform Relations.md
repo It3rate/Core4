@@ -24,6 +24,29 @@ points, segments, or larger relation surfaces.
 Carrierless expressions such as `2 -> 5` remain conceptual for now. They are
 floating relation shapes that can later be grounded on a carrier.
 
+## 1A. Inspection And Settlement
+
+The same directed relation can be touched in two different ways:
+
+```text
+inspection flow = read a location through a perspective surface
+settlement flow = let carrier value/tension strike an accounting surface
+```
+
+Inspection preserves the relation's own ordered frame:
+
+```text
+S(C,a,b) reads L(C,x) as (x - a) / (b - a)
+```
+
+So `S(C,5,15)` reading `L(C,28)` gives `2 3|10`, and
+`S(C,10,0)` reading `L(C,23)` gives `-1 3|10`.
+
+Settlement still follows carrier flow. `P(C,10) -> P(C,0)` is a return surface
+that hardens `23` into local value `3` and positive tension `20`. Changing the
+inspection perspective changes the read; it does not change the native carrier
+flow that creates settlement tension.
+
 ## 2. Carrier State
 
 Each carrier instance can hold:

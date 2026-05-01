@@ -90,6 +90,17 @@ For segment-like source shapes:
 A backward same-carrier segment is not the same thing as a dual carrier. It is
 reverse traversal inside one carrier face.
 
+For inspection, segment order defines the local frame:
+
+```text
+S(C,a,b) reads L(C,x) as (x - a) / (b - a)
+```
+
+For settlement, the same ordered sites are touched by carrier flow. A return
+surface such as `P(C,10) -> P(C,0)` wraps positive carrier flow back to `0`
+and emits positive tension; it is not reinterpreted as a decrementing carrier
+merely because the inspection frame is reversed.
+
 ## 4. Current Settlement Table
 
 This table names what Gojo currently executes and what is still only a target.

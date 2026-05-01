@@ -10,8 +10,8 @@ how to account through carrier-local boundaries, signed locations, relation
 order, and routed tension. The pseudo code below is the current executable
 shadow of that behavior.
 
-Sections 1 through 6 are the current ordinary scalar math step. Sections 7 and
-8 document an executable dual-carrier foothold for later inverse-flow /
+Sections 1 through 7 are the current ordinary scalar math step. Sections 8 and
+9 document an executable dual-carrier foothold for later inverse-flow /
 imaginary work; they are not ordinary scalar negation.
 
 ## 1. Carrier Input
@@ -174,7 +174,39 @@ stretch, fanout, merge, support filtering, and crystallized reads should be
 added by strengthening this same shape read, not by introducing unrelated
 route objects.
 
-## 5. Local Same-Carrier Relations
+## 5. Inspection Projection
+
+Projection is a read, not settlement. It reads a carrier location through the
+ordered frame exposed by a relation side:
+
+```text
+frame(P(C,k))     = 0 -> k
+frame(S(C,a,b))   = a -> b
+project L(C,x) through S(C,a,b) = (x - a) / (b - a)
+```
+
+When a relation connects two frames, projection preserves both ordered frames:
+
+```text
+project(source location):
+    relative = source.location - source.frame.start
+    projected = target.frame.start
+              + relative * target.frame.extent / source.frame.extent
+    residue remains as unreduced source-basis numerator
+```
+
+Examples:
+
+```text
+S(C,0,10)  -> P(U,1) reads L(C,23) as L(U,2)  -> L(C,3)
+S(C,5,15)  -> P(U,1) reads L(C,28) as L(U,2)  -> L(C,3)
+S(C,10,0)  -> P(U,1) reads L(C,23) as L(U,-1) -> L(C,3)
+```
+
+This does not mutate either carrier. It is perspective observation through a
+surface.
+
+## 6. Local Same-Carrier Relations
 
 Same-carrier local behavior is directional.
 
@@ -229,7 +261,7 @@ S(C,a,b) where a > b = backward ordered extent, not dual face by itself
 The important correction is that wrap/reset comes from relation order, not from
 whether the sites were written as points instead of locations.
 
-## 6. Positive Tension Routing
+## 7. Positive Tension Routing
 
 Same-oriented origin receivers can absorb positive source tension through the
 source unit. A nonzero receiver site is a projection/basis relation in the
@@ -316,7 +348,7 @@ This is still a read, not material routing. It becomes a crystallized carrier
 value only when a later layer deliberately exposes that read as a carrier
 surface.
 
-## 7. Deferred Dual-Face Tension Routing
+## 8. Deferred Dual-Face Tension Routing
 
 Ordinary scalar negation is `L(C,-k)` on the same carrier. That is separate
 from carrier duality.
@@ -363,7 +395,7 @@ participation on the dual carrier face. A scalar read from `C0` will not see
 `C1*` unless a later relation or crystallized read makes that higher-grade
 assembly visible.
 
-## 8. Deferred Dual-Face Visible Value Cancellation
+## 9. Deferred Dual-Face Visible Value Cancellation
 
 When explicitly related dual carrier faces both hold visible value, their
 shared amount can cancel before residue remains.
@@ -379,7 +411,7 @@ cancel-visible-dual-face-values(A, B):
 This is the current foothold for higher-grade opposed-face assemblies. It is
 not ordinary scalar sign and is not yet full crystallization.
 
-## 9. Current Missing Rows
+## 10. Current Missing Rows
 
 The current algorithm intentionally leaves these rows unresolved or partial:
 
@@ -399,7 +431,7 @@ These are not reasons to add operation tags. They are the next places where the
 same carrier-local accounting, relation order, duality, reversal, and tension
 routing need to become more innate.
 
-## 10. Desired Direction
+## 11. Desired Direction
 
 The pseudo code should shrink over time.
 

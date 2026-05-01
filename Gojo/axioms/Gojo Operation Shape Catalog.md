@@ -47,8 +47,9 @@ tension by itself.
 | Shape | Read |
 |---|---|
 | `S(C0,0,1) -> S(C1,0,1)` | segment-to-segment projection; unit duplicate/copy basis shape |
-| `S(C0,0,k) -> S(C1,0,m)` | ratio stretch from one basis segment to another; `x` on `C0` reads as `x*m/k` on `C1`; residue remains on `C0` when not exact |
-| `S(C0,k,0) -> S(C1,0,m)` | negative source basis; reads with the same scalar sign behavior as `P(C0,-k) -> P(C1,m)` |
+| `S(C0,a,b) -> S(C1,c,d)` | ordered frame projection; `x` on `C0` reads as `c + (x-a)*(d-c)/(b-a)` on `C1`; residue remains unreduced |
+| `S(C0,0,k) -> S(C1,0,m)` | origin-based ratio stretch; `x` on `C0` reads as `x*m/k` on `C1` |
+| `S(C0,k,0) -> S(C1,0,m)` | reversed source frame; `x` reads as `(x-k)*m/(0-k)`, not as a sorted span |
 | `S0 -> S1.P1` | multiplication-like basis scaling; source segment flow moves the endpoint of `S1` while `S1.P0 -> S1.P1` remains intact |
 | `S0 -> P(C1,n)` | move a point from source segment flow; if that point is an endpoint of a segment, the segment stretches |
 | `S(C,5,5)` | zero-length segment; point-like now, but still two related points that can later separate |
@@ -63,6 +64,11 @@ For example, reading `L(C0,10)` through `P(C0,3) -> P(C1,1)` gives
 `L(C1,3) -> L(C0,1)`. This is division without decimal collapse. The residue
 is source-basis residue, not a hidden decimal. Reading backward through
 `P(C0,2) -> P(C1,3)` gives the inverse ratio.
+
+Segment projection is frame-aware. `S(C,5,15) -> P(U,1)` reading `L(C,28)`
+gives `L(U,2) -> L(C,3)`, or `2 3|10`. `S(C,10,0) -> P(U,1)` reading
+`L(C,23)` gives `L(U,-1) -> L(C,3)`. That is perspective observation; it does
+not change how `P(C,10) -> P(C,0)` settles carrier flow as wrap/carry tension.
 
 A same-carrier segment such as `S(C,2,5)` remains segment structure. It is not
 read as `P(C,2) -> P(C,5)` point carry, because that would collapse local

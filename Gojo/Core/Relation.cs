@@ -169,22 +169,22 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
     public Relation Project(CarrierLocation location, Carrier reader)
     {
-        if (!TryReadBasis(Left, out var leftBasis) ||
-            !TryReadBasis(Right, out var rightBasis))
+        if (!TryReadFrame(Left, out var leftFrame) ||
+            !TryReadFrame(Right, out var rightFrame))
         {
             return ProjectionResult(new CarrierLocation(reader, 0), location);
         }
 
-        if (location.Carrier.SameIdentityAs(leftBasis.Carrier) &&
-            reader.SameIdentityAs(rightBasis.Carrier))
+        if (location.Carrier.SameIdentityAs(leftFrame.Carrier) &&
+            reader.SameIdentityAs(rightFrame.Carrier))
         {
-            return ProjectBetween(location, reader, leftBasis.Ticks, rightBasis.Ticks);
+            return ProjectBetween(location, reader, leftFrame, rightFrame);
         }
 
-        if (location.Carrier.SameIdentityAs(rightBasis.Carrier) &&
-            reader.SameIdentityAs(leftBasis.Carrier))
+        if (location.Carrier.SameIdentityAs(rightFrame.Carrier) &&
+            reader.SameIdentityAs(leftFrame.Carrier))
         {
-            return ProjectBetween(location, reader, rightBasis.Ticks, leftBasis.Ticks);
+            return ProjectBetween(location, reader, rightFrame, leftFrame);
         }
 
         return ProjectionResult(new CarrierLocation(reader, 0), location);
@@ -271,28 +271,40 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
     private static bool TryReadBasis(IElement element, out CarrierLocation basis)
     {
+        if (TryReadFrame(element, out var frame))
+        {
+            basis = new CarrierLocation(frame.Carrier, frame.Extent);
+            return true;
+        }
+
+        basis = default;
+        return false;
+    }
+
+    private static bool TryReadFrame(IElement element, out CarrierFrame frame)
+    {
         if (element is CarrierLocation location)
         {
-            basis = location;
+            frame = new CarrierFrame(location.Carrier, 0, location.Ticks);
             return true;
         }
 
         if (element is not Relation relation)
         {
-            basis = default;
+            frame = default;
             return false;
         }
 
         if (relation.IsPoint(out var pointLocation, out _))
         {
-            basis = pointLocation;
+            frame = new CarrierFrame(pointLocation.Carrier, 0, pointLocation.Ticks);
             return true;
         }
 
         if (relation.TryGetCarrierLocations(out var left, out var right) &&
             left.Carrier.SameIdentityAs(right.Carrier))
         {
-            basis = new CarrierLocation(left.Carrier, right.Ticks - left.Ticks);
+            frame = new CarrierFrame(left.Carrier, left.Ticks, right.Ticks);
             return true;
         }
 
@@ -302,13 +314,14 @@ public sealed class Relation : IElement, IEquatable<Relation>
             rightPoint.IsPoint(out var rightPointLocation, out _) &&
             leftPointLocation.Carrier.SameIdentityAs(rightPointLocation.Carrier))
         {
-            basis = new CarrierLocation(
+            frame = new CarrierFrame(
                 leftPointLocation.Carrier,
-                rightPointLocation.Ticks - leftPointLocation.Ticks);
+                leftPointLocation.Ticks,
+                rightPointLocation.Ticks);
             return true;
         }
 
-        basis = default;
+        frame = default;
         return false;
     }
 
@@ -374,25 +387,33 @@ public sealed class Relation : IElement, IEquatable<Relation>
     private static Relation ProjectBetween(
         CarrierLocation location,
         Carrier reader,
-        long sourceBasis,
-        long targetBasis)
+        CarrierFrame source,
+        CarrierFrame target)
     {
-        if (sourceBasis == 0 || targetBasis == 0 || location.Ticks == 0)
+        var sourceBasis = source.Extent;
+        var targetBasis = target.Extent;
+        if (sourceBasis == 0 || targetBasis == 0)
         {
             return ProjectionResult(new CarrierLocation(reader, 0), location);
         }
 
+        var relativeTicks = checked(location.Ticks - source.Start);
+        if (relativeTicks == 0)
+        {
+            return ProjectionResult(new CarrierLocation(reader, target.Start), new CarrierLocation(location.Carrier, 0));
+        }
+
         var sourceMagnitude = MagnitudeOf(sourceBasis);
         var targetMagnitude = MagnitudeOf(targetBasis);
-        var locationMagnitude = MagnitudeOf(location.Ticks);
+        var locationMagnitude = MagnitudeOf(relativeTicks);
         var scaled = checked(locationMagnitude * targetMagnitude);
         var projectedMagnitude = scaled / sourceMagnitude;
         var residueMagnitude = scaled % sourceMagnitude;
-        var sign = Math.Sign(location.Ticks) * Math.Sign(sourceBasis) * Math.Sign(targetBasis);
+        var sign = Math.Sign(relativeTicks) * Math.Sign(sourceBasis) * Math.Sign(targetBasis);
 
         return ProjectionResult(
-            new CarrierLocation(reader, SignedTicks(projectedMagnitude, sign)),
-            new CarrierLocation(location.Carrier, SignedTicks(residueMagnitude, Math.Sign(location.Ticks))));
+            new CarrierLocation(reader, checked(target.Start + SignedTicks(projectedMagnitude, sign))),
+            new CarrierLocation(location.Carrier, SignedTicks(residueMagnitude, Math.Sign(relativeTicks))));
     }
 
     private static Relation ProjectionResult(CarrierLocation projected, CarrierLocation residue) =>
@@ -594,6 +615,11 @@ public sealed class Relation : IElement, IEquatable<Relation>
         public long Width => Max - Min;
 
         public bool IsOrigin => Width == 0 && Min == 0;
+    }
+
+    private readonly record struct CarrierFrame(Carrier Carrier, long Start, long End)
+    {
+        public long Extent => End - Start;
     }
 
     private readonly record struct LocationUpdate(Relation Relation, bool IsLeft, CarrierLocation Next);

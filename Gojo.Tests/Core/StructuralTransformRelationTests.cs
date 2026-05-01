@@ -350,7 +350,39 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
-    public void ReversedSourceSegmentProjectsNegativeRatio()
+    public void OriginSegmentProjectsValueAsWholeAndResidueThroughUnitRead()
+    {
+        var source = new Carrier();
+        var unit = new Carrier();
+        var read = new Relation(Segment(source, 0, 10), Point(unit, 1));
+
+        var projected = read.Project(new CarrierLocation(source, 23), unit);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(unit, 2),
+                new CarrierLocation(source, 3)),
+            projected);
+    }
+
+    [Fact]
+    public void OffsetSegmentProjectionUsesFirstEndpointAsInspectionOrigin()
+    {
+        var source = new Carrier();
+        var unit = new Carrier();
+        var read = new Relation(Segment(source, 5, 15), Point(unit, 1));
+
+        var projected = read.Project(new CarrierLocation(source, 28), unit);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(unit, 2),
+                new CarrierLocation(source, 3)),
+            projected);
+    }
+
+    [Fact]
+    public void ReversedOffsetSourceSegmentUsesFirstEndpointAsInspectionOrigin()
     {
         var source = new Carrier();
         var target = new Carrier();
@@ -360,8 +392,24 @@ public sealed class StructuralTransformRelationTests
 
         Assert.Equal(
             new Relation(
-                new CarrierLocation(target, -6),
+                new CarrierLocation(target, -3),
                 new CarrierLocation(source, 0)),
+            projected);
+    }
+
+    [Fact]
+    public void ReversedSegmentProjectionPreservesOrderedInspectionFrame()
+    {
+        var source = new Carrier();
+        var unit = new Carrier();
+        var read = new Relation(Segment(source, 10, 0), Point(unit, 1));
+
+        var projected = read.Project(new CarrierLocation(source, 23), unit);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(unit, -1),
+                new CarrierLocation(source, 3)),
             projected);
     }
 
