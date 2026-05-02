@@ -6,6 +6,8 @@ Gojo.
 
 For the current pseudo-code view of carrier input, local accounting, relation
 application, and tension routing, see `Gojo Carrier Settlement Algorithm.md`.
+For the port/fusion direction, see
+`Gojo Ports Fusion And Operational Reads.md`.
 
 The current model is:
 
@@ -38,6 +40,8 @@ In place:
 
 - carrier identity
 - automatic unique carrier IDs, with `Carrier.Unknown` fixed at `Id = 0`
+- `Carrier.Unknown` can serve as a wildcard frame for discovery-oriented port
+  reads/imports
 - carrier locations
 - shared `TickRef` coordinates for explicit same-unit references across
   carrier faces
@@ -82,6 +86,10 @@ In place:
   input port; this forwards a value read without draining source value
 - relation-shaped multi-slot ports can import matching relation-shaped values;
   all slots are validated before any target is changed
+- port groups are the current object-boundary foothold; operations should act
+  on exposed port surfaces rather than raw carrier internals
+- concrete port frames require carrier identity, while `Unknown` source/output
+  frames let arbitrary carriers try the relation during discovery
 - input enters as signed tension and the carrier absorbs what it can into
   positive value before relations route the residue
 - a forward local span such as `L(C,0) -> L(C,10)` gives projection/basis
@@ -146,6 +154,9 @@ Next cleanup targets:
 Add only when the numeric shape is clear:
 
 - extent/stretch projection inside the carrier/relation world
+- structural ports that target points, segments, or shared `TickRef`
+  coordinates rather than carrier `ValueSlot`s
+- fused operational ports over grouped object boundaries
 - refill and borrow
 - branch and merge negotiation
 - conserved split versus observation fanout

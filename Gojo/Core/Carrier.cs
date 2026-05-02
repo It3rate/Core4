@@ -32,6 +32,8 @@ public sealed class Carrier : IElement
 
     public bool IsInverse { get; }
 
+    public bool IsUnknown => Id == 0;
+
     public ulong Value { get; private set; }
 
     public long Tension { get; private set; }
@@ -116,8 +118,8 @@ public sealed class Carrier : IElement
 
     public bool TrySetFrom(Relation port, CarrierLocation input)
     {
-        var projected = port.Project(input, this);
-        if (!projected.TryGetCarrierLocations(out var target, out var residue) ||
+        if (!port.TryProject(input, this, out var projected) ||
+            !projected.TryGetCarrierLocations(out var target, out var residue) ||
             !target.Carrier.SameIdentityAs(this))
         {
             return false;

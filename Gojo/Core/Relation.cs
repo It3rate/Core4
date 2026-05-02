@@ -169,25 +169,44 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
     public Relation Project(CarrierLocation location, Carrier reader)
     {
+        return TryProject(location, reader, out var projected)
+            ? projected
+            : ProjectionResult(new CarrierLocation(reader, 0), location);
+    }
+
+    public bool TryProject(CarrierLocation location, Carrier reader, out Relation projected)
+    {
         if (!TryReadFrame(Left, out var leftFrame) ||
             !TryReadFrame(Right, out var rightFrame))
         {
-            return ProjectionResult(new CarrierLocation(reader, 0), location);
+            projected = ProjectionResult(new CarrierLocation(reader, 0), location);
+            return false;
         }
 
-        if (location.Carrier.SameIdentityAs(leftFrame.Carrier) &&
-            reader.SameIdentityAs(rightFrame.Carrier))
+        if (FrameAccepts(leftFrame, location.Carrier) &&
+            FrameAccepts(rightFrame, reader))
         {
-            return ProjectBetween(location, reader, leftFrame, rightFrame);
+            projected = ProjectBetween(
+                location,
+                reader,
+                ResolveFrameCarrier(leftFrame, location.Carrier),
+                ResolveFrameCarrier(rightFrame, reader));
+            return true;
         }
 
-        if (location.Carrier.SameIdentityAs(rightFrame.Carrier) &&
-            reader.SameIdentityAs(leftFrame.Carrier))
+        if (FrameAccepts(rightFrame, location.Carrier) &&
+            FrameAccepts(leftFrame, reader))
         {
-            return ProjectBetween(location, reader, rightFrame, leftFrame);
+            projected = ProjectBetween(
+                location,
+                reader,
+                ResolveFrameCarrier(rightFrame, location.Carrier),
+                ResolveFrameCarrier(leftFrame, reader));
+            return true;
         }
 
-        return ProjectionResult(new CarrierLocation(reader, 0), location);
+        projected = ProjectionResult(new CarrierLocation(reader, 0), location);
+        return false;
     }
 
     public bool TrySetFrom(IElement input)
@@ -358,13 +377,14 @@ public sealed class Relation : IElement, IEquatable<Relation>
         if (input is not CarrierLocation inputLocation ||
             !TryReadFrame(sourceSurface, out var sourceFrame) ||
             !TryReadFrame(targetSurface, out var targetFrame) ||
-            !inputLocation.Carrier.SameIdentityAs(sourceFrame.Carrier))
+            targetFrame.Carrier.IsUnknown ||
+            !FrameAccepts(sourceFrame, inputLocation.Carrier))
         {
             return false;
         }
 
-        var projected = new Relation(sourceSurface, targetSurface).Project(inputLocation, targetFrame.Carrier);
-        if (!projected.TryGetCarrierLocations(out var target, out var residue) ||
+        if (!new Relation(sourceSurface, targetSurface).TryProject(inputLocation, targetFrame.Carrier, out var projected) ||
+            !projected.TryGetCarrierLocations(out var target, out var residue) ||
             !target.Carrier.SameIdentityAs(targetFrame.Carrier))
         {
             return false;
@@ -373,6 +393,14 @@ public sealed class Relation : IElement, IEquatable<Relation>
         imports.Add(new SlotImport(target.Carrier, target.Ticks, residue));
         return true;
     }
+
+    private static bool FrameAccepts(CarrierFrame frame, Carrier carrier) =>
+        frame.Carrier.IsUnknown || carrier.SameIdentityAs(frame.Carrier);
+
+    private static CarrierFrame ResolveFrameCarrier(CarrierFrame frame, Carrier carrier) =>
+        frame.Carrier.IsUnknown
+            ? new CarrierFrame(carrier, frame.Start, frame.End)
+            : frame;
 
     private bool TryTransformLocations(Func<CarrierLocation, LocationTransform> transform)
     {

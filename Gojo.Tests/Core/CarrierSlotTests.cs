@@ -192,6 +192,61 @@ public sealed class CarrierSlotTests
     }
 
     [Fact]
+    public void UnknownSourceInputPortAcceptsAnyIncomingCarrier()
+    {
+        var light = new Carrier();
+        var heat = new Carrier();
+        var inputPort = new Relation(Point(Carrier.Unknown, 1), Segment(heat, 0, 10));
+
+        Assert.True(heat.TrySetFrom(inputPort, new CarrierLocation(light, 2)));
+
+        Assert.Equal(new CarrierLocation(heat, 20), heat.ValueSlot);
+    }
+
+    [Fact]
+    public void UnknownSourceInputPortPreservesResidueOnActualIncomingCarrier()
+    {
+        var light = new Carrier();
+        var heat = new Carrier();
+        var inputPort = new Relation(Point(Carrier.Unknown, 3), Segment(heat, 0, 10));
+
+        Assert.True(heat.TrySetFrom(inputPort, new CarrierLocation(light, 1)));
+
+        Assert.Equal(new CarrierLocation(heat, 3), heat.ValueSlot);
+        Assert.Equal(new CarrierLocation(light, 1), light.TensionSlot);
+    }
+
+    [Fact]
+    public void ConcreteSourceInputPortRejectsDifferentIncomingCarrier()
+    {
+        var temperature = new Carrier();
+        var light = new Carrier();
+        var display = new Carrier();
+        var inputPort = new Relation(Point(temperature, 1), Segment(display, 0, 10));
+
+        Assert.False(display.TrySetFrom(inputPort, new CarrierLocation(light, 2)));
+
+        Assert.Equal(new CarrierLocation(display, 0), display.ValueSlot);
+    }
+
+    [Fact]
+    public void UnknownOutputPortCanBeReadByAnyCarrier()
+    {
+        var storage = new Carrier();
+        var display = new Carrier();
+        var outputPort = new Relation(Segment(storage, 0, 10), Point(Carrier.Unknown, 1));
+        storage.Set(27);
+
+        var read = outputPort.Project(storage.ValueSlot, display);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(display, 2),
+                new CarrierLocation(storage, 7)),
+            read);
+    }
+
+    [Fact]
     public void MultiSlotPortImportsMatchingRelationShapedValues()
     {
         var sourceX = new Carrier();
