@@ -58,6 +58,44 @@ The value slot is the ordinary settled read. The tension slot is deliberate
 internal inspection of unresolved participation. A normal output read should
 not silently combine them.
 
+A structured output port may read the value slot through an explicit basis:
+
+```text
+port = S(C,0,10) -> P(U,1)
+project value-slot(C = 27) through port = L(U,2) -> L(C,7)
+```
+
+This is the executable foothold for `2 7|10`. The carrier still stores `27`
+native ticks. The port exposes a whole slot and residue slot by reading those
+ticks through relation structure.
+
+Single-slot input uses the same shape in reverse:
+
+```text
+input-port = P(U,1) -> S(C,0,10)
+project L(U,2) through input-port = L(C,20) -> L(U,0)
+request-value(C, 20)
+```
+
+A native tick input port is just a unit-to-unit frame:
+
+```text
+P(U,1) -> P(C,1)
+```
+
+The current executable helper is `TrySetFrom(port, input)`. It commits the
+projected target and leaves any projection residue as tension on the residue
+carrier. For example:
+
+```text
+P(U,3) -> S(C,0,10)
+project L(U,1) = L(C,3) -> L(U,1)
+```
+
+The carrier `C` receives a slot-style set toward `3`, while `U` keeps the
+unrepresented `1` as tension. A later multi-slot port can expose that residue
+as a normal output slot instead of leaving it as internal pressure.
+
 ## 1A. Downward Delta Normalization Target
 
 The current executable pass mostly settles tension upward through return/carry

@@ -111,6 +111,21 @@ public sealed class Carrier : IElement
 
     public void Set(ulong ticks) => Set(checked((long)ticks));
 
+    public bool TrySetFrom(Relation port, CarrierLocation input)
+    {
+        var projected = port.Project(input, this);
+        if (!projected.TryGetCarrierLocations(out var target, out var residue) ||
+            !target.Carrier.SameIdentityAs(this))
+        {
+            return false;
+        }
+
+        Set(target.Ticks);
+        residue.Carrier.AddResidualTension(residue.Ticks);
+        residue.Carrier.SettleWorld();
+        return true;
+    }
+
     internal void Receive(long ticks)
     {
         if (ticks == 0)

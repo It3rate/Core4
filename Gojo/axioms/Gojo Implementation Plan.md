@@ -71,6 +71,13 @@ In place:
   force write
 - `ValueSlot` exposes settled carrier value as `L(C, Value)`
 - `TensionSlot` exposes unresolved tension as an explicit internal read
+- explicit basis ports can project a value slot into grouped whole/residue
+  slots, e.g. `27` through `S(C,0,10) -> P(U,1)` reads as `2 7|10`
+- single-slot input ports are the same relation shape in reverse, e.g.
+  `P(U,1) -> S(C,0,10)` maps `2` to native carrier target `20`
+- native tick ports use `P(U,1) -> P(C,1)`
+- current single-slot imports commit the projected target and preserve any
+  projection residue as tension on the residue carrier
 - input enters as signed tension and the carrier absorbs what it can into
   positive value before relations route the residue
 - a forward local span such as `L(C,0) -> L(C,10)` gives projection/basis

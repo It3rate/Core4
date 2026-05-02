@@ -357,6 +357,43 @@ TensionSlot = L(C, Tension)
 it is explicit inspection of unresolved internal pressure, not part of the
 ordinary value output.
 
+Fractional or grouped reads are explicit output ports over that value slot, not
+a second carrier storage mode:
+
+```text
+S(C,0,10) -> P(U,1)
+```
+
+Reading `ValueSlot = L(C,27)` through this port gives:
+
+```text
+L(U,2) -> L(C,7)
+```
+
+That is the structured value `2 7|10`. Without such a basis port, the carrier
+output remains native ticks. A reverse/reset surface such as `S(C,10,0)` may
+participate in settlement, but it is not automatically the carrier's default
+fractional read unless a port explicitly chooses that perspective.
+
+Input ports use the same relation in the opposite direction:
+
+```text
+P(U,1) -> S(C,0,10)
+```
+
+Reading `L(U,2)` through this port gives `L(C,20) -> L(U,0)`, and the carrier
+then receives a slot-style set toward `20`. A tick-level port is:
+
+```text
+P(U,1) -> P(C,1)
+```
+
+Current single-slot import commits the projected target and keeps any residue
+as tension on the residue carrier. For `P(U,3) -> S(C,0,10)`, importing
+`L(U,1)` yields `L(C,3) -> L(U,1)`: `C` receives the representable target
+while `U` carries the unresolved residue. A richer port can later expose that
+residue as an ordinary slot rather than internal pressure.
+
 Known gaps:
 
 - extent/stretch projection needs to be reintroduced internally

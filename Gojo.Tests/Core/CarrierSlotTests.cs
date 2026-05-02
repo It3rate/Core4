@@ -108,6 +108,63 @@ public sealed class CarrierSlotTests
         Assert.Equal(new CarrierLocation(carrier, -7), carrier.TensionSlot);
     }
 
+    [Fact]
+    public void ValueSlotCanBeReadThroughExplicitBasisPort()
+    {
+        var carrier = new Carrier();
+        var unit = new Carrier();
+        var outputPort = new Relation(Segment(carrier, 0, 10), Point(unit, 1));
+
+        carrier.Set(27);
+        var read = outputPort.Project(carrier.ValueSlot, unit);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(unit, 2),
+                new CarrierLocation(carrier, 7)),
+            read);
+    }
+
+    [Fact]
+    public void InputPortMapsPortValueBackToCarrierTicks()
+    {
+        var carrier = new Carrier();
+        var unit = new Carrier();
+        var inputPort = new Relation(Point(unit, 1), Segment(carrier, 0, 10));
+
+        Assert.True(carrier.TrySetFrom(inputPort, new CarrierLocation(unit, 2)));
+
+        Assert.Equal(new CarrierLocation(carrier, 20), carrier.ValueSlot);
+    }
+
+    [Fact]
+    public void TickInputPortMapsOnePortUnitToOneCarrierTick()
+    {
+        var carrier = new Carrier();
+        var unit = new Carrier();
+        var inputPort = new Relation(Point(unit, 1), Point(carrier, 1));
+
+        Assert.True(carrier.TrySetFrom(inputPort, new CarrierLocation(unit, 17)));
+
+        Assert.Equal(new CarrierLocation(carrier, 17), carrier.ValueSlot);
+    }
+
+    [Fact]
+    public void InputPortCarriesUnrepresentedResidueAsTension()
+    {
+        var carrier = new Carrier();
+        var unit = new Carrier();
+        var inputPort = new Relation(Point(unit, 3), Segment(carrier, 0, 10));
+
+        Assert.True(carrier.TrySetFrom(inputPort, new CarrierLocation(unit, 1)));
+
+        Assert.Equal(new CarrierLocation(carrier, 3), carrier.ValueSlot);
+        Assert.Equal(new CarrierLocation(unit, 1), unit.TensionSlot);
+    }
+
     private static Relation Point(Carrier carrier, long ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
+
+    private static Relation Segment(Carrier carrier, long left, long right) =>
+        new(Point(carrier, left), Point(carrier, right));
 }
