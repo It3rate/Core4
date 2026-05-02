@@ -39,6 +39,8 @@ In place:
 - carrier identity
 - automatic unique carrier IDs, with `Carrier.Unknown` fixed at `Id = 0`
 - carrier locations
+- shared `TickRef` coordinates for explicit same-unit references across
+  carrier faces
 - same-carrier positive reads
 - same-carrier negative reads through signed `CarrierLocation` ticks
 - orthogonal reads as zero
@@ -48,8 +50,11 @@ In place:
 - `IElement.Dual`, implemented by carriers, carrier locations, and relations
 - structural `Reverse` for relation traversal order
 - relation identity separate from shape equality
+- anonymous equal locations are value-equal but independent; locations built
+  from the same `TickRef` share physical coordinate state
 - shape-driven structural perturbation:
   - signed carrier location perturbations translate matching carrier sites
+  - a translated shared `TickRef` moves each grounded carrier face that uses it
   - relation-shaped ratio perturbations scale participating sites exactly
   - inexact scale is left unresolved rather than rounded
 
@@ -72,13 +77,22 @@ In place:
 Current stable examples:
 
 - unbounded carrier input keeps its value
+- bare carrier addition/subtraction adjusts accounted value, and underflow
+  remains signed tension
 - `L(C,0) -> L(C,10)` leaves value `11` as value `11` with no tension
 - `L(C,10) -> L(C,0)` turns value `13` into value `3` plus tension `10`
 - `P(C,10) -> P(C,0)` turns `23` into value `3` plus tension `20`
 - `P(C,10) -> P(C,10)` clamps `23` to value `10` plus tension `13`
 - `P(C0,10) -> P(C1,0)` turns `37` into `C0 = 7`, `C1 = 3`
+- chained point/carry relations express decimal and binary-style positional
+  counters by changing only the boundary unit
 - `P(C0,2) -> P(C1,3)` is a ratio projection surface, not a carry route; the
   projected read is executable through `Relation.Project(...)`
+- exact and inexact ratio projection preserve quotient plus unreduced residue;
+  signed locations express scalar subtraction-like reads without inverse
+  carriers
+- offset and reversed segment frames project from their first endpoint rather
+  than sorting endpoints
 - `(P(C0,10) -> P(C0,0)) -> P(C1,0)` can absorb positive tension after the
   boundary has already produced it
 

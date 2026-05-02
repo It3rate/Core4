@@ -79,6 +79,19 @@ other carriers.
 L(C,5)
 ```
 
+The tick value inside a location may be anonymous or shared:
+
+```text
+r = TickRef(10)
+L(C,r)
+L(C*,r)
+```
+
+Anonymous `L(C,10)` locations compare by carrier identity and tick count, but
+they do not move together. Reusing a `TickRef` means the grounded locations are
+the same coordinate reference on different carrier faces. If `r` changes from
+`10` to `12`, both `L(C,r)` and `L(C*,r)` read at `12`.
+
 A point is a relation that participates at that coordinate:
 
 ```text
@@ -109,6 +122,20 @@ Targeting one point changes that point. Targeting a relation surface walks its
 participating child relations and changes their coordinates. Inexact structural
 scale currently leaves the structure unchanged rather than inventing hidden
 fractional positions; later this should become structural tension.
+
+When a structural perturbation reaches a shared tick reference, the tick
+reference moves, not just the local carrier face. This gives an explicit way to
+say two carrier faces reuse the same unit coordinate:
+
+```text
+r0 = TickRef(0)
+r1 = TickRef(10)
+u  = S(P(C,r0),  P(C,r1))
+u* = S(P(C*,r0), P(C*,r1))
+```
+
+Moving `r1` changes both surfaces. This is not a lineage tag or metadata
+shortcut; it is shared numeric structure.
 
 ## 3. Local Accounting
 

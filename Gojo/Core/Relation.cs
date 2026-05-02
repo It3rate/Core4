@@ -335,6 +335,12 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
         foreach (var update in updates)
         {
+            if (update.Current.Carrier.SameIdentityAs(update.Next.Carrier))
+            {
+                update.Current.Tick.Set(update.Next.Ticks);
+                continue;
+            }
+
             if (update.IsLeft)
             {
                 update.Relation.Left = update.Next;
@@ -373,7 +379,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
                 if (!transformed.Location.Equals(location))
                 {
-                    updates.Add(new LocationUpdate(this, isLeft, transformed.Location));
+                    updates.Add(new LocationUpdate(this, isLeft, location, transformed.Location));
                 }
 
                 return true;
@@ -622,7 +628,11 @@ public sealed class Relation : IElement, IEquatable<Relation>
         public long Extent => End - Start;
     }
 
-    private readonly record struct LocationUpdate(Relation Relation, bool IsLeft, CarrierLocation Next);
+    private readonly record struct LocationUpdate(
+        Relation Relation,
+        bool IsLeft,
+        CarrierLocation Current,
+        CarrierLocation Next);
 
     private readonly record struct LocationTransform(bool CanTransform, CarrierLocation Location)
     {
