@@ -124,8 +124,7 @@ public sealed class Carrier : IElement
         }
 
         Set(target.Ticks);
-        residue.Carrier.AddResidualTension(residue.Ticks);
-        residue.Carrier.SettleWorld();
+        residue.Carrier.HoldResidueTension(residue.Ticks);
         return true;
     }
 
@@ -182,6 +181,12 @@ public sealed class Carrier : IElement
         {
             Tension = checked(Tension + ticks);
         }
+    }
+
+    internal void HoldResidueTension(long ticks)
+    {
+        AddResidualTension(ticks);
+        SettleWorld();
     }
 
     public override string ToString()

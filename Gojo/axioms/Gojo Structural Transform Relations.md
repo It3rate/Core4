@@ -405,6 +405,23 @@ Importing through that port sets `C` toward `12`. This is a value read routed
 into an input slot, not a drain of source material. Inexact forwarding keeps
 the unrepresented residue as tension on the source/residue carrier.
 
+A multi-slot port is a relation-shaped group of those same imports:
+
+```text
+(P(Sx,1) -> P(Sy,1)) -> (S(Cx,0,10) -> S(Cy,0,4))
+```
+
+An input value shaped as:
+
+```text
+L(Sx,3) -> L(Sy,2)
+```
+
+sets `Cx` toward `30` and `Cy` toward `8`. The tree shape is validated first,
+so mismatched input cannot partially set the target. This is still not
+consolidation or crystallization; it is multiple exposed slots moving together
+through one port surface.
+
 Known gaps:
 
 - extent/stretch projection needs to be reintroduced internally

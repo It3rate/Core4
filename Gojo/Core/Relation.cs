@@ -190,6 +190,22 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return ProjectionResult(new CarrierLocation(reader, 0), location);
     }
 
+    public bool TrySetFrom(IElement input)
+    {
+        var imports = new List<SlotImport>();
+        if (!TryCollectSlotImports(Left, Right, input, imports))
+        {
+            return false;
+        }
+
+        foreach (var import in imports)
+        {
+            import.Apply();
+        }
+
+        return imports.Count != 0;
+    }
+
     public CarrierLocation[] CarrierLocations()
     {
         return [.. LeftCarrierLocations(), .. RightCarrierLocations()];
@@ -323,6 +339,39 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
         frame = default;
         return false;
+    }
+
+    private static bool TryCollectSlotImports(
+        IElement sourceSurface,
+        IElement targetSurface,
+        IElement input,
+        List<SlotImport> imports)
+    {
+        if (input is Relation inputGroup &&
+            sourceSurface is Relation sourceGroup &&
+            targetSurface is Relation targetGroup)
+        {
+            return TryCollectSlotImports(sourceGroup.Left, targetGroup.Left, inputGroup.Left, imports) &&
+                TryCollectSlotImports(sourceGroup.Right, targetGroup.Right, inputGroup.Right, imports);
+        }
+
+        if (input is not CarrierLocation inputLocation ||
+            !TryReadFrame(sourceSurface, out var sourceFrame) ||
+            !TryReadFrame(targetSurface, out var targetFrame) ||
+            !inputLocation.Carrier.SameIdentityAs(sourceFrame.Carrier))
+        {
+            return false;
+        }
+
+        var projected = new Relation(sourceSurface, targetSurface).Project(inputLocation, targetFrame.Carrier);
+        if (!projected.TryGetCarrierLocations(out var target, out var residue) ||
+            !target.Carrier.SameIdentityAs(targetFrame.Carrier))
+        {
+            return false;
+        }
+
+        imports.Add(new SlotImport(target.Carrier, target.Ticks, residue));
+        return true;
     }
 
     private bool TryTransformLocations(Func<CarrierLocation, LocationTransform> transform)
@@ -626,6 +675,15 @@ public sealed class Relation : IElement, IEquatable<Relation>
     private readonly record struct CarrierFrame(Carrier Carrier, long Start, long End)
     {
         public long Extent => End - Start;
+    }
+
+    private readonly record struct SlotImport(Carrier Target, long TargetTicks, CarrierLocation Residue)
+    {
+        public void Apply()
+        {
+            Target.Set(TargetTicks);
+            Residue.Carrier.HoldResidueTension(Residue.Ticks);
+        }
     }
 
     private readonly record struct LocationUpdate(

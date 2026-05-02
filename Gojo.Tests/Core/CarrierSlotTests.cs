@@ -191,6 +191,66 @@ public sealed class CarrierSlotTests
         Assert.Equal(new CarrierLocation(target, 3), target.ValueSlot);
     }
 
+    [Fact]
+    public void MultiSlotPortImportsMatchingRelationShapedValues()
+    {
+        var sourceX = new Carrier();
+        var sourceY = new Carrier();
+        var targetX = new Carrier();
+        var targetY = new Carrier();
+        var sourceSurface = new Relation(Point(sourceX, 1), Point(sourceY, 1));
+        var targetSurface = new Relation(Segment(targetX, 0, 10), Segment(targetY, 0, 4));
+        var port = new Relation(sourceSurface, targetSurface);
+        sourceX.Set(3);
+        sourceY.Set(2);
+
+        Assert.True(port.TrySetFrom(new Relation(sourceX.ValueSlot, sourceY.ValueSlot)));
+
+        Assert.Equal(new CarrierLocation(targetX, 30), targetX.ValueSlot);
+        Assert.Equal(new CarrierLocation(targetY, 8), targetY.ValueSlot);
+    }
+
+    [Fact]
+    public void MultiSlotPortPreservesResiduePerImportedSlot()
+    {
+        var sourceX = new Carrier();
+        var sourceY = new Carrier();
+        var targetX = new Carrier();
+        var targetY = new Carrier();
+        var sourceSurface = new Relation(Point(sourceX, 3), Point(sourceY, 1));
+        var targetSurface = new Relation(Segment(targetX, 0, 10), Point(targetY, 1));
+        var port = new Relation(sourceSurface, targetSurface);
+        sourceX.Set(1);
+        sourceY.Set(2);
+
+        Assert.True(port.TrySetFrom(new Relation(sourceX.ValueSlot, sourceY.ValueSlot)));
+
+        Assert.Equal(new CarrierLocation(targetX, 3), targetX.ValueSlot);
+        Assert.Equal(new CarrierLocation(sourceX, 1), sourceX.TensionSlot);
+        Assert.Equal(new CarrierLocation(targetY, 2), targetY.ValueSlot);
+        Assert.Equal(new CarrierLocation(sourceY, 0), sourceY.TensionSlot);
+    }
+
+    [Fact]
+    public void MultiSlotPortRejectsShapeMismatchWithoutPartialCommit()
+    {
+        var sourceX = new Carrier();
+        var sourceY = new Carrier();
+        var other = new Carrier();
+        var targetX = new Carrier();
+        var targetY = new Carrier();
+        var sourceSurface = new Relation(Point(sourceX, 1), Point(sourceY, 1));
+        var targetSurface = new Relation(Point(targetX, 1), Point(targetY, 1));
+        var port = new Relation(sourceSurface, targetSurface);
+        sourceX.Set(3);
+        other.Set(4);
+
+        Assert.False(port.TrySetFrom(new Relation(sourceX.ValueSlot, other.ValueSlot)));
+
+        Assert.Equal(new CarrierLocation(targetX, 0), targetX.ValueSlot);
+        Assert.Equal(new CarrierLocation(targetY, 0), targetY.ValueSlot);
+    }
+
     private static Relation Point(Carrier carrier, long ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
 

@@ -109,6 +109,27 @@ toward `12` native ticks. This is value forwarding/observation, not material
 transfer; the source value is not drained. If the projection leaves source-side
 residue, that residue remains as tension on the source carrier.
 
+Multi-slot ports are the same relation shape lifted one level:
+
+```text
+source-surface = P(Sx,1) -> P(Sy,1)
+target-surface = S(Cx,0,10) -> S(Cy,0,4)
+port           = source-surface -> target-surface
+input          = L(Sx,3) -> L(Sy,2)
+```
+
+Each paired leaf slot imports through its corresponding relation frame:
+
+```text
+Cx receives target 30
+Cy receives target 8
+```
+
+The whole shape is checked before anything commits. If one slot is incompatible,
+no target slot is changed. Relation-shaped input means "treat this as grouped
+slots"; carrier-location input means "treat this as one value through the
+current frame."
+
 ## 1A. Downward Delta Normalization Target
 
 The current executable pass mostly settles tension upward through return/carry
