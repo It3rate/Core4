@@ -162,6 +162,35 @@ public sealed class CarrierSlotTests
         Assert.Equal(new CarrierLocation(unit, 1), unit.TensionSlot);
     }
 
+    [Fact]
+    public void CarrierCanImportAnotherCarrierValueSlotThroughInputPort()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        var inputPort = new Relation(Point(source, 1), Segment(target, 0, 4));
+        source.Set(3);
+
+        Assert.True(target.TrySetFrom(inputPort, source));
+
+        Assert.Equal(new CarrierLocation(source, 3), source.ValueSlot);
+        Assert.Equal(new CarrierLocation(target, 12), target.ValueSlot);
+    }
+
+    [Fact]
+    public void CarrierImportPreservesUnrepresentedSourceResidueAsTension()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        var inputPort = new Relation(Point(source, 3), Segment(target, 0, 10));
+        source.Set(1);
+
+        Assert.True(target.TrySetFrom(inputPort, source));
+
+        Assert.Equal(new CarrierLocation(source, 1), source.ValueSlot);
+        Assert.Equal(new CarrierLocation(source, 1), source.TensionSlot);
+        Assert.Equal(new CarrierLocation(target, 3), target.ValueSlot);
+    }
+
     private static Relation Point(Carrier carrier, long ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
 

@@ -96,6 +96,19 @@ The carrier `C` receives a slot-style set toward `3`, while `U` keeps the
 unrepresented `1` as tension. A later multi-slot port can expose that residue
 as a normal output slot instead of leaving it as internal pressure.
 
+Another carrier's value slot can be used as the input:
+
+```text
+source.ValueSlot = L(S,3)
+input-port       = P(S,1) -> S(C,0,4)
+target.TrySetFrom(input-port, source)
+```
+
+This reads the source value through the target input port and sets the target
+toward `12` native ticks. This is value forwarding/observation, not material
+transfer; the source value is not drained. If the projection leaves source-side
+residue, that residue remains as tension on the source carrier.
+
 ## 1A. Downward Delta Normalization Target
 
 The current executable pass mostly settles tension upward through return/carry

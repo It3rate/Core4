@@ -78,6 +78,8 @@ In place:
 - native tick ports use `P(U,1) -> P(C,1)`
 - current single-slot imports commit the projected target and preserve any
   projection residue as tension on the residue carrier
+- a carrier can import another carrier's `ValueSlot` through a compatible
+  input port; this forwards a value read without draining source value
 - input enters as signed tension and the carrier absorbs what it can into
   positive value before relations route the residue
 - a forward local span such as `L(C,0) -> L(C,10)` gives projection/basis

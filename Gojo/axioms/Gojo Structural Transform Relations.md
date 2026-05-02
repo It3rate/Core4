@@ -394,6 +394,17 @@ as tension on the residue carrier. For `P(U,3) -> S(C,0,10)`, importing
 while `U` carries the unresolved residue. A richer port can later expose that
 residue as an ordinary slot rather than internal pressure.
 
+The input can be another carrier's value slot:
+
+```text
+source.ValueSlot = L(S,3)
+P(S,1) -> S(C,0,4)
+```
+
+Importing through that port sets `C` toward `12`. This is a value read routed
+into an input slot, not a drain of source material. Inexact forwarding keeps
+the unrepresented residue as tension on the source/residue carrier.
+
 Known gaps:
 
 - extent/stretch projection needs to be reintroduced internally

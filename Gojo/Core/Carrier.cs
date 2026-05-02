@@ -111,6 +111,9 @@ public sealed class Carrier : IElement
 
     public void Set(ulong ticks) => Set(checked((long)ticks));
 
+    public bool TrySetFrom(Relation port, Carrier source) =>
+        TrySetFrom(port, source.ValueSlot);
+
     public bool TrySetFrom(Relation port, CarrierLocation input)
     {
         var projected = port.Project(input, this);
