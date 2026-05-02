@@ -92,6 +92,11 @@ they do not move together. Reusing a `TickRef` means the grounded locations are
 the same coordinate reference on different carrier faces. If `r` changes from
 `10` to `12`, both `L(C,r)` and `L(C*,r)` read at `12`.
 
+Computation does not branch on whether a location is anonymous or shared.
+Projection, reading, accounting, and settlement consume the exposed tick value.
+Reference identity is only structural: it says which carrier sites move
+together when the coordinate itself is perturbed.
+
 A point is a relation that participates at that coordinate:
 
 ```text
@@ -136,6 +141,10 @@ u* = S(P(C*,r0), P(C*,r1))
 
 Moving `r1` changes both surfaces. This is not a lineage tag or metadata
 shortcut; it is shared numeric structure.
+
+`SameTickRefAs` is therefore diagnostic/structural introspection. It is not a
+loop breaker, not a settlement clock, and not a replacement for recomputing a
+connected world after carrier tension changes.
 
 ## 3. Local Accounting
 
@@ -332,8 +341,10 @@ carrier settles its connected relation world
 ```
 
 There is currently no direct public value assignment. A change enters as
-tension through `Add` or `Remove`; the connected structure decides what becomes
-visible value and what remains unresolved.
+tension through `Add`, `Remove`, or slot-style `Set`. `Set` computes the
+difference from the current visible carrier value and feeds that difference as
+tension. It does not force `Value`; the connected structure decides what
+becomes visible value and what remains unresolved.
 
 Known gaps:
 

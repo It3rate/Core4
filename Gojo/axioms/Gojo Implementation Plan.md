@@ -52,6 +52,7 @@ In place:
 - relation identity separate from shape equality
 - anonymous equal locations are value-equal but independent; locations built
   from the same `TickRef` share physical coordinate state
+- reads and projections use tick value, not tick-reference identity
 - shape-driven structural perturbation:
   - signed carrier location perturbations translate matching carrier sites
   - a translated shared `TickRef` moves each grounded carrier face that uses it
@@ -64,7 +65,10 @@ In place:
 
 - `carrier.Attach(relation)` attaches relation structure to the connected
   carrier world
-- `Add` and `Remove` feed signed tension and settle that world automatically
+- `Add`, `Remove`, and slot-style `Set` feed signed tension and settle that
+  world automatically
+- `Set(target)` means `receive(target - current visible Value)`; it is not a
+  force write
 - input enters as signed tension and the carrier absorbs what it can into
   positive value before relations route the residue
 - a forward local span such as `L(C,0) -> L(C,10)` gives projection/basis
@@ -79,6 +83,8 @@ Current stable examples:
 - unbounded carrier input keeps its value
 - bare carrier addition/subtraction adjusts accounted value, and underflow
   remains signed tension
+- slot-style `Set` adjusts by delta from the current visible value, then
+  settles through attached structure
 - `L(C,0) -> L(C,10)` leaves value `11` as value `11` with no tension
 - `L(C,10) -> L(C,0)` turns value `13` into value `3` plus tension `10`
 - `P(C,10) -> P(C,0)` turns `23` into value `3` plus tension `20`

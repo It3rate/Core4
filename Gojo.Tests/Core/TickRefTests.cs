@@ -71,6 +71,41 @@ public sealed class TickRefTests
         Assert.Equal(new CarrierLocation(inverse, 12), inversePoint.Left);
     }
 
+    [Fact]
+    public void ProjectionReadsSharedAndAnonymousLocationsByTickValue()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        var ratio = new Relation(Point(source, 2), Point(target, 3));
+        var shared = new CarrierLocation(source, new TickRef(6));
+        var anonymous = new CarrierLocation(source, 6);
+
+        Assert.False(shared.SameTickRefAs(anonymous));
+        Assert.Equal(
+            ratio.Project(anonymous, target),
+            ratio.Project(shared, target));
+    }
+
+    [Fact]
+    public void DualCarrierLocationNegatesValueWithoutSharingTickReference()
+    {
+        var carrier = new Carrier();
+        var tick = new TickRef(5);
+        var location = new CarrierLocation(carrier, tick);
+        var dual = location.Dual();
+
+        Assert.Equal(new CarrierLocation(carrier, -5), dual);
+        Assert.False(location.SameTickRefAs(dual));
+
+        tick.Set(7);
+
+        Assert.Equal(new CarrierLocation(carrier, 7), location);
+        Assert.Equal(new CarrierLocation(carrier, -5), dual);
+    }
+
+    private static Relation Point(Carrier carrier, long ticks) =>
+        new(new CarrierLocation(carrier, ticks), carrier);
+
     private static Relation Point(Carrier carrier, TickRef tick) =>
         new(new CarrierLocation(carrier, tick), carrier);
 

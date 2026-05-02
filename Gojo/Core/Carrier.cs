@@ -96,6 +96,17 @@ public sealed class Carrier : IElement
         SettleWorld();
     }
 
+    public void Set(long ticks)
+    {
+        Receive(checked(ticks - checked((long)Value)));
+        // TODO: See Add. This is slot-style delta input, not direct value
+        // assignment; a future time-step scheduler should batch it with other
+        // same-frame perturbations before settlement.
+        SettleWorld();
+    }
+
+    public void Set(ulong ticks) => Set(checked((long)ticks));
+
     internal void Receive(long ticks)
     {
         if (ticks == 0)

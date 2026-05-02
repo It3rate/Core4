@@ -30,12 +30,17 @@ another carrier, a future sensor, or a trolley-like traversal. The source does
 not change the first step.
 
 Direct value assignment is not a primitive operation. A request to move a
-carrier from one visible value to another is represented as a perturbation:
+carrier from one visible value to another is represented as a slot-style
+delta perturbation:
 
 ```text
 request-value(C, desired):
     receive(C, desired - C.Value)
 ```
+
+The current executable foothold exposes this as `Carrier.Set(...)`. It is not
+a force write. If attached structure cannot account for the requested value,
+the result may settle to another visible value with remaining tension.
 
 A stronger future command such as "make this carrier read 3" should likewise
 act by adding/removing tension, adjusting relations, or repeating perturbation
@@ -123,9 +128,9 @@ settle-connected-world(start):
         world = all carriers connected to start by attached relations
 ```
 
-This is currently a quiet loop triggered by each public `Add` or `Remove`.
-That means one public perturbation settles before the next public perturbation
-enters the world. This is only the executable foothold.
+This is currently a quiet loop triggered by each public `Add`, `Remove`, or
+`Set`. That means one public perturbation settles before the next public
+perturbation enters the world. This is only the executable foothold.
 
 The dynamic target is per-time-step settlement:
 
