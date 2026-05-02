@@ -225,6 +225,22 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return imports.Count != 0;
     }
 
+    public bool TrySetStructureFrom(IElement input)
+    {
+        var imports = new List<StructuralSlotImport>();
+        if (!TryCollectStructuralSlotImports(Left, Right, input, imports))
+        {
+            return false;
+        }
+
+        foreach (var import in imports)
+        {
+            import.Apply();
+        }
+
+        return imports.Count != 0;
+    }
+
     public CarrierLocation[] CarrierLocations()
     {
         return [.. LeftCarrierLocations(), .. RightCarrierLocations()];
@@ -392,6 +408,82 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
         imports.Add(new SlotImport(target.Carrier, target.Ticks, residue));
         return true;
+    }
+
+    private static bool TryCollectStructuralSlotImports(
+        IElement sourceSurface,
+        IElement targetSurface,
+        IElement input,
+        List<StructuralSlotImport> imports)
+    {
+        if (input is Relation inputGroup &&
+            sourceSurface is Relation sourceGroup &&
+            targetSurface is Relation targetGroup &&
+            !TryReadFrame(input, out _))
+        {
+            return TryCollectStructuralSlotImports(sourceGroup.Left, targetGroup.Left, inputGroup.Left, imports) &&
+                TryCollectStructuralSlotImports(sourceGroup.Right, targetGroup.Right, inputGroup.Right, imports);
+        }
+
+        if (input is not CarrierLocation inputLocation ||
+            !TryReadFrame(sourceSurface, out var sourceFrame) ||
+            !TryReadFrame(targetSurface, out var targetFrame) ||
+            targetFrame.Carrier.IsUnknown ||
+            !FrameAccepts(sourceFrame, inputLocation.Carrier) ||
+            !TryReadStructuralTarget(targetSurface, out var targetSite))
+        {
+            return false;
+        }
+
+        if (!new Relation(sourceSurface, targetSurface).TryProject(inputLocation, targetFrame.Carrier, out var projected) ||
+            !projected.TryGetCarrierLocations(out var target, out var residue) ||
+            !target.Carrier.SameIdentityAs(targetFrame.Carrier))
+        {
+            return false;
+        }
+
+        imports.Add(new StructuralSlotImport(targetSite, target.Ticks, residue));
+        return true;
+    }
+
+    private static bool TryReadStructuralTarget(IElement element, out CarrierLocation targetSite)
+    {
+        if (element is CarrierLocation location)
+        {
+            targetSite = location;
+            return true;
+        }
+
+        if (element is not Relation relation)
+        {
+            targetSite = default;
+            return false;
+        }
+
+        if (relation.IsPoint(out var pointLocation, out _))
+        {
+            targetSite = pointLocation;
+            return true;
+        }
+
+        if (relation.TryGetCarrierLocations(out _, out var right))
+        {
+            targetSite = right;
+            return true;
+        }
+
+        if (relation.Left is Relation leftPoint &&
+            relation.Right is Relation rightPoint &&
+            leftPoint.IsPoint(out var leftPointLocation, out _) &&
+            rightPoint.IsPoint(out var rightPointLocation, out _) &&
+            leftPointLocation.Carrier.SameIdentityAs(rightPointLocation.Carrier))
+        {
+            targetSite = rightPointLocation;
+            return true;
+        }
+
+        targetSite = default;
+        return false;
     }
 
     private static bool FrameAccepts(CarrierFrame frame, Carrier carrier) =>
@@ -710,6 +802,18 @@ public sealed class Relation : IElement, IEquatable<Relation>
         public void Apply()
         {
             Target.Set(TargetTicks);
+            Residue.Carrier.HoldResidueTension(Residue.Ticks);
+        }
+    }
+
+    private readonly record struct StructuralSlotImport(
+        CarrierLocation Target,
+        long TargetTicks,
+        CarrierLocation Residue)
+    {
+        public void Apply()
+        {
+            Target.Tick.Set(TargetTicks);
             Residue.Carrier.HoldResidueTension(Residue.Ticks);
         }
     }

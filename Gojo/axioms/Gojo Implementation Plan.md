@@ -82,10 +82,16 @@ In place:
 - native tick ports use `P(U,1) -> P(C,1)`
 - current single-slot imports commit the projected target and preserve any
   projection residue as tension on the residue carrier
+- structural imports commit by retargeting the exposed structural coordinate;
+  if that coordinate is a shared `TickRef`, every grounded carrier face sees
+  the same move
 - a carrier can import another carrier's `ValueSlot` through a compatible
   input port; this forwards a value read without draining source value
 - relation-shaped multi-slot ports can import matching relation-shaped values;
   all slots are validated before any target is changed
+- structural ports can import matching relation-shaped values into existing
+  points, segment endpoints, and shared `TickRef` coordinates without creating
+  a new basis or touching carrier value state
 - port groups are the current object-boundary foothold; operations should act
   on exposed port surfaces rather than raw carrier internals
 - concrete port frames require carrier identity, while `Unknown` source/output
@@ -148,14 +154,14 @@ Next cleanup targets:
 - keep support/span reads as projections until they can participate in
   internal settlement
 - avoid adding replacement helper APIs for old removed route concepts
+- keep structural-port targeting narrow: it should expose existing structure,
+  not manufacture ad hoc basis surfaces during import
 
 ## Phase 4. Missing Structural Mechanics
 
 Add only when the numeric shape is clear:
 
 - extent/stretch projection inside the carrier/relation world
-- structural ports that target points, segments, or shared `TickRef`
-  coordinates rather than carrier `ValueSlot`s
 - fused operational ports over grouped object boundaries
 - refill and borrow
 - branch and merge negotiation

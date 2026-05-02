@@ -104,6 +104,46 @@ The whole shape must validate before any target slot changes. A grouped port is
 therefore the first object boundary: it lets several slots be handled as one
 interface without hiding their individual carriers.
 
+## 2A. Structural Ports
+
+Value ports feed carrier state. Structural ports retarget exposed structure.
+
+The target side of a structural port must be an existing structural site:
+
+```text
+P(C,k)
+S(C,a,b)
+shared TickRef grounded on one or more carrier faces
+```
+
+The import still uses the same source-to-target projection surface:
+
+```text
+P(U,10) -> P(C,20)
+L(U,15) imports as structural retarget to L(C,30)
+```
+
+but it commits by moving the target `TickRef` instead of calling carrier
+`Set`. Carrier value is not directly changed:
+
+```text
+P(U,10) -> P(C,x)
+L(U,12) moves x to 12
+C.Value is unchanged
+```
+
+If the target `TickRef` is shared across carrier faces, the coordinate moves
+everywhere that reference is grounded:
+
+```text
+x on C and C* moves as one coordinate reference
+```
+
+For a segment target, the current foothold retargets the existing endpoint
+exposed by the target surface. It does not create a new segment, a new basis,
+or a hidden interpretation. Residue from inexact projection is preserved as
+tension on the actual residue carrier, just as value-port imports do.
+
 ## 3. Port Operations Act On Ports
 
 Operational reads should operate on the exposed port surfaces, not raw carrier
@@ -281,6 +321,9 @@ In current Gojo code:
 - `Carrier.TensionSlot` explicitly exposes unresolved tension.
 - `Carrier.TrySetFrom(port, input)` imports one slot through a relation frame.
 - `Relation.TrySetFrom(input)` imports matching relation-shaped groups.
+- `Relation.TrySetStructureFrom(input)` imports matching relation-shaped
+  groups into existing structural sites by retargeting exposed `TickRef`
+  coordinates rather than carrier values.
 - `Carrier.Unknown` acts as a wildcard port frame for discovery imports and
   reads; concrete carriers still require identity match.
 - `Relation.Project(location, reader)` provides the current single-location
@@ -289,20 +332,18 @@ In current Gojo code:
   port actually accepted the projection. Imports use this so an observation
   fallback of zero-plus-residue cannot accidentally write a target.
 
-This already supports carrier-value multi-slot ports.
-
-The next missing step is structural ports: ports whose target slots are points,
-segments, or shared `TickRef` coordinates rather than carrier `ValueSlot`s.
-That should fall out by letting the same validated port import produce
-structural perturbations instead of carrier `Set` calls when the target leaf is
-a structural location. The important guardrail is the same as current
-multi-slot value import:
+This supports carrier-value multi-slot ports and the first structural-port
+foothold. The important guardrail is the same in both cases:
 
 ```text
 validate whole port shape first
 then commit every slot
 preserve residue as tension or explicit residue slot
 ```
+
+The next missing step is fused operational ports over grouped object
+boundaries. Those should operate over exposed port surfaces, including
+structural ports, rather than raw carrier internals.
 
 No separate symbolic operation table should be introduced unless the numeric
 relation surface cannot carry the meaning.
