@@ -65,6 +65,49 @@ public sealed class CarrierSlotTests
         Assert.Equal(30, carrier.Tension);
     }
 
+    [Fact]
+    public void ValueSlotReadsSettledVisibleCarrierValue()
+    {
+        var carrier = new Carrier();
+
+        carrier.Add(17);
+
+        Assert.Equal(new CarrierLocation(carrier, 17), carrier.ValueSlot);
+    }
+
+    [Fact]
+    public void ValueSlotReadsSettledResidueWithoutImplicitTensionInspection()
+    {
+        var carrier = new Carrier();
+        carrier.Attach(new Relation(Point(carrier, 10), Point(carrier, 0)));
+
+        carrier.Add(23);
+
+        Assert.Equal(new CarrierLocation(carrier, 3), carrier.ValueSlot);
+    }
+
+    [Fact]
+    public void TensionSlotDeliberatelyReadsUnresolvedCarrierTension()
+    {
+        var carrier = new Carrier();
+        carrier.Attach(new Relation(Point(carrier, 10), Point(carrier, 0)));
+
+        carrier.Add(23);
+
+        Assert.Equal(new CarrierLocation(carrier, 20), carrier.TensionSlot);
+    }
+
+    [Fact]
+    public void TensionSlotCanReadBelowOriginParticipation()
+    {
+        var carrier = new Carrier();
+
+        carrier.Remove(7);
+
+        Assert.Equal(new CarrierLocation(carrier, 0), carrier.ValueSlot);
+        Assert.Equal(new CarrierLocation(carrier, -7), carrier.TensionSlot);
+    }
+
     private static Relation Point(Carrier carrier, long ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
 }

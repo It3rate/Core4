@@ -69,6 +69,8 @@ In place:
   world automatically
 - `Set(target)` means `receive(target - current visible Value)`; it is not a
   force write
+- `ValueSlot` exposes settled carrier value as `L(C, Value)`
+- `TensionSlot` exposes unresolved tension as an explicit internal read
 - input enters as signed tension and the carrier absorbs what it can into
   positive value before relations route the residue
 - a forward local span such as `L(C,0) -> L(C,10)` gives projection/basis
@@ -85,6 +87,8 @@ Current stable examples:
   remains signed tension
 - slot-style `Set` adjusts by delta from the current visible value, then
   settles through attached structure
+- default output reads return settled value only; unresolved tension is visible
+  through an explicit tension slot
 - `L(C,0) -> L(C,10)` leaves value `11` as value `11` with no tension
 - `L(C,10) -> L(C,0)` turns value `13` into value `3` plus tension `10`
 - `P(C,10) -> P(C,0)` turns `23` into value `3` plus tension `20`

@@ -38,6 +38,10 @@ public sealed class Carrier : IElement
 
     public bool HasState => Value != 0 || Tension != 0;
 
+    public CarrierLocation ValueSlot => new(this, Value);
+
+    public CarrierLocation TensionSlot => new(this, Tension);
+
     public Carrier Dual() => Inverse();
 
     public Carrier Inverse()

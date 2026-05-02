@@ -346,6 +346,17 @@ difference from the current visible carrier value and feeds that difference as
 tension. It does not force `Value`; the connected structure decides what
 becomes visible value and what remains unresolved.
 
+The default output surface is likewise slot-shaped:
+
+```text
+ValueSlot   = L(C, Value)
+TensionSlot = L(C, Tension)
+```
+
+`ValueSlot` is the natural read of the carrier. `TensionSlot` is available, but
+it is explicit inspection of unresolved internal pressure, not part of the
+ordinary value output.
+
 Known gaps:
 
 - extent/stretch projection needs to be reintroduced internally

@@ -47,6 +47,17 @@ act by adding/removing tension, adjusting relations, or repeating perturbation
 until the structure stabilizes. It should not bypass carrier accounting by
 writing value directly.
 
+The default single-carrier output port exposes two slots:
+
+```text
+value-slot(C)   = L(C, C.Value)
+tension-slot(C) = L(C, C.Tension)
+```
+
+The value slot is the ordinary settled read. The tension slot is deliberate
+internal inspection of unresolved participation. A normal output read should
+not silently combine them.
+
 ## 1A. Downward Delta Normalization Target
 
 The current executable pass mostly settles tension upward through return/carry
