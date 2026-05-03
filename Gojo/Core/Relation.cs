@@ -176,8 +176,24 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
     public bool TryProject(CarrierLocation location, Carrier reader, out Relation projected)
     {
-        if (!TryReadFrame(Left, out var leftFrame) ||
-            !TryReadFrame(Right, out var rightFrame))
+        if (TryProjectBetweenSurfaces(Left, Right, location, reader, out projected))
+        {
+            return true;
+        }
+
+        projected = ProjectionResult(new CarrierLocation(reader, 0), location);
+        return false;
+    }
+
+    private static bool TryProjectBetweenSurfaces(
+        IElement left,
+        IElement right,
+        CarrierLocation location,
+        Carrier reader,
+        out Relation projected)
+    {
+        if (!TryReadFrame(left, out var leftFrame) ||
+            !TryReadFrame(right, out var rightFrame))
         {
             projected = ProjectionResult(new CarrierLocation(reader, 0), location);
             return false;
@@ -447,22 +463,12 @@ public sealed class Relation : IElement, IEquatable<Relation>
         }
 
         if (input is not CarrierLocation inputLocation ||
-            !TryReadFrame(sourceSurface, out var sourceFrame) ||
-            !TryReadFrame(targetSurface, out var targetFrame) ||
-            targetFrame.Carrier.IsUnknown ||
-            !FrameAccepts(sourceFrame, inputLocation.Carrier))
+            !TryProjectToTargetSurface(sourceSurface, targetSurface, inputLocation, out var projection))
         {
             return false;
         }
 
-        if (!new Relation(sourceSurface, targetSurface).TryProject(inputLocation, targetFrame.Carrier, out var projected) ||
-            !projected.TryGetCarrierLocations(out var target, out var residue) ||
-            !target.Carrier.SameIdentityAs(targetFrame.Carrier))
-        {
-            return false;
-        }
-
-        imports.Add(new SlotImport(target.Carrier, target.Ticks, residue));
+        imports.Add(new SlotImport(projection.Target.Carrier, projection.Target.Ticks, projection.Residue));
         return true;
     }
 
@@ -489,23 +495,13 @@ public sealed class Relation : IElement, IEquatable<Relation>
         }
 
         if (input is not CarrierLocation inputLocation ||
-            !TryReadFrame(sourceSurface, out var sourceFrame) ||
-            !TryReadFrame(targetSurface, out var targetFrame) ||
-            targetFrame.Carrier.IsUnknown ||
-            !FrameAccepts(sourceFrame, inputLocation.Carrier) ||
-            !TryReadStructuralTarget(targetSurface, out var targetSite))
+            !TryReadStructuralTarget(targetSurface, out var targetSite) ||
+            !TryProjectToTargetSurface(sourceSurface, targetSurface, inputLocation, out var projection))
         {
             return false;
         }
 
-        if (!new Relation(sourceSurface, targetSurface).TryProject(inputLocation, targetFrame.Carrier, out var projected) ||
-            !projected.TryGetCarrierLocations(out var target, out var residue) ||
-            !target.Carrier.SameIdentityAs(targetFrame.Carrier))
-        {
-            return false;
-        }
-
-        imports.Add(new StructuralSlotImport(targetSite, target.Ticks, residue));
+        imports.Add(new StructuralSlotImport(targetSite, projection.Target.Ticks, projection.Residue));
         return true;
     }
 
@@ -515,25 +511,14 @@ public sealed class Relation : IElement, IEquatable<Relation>
         IElement input,
         List<StructuralSlotImport> imports)
     {
-        if (!TryReadFrame(input, out var inputFrame) ||
-            !TryReadFrame(sourceSurface, out var sourceFrame) ||
-            !TryReadFrame(targetSurface, out var targetFrame) ||
-            targetFrame.Carrier.IsUnknown ||
-            !FrameAccepts(sourceFrame, inputFrame.Carrier) ||
-            !TryReadStructuralTarget(targetSurface, out var targetSite))
+        if (!TryReadAtomicFrameInput(input, sourceSurface, out var inputExtent) ||
+            !TryReadStructuralTarget(targetSurface, out var targetSite) ||
+            !TryProjectToTargetSurface(sourceSurface, targetSurface, inputExtent, out var projection))
         {
             return false;
         }
 
-        var inputExtent = new CarrierLocation(inputFrame.Carrier, checked(sourceFrame.Start + inputFrame.Extent));
-        if (!new Relation(sourceSurface, targetSurface).TryProject(inputExtent, targetFrame.Carrier, out var projected) ||
-            !projected.TryGetCarrierLocations(out var target, out var residue) ||
-            !target.Carrier.SameIdentityAs(targetFrame.Carrier))
-        {
-            return false;
-        }
-
-        imports.Add(new StructuralSlotImport(targetSite, target.Ticks, residue));
+        imports.Add(new StructuralSlotImport(targetSite, projection.Target.Ticks, projection.Residue));
         return true;
     }
 
@@ -573,10 +558,8 @@ public sealed class Relation : IElement, IEquatable<Relation>
         }
 
         if (input is Relation &&
-            TryReadFrame(input, out var inputFrame) &&
-            TryReadFrame(port.Left, out var sourceFrame))
+            TryReadAtomicFrameInput(input, port.Left, out var inputExtent))
         {
-            var inputExtent = new CarrierLocation(inputFrame.Carrier, checked(sourceFrame.Start + inputFrame.Extent));
             return TryCollectOperationOperand(port, inputExtent, reader, operands);
         }
 
@@ -589,14 +572,63 @@ public sealed class Relation : IElement, IEquatable<Relation>
         Carrier reader,
         List<OperationOperand> operands)
     {
-        if (!port.TryProject(input, reader, out var projected) ||
-            !projected.TryGetCarrierLocations(out var target, out var residue) ||
-            !target.Carrier.SameIdentityAs(reader))
+        if (!TryProjectThrough(port.Left, port.Right, input, reader, out var projection))
         {
             return false;
         }
 
-        operands.Add(new OperationOperand(target.Ticks, residue));
+        operands.Add(new OperationOperand(projection.Target.Ticks, projection.Residue));
+        return true;
+    }
+
+    private static bool TryProjectToTargetSurface(
+        IElement sourceSurface,
+        IElement targetSurface,
+        CarrierLocation input,
+        out SurfaceProjection projection)
+    {
+        if (!TryReadFrame(targetSurface, out var targetFrame) ||
+            targetFrame.Carrier.IsUnknown)
+        {
+            projection = default;
+            return false;
+        }
+
+        return TryProjectThrough(sourceSurface, targetSurface, input, targetFrame.Carrier, out projection);
+    }
+
+    private static bool TryProjectThrough(
+        IElement sourceSurface,
+        IElement targetSurface,
+        CarrierLocation input,
+        Carrier reader,
+        out SurfaceProjection projection)
+    {
+        if (!TryProjectBetweenSurfaces(sourceSurface, targetSurface, input, reader, out var projected) ||
+            !projected.TryGetCarrierLocations(out var target, out var residue) ||
+            !target.Carrier.SameIdentityAs(reader))
+        {
+            projection = default;
+            return false;
+        }
+
+        projection = new SurfaceProjection(target, residue);
+        return true;
+    }
+
+    private static bool TryReadAtomicFrameInput(
+        IElement input,
+        IElement sourceSurface,
+        out CarrierLocation inputExtent)
+    {
+        if (!TryReadFrame(input, out var inputFrame) ||
+            !TryReadFrame(sourceSurface, out var sourceFrame))
+        {
+            inputExtent = default;
+            return false;
+        }
+
+        inputExtent = new CarrierLocation(inputFrame.Carrier, checked(sourceFrame.Start + inputFrame.Extent));
         return true;
     }
 
@@ -986,6 +1018,8 @@ public sealed class Relation : IElement, IEquatable<Relation>
     {
         public long Extent => End - Start;
     }
+
+    private readonly record struct SurfaceProjection(CarrierLocation Target, CarrierLocation Residue);
 
     private readonly record struct OperationOperand(long Ticks, CarrierLocation Residue);
 
