@@ -100,6 +100,10 @@ In place:
   internal structure
 - port groups are the current object-boundary foothold; operations should act
   on exposed port surfaces rather than raw carrier internals
+- operation surface reads over port groups are executable as a foothold:
+  point output folds projected operands additively, segment output folds them
+  multiplicatively, and unresolved operand residues stay visible in relation
+  shape
 - concrete port frames require carrier identity, while `Unknown` source/output
   frames let arbitrary carriers try the relation during discovery
 - input enters as signed tension and the carrier absorbs what it can into
@@ -136,6 +140,9 @@ Current stable examples:
   than sorting endpoints
 - `(P(C0,10) -> P(C0,0)) -> P(C1,0)` can absorb positive tension after the
   boundary has already produced it
+- `(portA -> portB) -> P(Result,1)` reads projected port operands additively
+- `(portA -> portB) -> S(Result,0,1)` reads projected port operands
+  multiplicatively
 
 Deferred dual-carrier foothold:
 
@@ -168,7 +175,7 @@ Next cleanup targets:
 Add only when the numeric shape is clear:
 
 - extent/stretch projection inside the carrier/relation world
-- fused operational ports over grouped object boundaries
+- crystallizing operation-surface reads as new carrier ticks
 - refill and borrow
 - branch and merge negotiation
 - conserved split versus observation fanout

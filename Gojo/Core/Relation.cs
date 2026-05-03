@@ -241,6 +241,50 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return imports.Count != 0;
     }
 
+    public bool TryReadOperationFrom(IElement input, Carrier reader, out Relation read)
+    {
+        var operands = new List<OperationOperand>();
+        if (!TryCollectOperationOperands(Left, input, reader, operands) ||
+            operands.Count == 0)
+        {
+            read = default!;
+            return false;
+        }
+
+        if (TryReadPointFrame(Right, out var pointFrame) &&
+            FrameAccepts(pointFrame, reader))
+        {
+            var targetFrame = ResolveFrameCarrier(pointFrame, reader);
+            if (targetFrame.Extent == 0)
+            {
+                read = default!;
+                return false;
+            }
+
+            var result = operands.Aggregate(0L, (ticks, operand) => checked(ticks + operand.Ticks));
+            read = OperationResult(targetFrame, result, operands);
+            return true;
+        }
+
+        if (TryReadFrame(Right, out var segmentFrame) &&
+            FrameAccepts(segmentFrame, reader))
+        {
+            var targetFrame = ResolveFrameCarrier(segmentFrame, reader);
+            if (targetFrame.Extent == 0)
+            {
+                read = default!;
+                return false;
+            }
+
+            var result = operands.Aggregate(1L, (ticks, operand) => checked(ticks * operand.Ticks));
+            read = OperationResult(targetFrame, result, operands);
+            return true;
+        }
+
+        read = default!;
+        return false;
+    }
+
     public CarrierLocation[] CarrierLocations()
     {
         return [.. LeftCarrierLocations(), .. RightCarrierLocations()];
@@ -376,6 +420,18 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    private static bool TryReadPointFrame(IElement element, out CarrierFrame frame)
+    {
+        if (element is Relation relation && relation.IsPoint(out var pointLocation, out _))
+        {
+            frame = new CarrierFrame(pointLocation.Carrier, 0, pointLocation.Ticks);
+            return true;
+        }
+
+        frame = default;
+        return false;
+    }
+
     private static bool TryCollectSlotImports(
         IElement sourceSurface,
         IElement targetSurface,
@@ -483,6 +539,102 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
     private static bool IsGroupSurface(IElement element) =>
         element is Relation && !TryReadFrame(element, out _);
+
+    private static bool TryCollectOperationOperands(
+        IElement portSurface,
+        IElement input,
+        Carrier reader,
+        List<OperationOperand> operands)
+    {
+        if (TryReadPortSurface(portSurface, out var port))
+        {
+            return TryCollectOperationOperand(port, input, reader, operands);
+        }
+
+        if (input is Relation inputGroup &&
+            portSurface is Relation portGroup)
+        {
+            return TryCollectOperationOperands(portGroup.Left, inputGroup.Left, reader, operands) &&
+                TryCollectOperationOperands(portGroup.Right, inputGroup.Right, reader, operands);
+        }
+
+        return false;
+    }
+
+    private static bool TryCollectOperationOperand(
+        Relation port,
+        IElement input,
+        Carrier reader,
+        List<OperationOperand> operands)
+    {
+        if (input is CarrierLocation location)
+        {
+            return TryCollectOperationOperand(port, location, reader, operands);
+        }
+
+        if (input is Relation &&
+            TryReadFrame(input, out var inputFrame) &&
+            TryReadFrame(port.Left, out var sourceFrame))
+        {
+            var inputExtent = new CarrierLocation(inputFrame.Carrier, checked(sourceFrame.Start + inputFrame.Extent));
+            return TryCollectOperationOperand(port, inputExtent, reader, operands);
+        }
+
+        return false;
+    }
+
+    private static bool TryCollectOperationOperand(
+        Relation port,
+        CarrierLocation input,
+        Carrier reader,
+        List<OperationOperand> operands)
+    {
+        if (!port.TryProject(input, reader, out var projected) ||
+            !projected.TryGetCarrierLocations(out var target, out var residue) ||
+            !target.Carrier.SameIdentityAs(reader))
+        {
+            return false;
+        }
+
+        operands.Add(new OperationOperand(target.Ticks, residue));
+        return true;
+    }
+
+    private static bool TryReadPortSurface(IElement element, out Relation port)
+    {
+        if (element is Relation relation &&
+            !TryReadFrame(relation, out _) &&
+            TryReadFrame(relation.Left, out _) &&
+            TryReadFrame(relation.Right, out _))
+        {
+            port = relation;
+            return true;
+        }
+
+        port = null!;
+        return false;
+    }
+
+    private static Relation OperationResult(
+        CarrierFrame targetFrame,
+        long value,
+        List<OperationOperand> operands) =>
+        new(
+            new CarrierLocation(
+                targetFrame.Carrier,
+                checked(targetFrame.Start + checked(value * targetFrame.Extent))),
+            OperationResidue(operands));
+
+    private static IElement OperationResidue(IReadOnlyList<OperationOperand> operands)
+    {
+        IElement residue = operands[^1].Residue;
+        for (var index = operands.Count - 2; index >= 0; index--)
+        {
+            residue = new Relation(operands[index].Residue, residue);
+        }
+
+        return residue;
+    }
 
     private static bool TryReadStructuralTarget(IElement element, out CarrierLocation targetSite)
     {
@@ -834,6 +986,8 @@ public sealed class Relation : IElement, IEquatable<Relation>
     {
         public long Extent => End - Start;
     }
+
+    private readonly record struct OperationOperand(long Ticks, CarrierLocation Residue);
 
     private readonly record struct SlotImport(Carrier Target, long TargetTicks, CarrierLocation Residue)
     {

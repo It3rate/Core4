@@ -262,6 +262,38 @@ divide-like relation    = reverse traversal / inverse read
 The names are explanatory only. The kernel should prefer the numeric relation
 surface itself over symbolic operation tags.
 
+The current executable foothold reads operation shape from the exposed output
+surface:
+
+```text
+(portA -> portB) -> P(Result,1)      point output: additive collapse
+(portA -> portB) -> S(Result,0,1)    segment output: multiplicative composition
+```
+
+Each operand is first projected through its own exposed port surface into the
+reader/output carrier. The operation then folds those projected visible values.
+Residues remain relation-shaped in the same operand order:
+
+```text
+operation read = L(Result,n) -> (residueA -> residueB)
+```
+
+So an operation over:
+
+```text
+S(X,0,10) -> P(Unknown,1)
+S(Y,0,10) -> P(Unknown,1)
+```
+
+sees whole exposed units first. If `X=17` and `Y=28`, an additive point-output
+operation reads:
+
+```text
+L(Result,3) -> (L(X,7) -> L(Y,8))
+```
+
+It does not silently reach beneath the exposed ports to add `17 + 28`.
+
 An operational port should expose an operation surface that is present in, or
 constructible from, the object's relation structure. It should not mean "any
 external observer may request any operation over raw internals." Exploration
@@ -432,6 +464,10 @@ In current Gojo code:
 - `Relation.TryProject(location, reader, out projected)` reports whether a
   port actually accepted the projection. Imports use this so an observation
   fallback of zero-plus-residue cannot accidentally write a target.
+- `Relation.TryReadOperationFrom(input, reader, out read)` reads the first
+  operation-surface foothold over port groups: point output folds projected
+  operands additively, segment output folds them multiplicatively, and residues
+  remain visible as a relation-shaped tail.
 
 This supports carrier-value multi-slot ports and the first structural-port
 foothold. The important guardrail is the same in both cases:
