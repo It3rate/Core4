@@ -92,6 +92,12 @@ In place:
 - structural ports can import matching relation-shaped values into existing
   points, segment endpoints, and shared `TickRef` coordinates without creating
   a new basis or touching carrier value state
+- relation-shaped structural input is decomposed only when the receiving
+  surface is group-shaped; frame-readable structural input is treated as an
+  atomic basis/span value
+- ports reference existing relation surfaces; a same-shaped lookalike is a
+  separate surface and must not be used to reinterpret or manufacture hidden
+  internal structure
 - port groups are the current object-boundary foothold; operations should act
   on exposed port surfaces rather than raw carrier internals
 - concrete port frames require carrier identity, while `Unknown` source/output

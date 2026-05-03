@@ -419,10 +419,17 @@ public sealed class Relation : IElement, IEquatable<Relation>
         if (input is Relation inputGroup &&
             sourceSurface is Relation sourceGroup &&
             targetSurface is Relation targetGroup &&
-            !TryReadFrame(input, out _))
+            IsGroupSurface(sourceSurface) &&
+            IsGroupSurface(targetSurface) &&
+            IsGroupSurface(input))
         {
             return TryCollectStructuralSlotImports(sourceGroup.Left, targetGroup.Left, inputGroup.Left, imports) &&
                 TryCollectStructuralSlotImports(sourceGroup.Right, targetGroup.Right, inputGroup.Right, imports);
+        }
+
+        if (input is Relation && TryCollectAtomicStructuralFrameImport(sourceSurface, targetSurface, input, imports))
+        {
+            return true;
         }
 
         if (input is not CarrierLocation inputLocation ||
@@ -445,6 +452,37 @@ public sealed class Relation : IElement, IEquatable<Relation>
         imports.Add(new StructuralSlotImport(targetSite, target.Ticks, residue));
         return true;
     }
+
+    private static bool TryCollectAtomicStructuralFrameImport(
+        IElement sourceSurface,
+        IElement targetSurface,
+        IElement input,
+        List<StructuralSlotImport> imports)
+    {
+        if (!TryReadFrame(input, out var inputFrame) ||
+            !TryReadFrame(sourceSurface, out var sourceFrame) ||
+            !TryReadFrame(targetSurface, out var targetFrame) ||
+            targetFrame.Carrier.IsUnknown ||
+            !FrameAccepts(sourceFrame, inputFrame.Carrier) ||
+            !TryReadStructuralTarget(targetSurface, out var targetSite))
+        {
+            return false;
+        }
+
+        var inputExtent = new CarrierLocation(inputFrame.Carrier, checked(sourceFrame.Start + inputFrame.Extent));
+        if (!new Relation(sourceSurface, targetSurface).TryProject(inputExtent, targetFrame.Carrier, out var projected) ||
+            !projected.TryGetCarrierLocations(out var target, out var residue) ||
+            !target.Carrier.SameIdentityAs(targetFrame.Carrier))
+        {
+            return false;
+        }
+
+        imports.Add(new StructuralSlotImport(targetSite, target.Ticks, residue));
+        return true;
+    }
+
+    private static bool IsGroupSurface(IElement element) =>
+        element is Relation && !TryReadFrame(element, out _);
 
     private static bool TryReadStructuralTarget(IElement element, out CarrierLocation targetSite)
     {

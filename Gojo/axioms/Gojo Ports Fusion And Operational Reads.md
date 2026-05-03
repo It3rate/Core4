@@ -180,6 +180,31 @@ exposed by the target surface. It does not create a new segment, a new basis,
 or a hidden interpretation. Residue from inexact projection is preserved as
 tension on the actual residue carrier, just as value-port imports do.
 
+Relation-shaped structural input is decomposed only when the receiving surface
+is group-shaped. A frame-readable input remains atomic:
+
+```text
+S(U,0,12) -> S(C,0,x)
+```
+
+means "retarget this exposed basis/span from the incoming span." It does not
+mean "set the left endpoint, then set the right endpoint" unless the receiving
+port explicitly exposes those endpoints as separate slots.
+
+A port also references existing surfaces. A same-shaped lookalike is not a
+reference to hidden internal structure:
+
+```text
+internal Bx = S(X,0,u)
+lookalike  = S(X,0,u')
+port uses lookalike
+```
+
+Retargeting the port moves `u'`, not `u`. A reference is allowed to expose or
+retarget structure only when that structure is actually the referenced surface.
+It must not manufacture a new basis by externally interpreting an object's
+internals.
+
 ## 3. Port Operations Act On Ports
 
 Operational reads should operate on the exposed port surfaces, not raw carrier
@@ -237,6 +262,24 @@ divide-like relation    = reverse traversal / inverse read
 The names are explanatory only. The kernel should prefer the numeric relation
 surface itself over symbolic operation tags.
 
+An operational port should expose an operation surface that is present in, or
+constructible from, the object's relation structure. It should not mean "any
+external observer may request any operation over raw internals." Exploration
+may still happen outside an object: a probing structure can read two exposed
+values, combine them, and discover that the combination lowers tension or
+becomes useful. If that combination stabilizes, it may be promoted back into
+the source structure as an internal operation surface and then exposed as a
+port.
+
+So:
+
+```text
+external exploratory read -> useful relation -> promoted operation surface -> exposed operation port
+```
+
+This keeps experimentation possible without making every conceivable operation
+part of every object boundary.
+
 ## 5. Directed Segment
 
 A directed segment can be exposed as a two-slot port group:
@@ -276,19 +319,19 @@ The component shapes determine the physical object:
 
 ```text
 P(X,x) -> P(Y,y)             coordinate point
-S(X,x0,x1) -> S(Y,y0,y1)     area / rectangle surface
+S(X,x0,x1) -> S(Y,y0,y1)     paired X/Y extents
 P(X,x) -> S(Y,y0,y1)         vertical segment
 S(X,x0,x1) -> P(Y,y)         horizontal segment
 ```
 
 Fusion says this is one object boundary, not merely two unrelated exposed
-slots.
+slots. It does not decide which operation will later be read from those slots.
 
 Operational ports over the fused boundary may expose:
 
 ```text
 add-like read       X + Y      length of an L, half perimeter of a rectangle
-multiply-like read  X * Y      area-like read when both components are extents
+multiply-like read  X * Y      area-like read when both exposed components are extents
 subtract-like read  X - Y      directed offset read
 ratio-like read     X / Y      comparison or slope-like read
 ```
@@ -361,7 +404,7 @@ another port explicitly exposes them.
 So:
 
 ```text
-rectangle width/height -> multiply-like operational port -> area carrier tick
+paired width/height extents -> multiply-like operational port -> area carrier tick
 directed segment endpoints -> length operational port -> length carrier tick
 ```
 
@@ -379,6 +422,9 @@ In current Gojo code:
 - `Relation.TrySetStructureFrom(input)` imports matching relation-shaped
   groups into existing structural sites by retargeting exposed `TickRef`
   coordinates rather than carrier values.
+- Structural imports decompose relation-shaped input only through group-shaped
+  receiving surfaces; frame-readable inputs are treated as atomic basis/span
+  values.
 - `Carrier.Unknown` acts as a wildcard port frame for discovery imports and
   reads; concrete carriers still require identity match.
 - `Relation.Project(location, reader)` provides the current single-location
