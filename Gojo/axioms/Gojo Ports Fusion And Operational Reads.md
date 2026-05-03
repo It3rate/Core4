@@ -38,7 +38,43 @@ receive(target - current visible Value)
 
 Any projection residue remains as tension on the residue carrier.
 
-## 1A. Unknown Discovery Ports
+## 1A. Relation, Port, Boundary, Crystal
+
+`Relation` is the primitive structure:
+
+```text
+A -> B
+```
+
+It may be private internal structure, a route, a point, a segment, a grouped
+surface, or an operation. A port is not a second primitive. A port is a
+relation surface that remains exposed across an object boundary.
+
+The boundary is not merely the place where two structures touch. When two
+structures connect, settlement may treat them as one connected world. A
+boundary persists only when some surface remains deliberately separable:
+
+```text
+private relation      ordinary internal structure
+open port             exposed relation surface available for connection
+connected port        exposed relation surface with an active connection
+sealed port           exposed relation surface no longer accepting more input
+absorbed boundary     former interface now treated as ordinary internal shape
+crystallized boundary exposed operation hardened as a new carrier tick
+```
+
+These are roles of relation surfaces, not different mathematical kinds. A
+concrete exact-carrier port:
+
+```text
+P(Heat,1) -> S(Display,0,10)
+```
+
+and an internal relation of the same shape use the same numeric machinery. The
+difference is whether the surface is preserved as an interface. `Unknown`
+makes a port discovery-friendly, but `Unknown` is not what makes it a port.
+
+## 1B. Unknown Discovery Ports
 
 A concrete carrier in a port frame means exact physical carrier identity:
 
@@ -291,6 +327,17 @@ keeps the repeated structure visible and inspectable.
 
 Crystallization is hardening one operational port as a new carrier tick.
 
+Before crystallization, a grouped or operational port may still expose its
+internal slots:
+
+```text
+width port -> height port -> area-like operational port
+```
+
+The operational port is readable because the exposed surfaces remain visible.
+It may be connected, disconnected, or absorbed into larger structure, depending
+on whether the boundary is preserved.
+
 Before crystallization:
 
 ```text
@@ -306,12 +353,20 @@ operational port result = one tick on a new carrier
 This does not require destroying the internal structure. It creates a new
 surface that treats the operational read as one carrier unit.
 
+After crystallization, a local reader works with the new carrier surface. The
+construction below the crystal may still exist and may still drive the value,
+but the local view no longer has ordinary access to the internal slots unless
+another port explicitly exposes them.
+
 So:
 
 ```text
 rectangle width/height -> multiply-like operational port -> area carrier tick
 directed segment endpoints -> length operational port -> length carrier tick
 ```
+
+Crystallization is therefore the strongest preserved boundary: it keeps a
+separation even while the underlying structure may remain physically connected.
 
 ## 9. Current Code Foothold
 
