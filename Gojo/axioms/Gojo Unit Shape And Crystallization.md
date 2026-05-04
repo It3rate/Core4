@@ -204,7 +204,9 @@ structure compatible with square inches. It is not permanently tied to the
 rectangle or operation that first derived it.
 
 Projecting a current operation value onto that carrier is optional and should
-not be conflated with creating the unit shape.
+not be conflated with creating the unit shape. Projection feeds the crystal
+carrier by delta, like other port-style value input; it does not directly
+overwrite carrier state.
 
 ## 8. Current Code Foothold
 
@@ -224,18 +226,29 @@ In current Gojo code:
   - `Unknown` output ports inherit the source unit shape for discovery reads
   - point-output operation surfaces fold operand shapes additively
   - segment-output operation surfaces fold operand shapes multiplicatively
-- `Relation.TryCrystallize(...)` creates a new carrier with the derived unit
-  shape and does not project any current operation value onto it.
+- `Relation.TryCrystallize(out carrier)` creates a new carrier with the
+  derived unit shape and does not project any current operation value onto it.
+- `Relation.TryCrystallize(input, out carrier, out read)` creates the crystal
+  carrier and projects the current operation read onto it.
+- `Relation.TryProjectCrystallizedValueFrom(input, crystal, out read)` projects
+  the current operation read onto an existing compatible crystal carrier.
 
-This is intentionally only the unit-shape half of crystallization. The crystal
-carrier is a usable tick surface, but value projection across the crystal
-boundary remains a separate later operation.
+The projection read preserves operand residue as visible relation-shaped
+residue. It does not treat residue as fresh source tension merely because a
+crystal read occurred.
+
+The current value projection is intentionally conservative. Product-like
+operation surfaces can project into one crystal scalar. Additive point-output
+surfaces can project only when operand unit shapes are compatible. Incompatible
+additive surfaces can still derive and crystallize an unreduced unit shape, but
+their current value is not collapsed into one scalar until Gojo has a
+multi-component crystal value surface.
 
 ## 9. Open Questions
 
 The initial implementation can stay simple:
 
-- value projection onto a crystal surface
+- multi-component crystal value surfaces for unreduced additive shapes
 - richer compatibility reads for structured and inverse unit participation
 
 Later work must clarify:

@@ -37,9 +37,9 @@ Current step boundary:
 - dual-carrier / inverse-flow behavior is only an isolated foothold for the
   later higher-grade or imaginary layer; it must not be treated as ordinary
   scalar negation
-- crystallization now has a unit-shape foothold: operation surfaces can derive
-  reusable unit shapes and create carriers with those shapes, while projecting
-  current values onto crystal carriers remains deferred
+- crystallization now has an executable foothold: operation surfaces can derive
+  reusable unit shapes, create carriers with those shapes, and project current
+  compatible operation reads onto those carriers by delta
 
 ## Phase 1. Carrier Reads
 
@@ -116,6 +116,11 @@ In place:
   inverse carriers share the forward unit shape, relation unit shape is
   calculated from frame/port/operation shape, and `TryCrystallize` creates a
   carrier with the derived shape without projecting value
+- crystal value projection is executable as a foothold:
+  `TryCrystallize(input, out carrier, out read)` and
+  `TryProjectCrystallizedValueFrom(input, carrier, out read)` bind an
+  operation's output frame onto a compatible crystal carrier and feed that
+  carrier with the projected target value
 - concrete port frames require carrier identity, while `Unknown` source/output
   frames let arbitrary carriers try the relation during discovery
 - input enters as signed tension and the carrier absorbs what it can into
@@ -159,6 +164,10 @@ Current stable examples:
   incompatible operands as unreduced relation shape
 - multiplicative operation unit shape preserves repeated participation, e.g.
   `length * length` reads as two participations of the length unit shape
+- current crystal value projection preserves operand residue as read residue
+  rather than mutating source carrier tension
+- incompatible additive operation shapes can crystallize as unit shape, but
+  current value projection refuses to flatten them into one scalar
 
 Deferred dual-carrier foothold:
 
@@ -191,7 +200,7 @@ Next cleanup targets:
 Add only when the numeric shape is clear:
 
 - extent/stretch projection inside the carrier/relation world
-- projecting operation-surface values onto crystallized carrier ticks
+- multi-component crystal value surfaces for unreduced additive shapes
 - refill and borrow
 - branch and merge negotiation
 - conserved split versus observation fanout

@@ -257,7 +257,14 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return imports.Count != 0;
     }
 
-    public bool TryReadOperationFrom(IElement input, Carrier reader, out Relation read)
+    public bool TryReadOperationFrom(IElement input, Carrier reader, out Relation read) =>
+        TryReadOperationFrom(input, reader, bindOutputToReader: false, out read);
+
+    private bool TryReadOperationFrom(
+        IElement input,
+        Carrier reader,
+        bool bindOutputToReader,
+        out Relation read)
     {
         var operands = new List<OperationOperand>();
         if (!TryCollectOperationOperands(Left, input, reader, operands) ||
@@ -268,32 +275,30 @@ public sealed class Relation : IElement, IEquatable<Relation>
         }
 
         if (TryReadPointFrame(Right, out var pointFrame) &&
-            FrameAccepts(pointFrame, reader))
+            TryResolveOperationTargetFrame(pointFrame, reader, bindOutputToReader, out var pointTargetFrame))
         {
-            var targetFrame = ResolveFrameCarrier(pointFrame, reader);
-            if (targetFrame.Extent == 0)
+            if (pointTargetFrame.Extent == 0)
             {
                 read = default!;
                 return false;
             }
 
             var result = operands.Aggregate(0L, (ticks, operand) => checked(ticks + operand.Ticks));
-            read = OperationResult(targetFrame, result, operands);
+            read = OperationResult(pointTargetFrame, result, operands);
             return true;
         }
 
         if (TryReadFrame(Right, out var segmentFrame) &&
-            FrameAccepts(segmentFrame, reader))
+            TryResolveOperationTargetFrame(segmentFrame, reader, bindOutputToReader, out var segmentTargetFrame))
         {
-            var targetFrame = ResolveFrameCarrier(segmentFrame, reader);
-            if (targetFrame.Extent == 0)
+            if (segmentTargetFrame.Extent == 0)
             {
                 read = default!;
                 return false;
             }
 
             var result = operands.Aggregate(1L, (ticks, operand) => checked(ticks * operand.Ticks));
-            read = OperationResult(targetFrame, result, operands);
+            read = OperationResult(segmentTargetFrame, result, operands);
             return true;
         }
 
@@ -333,6 +338,43 @@ public sealed class Relation : IElement, IEquatable<Relation>
         }
 
         carrier = new Carrier(unitShape);
+        return true;
+    }
+
+    public bool TryCrystallize(IElement input, out Carrier carrier, out Relation read)
+    {
+        if (!TryReadUnitShape(out var unitShape))
+        {
+            carrier = null!;
+            read = null!;
+            return false;
+        }
+
+        var crystal = new Carrier(unitShape);
+        if (!TryProjectCrystallizedValueFrom(input, crystal, out read))
+        {
+            carrier = null!;
+            return false;
+        }
+
+        carrier = crystal;
+        return true;
+    }
+
+    public bool TryProjectCrystallizedValueFrom(IElement input, Carrier crystal, out Relation read)
+    {
+        if (!TryReadUnitShape(out var unitShape) ||
+            !crystal.UnitShape.CompatibleWith(unitShape) ||
+            !CanProjectOperationValueAsSingleCrystal() ||
+            !TryReadOperationFrom(input, crystal, bindOutputToReader: true, out read) ||
+            read.Left is not CarrierLocation target ||
+            !target.Carrier.SameIdentityAs(crystal))
+        {
+            read = null!;
+            return false;
+        }
+
+        crystal.Set(target.Ticks);
         return true;
     }
 
@@ -817,6 +859,48 @@ public sealed class Relation : IElement, IEquatable<Relation>
         frame.Carrier.IsUnknown
             ? new CarrierFrame(carrier, frame.Start, frame.End)
             : frame;
+
+    private static bool TryResolveOperationTargetFrame(
+        CarrierFrame frame,
+        Carrier reader,
+        bool bindOutputToReader,
+        out CarrierFrame targetFrame)
+    {
+        if (bindOutputToReader)
+        {
+            targetFrame = new CarrierFrame(reader, frame.Start, frame.End);
+            return true;
+        }
+
+        if (!FrameAccepts(frame, reader))
+        {
+            targetFrame = default;
+            return false;
+        }
+
+        targetFrame = ResolveFrameCarrier(frame, reader);
+        return true;
+    }
+
+    private bool CanProjectOperationValueAsSingleCrystal()
+    {
+        var operands = new List<UnitShape>();
+        if (!TryCollectOperationUnitShapes(Left, operands) ||
+            operands.Count == 0)
+        {
+            return false;
+        }
+
+        if (TryReadPointFrame(Right, out var pointFrame) &&
+            pointFrame.Extent != 0)
+        {
+            var first = operands[0];
+            return operands.All(first.CompatibleWith);
+        }
+
+        return TryReadFrame(Right, out var segmentFrame) &&
+            segmentFrame.Extent != 0;
+    }
 
     private bool TryTransformLocations(Func<CarrierLocation, LocationTransform> transform)
     {

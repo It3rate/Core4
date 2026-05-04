@@ -139,6 +139,144 @@ public sealed class UnitShapeTests
         Assert.Equal(0, crystal.Tension);
     }
 
+    [Fact]
+    public void CrystallizeFromProjectsOperationValueOntoNewCarrier()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var width = new Carrier(lengthShape);
+        var height = new Carrier(lengthShape);
+        var result = new Carrier();
+        var widthPort = new Relation(Point(width, 1), Point(Carrier.Unknown, 1));
+        var heightPort = new Relation(Point(height, 1), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(widthPort, heightPort), Segment(result, 0, 1));
+        width.Set(3);
+        height.Set(4);
+
+        Assert.True(operation.TryCrystallize(
+            new Relation(width.ValueSlot, height.ValueSlot),
+            out var crystal,
+            out var read));
+
+        Assert.True(crystal.UnitShape.CompatibleWith(UnitShape.Product(lengthShape, lengthShape)));
+        Assert.Equal(12UL, crystal.Value);
+        Assert.Equal(0, crystal.Tension);
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(crystal, 12),
+                new Relation(new CarrierLocation(width, 0), new CarrierLocation(height, 0))),
+            read);
+    }
+
+    [Fact]
+    public void CrystallizedProjectionPreservesOperationOutputBasis()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var width = new Carrier(lengthShape);
+        var height = new Carrier(lengthShape);
+        var result = new Carrier();
+        var widthPort = new Relation(Point(width, 1), Point(Carrier.Unknown, 1));
+        var heightPort = new Relation(Point(height, 1), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(widthPort, heightPort), Segment(result, 0, 10));
+        width.Set(3);
+        height.Set(4);
+
+        Assert.True(operation.TryCrystallize(
+            new Relation(width.ValueSlot, height.ValueSlot),
+            out var crystal,
+            out var read));
+
+        Assert.Equal(120UL, crystal.Value);
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(crystal, 120),
+                new Relation(new CarrierLocation(width, 0), new CarrierLocation(height, 0))),
+            read);
+    }
+
+    [Fact]
+    public void CrystallizedProjectionKeepsOperandResidueVisibleWithoutMutatingSources()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var x = new Carrier(lengthShape);
+        var y = new Carrier(lengthShape);
+        var result = new Carrier();
+        var xPort = new Relation(Segment(x, 0, 10), Point(Carrier.Unknown, 1));
+        var yPort = new Relation(Segment(y, 0, 10), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(xPort, yPort), Point(result, 1));
+        x.Set(17);
+        y.Set(28);
+
+        Assert.True(operation.TryCrystallize(
+            new Relation(x.ValueSlot, y.ValueSlot),
+            out var crystal,
+            out var read));
+
+        Assert.Equal(3UL, crystal.Value);
+        Assert.Equal(0, x.Tension);
+        Assert.Equal(0, y.Tension);
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(crystal, 3),
+                new Relation(new CarrierLocation(x, 7), new CarrierLocation(y, 8))),
+            read);
+    }
+
+    [Fact]
+    public void ExistingCrystalProjectionUsesDeltaSettlement()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var width = new Carrier(lengthShape);
+        var height = new Carrier(lengthShape);
+        var result = new Carrier();
+        var widthPort = new Relation(Point(width, 1), Point(Carrier.Unknown, 1));
+        var heightPort = new Relation(Point(height, 1), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(widthPort, heightPort), Segment(result, 0, 1));
+        Assert.True(operation.TryCrystallize(out var crystal));
+        width.Set(3);
+        height.Set(4);
+        Assert.True(operation.TryProjectCrystallizedValueFrom(
+            new Relation(width.ValueSlot, height.ValueSlot),
+            crystal,
+            out _));
+        width.Set(5);
+
+        Assert.True(operation.TryProjectCrystallizedValueFrom(
+            new Relation(width.ValueSlot, height.ValueSlot),
+            crystal,
+            out var read));
+
+        Assert.Equal(20UL, crystal.Value);
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(crystal, 20),
+                new Relation(new CarrierLocation(width, 0), new CarrierLocation(height, 0))),
+            read);
+    }
+
+    [Fact]
+    public void IncompatibleAdditiveCrystalDoesNotProjectAsSingleScalarValue()
+    {
+        var length = new Carrier();
+        var heat = new Carrier();
+        var result = new Carrier();
+        var lengthPort = new Relation(Point(length, 1), Point(Carrier.Unknown, 1));
+        var heatPort = new Relation(Point(heat, 1), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(lengthPort, heatPort), Point(result, 1));
+        length.Set(3);
+        heat.Set(4);
+
+        Assert.True(operation.TryCrystallize(out var shapeOnlyCrystal));
+        Assert.False(operation.TryCrystallize(
+            new Relation(length.ValueSlot, heat.ValueSlot),
+            out _,
+            out _));
+        Assert.False(operation.TryProjectCrystallizedValueFrom(
+            new Relation(length.ValueSlot, heat.ValueSlot),
+            shapeOnlyCrystal,
+            out _));
+        Assert.Equal(0UL, shapeOnlyCrystal.Value);
+    }
+
     private static Relation Point(Carrier carrier, long ticks) =>
         new(new CarrierLocation(carrier, ticks), carrier);
 
