@@ -8,6 +8,8 @@ For the current pseudo-code view of carrier input, local accounting, relation
 application, and tension routing, see `Gojo Carrier Settlement Algorithm.md`.
 For the port/fusion direction, see
 `Gojo Ports Fusion And Operational Reads.md`.
+For the unit-shape and crystallization direction, see
+`Gojo Unit Shape And Crystallization.md`.
 
 The current model is:
 
@@ -19,6 +21,8 @@ The current model is:
   ordinary negative side of the scalar carrier
 - relations bind carrier sites into points, segments, boundaries, routes, and
   transforms
+- carriers have native unit shapes for their ticks; ordinary relation unit
+  shape is calculated from carrier unit shapes and relation surface context
 - relations have physical identity; structural equality is still useful for
   tests and read comparison, but identity decides shared participation
 - settlement happens inside the connected carrier/relation world
@@ -33,6 +37,8 @@ Current step boundary:
 - dual-carrier / inverse-flow behavior is only an isolated foothold for the
   later higher-grade or imaginary layer; it must not be treated as ordinary
   scalar negation
+- crystallization is blocked on implementing relation-shaped unit surfaces,
+  not on operation value reads
 
 ## Phase 1. Carrier Reads
 

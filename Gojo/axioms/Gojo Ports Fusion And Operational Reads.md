@@ -5,6 +5,9 @@ It is intentionally relation-shaped: ports, grouped ports, fusion surfaces, and
 operational reads should all be expressed with the same carrier/relation
 machinery already used by settlement and projection.
 
+For unit-shape and crystallization rules, see
+`Gojo Unit Shape And Crystallization.md`.
+
 ## 1. Ports
 
 A port is an exposed relation surface.
