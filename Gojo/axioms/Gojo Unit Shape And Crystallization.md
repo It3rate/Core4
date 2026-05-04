@@ -47,6 +47,11 @@ shape. If a system wants a related unit basis with a different calibration, it
 should create a new carrier or explicit adapter, not mutate the crystallized
 carrier's basis in place.
 
+Sharing a unit shape does not share value state. Two square-inch carriers can
+have compatible tick meaning while holding different `Value` and `Tension`.
+The shared unit shape is a stable standard; each carrier remains its own
+physical site.
+
 ## 2. Relation Unit Shape Is Calculated
 
 Do not store unit shape on ordinary relations by default.
@@ -228,6 +233,7 @@ In current Gojo code:
   not unit-compatible by coincidence.
 - carriers can be created with an existing `UnitShape`, giving them compatible
   ticks without sharing carrier identity.
+- carriers that share a `UnitShape` keep independent `Value` and `Tension`.
 - unit-shape surfaces are readable as snapshots; external perturbation of a
   read surface does not mutate the carrier's basis.
 - an inverse carrier shares the forward carrier's unit shape; inverse flow is
@@ -263,6 +269,9 @@ The initial implementation can stay simple:
 
 - multi-component crystal value surfaces for unreduced additive shapes
 - richer compatibility reads for structured and inverse unit participation
+- circular and angular adapters should be treated carefully: freezing an angle
+  or radius-like surface may preserve resolution/tension behavior that is lost
+  if it is immediately flattened into Cartesian projection
 
 Later work must clarify:
 

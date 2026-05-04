@@ -166,6 +166,26 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
+    public void CrystallizedCarriersSharingUnitShapeKeepIndependentValues()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var areaShape = UnitShape.Product(lengthShape, lengthShape);
+        var first = new Carrier(areaShape);
+        var second = new Carrier(areaShape);
+
+        first.Set(12);
+        second.Set(3);
+        first.Remove(20);
+
+        Assert.True(first.UnitShape.CompatibleWith(second.UnitShape));
+        Assert.False(first.SameIdentityAs(second));
+        Assert.Equal(0UL, first.Value);
+        Assert.Equal(-8, first.Tension);
+        Assert.Equal(3UL, second.Value);
+        Assert.Equal(0, second.Tension);
+    }
+
+    [Fact]
     public void CrystallizeFromProjectsOperationValueOntoNewCarrier()
     {
         var lengthShape = new Carrier().UnitShape;

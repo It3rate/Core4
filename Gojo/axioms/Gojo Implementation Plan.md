@@ -119,6 +119,8 @@ In place:
 - carrier unit shape is fixed after carrier creation; `UnitShape.Surface`
   exposes a snapshot for inspection, so perturbing that read surface cannot
   mutate the crystallized basis
+- carriers with shared unit shape keep independent `Value` and `Tension`; unit
+  compatibility is not shared storage
 - crystal value projection is executable as a foothold:
   `TryCrystallize(input, out carrier, out read)` and
   `TryProjectCrystallizedValueFrom(input, carrier, out read)` bind an
