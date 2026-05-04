@@ -41,6 +41,12 @@ Two carriers can share the same unit shape without being the same carrier.
 This is useful for separate value holders, alternate resolutions, and copied or
 crystallized surfaces.
 
+Once a carrier is created, its unit shape is fixed. For a crystallized carrier,
+this is part of the promise: one crystal tick must keep meaning the same unit
+shape. If a system wants a related unit basis with a different calibration, it
+should create a new carrier or explicit adapter, not mutate the crystallized
+carrier's basis in place.
+
 ## 2. Relation Unit Shape Is Calculated
 
 Do not store unit shape on ordinary relations by default.
@@ -203,6 +209,11 @@ That carrier can later measure circles, triangles, or any other area-like
 structure compatible with square inches. It is not permanently tied to the
 rectangle or operation that first derived it.
 
+The source operation does not retain control over the crystal basis. It may
+continue to project values into the crystal if an explicit live projection is
+kept, but changing the lower source structure does not silently change what one
+crystal tick means.
+
 Projecting a current operation value onto that carrier is optional and should
 not be conflated with creating the unit shape. Projection feeds the crystal
 carrier by delta, like other port-style value input; it does not directly
@@ -217,6 +228,8 @@ In current Gojo code:
   not unit-compatible by coincidence.
 - carriers can be created with an existing `UnitShape`, giving them compatible
   ticks without sharing carrier identity.
+- unit-shape surfaces are readable as snapshots; external perturbation of a
+  read surface does not mutate the carrier's basis.
 - an inverse carrier shares the forward carrier's unit shape; inverse flow is
   not itself a new unit kind.
 - `Relation.TryReadUnitShape(...)` calculates unit shape from existing

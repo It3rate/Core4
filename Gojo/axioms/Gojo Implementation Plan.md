@@ -116,6 +116,9 @@ In place:
   inverse carriers share the forward unit shape, relation unit shape is
   calculated from frame/port/operation shape, and `TryCrystallize` creates a
   carrier with the derived shape without projecting value
+- carrier unit shape is fixed after carrier creation; `UnitShape.Surface`
+  exposes a snapshot for inspection, so perturbing that read surface cannot
+  mutate the crystallized basis
 - crystal value projection is executable as a foothold:
   `TryCrystallize(input, out carrier, out read)` and
   `TryProjectCrystallizedValueFrom(input, carrier, out read)` bind an

@@ -140,6 +140,32 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
+    public void UnitShapeSurfaceReadIsSnapshotNotMutableBasis()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var areaShape = UnitShape.Product(lengthShape, lengthShape);
+        var surface = (Relation)areaShape.Surface;
+
+        Assert.True(surface.Perturb(new CarrierLocation(Carrier.Unknown, 10)));
+
+        Assert.Equal(2, areaShape.ProductParticipationOf(lengthShape));
+    }
+
+    [Fact]
+    public void CrystallizedCarrierKeepsBasisWhenReadSurfaceIsPerturbed()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var areaShape = UnitShape.Product(lengthShape, lengthShape);
+        var crystal = new Carrier(areaShape);
+        var surface = (Relation)crystal.UnitShape.Surface;
+
+        Assert.True(surface.Perturb(new CarrierLocation(Carrier.Unknown, 10)));
+
+        Assert.True(crystal.UnitShape.CompatibleWith(areaShape));
+        Assert.Equal(2, crystal.UnitShape.ProductParticipationOf(lengthShape));
+    }
+
+    [Fact]
     public void CrystallizeFromProjectsOperationValueOntoNewCarrier()
     {
         var lengthShape = new Carrier().UnitShape;

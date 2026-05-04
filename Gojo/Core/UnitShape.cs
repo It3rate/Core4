@@ -2,12 +2,14 @@ namespace Gojo.Core;
 
 public sealed class UnitShape : IEquatable<UnitShape>
 {
+    private readonly IElement surface;
+
     private UnitShape(IElement surface)
     {
-        Surface = surface ?? throw new ArgumentNullException(nameof(surface));
+        this.surface = surface ?? throw new ArgumentNullException(nameof(surface));
     }
 
-    public IElement Surface { get; }
+    public IElement Surface => SnapshotOf(surface);
 
     public static UnitShape Atom(Carrier carrier) =>
         new(Point(carrier, 1));
@@ -28,7 +30,7 @@ public sealed class UnitShape : IEquatable<UnitShape>
             return first;
         }
 
-        return new UnitShape(new Relation(Chain([.. shapes.Select(shape => shape.Surface)]), Point(Carrier.Unknown, 1)));
+        return new UnitShape(new Relation(Chain([.. shapes.Select(shape => shape.surface)]), Point(Carrier.Unknown, 1)));
     }
 
     public static UnitShape Product(params UnitShape[] shapes) =>
@@ -46,7 +48,7 @@ public sealed class UnitShape : IEquatable<UnitShape>
             return shapes[0];
         }
 
-        return new UnitShape(new Relation(Chain([.. shapes.Select(shape => shape.Surface)]), Segment(Carrier.Unknown, 0, 1)));
+        return new UnitShape(new Relation(Chain([.. shapes.Select(shape => shape.surface)]), Segment(Carrier.Unknown, 0, 1)));
     }
 
     public int ProductParticipationOf(UnitShape unit)
@@ -56,7 +58,7 @@ public sealed class UnitShape : IEquatable<UnitShape>
             return 1;
         }
 
-        if (!TryReadProductOperands(Surface, out var operands))
+        if (!TryReadProductOperands(surface, out var operands))
         {
             return 0;
         }
@@ -68,13 +70,20 @@ public sealed class UnitShape : IEquatable<UnitShape>
 
     public bool Equals(UnitShape? other) =>
         other is not null &&
-        Equals(Surface, other.Surface);
+        Equals(surface, other.surface);
 
     public override bool Equals(object? obj) => obj is UnitShape other && Equals(other);
 
-    public override int GetHashCode() => Surface.GetHashCode();
+    public override int GetHashCode() => surface.GetHashCode();
 
-    public override string ToString() => Surface.ToString() ?? string.Empty;
+    public override string ToString() => surface.ToString() ?? string.Empty;
+
+    private static IElement SnapshotOf(IElement element) => element switch
+    {
+        CarrierLocation location => new CarrierLocation(location.Carrier, location.Ticks),
+        Relation relation => new Relation(SnapshotOf(relation.Left), SnapshotOf(relation.Right)),
+        _ => element
+    };
 
     private static bool TryReadProductOperands(IElement surface, out IElement[] operands)
     {
