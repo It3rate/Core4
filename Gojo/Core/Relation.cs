@@ -301,6 +301,41 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    public bool TryReadUnitShape(out UnitShape unitShape)
+    {
+        if (TryReadOperationUnitShape(out unitShape))
+        {
+            return true;
+        }
+
+        if (TryReadPortSurface(this, out var port) &&
+            TryReadPortUnitShape(port, out unitShape))
+        {
+            return true;
+        }
+
+        if (TryReadFrame(this, out var frame))
+        {
+            unitShape = frame.Carrier.UnitShape;
+            return true;
+        }
+
+        unitShape = null!;
+        return false;
+    }
+
+    public bool TryCrystallize(out Carrier carrier)
+    {
+        if (!TryReadUnitShape(out var unitShape))
+        {
+            carrier = null!;
+            return false;
+        }
+
+        carrier = new Carrier(unitShape);
+        return true;
+    }
+
     public CarrierLocation[] CarrierLocations()
     {
         return [.. LeftCarrierLocations(), .. RightCarrierLocations()];
@@ -645,6 +680,73 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
         port = null!;
         return false;
+    }
+
+    private bool TryReadOperationUnitShape(out UnitShape unitShape)
+    {
+        var operands = new List<UnitShape>();
+        if (!TryCollectOperationUnitShapes(Left, operands) ||
+            operands.Count == 0)
+        {
+            unitShape = null!;
+            return false;
+        }
+
+        if (TryReadPointFrame(Right, out var pointFrame) &&
+            pointFrame.Extent != 0)
+        {
+            unitShape = UnitShape.Additive(operands);
+            return true;
+        }
+
+        if (TryReadFrame(Right, out var segmentFrame) &&
+            segmentFrame.Extent != 0)
+        {
+            unitShape = UnitShape.Product(operands);
+            return true;
+        }
+
+        unitShape = null!;
+        return false;
+    }
+
+    private static bool TryCollectOperationUnitShapes(
+        IElement portSurface,
+        List<UnitShape> unitShapes)
+    {
+        if (TryReadPortSurface(portSurface, out var port))
+        {
+            if (!TryReadPortUnitShape(port, out var unitShape))
+            {
+                return false;
+            }
+
+            unitShapes.Add(unitShape);
+            return true;
+        }
+
+        if (portSurface is Relation portGroup)
+        {
+            return TryCollectOperationUnitShapes(portGroup.Left, unitShapes) &&
+                TryCollectOperationUnitShapes(portGroup.Right, unitShapes);
+        }
+
+        return false;
+    }
+
+    private static bool TryReadPortUnitShape(Relation port, out UnitShape unitShape)
+    {
+        if (!TryReadFrame(port.Left, out var sourceFrame) ||
+            !TryReadFrame(port.Right, out var targetFrame))
+        {
+            unitShape = null!;
+            return false;
+        }
+
+        unitShape = targetFrame.Carrier.IsUnknown
+            ? sourceFrame.Carrier.UnitShape
+            : targetFrame.Carrier.UnitShape;
+        return true;
     }
 
     private static Relation OperationResult(

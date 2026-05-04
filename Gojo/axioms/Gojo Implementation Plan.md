@@ -37,8 +37,9 @@ Current step boundary:
 - dual-carrier / inverse-flow behavior is only an isolated foothold for the
   later higher-grade or imaginary layer; it must not be treated as ordinary
   scalar negation
-- crystallization is blocked on implementing relation-shaped unit surfaces,
-  not on operation value reads
+- crystallization now has a unit-shape foothold: operation surfaces can derive
+  reusable unit shapes and create carriers with those shapes, while projecting
+  current values onto crystal carriers remains deferred
 
 ## Phase 1. Carrier Reads
 
@@ -110,6 +111,11 @@ In place:
   point output folds projected operands additively, segment output folds them
   multiplicatively, and unresolved operand residues stay visible in relation
   shape
+- carrier unit shape is executable as a foothold: default carriers get fresh
+  linear atom shapes, carriers can share a unit shape without sharing identity,
+  inverse carriers share the forward unit shape, relation unit shape is
+  calculated from frame/port/operation shape, and `TryCrystallize` creates a
+  carrier with the derived shape without projecting value
 - concrete port frames require carrier identity, while `Unknown` source/output
   frames let arbitrary carriers try the relation during discovery
 - input enters as signed tension and the carrier absorbs what it can into
@@ -149,6 +155,10 @@ Current stable examples:
 - `(portA -> portB) -> P(Result,1)` reads projected port operands additively
 - `(portA -> portB) -> S(Result,0,1)` reads projected port operands
   multiplicatively
+- additive operation unit shape collapses compatible operands and preserves
+  incompatible operands as unreduced relation shape
+- multiplicative operation unit shape preserves repeated participation, e.g.
+  `length * length` reads as two participations of the length unit shape
 
 Deferred dual-carrier foothold:
 
@@ -181,7 +191,7 @@ Next cleanup targets:
 Add only when the numeric shape is clear:
 
 - extent/stretch projection inside the carrier/relation world
-- crystallizing operation-surface reads as new carrier ticks
+- projecting operation-surface values onto crystallized carrier ticks
 - refill and borrow
 - branch and merge negotiation
 - conserved split versus observation fanout

@@ -446,6 +446,11 @@ directed segment endpoints -> length operational port -> length carrier tick
 Crystallization is therefore the strongest preserved boundary: it keeps a
 separation even while the underlying structure may remain physically connected.
 
+The current code implements the first half of this: an operation surface can
+derive a reusable unit shape and create a new carrier with that shape. It does
+not yet project the current operational read as value/tension onto that new
+carrier.
+
 ## 9. Current Code Foothold
 
 In current Gojo code:
@@ -471,6 +476,10 @@ In current Gojo code:
   operation-surface foothold over port groups: point output folds projected
   operands additively, segment output folds them multiplicatively, and residues
   remain visible as a relation-shaped tail.
+- `Relation.TryReadUnitShape(out unitShape)` derives the unit shape exposed by
+  frame, port, and operation surfaces.
+- `Relation.TryCrystallize(out carrier)` creates a new carrier from the
+  derived unit shape without projecting current value.
 
 This supports carrier-value multi-slot ports and the first structural-port
 foothold. The important guardrail is the same in both cases:

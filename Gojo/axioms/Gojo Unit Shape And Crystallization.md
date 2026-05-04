@@ -206,18 +206,40 @@ rectangle or operation that first derived it.
 Projecting a current operation value onto that carrier is optional and should
 not be conflated with creating the unit shape.
 
-## 8. Open Questions
+## 8. Current Code Foothold
+
+In current Gojo code:
+
+- `Carrier.UnitShape` is the native shape of one tick on that carrier.
+- a default carrier gets a fresh linear atom, so two unrelated carriers are
+  not unit-compatible by coincidence.
+- carriers can be created with an existing `UnitShape`, giving them compatible
+  ticks without sharing carrier identity.
+- an inverse carrier shares the forward carrier's unit shape; inverse flow is
+  not itself a new unit kind.
+- `Relation.TryReadUnitShape(...)` calculates unit shape from existing
+  relation surfaces:
+  - same-carrier point/segment frames expose that carrier's unit shape
+  - transfer/calibration ports expose the concrete target unit shape
+  - `Unknown` output ports inherit the source unit shape for discovery reads
+  - point-output operation surfaces fold operand shapes additively
+  - segment-output operation surfaces fold operand shapes multiplicatively
+- `Relation.TryCrystallize(...)` creates a new carrier with the derived unit
+  shape and does not project any current operation value onto it.
+
+This is intentionally only the unit-shape half of crystallization. The crystal
+carrier is a usable tick surface, but value projection across the crystal
+boundary remains a separate later operation.
+
+## 9. Open Questions
 
 The initial implementation can stay simple:
 
-- carriers store or expose their native unit shape
-- ordinary relation unit shapes are calculated, not stored
-- operation surfaces can derive composite unit shapes
-- crystallized carriers can be created with a derived unit shape
+- value projection onto a crystal surface
+- richer compatibility reads for structured and inverse unit participation
 
 Later work must clarify:
 
-- compatibility reads for richer unit structures
 - inverse/dual unit participation in code
 - compact scale-signature reads for fast scaling behavior
 - deeper structured units such as radians, arc-length/radius, and geometric or

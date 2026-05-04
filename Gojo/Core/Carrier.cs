@@ -9,22 +9,33 @@ public sealed class Carrier : IElement
     private bool settling;
 
     public Carrier()
-        : this(isInverse: false)
+        : this(isInverse: false, unitShape: null)
+    {
+    }
+
+    public Carrier(UnitShape unitShape)
+        : this(isInverse: false, unitShape)
     {
     }
 
     public Carrier(bool isInverse)
-        : this(NextId(), isInverse)
+        : this(isInverse, unitShape: null)
     {
     }
 
-    private Carrier(ulong id, bool isInverse)
+    private Carrier(bool isInverse, UnitShape? unitShape)
+        : this(NextId(), isInverse, unitShape)
+    {
+    }
+
+    private Carrier(ulong id, bool isInverse, UnitShape? unitShape)
     {
         Id = id;
         IsInverse = isInverse;
+        UnitShape = unitShape ?? UnitShape.Atom(this);
     }
 
-    public static Carrier Unknown { get; } = new(0, isInverse: false);
+    public static Carrier Unknown { get; } = new(0, isInverse: false, unitShape: null);
 
     public static Carrier Unbound => Unknown;
 
@@ -33,6 +44,8 @@ public sealed class Carrier : IElement
     public bool IsInverse { get; }
 
     public bool IsUnknown => Id == 0;
+
+    public UnitShape UnitShape { get; }
 
     public ulong Value { get; private set; }
 
@@ -53,7 +66,7 @@ public sealed class Carrier : IElement
             return inverse;
         }
 
-        inverse = new Carrier(!IsInverse)
+        inverse = new Carrier(!IsInverse, UnitShape)
         {
             inverse = this
         };
