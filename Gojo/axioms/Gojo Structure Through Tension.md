@@ -101,7 +101,200 @@ Later code may need machinery for candidates, attempts, routes, and hardening,
 but those should be relation/carrier structures where possible, not symbolic
 case lists.
 
-## 6. Circularity And Cycles
+## 6. Flow, Gradient, And Contour Settlement
+
+An existing structure usually presents a local flow or gradient. New tension
+can attempt to settle relative to that gradient in two broad orientations, and
+each orientation has two possible directions:
+
+```text
+aligned settlement       with or against the gradient/flow
+contour settlement       one way or the other along equal tension
+```
+
+So "opposed" is not a third kind beside aligned and contour. It is the inverse
+direction of aligned settlement. Likewise clockwise/counterclockwise, left/right
+around a contour, or the two directions along an isoline are inverse directions
+of contour settlement.
+
+Contour settlement is not merely geometric tangent motion. It means following
+sites of equal or near-equal tension instead of climbing or descending the
+gradient. In a point-centered field this may become a circle. In a line field
+it may become a parallel carrier. In an area or volume field it may become a
+level curve or level surface.
+
+This gives a small generative grammar:
+
+```text
+aligned settlement   with-flow / against-flow
+contour settlement   contour-forward / contour-inverse
+surface settlement   filled / empty region between two potentials
+```
+
+Surface settlement can occur in either orientation. Along a gradient, the
+surface is the interval or material between two flow potentials, such as the
+space between two endpoints of a segment. Along a contour, the surface is the
+region between a source and a contour, or between two contours, such as the
+space between a circle's center and perimeter or the shell between two parallel
+offset carriers. Filled generally implies multiplication structural, empty 
+implies addition.
+
+Those surfaces can harden as filled or empty:
+
+```text
+segment endpoints      filled bar or empty interval
+center and perimeter   disk/area or boundary-only circle
+parallel contours      shell/buffer or only paired contour paths
+```
+
+Examples:
+
+```text
+point on carrier          contour tension trapped at a location
+whole carrier side escape parallel contour carrier with buffer/shell between
+segment boundary overflow aligned continuation or contour side-wall
+closed boundary overflow  radial leak or perimeter traversal
+field gradient            flowline or isoline/equipotential surface
+```
+
+The contour may remain only potential. An observed contour or equal-tension
+read is not automatically a hardened path. Hardening requires repeated,
+stable, or useful settlement.
+
+This two-orientation/two-direction shape is a useful sanity check. If a model
+seems to have three primitive settlement choices, it may be missing the dual or
+inverse side of one of them.
+
+## 7. Domain Analogies
+
+Several physical domains are useful analogies, but they should not generate
+the Gojo rules. Gojo should keep the common settlement grammar and let domain
+specific structures decide conservation, dissipation, copying, and observation.
+
+Electrical analogy:
+
+```text
+voltage gradient   tension slope
+current            routed tension flow
+resistor           controlled dissipation
+capacitor          reservoir/storage
+inductor           momentum / resistance to change
+node               junction negotiation
+equipotential      contour carrier
+```
+
+Heat analogy:
+
+```text
+temperature gradient   flow direction
+isotherm               contour read or hardened contour
+insulation             shell/buffer carrier
+heat sink              attractor/sink
+thermal mass           reservoir
+```
+
+Fluid/pressure analogy:
+
+```text
+pressure gradient      flow direction
+pipe                   hardened route
+tank                   reservoir
+valve                  conditional boundary
+vortex                 cyclic contour settlement
+turbulence             unresolved branch/merge tension
+```
+
+Mechanics/field analogy:
+
+```text
+constraint force       orthogonal to allowed motion
+rail/track             hardened path
+collision              opposed tension
+gravity potential      inward/outward gradient
+orbit                  tangent flow plus radial constraint
+equipotential surface  contour settlement/read
+```
+
+The shared Gojo layer is:
+
+```text
+gradient
+contour
+reservoir
+route
+boundary
+junction
+settlement
+crystallization
+```
+
+The domain layer decides what is materially conserved, what is observed
+without draining, what dissipates, and what may be copied.
+
+## 8. Junction Shape Grammar
+
+Simple junction-like glyphs can be read as compact settlement sketches. These
+are candidate interpretations, not fixed symbolic tags.
+
+```text
+I  aligned continuation
+T  contour settlement at an endpoint of flow settlement
+Y  T where the branches become parallel, suggesting both paths participate
+L  T with one available direction; contour turn without branch choice
+O  stable closed contour
+X  structure overlap with no relation, crossing, disconnect, or no correlation
+H  bridge between parallel contours
+V  split from point into two gradient/contour routes; connected version of =
+=  parallel contour carriers with shell/buffer between
+```
+
+Alternative or complementary readings:
+
+```text
+T  branch negotiation from a blocked point
+Y  graded split or merge
+L  contour turn around blocked continuation
+X  crossing, exchange, or coupled orthogonality depending relation strength
+H  connector across a buffer
+V  fanout or convergence
+```
+
+The important point is that these shapes can be described by combinations of:
+
+```text
+aligned with-flow
+aligned against-flow
+contour forward
+contour inverse
+buffer/shell gap
+bridge/connector
+split/merge
+overlap without relation
+closed contour
+```
+
+They should eventually be constructible as numeric relation/carrier
+structures, not selected from a junction enum.
+
+## 9. Conservation Versus Observation
+
+Some fanout distributes material participation. Other fanout observes without
+draining. A pressure gauge does not consume the pressure it reads in the same
+way a drain consumes water. A temperature reading does not cut the measured
+temperature in half when two readers observe it.
+
+Gojo should keep this distinction structural:
+
+```text
+material route       drains/distributes participation
+observation route    copies or reads participation without material drain
+coupled route        partially drains and partially observes
+```
+
+This distinction matters for branches, sensors, ports, and live crystal
+projections.
+
+## 10. Circularity And Cycles
 
 Circular and cyclical structures should not be collapsed too early into a
 linear phase or Cartesian projection. A phase counter is useful, but it may
@@ -122,3 +315,16 @@ These are different settlement claims. Degrees, radians, and Cartesian
 sine/cosine reads are likely adapters over deeper circular structure, not the
 only possible circular primitive.
 
+In the gradient/contour grammar:
+
+```text
+radius      gradient carrier of a point-centered field
+circle      contour carrier at stable equal radius
+disk/area   filled settlement between origin and contour
+empty disk  boundary-only relation between origin and contour
+angle       contour traversal read anchored by radius
+orbit       tangent/contour flow plus radial constraint
+```
+
+This makes circle more than a wrapped line. It is a hardened contour of a
+field-like settlement around an origin.
