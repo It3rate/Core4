@@ -1,9 +1,16 @@
 namespace Gojo.Core;
 
+/// <summary>
+/// Primitive ordered Gojo structure. A relation can be a point, segment, port,
+/// operation surface, route, or nested structure depending on its elements;
+/// behavior is derived from that relation shape rather than from operation
+/// tags.
+/// </summary>
 public sealed class Relation : IElement, IEquatable<Relation>
 {
     private static ulong idCounter = 1;
 
+    /// <summary>Creates an ordered relation from left element to right element.</summary>
     public Relation(IElement left, IElement right)
     {
         Id = NextId();
@@ -17,16 +24,27 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
     public IElement Right { get; private set; }
 
+    #region Identity and Duality
+
+    /// <summary>Duals a point by negating its location and other relations recursively.</summary>
     public Relation Dual() => IsPoint(out var location, out var carrier)
         ? new(location.Dual(), carrier)
         : new(Left.Dual(), Right.Dual());
 
+    /// <summary>Swaps traversal order without changing either side's duality.</summary>
     public Relation Reverse() => new(Right, Left);
 
+    /// <summary>Returns the structural dual as an element.</summary>
     IElement IElement.Dual() => Dual();
 
+    /// <summary>Compares physical relation identity rather than structural equality.</summary>
     public bool SameIdentityAs(Relation other) => ReferenceEquals(this, other);
 
+    #endregion
+
+    #region Structural Perturbation and Settlement
+
+    /// <summary>Moves or scales carrier locations participating in this relation.</summary>
     public bool Perturb(IElement perturbation)
     {
         if (perturbation is CarrierLocation delta)
@@ -52,6 +70,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Applies this relation as settlement structure in an attached world.</summary>
     internal bool Apply()
     {
         var left = CarrierSitesOf(Left);
@@ -77,12 +96,18 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return rightSites.IsOrigin && RoutePositiveTension(leftSites, rightSites);
     }
 
+    #endregion
+
+    #region Local State Reads
+
+    /// <summary>Reads boolean-like support participation from a carrier frame.</summary>
     public Relation SupportOn(Carrier reader)
     {
         var (reverse, forward) = ReadStatePair(reader);
         return SlotPair(reader, reverse, forward);
     }
 
+    /// <summary>Reads overlapping opposed support as tension participation.</summary>
     public Relation TensionOn(Carrier reader)
     {
         var (reverse, forward) = ReadStatePair(reader);
@@ -90,6 +115,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return SlotPair(reader, tension, tension);
     }
 
+    /// <summary>Reads non-overlapped support as exclusive participation.</summary>
     public Relation ExclusiveOn(Carrier reader)
     {
         var (reverse, forward) = ReadStatePair(reader);
@@ -98,6 +124,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
             : SlotPair(reader, reverse - forward, 0);
     }
 
+    /// <summary>Reads this relation's sorted boundary sites in a carrier frame.</summary>
     public Relation BoundariesOn(Carrier reader)
     {
         if (!TryGetCarrierLocations(out var leftLocation, out var rightLocation))
@@ -117,6 +144,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return new(new CarrierLocation(reader, start), new CarrierLocation(reader, end));
     }
 
+    /// <summary>Reads the unsigned span between sorted boundaries.</summary>
     public CarrierLocation SpanOn(Carrier reader)
     {
         var boundaries = BoundariesOn(reader);
@@ -125,6 +153,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
             boundaries.RightLocation.Ticks - boundaries.LeftLocation.Ticks);
     }
 
+    /// <summary>Reads directed flow from left site to right site in a carrier frame.</summary>
     public CarrierLocation FlowOn(Carrier reader)
     {
         if (!TryGetCarrierLocations(out var leftLocation, out var rightLocation))
@@ -140,6 +169,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return new CarrierLocation(reader, rightTicks - leftTicks);
     }
 
+    /// <summary>Reads traversal start/end states carrying boundary point plus flow.</summary>
     public Relation TraversalSitesOn(Carrier reader)
     {
         if (!TryGetCarrierLocations(out var leftLocation, out var rightLocation))
@@ -167,6 +197,11 @@ public sealed class Relation : IElement, IEquatable<Relation>
             new Relation(new CarrierLocation(flow.Carrier, rightTicks), flow));
     }
 
+    #endregion
+
+    #region Projection and Ports
+
+    /// <summary>Projects a location through this relation, falling back to zero plus residue.</summary>
     public Relation Project(CarrierLocation location, Carrier reader)
     {
         return TryProject(location, reader, out var projected)
@@ -174,6 +209,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
             : ProjectionResult(new CarrierLocation(reader, 0), location);
     }
 
+    /// <summary>Projects only when this relation surface accepts source and reader frames.</summary>
     public bool TryProject(CarrierLocation location, Carrier reader, out Relation projected)
     {
         if (TryProjectBetweenSurfaces(Left, Right, location, reader, out projected))
@@ -185,6 +221,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Projects between two relation surfaces in whichever direction matches.</summary>
     private static bool TryProjectBetweenSurfaces(
         IElement left,
         IElement right,
@@ -225,6 +262,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Imports value input through this relation as a slot port.</summary>
     public bool TrySetFrom(IElement input)
     {
         var imports = new List<SlotImport>();
@@ -241,6 +279,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return imports.Count != 0;
     }
 
+    /// <summary>Imports input by retargeting exposed structural coordinates.</summary>
     public bool TrySetStructureFrom(IElement input)
     {
         var imports = new List<StructuralSlotImport>();
@@ -257,9 +296,15 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return imports.Count != 0;
     }
 
+    #endregion
+
+    #region Operation Surfaces and Crystallization
+
+    /// <summary>Reads an operation surface over port input without mutating carriers.</summary>
     public bool TryReadOperationFrom(IElement input, Carrier reader, out Relation read) =>
         TryReadOperationFrom(input, reader, bindOutputToReader: false, out read);
 
+    /// <summary>Reads an operation surface, optionally binding output to the reader.</summary>
     private bool TryReadOperationFrom(
         IElement input,
         Carrier reader,
@@ -306,6 +351,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Calculates the unit shape exposed by this relation surface.</summary>
     public bool TryReadUnitShape(out UnitShape unitShape)
     {
         if (TryReadOperationUnitShape(out unitShape))
@@ -329,6 +375,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Creates a carrier with this relation's derived unit shape only.</summary>
     public bool TryCrystallize(out Carrier carrier)
     {
         if (!TryReadUnitShape(out var unitShape))
@@ -341,6 +388,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>Creates a crystal carrier and projects compatible current value into it.</summary>
     public bool TryCrystallize(IElement input, out Carrier carrier, out Relation read)
     {
         if (!TryReadUnitShape(out var unitShape))
@@ -361,6 +409,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>Projects compatible current operation value onto an existing crystal.</summary>
     public bool TryProjectCrystallizedValueFrom(IElement input, Carrier crystal, out Relation read)
     {
         if (!TryReadUnitShape(out var unitShape) ||
@@ -378,17 +427,26 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    #endregion
+
+    #region Structure Inspection
+
+    /// <summary>Returns all carrier locations contained by this relation.</summary>
     public CarrierLocation[] CarrierLocations()
     {
         return [.. LeftCarrierLocations(), .. RightCarrierLocations()];
     }
 
+    /// <summary>Returns all carriers referenced by this relation or nested elements.</summary>
     public Carrier[] Carriers() => [.. CarriersOf(Left), .. CarriersOf(Right)];
 
+    /// <summary>Returns carrier locations from the left element.</summary>
     public CarrierLocation[] LeftCarrierLocations() => CarrierLocationsOf(Left);
 
+    /// <summary>Returns carrier locations from the right element.</summary>
     public CarrierLocation[] RightCarrierLocations() => CarrierLocationsOf(Right);
 
+    /// <summary>Reads this relation as two direct carrier-location slots.</summary>
     public bool TryGetCarrierLocations(out CarrierLocation left, out CarrierLocation right)
     {
         if (Left is CarrierLocation leftLocation && Right is CarrierLocation rightLocation)
@@ -403,14 +461,21 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Returns the direct left carrier-location slot or throws.</summary>
     public CarrierLocation LeftLocation => Left is CarrierLocation location
         ? location
         : throw new InvalidOperationException("The left relation slot is not a carrier location.");
 
+    /// <summary>Returns the direct right carrier-location slot or throws.</summary>
     public CarrierLocation RightLocation => Right is CarrierLocation location
         ? location
         : throw new InvalidOperationException("The right relation slot is not a carrier location.");
 
+    #endregion
+
+    #region Equality and Formatting
+
+    /// <summary>Compares relation shape and element values, not physical identity.</summary>
     public bool Equals(Relation? other) =>
         other is not null &&
         Equals(Left, other.Left) &&
@@ -422,6 +487,11 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
     public override string ToString() => $"{Left} -> {Right}";
 
+    #endregion
+
+    #region Frame Readers
+
+    /// <summary>Reads this relation as a point relation grounded on its carrier.</summary>
     private bool IsPoint(out CarrierLocation location, out Carrier carrier)
     {
         if (Left is CarrierLocation leftLocation &&
@@ -438,6 +508,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Reads two locations only when both are visible in reader identity.</summary>
     private static bool TryReadInCarrier(
         Carrier reader,
         CarrierLocation left,
@@ -457,6 +528,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>Reads a frame's extent as a basis carrier location.</summary>
     private static bool TryReadBasis(IElement element, out CarrierLocation basis)
     {
         if (TryReadFrame(element, out var frame))
@@ -469,6 +541,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Reads a location, point, or segment-like surface as a carrier frame.</summary>
     private static bool TryReadFrame(IElement element, out CarrierFrame frame)
     {
         if (element is CarrierLocation location)
@@ -513,6 +586,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Reads only point surfaces as origin-to-point frames.</summary>
     private static bool TryReadPointFrame(IElement element, out CarrierFrame frame)
     {
         if (element is Relation relation && relation.IsPoint(out var pointLocation, out _))
@@ -525,6 +599,11 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    #endregion
+
+    #region Slot Import Helpers
+
+    /// <summary>Collects value-port imports after validating the whole input shape.</summary>
     private static bool TryCollectSlotImports(
         IElement sourceSurface,
         IElement targetSurface,
@@ -549,6 +628,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>Collects structural imports that retarget existing exposed coordinates.</summary>
     private static bool TryCollectStructuralSlotImports(
         IElement sourceSurface,
         IElement targetSurface,
@@ -582,6 +662,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>Imports a frame-readable structural value as one atomic extent.</summary>
     private static bool TryCollectAtomicStructuralFrameImport(
         IElement sourceSurface,
         IElement targetSurface,
@@ -599,9 +680,15 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>True for relation-shaped groups that are not simple frames.</summary>
     private static bool IsGroupSurface(IElement element) =>
         element is Relation && !TryReadFrame(element, out _);
 
+    #endregion
+
+    #region Operation and Unit Shape Helpers
+
+    /// <summary>Collects operation operands by matching input shape to port surfaces.</summary>
     private static bool TryCollectOperationOperands(
         IElement portSurface,
         IElement input,
@@ -623,6 +710,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Collects one operation operand from a port and input element.</summary>
     private static bool TryCollectOperationOperand(
         Relation port,
         IElement input,
@@ -643,6 +731,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Projects a concrete location through one operation operand port.</summary>
     private static bool TryCollectOperationOperand(
         Relation port,
         CarrierLocation input,
@@ -658,6 +747,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>Projects input to a concrete target surface carrier.</summary>
     private static bool TryProjectToTargetSurface(
         IElement sourceSurface,
         IElement targetSurface,
@@ -674,6 +764,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return TryProjectThrough(sourceSurface, targetSurface, input, targetFrame.Carrier, out projection);
     }
 
+    /// <summary>Projects input through surfaces and returns target plus residue slots.</summary>
     private static bool TryProjectThrough(
         IElement sourceSurface,
         IElement targetSurface,
@@ -693,6 +784,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>Reads relation-shaped input as an atomic extent relative to a source frame.</summary>
     private static bool TryReadAtomicFrameInput(
         IElement input,
         IElement sourceSurface,
@@ -709,6 +801,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>Reads an exposed port surface as source frame to target frame.</summary>
     private static bool TryReadPortSurface(IElement element, out Relation port)
     {
         if (element is Relation relation &&
@@ -724,6 +817,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Calculates operation-result unit shape from operand port shapes.</summary>
     private bool TryReadOperationUnitShape(out UnitShape unitShape)
     {
         var operands = new List<UnitShape>();
@@ -752,6 +846,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Collects unit shapes from a grouped operation port surface.</summary>
     private static bool TryCollectOperationUnitShapes(
         IElement portSurface,
         List<UnitShape> unitShapes)
@@ -776,6 +871,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Reads unit shape exposed by a port, with concrete target winning.</summary>
     private static bool TryReadPortUnitShape(Relation port, out UnitShape unitShape)
     {
         if (!TryReadFrame(port.Left, out var sourceFrame) ||
@@ -791,6 +887,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>Builds operation read output with target value and residue chain.</summary>
     private static Relation OperationResult(
         CarrierFrame targetFrame,
         long value,
@@ -801,6 +898,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
                 checked(targetFrame.Start + checked(value * targetFrame.Extent))),
             OperationResidue(operands));
 
+    /// <summary>Chains operand residues in operation operand order.</summary>
     private static IElement OperationResidue(IReadOnlyList<OperationOperand> operands)
     {
         IElement residue = operands[^1].Residue;
@@ -812,6 +910,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return residue;
     }
 
+    /// <summary>Finds the concrete structural coordinate retargeted by a surface.</summary>
     private static bool TryReadStructuralTarget(IElement element, out CarrierLocation targetSite)
     {
         if (element is CarrierLocation location)
@@ -852,14 +951,17 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return false;
     }
 
+    /// <summary>Returns true when a frame accepts the requested concrete carrier.</summary>
     private static bool FrameAccepts(CarrierFrame frame, Carrier carrier) =>
         frame.Carrier.IsUnknown || carrier.SameIdentityAs(frame.Carrier);
 
+    /// <summary>Replaces Unknown frame carrier with the concrete carrier for a read.</summary>
     private static CarrierFrame ResolveFrameCarrier(CarrierFrame frame, Carrier carrier) =>
         frame.Carrier.IsUnknown
             ? new CarrierFrame(carrier, frame.Start, frame.End)
             : frame;
 
+    /// <summary>Resolves operation output frame, optionally binding it to the reader.</summary>
     private static bool TryResolveOperationTargetFrame(
         CarrierFrame frame,
         Carrier reader,
@@ -882,6 +984,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>Allows scalar crystal value projection only for currently reducible shapes.</summary>
     private bool CanProjectOperationValueAsSingleCrystal()
     {
         var operands = new List<UnitShape>();
@@ -902,6 +1005,11 @@ public sealed class Relation : IElement, IEquatable<Relation>
             segmentFrame.Extent != 0;
     }
 
+    #endregion
+
+    #region Location Transforms and Projection Math
+
+    /// <summary>Collects and commits relation-location updates as one structural change.</summary>
     private bool TryTransformLocations(Func<CarrierLocation, LocationTransform> transform)
     {
         var updates = new List<LocationUpdate>();
@@ -931,6 +1039,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return updates.Count != 0;
     }
 
+    /// <summary>Recursively collects location updates while avoiding relation cycles.</summary>
     private bool TryCollectLocationUpdates(
         Func<CarrierLocation, LocationTransform> transform,
         HashSet<ulong> visited,
@@ -967,6 +1076,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         }
     }
 
+    /// <summary>Projects a location from a source frame into a target frame.</summary>
     private static Relation ProjectBetween(
         CarrierLocation location,
         Carrier reader,
@@ -999,15 +1109,19 @@ public sealed class Relation : IElement, IEquatable<Relation>
             new CarrierLocation(location.Carrier, SignedTicks(residueMagnitude, Math.Sign(relativeTicks))));
     }
 
+    /// <summary>Builds the standard projection result pair.</summary>
     private static Relation ProjectionResult(CarrierLocation projected, CarrierLocation residue) =>
         new(projected, residue);
 
+    /// <summary>Returns positive magnitude of signed ticks.</summary>
     private static ulong MagnitudeOf(long ticks) =>
         ticks >= 0 ? checked((ulong)ticks) : checked((ulong)-ticks);
 
+    /// <summary>Applies a sign to an unsigned tick magnitude.</summary>
     private static long SignedTicks(ulong ticks, int sign) =>
         sign < 0 ? -checked((long)ticks) : checked((long)ticks);
 
+    /// <summary>Scales a location exactly between two basis extents.</summary>
     private static bool TryScale(
         CarrierLocation location,
         long sourceBasis,
@@ -1029,6 +1143,11 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    #endregion
+
+    #region Element Traversal Helpers
+
+    /// <summary>Collects carrier locations from an element tree.</summary>
     private static CarrierLocation[] CarrierLocationsOf(IElement element) => element switch
     {
         CarrierLocation location => [location],
@@ -1036,6 +1155,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         _ => []
     };
 
+    /// <summary>Collects carriers from an element tree.</summary>
     private static Carrier[] CarriersOf(IElement element) => element switch
     {
         Carrier carrier => [carrier],
@@ -1044,11 +1164,17 @@ public sealed class Relation : IElement, IEquatable<Relation>
         _ => []
     };
 
+    #endregion
+
+    #region Support Read Helpers
+
+    /// <summary>Builds a reverse/forward slot pair on a reader carrier.</summary>
     private static Relation SlotPair(Carrier reader, ulong reverse, ulong forward) =>
         new(
             new CarrierLocation(reader, -checked((long)reverse)),
             new CarrierLocation(reader, forward));
 
+    /// <summary>Reads nested state as reverse and forward support magnitudes.</summary>
     private (ulong Reverse, ulong Forward) ReadStatePair(Carrier reader)
     {
         if (TryGetCarrierLocations(out var left, out var right))
@@ -1059,6 +1185,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return Right is Relation state ? state.ReadStatePair(reader) : (0, 0);
     }
 
+    /// <summary>Reads two direct slots as reverse/forward participation.</summary>
     private static (ulong Reverse, ulong Forward) ReadSlots(
         Carrier reader,
         CarrierLocation left,
@@ -1084,6 +1211,11 @@ public sealed class Relation : IElement, IEquatable<Relation>
         }
     }
 
+    #endregion
+
+    #region Settlement Helpers
+
+    /// <summary>Applies same-carrier accounting for reset, wrap, and clamp shapes.</summary>
     private static bool AccountLocal(
         Carrier carrier,
         long source,
@@ -1108,6 +1240,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
             carrier.LeaveTension(local, checked((long)(carrier.Value - local)));
     }
 
+    /// <summary>Routes positive source tension into an origin receiver relation.</summary>
     private static bool RoutePositiveTension(CarrierSites source, CarrierSites receiver)
     {
         var unit = source.Width == 0 ? source.Max : source.Width;
@@ -1136,6 +1269,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>Routes negative source tension into an inverse-origin receiver relation.</summary>
     private static bool RouteNegativeTension(CarrierSites source, CarrierSites receiver)
     {
         var unit = source.Width == 0 ? source.Max : source.Width;
@@ -1162,6 +1296,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>Collects all carrier sites participating in settlement application.</summary>
     private static CarrierLocation[] CarrierSitesOf(IElement element) => element switch
     {
         CarrierLocation location => [location],
@@ -1169,6 +1304,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         _ => []
     };
 
+    /// <summary>Reads a carrier-site set only when all sites share one carrier.</summary>
     private static bool TryReadOneCarrier(
         CarrierLocation[] sites,
         out CarrierSites carrierSites)
@@ -1192,6 +1328,10 @@ public sealed class Relation : IElement, IEquatable<Relation>
             sites.Max(site => site.Ticks));
         return true;
     }
+
+    #endregion
+
+    #region Local Data Shapes
 
     private readonly record struct CarrierSites(Carrier Carrier, long Min, long Max)
     {
@@ -1243,5 +1383,8 @@ public sealed class Relation : IElement, IEquatable<Relation>
         public static LocationTransform To(CarrierLocation location) => new(true, location);
     }
 
+    /// <summary>Allocates the next physical relation identity.</summary>
     private static ulong NextId() => idCounter++;
+
+    #endregion
 }

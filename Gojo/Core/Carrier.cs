@@ -1,5 +1,10 @@
 namespace Gojo.Core;
 
+/// <summary>
+/// Physical Gojo value site. A carrier has stable identity and unit shape,
+/// mutable value/tension state, and attached relations that settle the
+/// connected local world when new tension enters.
+/// </summary>
 public sealed class Carrier : IElement
 {
     private static ulong idCounter = 1;
@@ -8,16 +13,21 @@ public sealed class Carrier : IElement
     private readonly List<Relation> relations = [];
     private bool settling;
 
+    #region Construction and Identity
+
+    /// <summary>Creates a forward carrier with a fresh linear unit atom.</summary>
     public Carrier()
         : this(isInverse: false, unitShape: null)
     {
     }
 
+    /// <summary>Creates a forward carrier sharing an existing stable unit shape.</summary>
     public Carrier(UnitShape unitShape)
         : this(isInverse: false, unitShape)
     {
     }
 
+    /// <summary>Creates a carrier face with explicit flow orientation.</summary>
     public Carrier(bool isInverse)
         : this(isInverse, unitShape: null)
     {
@@ -35,8 +45,10 @@ public sealed class Carrier : IElement
         UnitShape = unitShape ?? UnitShape.Atom(this);
     }
 
+    /// <summary>Wildcard carrier used by discovery-oriented frames and ports.</summary>
     public static Carrier Unknown { get; } = new(0, isInverse: false, unitShape: null);
 
+    /// <summary>Alias for the wildcard carrier when describing unbound structure.</summary>
     public static Carrier Unbound => Unknown;
 
     public ulong Id { get; }
@@ -45,7 +57,12 @@ public sealed class Carrier : IElement
 
     public bool IsUnknown => Id == 0;
 
+    /// <summary>Stable tick meaning for this carrier; value remains mutable.</summary>
     public UnitShape UnitShape { get; }
+
+    #endregion
+
+    #region State and Slots
 
     public ulong Value { get; private set; }
 
@@ -57,8 +74,14 @@ public sealed class Carrier : IElement
 
     public CarrierLocation TensionSlot => new(this, Tension);
 
+    #endregion
+
+    #region Duality and Reads
+
+    /// <summary>Returns this carrier's stable opposed-flow face.</summary>
     public Carrier Dual() => Inverse();
 
+    /// <summary>Gets or creates the opposite carrier face sharing this unit shape.</summary>
     public Carrier Inverse()
     {
         if (inverse is not null)
@@ -73,15 +96,23 @@ public sealed class Carrier : IElement
         return inverse;
     }
 
+    /// <summary>Returns this carrier's structural dual as an element.</summary>
     IElement IElement.Dual() => Dual();
 
+    /// <summary>Compares physical carrier identity, not unit compatibility.</summary>
     public bool SameIdentityAs(Carrier other) => ReferenceEquals(this, other);
 
+    /// <summary>Reads a location carrier as aligned or invisible from this carrier.</summary>
     public long ReadSignOf(Carrier locationCarrier)
     {
         return SameIdentityAs(locationCarrier) ? 1 : 0;
     }
 
+    #endregion
+
+    #region Structure and Public Input
+
+    /// <summary>Attaches relation structure to each carrier it references and settles.</summary>
     public Relation Attach(Relation relation)
     {
         foreach (var carrier in relation.Carriers().Distinct())
@@ -96,6 +127,7 @@ public sealed class Carrier : IElement
         return relation;
     }
 
+    /// <summary>Adds positive tick tension and settles the connected world.</summary>
     public void Add(ulong ticks)
     {
         Receive(checked((long)ticks));
@@ -106,6 +138,7 @@ public sealed class Carrier : IElement
         SettleWorld();
     }
 
+    /// <summary>Adds negative tick tension and settles the connected world.</summary>
     public void Remove(ulong ticks)
     {
         Receive(checked(-checked((long)ticks)));
@@ -115,6 +148,7 @@ public sealed class Carrier : IElement
         SettleWorld();
     }
 
+    /// <summary>Feeds the delta required to make visible value approach ticks.</summary>
     public void Set(long ticks)
     {
         Receive(checked(ticks - checked((long)Value)));
@@ -124,11 +158,14 @@ public sealed class Carrier : IElement
         SettleWorld();
     }
 
+    /// <summary>Feeds an unsigned target value through slot-style delta input.</summary>
     public void Set(ulong ticks) => Set(checked((long)ticks));
 
+    /// <summary>Imports another carrier's visible value through a port relation.</summary>
     public bool TrySetFrom(Relation port, Carrier source) =>
         TrySetFrom(port, source.ValueSlot);
 
+    /// <summary>Imports a visible location through a port and keeps residue as tension.</summary>
     public bool TrySetFrom(Relation port, CarrierLocation input)
     {
         if (!port.TryProject(input, this, out var projected) ||
@@ -143,6 +180,11 @@ public sealed class Carrier : IElement
         return true;
     }
 
+    #endregion
+
+    #region Settlement State Mutation
+
+    /// <summary>Receives signed tension and absorbs what fits in this carrier value.</summary>
     internal void Receive(long ticks)
     {
         if (ticks == 0)
@@ -154,6 +196,7 @@ public sealed class Carrier : IElement
         AbsorbTension();
     }
 
+    /// <summary>Sets visible value and leaves the supplied residue as tension.</summary>
     internal bool LeaveTension(ulong value, long tension)
     {
         if (Value == value && tension == 0)
@@ -166,6 +209,7 @@ public sealed class Carrier : IElement
         return true;
     }
 
+    /// <summary>Replaces unresolved tension with a remainder from routed flow.</summary>
     internal bool KeepTensionRemainder(long ticks)
     {
         if (Tension == ticks)
@@ -177,6 +221,7 @@ public sealed class Carrier : IElement
         return true;
     }
 
+    /// <summary>Cancels shared visible value between opposed carrier faces.</summary>
     internal bool BalanceOpposedValueWith(Carrier other)
     {
         var shared = Math.Min(Value, other.Value);
@@ -190,6 +235,7 @@ public sealed class Carrier : IElement
         return true;
     }
 
+    /// <summary>Adds unresolved signed tension without immediately absorbing it.</summary>
     internal void AddResidualTension(long ticks)
     {
         if (ticks != 0)
@@ -198,11 +244,16 @@ public sealed class Carrier : IElement
         }
     }
 
+    /// <summary>Holds residue from a projection and settles the connected world.</summary>
     internal void HoldResidueTension(long ticks)
     {
         AddResidualTension(ticks);
         SettleWorld();
     }
+
+    #endregion
+
+    #region Diagnostics and Settlement Loop
 
     public override string ToString()
     {
@@ -212,6 +263,7 @@ public sealed class Carrier : IElement
             : $"{Id}{orientation}";
     }
 
+    /// <summary>Applies attached relations until the connected carrier state quiets.</summary>
     private void SettleWorld()
     {
         if (settling)
@@ -247,6 +299,7 @@ public sealed class Carrier : IElement
         }
     }
 
+    /// <summary>Finds carriers reachable from this carrier through attached relations.</summary>
     private Carrier[] ConnectedCarriers()
     {
         var found = new HashSet<Carrier>();
@@ -273,12 +326,15 @@ public sealed class Carrier : IElement
         return [.. found.OrderBy(carrier => carrier.Id)];
     }
 
+    /// <summary>Captures value/tension state for fixed-point settlement checks.</summary>
     private static string[] Snapshot(Carrier[] carriers) => [.. carriers
         .Select(carrier => $"{carrier.Id}:{carrier.Value}:{carrier.Tension}")
         .Order()];
 
+    /// <summary>Allocates the next non-wildcard carrier identity.</summary>
     private static ulong NextId() => idCounter++;
 
+    /// <summary>Moves currently absorbable tension into value and leaves underflow.</summary>
     private void AbsorbTension()
     {
         if (Tension > 0)
@@ -304,4 +360,6 @@ public sealed class Carrier : IElement
         Tension = -checked((long)(draw - Value));
         Value = 0;
     }
+
+    #endregion
 }

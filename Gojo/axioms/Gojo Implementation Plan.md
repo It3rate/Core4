@@ -10,6 +10,8 @@ For the port/fusion direction, see
 `Gojo Ports Fusion And Operational Reads.md`.
 For the unit-shape and crystallization direction, see
 `Gojo Unit Shape And Crystallization.md`.
+For the speculative tension-to-structure direction, see
+`Gojo Structure Through Tension.md`.
 
 The current model is:
 
