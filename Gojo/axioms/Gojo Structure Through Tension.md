@@ -89,41 +89,65 @@ does not by itself declare that one tick must mean inch, meter, degree, lumen,
 or any particular resolution. Those are calibrations placed on the unit shape.
 
 ```text
-unit shape          unparameterized settlement grammar
-basis calibration   what conceptual 1 means in a local use
-partition map       how that 1 is divided or grouped
+unit shape              unparameterized settlement grammar
+calibration structure   endpoint, marker, or extent that makes measuring possible
+partition map           how a calibrated extent or cycle is divided or grouped
 ```
 
 A crystallized shape created from an inch-like structure may naturally default
 to an inch calibration because that is the structure that hardened it. The same
 unit shape can still be reused by a meter-like calibration if the meaning of
-`1` is reinterpreted, and it can be given millimeter-like resolution by a
-partition map. The shape is stable; its calibration and resolution are local
-uses of that shape.
+its calibrated extent is reinterpreted, and it can be given millimeter-like
+resolution by a partition map. The shape is stable; its calibration and
+resolution are local uses of that shape.
 
 Unparameterized unit tension has no internal reason to prefer one compatible
-direction. A flow-settlement unit shape gives a conceptual `1` along a chosen
-flow orientation. A contour-settlement unit shape gives a conceptual `1` as a
-complete contour traversal.
+direction, endpoint, or marker. Flow settlement and contour settlement are
+symmetric in this sense. Each can support real relations before it is measured.
+One unmeasured flow can be three times longer than another flow, just as one
+circle can have three times the diameter of another circle. The ratio can be
+true before either side has a local unit.
 
 ```text
-flow unit       1 = one unparameterized flow extent
-contour unit    1 = one complete contour/cycle
+flow settlement      ordered gradient/path possibility without a measured end
+contour settlement   closed equal-tension possibility without a marked start
+flow calibration     endpoint/basis marker that makes distance countable
+contour calibration  marker/orientation that makes cycle countable
 ```
 
 Both can be partitioned after calibration. A flow unit might be divided into
-tenths, eighths, millimeters, or larger estimate ticks. A contour unit might be
-divided into degrees, radians, encoder ticks, clock positions, or any other
-resolution. The partition does not create the unit shape; it only chooses how a
-local user walks the conceptual `1`.
+tenths, eighths, millimeters, or larger estimate ticks. A calibrated contour
+unit might be divided into degrees, radians, encoder ticks, clock positions, or
+any other resolution. The partition does not create the unit shape; it only
+chooses how a local user walks the calibrated extent or contour.
 
-A contour unit has an internal order from relative zero to the partition size,
-but it has no absolute pointing direction by itself. A circle does not know
-where "east" is. The first compatible calibration ray can pin the contour zero
-at its intersection, but that does not mean the circle rotated. Before the ray
-arrived, the contour had no absolute rotation concept to preserve or violate.
-Likewise, a complete structure has no universal true horizontal; even physical
-horizontal is a local calibration against a local field such as gravity.
+Many calculations do not require calibrated endpoints or zero markers. Two
+sticks can have a length ratio without declaring inches. Two circles can have a
+diameter ratio, speed ratio, tooth ratio, or belt contact relation without
+declaring where either circle's revolution starts. Those ratios can be real
+settlement facts before any distance counter or rotation counter exists.
+
+A calibrated endpoint or marker appears only when orthogonal tension hardens as
+a distinguishable site. On a flow settlement, that may be an endpoint or tick
+mark on the path. On a contour settlement, that may be a zero marker on the
+contour. The contour marker may be created by a flow-settlement ray from the
+center, by another contour event on the circumference, or by any other
+structure that can touch the contour without being absorbed into its existing
+traversal. The marker does not need to leave the circumference. It is
+orthogonal because it is not merely more of the existing flow or contour
+traversal; if it were aligned with the existing order, it would be absorbed
+instead of becoming a distinguishable site.
+
+The structural difference is where the uncalibrated origin lives. A flow
+settlement may have an origin on the path but no measured endpoint. A contour
+settlement may have a center/origin that created the contour but is not itself
+on the contour, so it needs a second marker or fixed orientation before cycles
+can be counted. After such a marker exists, a contour can have a relative zero,
+partitioned cycle, and revolution counter. Before it exists, a circle does not
+know where "east" is and does not even have an absolute rotation concept to
+preserve or violate. Likewise, a complete structure has no universal true
+horizontal; even physical horizontal is a local calibration against a local
+field such as gravity.
 
 ## 5. Local Evolution
 
@@ -392,11 +416,12 @@ not yet express contour traversal, contour zero calibration, shell surfaces, or
 candidate settlement paths.
 
 `UnitShape` currently records compatible additive/product participation. It
-does not yet record whether a shape's conceptual `1` is being used as flow
-extent or contour cycle. That distinction should enter as numeric structure,
-not as an enum. A flow unit can remain relation-shaped as a basis segment. A
-contour unit needs a closed/fused contour surface with a relative zero site and
-an optional calibration relation to a ray or other flow structure.
+does not yet record whether a shape is being used as uncalibrated flow
+settlement, unmarked contour settlement, or calibrated measurement/counting
+structure. That distinction should enter as numeric structure, not as an enum.
+A calibrated flow unit can remain relation-shaped as a basis segment. A contour
+unit needs a closed/fused contour surface; zero, partition, and revolution
+count are later calibration structures attached by orthogonal markers.
 
 `Carrier.IsInverse` is currently an opposed-flow face for aligned carrier
 settlement. It is not a general contour inverse. A contour inverse should be
@@ -409,10 +434,10 @@ Likely near-term adjustments:
 1. Keep Carrier.Value/Tension as the one-shot settlement foothold.
 2. Keep UnitShape stable and read-only as the crystallized tick promise.
 3. Rename or document linear reads as linear-frame reads if ambiguity grows.
-4. Add contour/cycle unit-shape examples as relation structures before adding
-   executable settlement.
-5. Represent contour zero as a calibration relation, not as an absolute field
-   on the circle.
+4. Add uncalibrated flow and contour unit-shape examples as relation structures
+   before adding executable settlement.
+5. Represent flow endpoints and contour zero as orthogonal calibration marker
+   relations, not as absolute fields on the shape.
 6. Add settlement-candidate reads only when there is a concrete operation that
    needs them, such as circular traversal, min/max, or hardening from tension.
 ```
