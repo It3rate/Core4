@@ -83,6 +83,48 @@ However, absent other constraints, a point-like source of grade-two tension may
 naturally explore a radial/circular settlement before discovering another
 route.
 
+Unit shape should not be confused with basis calibration, magnitude, or
+partition. A unit shape may carry an opinion about settlement direction, but it
+does not by itself declare that one tick must mean inch, meter, degree, lumen,
+or any particular resolution. Those are calibrations placed on the unit shape.
+
+```text
+unit shape          unparameterized settlement grammar
+basis calibration   what conceptual 1 means in a local use
+partition map       how that 1 is divided or grouped
+```
+
+A crystallized shape created from an inch-like structure may naturally default
+to an inch calibration because that is the structure that hardened it. The same
+unit shape can still be reused by a meter-like calibration if the meaning of
+`1` is reinterpreted, and it can be given millimeter-like resolution by a
+partition map. The shape is stable; its calibration and resolution are local
+uses of that shape.
+
+Unparameterized unit tension has no internal reason to prefer one compatible
+direction. A flow-settlement unit shape gives a conceptual `1` along a chosen
+flow orientation. A contour-settlement unit shape gives a conceptual `1` as a
+complete contour traversal.
+
+```text
+flow unit       1 = one unparameterized flow extent
+contour unit    1 = one complete contour/cycle
+```
+
+Both can be partitioned after calibration. A flow unit might be divided into
+tenths, eighths, millimeters, or larger estimate ticks. A contour unit might be
+divided into degrees, radians, encoder ticks, clock positions, or any other
+resolution. The partition does not create the unit shape; it only chooses how a
+local user walks the conceptual `1`.
+
+A contour unit has an internal order from relative zero to the partition size,
+but it has no absolute pointing direction by itself. A circle does not know
+where "east" is. The first compatible calibration ray can pin the contour zero
+at its intersection, but that does not mean the circle rotated. Before the ray
+arrived, the contour had no absolute rotation concept to preserve or violate.
+Likewise, a complete structure has no universal true horizontal; even physical
+horizontal is a local calibration against a local field such as gravity.
+
 ## 5. Local Evolution
 
 Tension should interact with the existing local structure before inventing a
@@ -136,7 +178,7 @@ surface is the interval or material between two flow potentials, such as the
 space between two endpoints of a segment. Along a contour, the surface is the
 region between a source and a contour, or between two contours, such as the
 space between a circle's center and perimeter or the shell between two parallel
-offset carriers. Filled generally implies multiplication structural, empty 
+offset carriers. Filled generally implies multiplicative structure, empty
 implies addition.
 
 Those surfaces can harden as filled or empty:
@@ -328,3 +370,54 @@ orbit       tangent/contour flow plus radial constraint
 
 This makes circle more than a wrapped line. It is a hardened contour of a
 field-like settlement around an origin.
+
+## 11. Current Code Implications
+
+The current executable Gojo core is intentionally narrower than this note. It
+mostly implements aligned line settlement:
+
+```text
+Carrier.Value/Tension       local reservoir and unresolved signed tension
+Relation.Apply             line boundary accounting and tension routing
+Relation.FlowOn            directed linear read in a carrier frame
+Relation.BoundariesOn      sorted linear boundary read
+Relation.SpanOn            unsigned linear span read
+UnitShape                  stable relation-shaped scaling surface
+TryCrystallize             hardens the calculated unit shape onto a new carrier
+```
+
+This is a good foothold, but it should not be mistaken for the whole tension
+grammar. `FlowOn`, `SpanOn`, and `BoundariesOn` are line-frame reads. They do
+not yet express contour traversal, contour zero calibration, shell surfaces, or
+candidate settlement paths.
+
+`UnitShape` currently records compatible additive/product participation. It
+does not yet record whether a shape's conceptual `1` is being used as flow
+extent or contour cycle. That distinction should enter as numeric structure,
+not as an enum. A flow unit can remain relation-shaped as a basis segment. A
+contour unit needs a closed/fused contour surface with a relative zero site and
+an optional calibration relation to a ray or other flow structure.
+
+`Carrier.IsInverse` is currently an opposed-flow face for aligned carrier
+settlement. It is not a general contour inverse. A contour inverse should be
+represented by the reversed traversal of a contour surface, just as ordinary
+relation reversal represents opposite traversal in the existing line model.
+
+Likely near-term adjustments:
+
+```text
+1. Keep Carrier.Value/Tension as the one-shot settlement foothold.
+2. Keep UnitShape stable and read-only as the crystallized tick promise.
+3. Rename or document linear reads as linear-frame reads if ambiguity grows.
+4. Add contour/cycle unit-shape examples as relation structures before adding
+   executable settlement.
+5. Represent contour zero as a calibration relation, not as an absolute field
+   on the circle.
+6. Add settlement-candidate reads only when there is a concrete operation that
+   needs them, such as circular traversal, min/max, or hardening from tension.
+```
+
+The important compatibility rule is that crystallization hardens unit shape,
+not magnitude or partition. A crystallized carrier may hold mutable value and
+tension, but its unit shape should not remain live-bound to the structure that
+created it.
