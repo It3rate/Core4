@@ -17,6 +17,10 @@ Notation:
 - `S(C,a,b)` means a segment: `P(C,a) -> P(C,b)`
 - `S0.P0` and `S0.P1` mean the first and second point of segment `S0`
 - `A -> B` means an ordinary `Relation(A, B)`
+- `A*+` and `A*-` are provisional notation for positive/opposed orthogonal
+  pushes from `A`; this is not yet an executable operator
+- `A | B` is provisional notation for "A through calibrator B"; the right
+  side calibrates the left side
 - `^n` means repeated relation shape, not a primitive exponent operator
 - "read layer" means the carrier layer inspected after the structure settles
 
@@ -41,6 +45,41 @@ Same-carrier local accounting is directional. Forward `0 -> k` and reverse
 `k -> 0` are different physical shapes even when they mention the same two
 locations. Forward `0 -> k` is aligned with carrier flow and does not create
 tension by itself.
+
+## Orthogonal Shape-Unit Candidates
+
+These shapes are conceptual footholds for the next unit-shape layer. They are
+not yet executable operation syntax. The goal is to treat multiplication-like
+shape formation as a push into an orthogonal supplied by the source structure,
+not as a hard-coded two-scalar calculation.
+
+| Shape | Read |
+|---|---|
+| `P*+` | point pushed into positive orthogonal; unconstrained level-line/circle-like shape candidate |
+| `P*-` | point pushed into opposed orthogonal; inward/opposed circle-like candidate |
+| `S*+` | segment pushed into positive orthogonal; uncalibrated sheet/rectangle candidate |
+| `S*-` | segment pushed into opposed orthogonal; opposite-side sheet/rectangle candidate |
+| `S(C,a,a)*+` | zero-length segment orthogonal; ray/line seed constrained by the segment's carrier/basis |
+| `S*+ | S` | segment orthogonal calibrated by the source segment; square-like shape unit candidate |
+| `P*+ | R` | point contour calibrated by a radius/ray-like structure |
+| `Z*+ | E` | zero-segment ray seed calibrated by endpoint `E` |
+
+A point and a zero-length segment can be coincident while exposing different
+orthogonals. A point supplies place but no rotational orientation constraint;
+its unconstrained orthogonal can close as a circle-like level line. A
+zero-length segment supplies a collapsed basis; its orthogonal can become a
+ray or line seed. This distinction should be structural, not a symbolic mode.
+
+The `|` notation is intentionally right-calibrating: `shape | calibrator` means
+the left structure is read through the right structure. This matches ordinary
+Gojo projection habits where the right side is the target/read surface. The
+notation is provisional; code should not add a parser for it until the relation
+encoding is clear.
+
+Inverse syntax remains open. `i` is a possible marker for inverse/orthogonal
+carrier participation because ordinary imaginary numbers are one instance of
+that structure, but Gojo should not commit until aligned inverse, orthogonal
+inverse, and repetition syntax are all settled.
 
 ## Segment And Scaling Shapes
 

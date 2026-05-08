@@ -156,7 +156,52 @@ is only paired extents until an operation surface reads it. A multiply-like
 operation may expose area shape. An add-like operation may expose compatible
 length shape or an unreduced relation-shaped sum.
 
-## 6. Resolution, Basis Direction, And Unit Inverse
+## 6. Orthogonal Shape Units
+
+Multiplicative unit shape can also be read as orthogonal shape formation. In
+that read, `*` means pushing a structure into an orthogonal supplied by the
+source structure:
+
+```text
+point * positive orthogonal        -> circle-like level-line shape
+zero-segment * positive orthogonal -> ray/line seed
+segment * positive orthogonal      -> sheet/rectangle-like shape
+```
+
+These are shape units, not necessarily measured values. An uncalibrated point
+orthogonal may be known as circular without knowing its radius. An
+uncalibrated segment orthogonal may be known as sheet-like without knowing its
+height. Calibration can be attached later:
+
+```text
+shape | calibrator
+```
+
+where the right side supplies measurable extent, marker, or basis for the
+left. For example, a segment can calibrate its own orthogonal to create a
+square-like unit, while a radius/ray-like structure can calibrate a point's
+circle-like contour. The `|` notation is provisional and should be read as
+"left through right" rather than as a new stored operator.
+
+This gives two related but distinct products:
+
+```text
+shape-unit product       preserves abstract orthogonal provenance
+calibrated ratio/product preserves the supplied proportions
+```
+
+A generic rectangle-like shape unit may normalize its abstract basis, while a
+calibrated `4:1` rectangle or ratio must preserve that relation. Crystallizing
+a shape unit should therefore harden the unit-shape provenance. Crystallizing
+a calibrated geometry should harden the calibrated relation as well.
+
+Contour direction is not part of this section yet. Marker and partition can
+make a contour countable without deciding which traversal direction is positive
+in an external frame. Direction calibration needs a later structural rule,
+possibly from an oriented relation, another contour, or a handedness-like
+coupling.
+
+## 7. Resolution, Basis Direction, And Unit Inverse
 
 Resolution is not unit shape.
 
@@ -180,7 +225,7 @@ Unit inverse is a scale-law denominator, such as `s^-1` or `s^-2`. It should
 be represented by inverse participation in the unit surface. It should not be
 silently equated with every reverse frame or every opposed-flow carrier face.
 
-## 7. Crystallization Split
+## 8. Crystallization Split
 
 Crystallization creates a reusable unit shape and may optionally project a
 current value onto a carrier using that shape.
@@ -224,7 +269,7 @@ not be conflated with creating the unit shape. Projection feeds the crystal
 carrier by delta, like other port-style value input; it does not directly
 overwrite carrier state.
 
-## 8. Current Code Foothold
+## 9. Current Code Foothold
 
 In current Gojo code:
 
@@ -263,7 +308,7 @@ additive surfaces can still derive and crystallize an unreduced unit shape, but
 their current value is not collapsed into one scalar until Gojo has a
 multi-component crystal value surface.
 
-## 9. Open Questions
+## 10. Open Questions
 
 The initial implementation can stay simple:
 

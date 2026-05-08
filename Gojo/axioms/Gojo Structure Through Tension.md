@@ -381,6 +381,58 @@ These are different settlement claims. Degrees, radians, and Cartesian
 sine/cosine reads are likely adapters over deeper circular structure, not the
 only possible circular primitive.
 
+The current geometric read is that multiplication-like shape formation is an
+orthogonal push. The source structure determines what "orthogonal" means:
+
+```text
+point orthogonal         unconstrained level-line possibility
+zero-segment orthogonal  ray/line seed constrained by a collapsed basis
+segment orthogonal       sheet/rectangle possibility
+closed-boundary normal   interior/exterior or shell possibility
+```
+
+A point and a zero-length segment can occupy the same coordinate while exposing
+different orthogonals. A point gives a place but no orientation constraint, so
+its unconstrained orthogonal naturally supports circular/level-line structure.
+A zero-length segment gives two coincident points in a relation; it is still a
+collapsed basis, so its orthogonal supports a ray or line seed rather than an
+unoriented circle. This keeps the distinction structural instead of adding a
+mode flag.
+
+The symmetry is:
+
+```text
+line/ray     source point + start marker on path + endpoint/calibrator
+circle/arc   source point + start marker on contour + endpoint/calibrator
+```
+
+For a line or ray, the start marker often coincides with the source. For a
+circle, the source is not on the contour; the start and end marker may coincide
+on the contour for a closed cycle. An arc is the same contour structure with
+distinct start and end markers. A wrapped arc lets the end pass the start with
+residue or cycle count.
+
+Calibration is separate from shape formation. A provisional notation is:
+
+```text
+shape | calibrator
+```
+
+read as "shape through calibrator" or "the right side calibrates the left
+side." For example, an uncalibrated segment orthogonal can become square-like
+when calibrated by the source segment, while a point contour can become
+radius-calibrated when read through a ray from its source. This order matches
+the current Gojo habit that the right side is the target/read/calibration
+surface.
+
+Contour orientation is still open. A closed contour can have marker and
+partition calibration without knowing which traversal is positive in an
+external frame. A nearby next-marker is one possible encoding, but it assumes
+extra resolution that may not exist. Other possibilities include calibration
+against another oriented contour, a segment/ray handedness relation, or a
+right-hand-like rule emerging from coupled structure. For now, Gojo should not
+pretend this is solved.
+
 In the gradient/contour grammar:
 
 ```text
@@ -452,6 +504,11 @@ A calibrated flow unit can remain relation-shaped as a basis segment. A contour
 unit needs a closed/fused contour surface; zero, partition, and revolution
 count are later calibration structures attached by orthogonal markers.
 
+The code also does not yet have an element-level orthogonal outlet. Today, a
+product operation multiplies concrete port operands. It cannot yet say
+`P*+`, `S*+`, or `S(C,a,a)*+` as "this element pushed into its own
+orthogonal" without manually creating the receiving carrier/surface first.
+
 `Carrier.IsInverse` is currently an opposed-flow face for aligned carrier
 settlement. It is not a general contour inverse. A contour inverse should be
 represented by the reversed traversal of a contour surface, just as ordinary
@@ -469,6 +526,8 @@ Likely near-term adjustments:
    relations, not as absolute fields on the shape.
 6. Add settlement-candidate reads only when there is a concrete operation that
    needs them, such as circular traversal, min/max, or hardening from tension.
+7. Add an orthogonal outlet convention before trying to execute uncalibrated
+   shape-unit multiplication.
 ```
 
 The important compatibility rule is that crystallization hardens unit shape,
