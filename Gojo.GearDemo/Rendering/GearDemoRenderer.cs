@@ -62,6 +62,12 @@ internal static class GearDemoRenderer
         var sceneCenter = gearArea.Center;
         var driverCenter = new Point(sceneCenter.X - (centerDistance * 0.5d), sceneCenter.Y);
         var drivenCenter = new Point(sceneCenter.X + (centerDistance * 0.5d), sceneCenter.Y);
+        var driverPhase = 0.25d - PhaseTurns(snapshot.DriverMeshPhaseTicks, snapshot.DriverPerimeterTicks);
+        var drivenPhase = 0.75d - PhaseTurns(snapshot.DrivenMeshPhaseTicks, snapshot.DrivenPerimeterTicks);
+        var driverRootHalf = PhaseTurns(snapshot.HalfPitchTicks, snapshot.DriverPerimeterTicks);
+        var drivenRootHalf = PhaseTurns(snapshot.HalfPitchTicks, snapshot.DrivenPerimeterTicks);
+        var driverTipHalf = PhaseTurns(snapshot.QuarterPitchTicks, snapshot.DriverPerimeterTicks);
+        var drivenTipHalf = PhaseTurns(snapshot.QuarterPitchTicks, snapshot.DrivenPerimeterTicks);
 
         return new GearDemoLayout(
             bounds,
@@ -79,6 +85,9 @@ internal static class GearDemoRenderer
                 Math.Max(driverRadius, driverTipRadius),
                 snapshot.DriverTeeth,
                 snapshot.DriverTurns,
+                driverPhase,
+                driverRootHalf,
+                driverTipHalf,
                 $"Driver {snapshot.DriverTeeth}T / dia {snapshot.DriverDiameterText}",
                 $"value {snapshot.DriverValue}/{snapshot.DriverPerimeterTicks}, rotations {snapshot.DriverRotations}, tension {snapshot.DriverTension}"),
             new GearLayout(
@@ -88,6 +97,9 @@ internal static class GearDemoRenderer
                 Math.Max(drivenRadius, drivenTipRadius),
                 snapshot.DrivenTeeth,
                 snapshot.DrivenProjectedTurns,
+                drivenPhase,
+                drivenRootHalf,
+                drivenTipHalf,
                 $"Driven {snapshot.DrivenTeeth}T / dia {snapshot.DrivenDiameterText}",
                 $"projected {snapshot.DrivenProjectedTicks}/{snapshot.DrivenPerimeterTicks}, rotations {snapshot.DrivenProjectedRotations}, residue {snapshot.ProjectionResidueTicks}"));
     }
@@ -258,12 +270,11 @@ internal static class GearDemoRenderer
 
         for (var index = 0; index < steps; index++)
         {
-            var baseT = index / (double)steps;
-            var nextT = (index + 1d) / steps;
-            var a0 = GearAngle(gear, Lerp(baseT, nextT, 0.05d));
-            var a1 = GearAngle(gear, Lerp(baseT, nextT, 0.25d));
-            var a2 = GearAngle(gear, Lerp(baseT, nextT, 0.75d));
-            var a3 = GearAngle(gear, Lerp(baseT, nextT, 0.95d));
+            var center = index / (double)steps;
+            var a0 = GearAngle(gear, center - gear.RootHalfTurns);
+            var a1 = GearAngle(gear, center - gear.TipHalfTurns);
+            var a2 = GearAngle(gear, center + gear.TipHalfTurns);
+            var a3 = GearAngle(gear, center + gear.RootHalfTurns);
             var p0 = Polar(gear.Center, gear.RootRadius, a0);
             var p1 = Polar(gear.Center, gear.TipRadius, a1);
             var p2 = Polar(gear.Center, gear.TipRadius, a2);
@@ -438,16 +449,16 @@ internal static class GearDemoRenderer
     }
 
     private static double GearAngle(GearLayout gear, double localTurns) =>
-        -Math.PI * 0.5d + ((gear.Turns + localTurns) * Math.PI * 2d);
+        -Math.PI * 0.5d + ((gear.Turns + gear.PhaseTurns + localTurns) * Math.PI * 2d);
+
+    private static double PhaseTurns(long ticks, int perimeterTicks) =>
+        perimeterTicks == 0 ? 0d : ticks / (double)perimeterTicks;
 
     private static Point Polar(Point center, double radius, double angle) =>
         new(center.X + Math.Cos(angle) * radius, center.Y + Math.Sin(angle) * radius);
 
     private static Point Interpolate(Point from, Point to, double t) =>
         new(from.X + (to.X - from.X) * t, from.Y + (to.Y - from.Y) * t);
-
-    private static double Lerp(double from, double to, double t) =>
-        from + (to - from) * t;
 
     private static SKRect ToRect(Rect rect) =>
         new(ToFloat(rect.X), ToFloat(rect.Y), ToFloat(rect.Right), ToFloat(rect.Bottom));

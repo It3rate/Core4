@@ -71,10 +71,14 @@ public sealed class GearDemoModelTests
         Assert.Equal(48, snapshot.RadiusTicksPerInchTicks);
         Assert.Equal(1, snapshot.ToothProfileRadiusTicks);
         Assert.Equal(4, snapshot.HalfPitchTicks);
+        Assert.Equal(2, snapshot.QuarterPitchTicks);
+        Assert.Equal(0, snapshot.DriverMeshPhaseTicks);
+        Assert.Equal(snapshot.HalfPitchTicks, snapshot.DrivenMeshPhaseTicks);
         Assert.Equal(192, snapshot.DriverPerimeterTicks);
         Assert.Equal(24, snapshot.DriverRadiusFortyEighths);
         Assert.Equal(23, snapshot.DriverRootRadiusFortyEighths);
         Assert.Equal(25, snapshot.DriverTipRadiusFortyEighths);
+        Assert.Equal("8 ticks/tooth, driven phase +4", snapshot.MeshLabel);
         Assert.NotNull(snapshot.SpeedSlider.RangeOperation);
     }
 }

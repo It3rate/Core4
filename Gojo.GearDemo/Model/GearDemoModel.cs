@@ -160,8 +160,11 @@ internal sealed class GearDemoModel
             pair.Numbers.RadiusTicksPerInchTicks,
             pair.Numbers.ToothProfileRadiusTicksValue,
             pair.Numbers.HalfPitchTicksValue,
+            pair.Numbers.QuarterPitchTicksValue,
+            pair.DriverMeshPhaseTicks,
+            pair.DrivenMeshPhaseTicks,
             pair.CenterLineSegment,
-            MeshLabel());
+            MeshLabel(pair.Numbers.HalfPitchTicksValue));
     }
 
     private void RebuildPair()
@@ -203,8 +206,8 @@ internal sealed class GearDemoModel
         return checked((int)circular.Value);
     }
 
-    private static string MeshLabel() =>
-        $"{TicksPerTooth} ticks/tooth, driver tick -> -driven tick";
+    private static string MeshLabel(int drivenPhaseTicks) =>
+        $"{TicksPerTooth} ticks/tooth, driven phase +{drivenPhaseTicks}";
 
     private sealed record GearNumbers(
         Carrier TicksPerToothCarrier,
@@ -212,8 +215,10 @@ internal sealed class GearDemoModel
         Carrier RadiusTicksPerInch,
         Carrier ToothProfileRadiusTicks,
         Carrier HalfPitchTicks,
+        Carrier QuarterPitchTicks,
         Relation DiametralPitchToRadiusTicks,
-        Relation TicksPerToothToHalfPitch)
+        Relation TicksPerToothToHalfPitch,
+        Relation TicksPerToothToQuarterPitch)
     {
         public int TicksPerToothTicks => checked((int)TicksPerToothCarrier.Value);
 
@@ -225,6 +230,8 @@ internal sealed class GearDemoModel
 
         public int HalfPitchTicksValue => checked((int)HalfPitchTicks.Value);
 
+        public int QuarterPitchTicksValue => checked((int)QuarterPitchTicks.Value);
+
         public static GearNumbers Create(int ticksPerTooth, int diametralPitch, int toothProfileRadiusTicks)
         {
             var ticksPerToothCarrier = new Carrier();
@@ -232,6 +239,7 @@ internal sealed class GearDemoModel
             var radiusTicksPerInch = new Carrier();
             var toothProfileRadiusTicksCarrier = new Carrier();
             var halfPitchTicks = new Carrier();
+            var quarterPitchTicks = new Carrier();
             ticksPerToothCarrier.Set(ticksPerTooth);
             diametralPitchCarrier.Set(diametralPitch);
             toothProfileRadiusTicksCarrier.Set(toothProfileRadiusTicks);
@@ -248,14 +256,22 @@ internal sealed class GearDemoModel
             var (halfPitch, _) = ReadProjection(ticksPerToothToHalfPitch.Project(ticksPerToothCarrier.ValueSlot, halfPitchTicks));
             halfPitchTicks.Set(halfPitch);
 
+            var ticksPerToothToQuarterPitch = new Relation(
+                Relation.Segment(ticksPerToothCarrier, 0, 4),
+                Relation.Segment(quarterPitchTicks, 0, 1));
+            var (quarterPitch, _) = ReadProjection(ticksPerToothToQuarterPitch.Project(ticksPerToothCarrier.ValueSlot, quarterPitchTicks));
+            quarterPitchTicks.Set(quarterPitch);
+
             return new GearNumbers(
                 ticksPerToothCarrier,
                 diametralPitchCarrier,
                 radiusTicksPerInch,
                 toothProfileRadiusTicksCarrier,
                 halfPitchTicks,
+                quarterPitchTicks,
                 diametralPitchToRadiusTicks,
-                ticksPerToothToHalfPitch);
+                ticksPerToothToHalfPitch,
+                ticksPerToothToQuarterPitch);
         }
     }
 
@@ -524,12 +540,19 @@ internal sealed class GearDemoModel
         Carrier CenterLine,
         Carrier CenterDistance,
         Carrier CenterClearance,
+        Carrier DriverMeshPhase,
+        Carrier DrivenMeshPhase,
         Relation CenterDistanceOperation,
         Relation CenterLineSegment,
+        Relation DrivenMeshPhaseOffset,
         Relation DriverInputToPerimeter,
         Relation Mesh)
     {
         public int CenterLineDistanceFortyEighths => checked((int)CenterDistance.Value);
+
+        public long DriverMeshPhaseTicks => checked((long)DriverMeshPhase.Value);
+
+        public long DrivenMeshPhaseTicks => checked((long)DrivenMeshPhase.Value);
 
         public static GearPair Create(Carrier driverToothCount, Carrier drivenToothCount, Carrier driverInputTicks, GearNumbers numbers)
         {
@@ -538,7 +561,15 @@ internal sealed class GearDemoModel
             var centerLine = new Carrier(UnitShape.LinearFrom(Relation.Segment(new Carrier(), 0, 0)));
             var centerDistance = new Carrier();
             var centerClearance = new Carrier();
+            var driverMeshPhase = new Carrier();
+            var drivenMeshPhase = new Carrier();
             centerClearance.Set(CenterClearanceRadiusTicks);
+            driverMeshPhase.Set(0);
+            var drivenMeshPhaseOffset = new Relation(
+                Relation.Segment(numbers.HalfPitchTicks, 0, 1),
+                Relation.Segment(drivenMeshPhase, 0, 1));
+            var (drivenPhaseTicks, _) = ReadProjection(drivenMeshPhaseOffset.Project(numbers.HalfPitchTicks.ValueSlot, drivenMeshPhase));
+            drivenMeshPhase.Set(drivenPhaseTicks);
             var driverRadiusPort = new Relation(
                 Relation.Point(driver.RadiusFortyEighthsCarrier, 1),
                 Relation.Point(Carrier.Unknown, 1));
@@ -577,8 +608,11 @@ internal sealed class GearDemoModel
                 centerLine,
                 centerDistance,
                 centerClearance,
+                driverMeshPhase,
+                drivenMeshPhase,
                 centerDistanceOperation,
                 centerLineSegment,
+                drivenMeshPhaseOffset,
                 driverInputToPerimeter,
                 mesh);
         }
@@ -638,6 +672,9 @@ internal readonly record struct GearDemoSnapshot(
     int RadiusTicksPerInchTicks,
     int ToothProfileRadiusTicks,
     int HalfPitchTicks,
+    int QuarterPitchTicks,
+    long DriverMeshPhaseTicks,
+    long DrivenMeshPhaseTicks,
     Relation CenterLineSegment,
     string MeshLabel)
 {

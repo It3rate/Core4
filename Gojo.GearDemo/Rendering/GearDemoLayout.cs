@@ -31,5 +31,8 @@ internal readonly record struct GearLayout(
     double TipRadius,
     int ToothCount,
     double Turns,
+    double PhaseTurns,
+    double RootHalfTurns,
+    double TipHalfTurns,
     string Caption,
     string State);
