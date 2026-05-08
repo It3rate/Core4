@@ -34,7 +34,7 @@ Notation:
 | `P(C0,k) -> P(C1,-m)` | negative ratio projection; positive source participation reads as negative target participation |
 | `P(C0,-k) -> P(C1,m)` | negative ratio projection from the other side; same scalar sign as positive-to-negative |
 | `P(C0,-k) -> P(C1,-m)` | aligned negative basis; reads as a positive ratio |
-| `P(C0,k) -> P(C0,0)` | same-carrier reset boundary; local carrier hardens to `value % k`, unaccounted carrier tension remains as `value - value % k` |
+| `P(C0,k) -> P(C0,0)` | same-carrier reset boundary; local carrier hardens to `value % k`, unaccounted carrier tension remains as `value - value % k`; also the first partitioned cycle/phase closure shape |
 | `P(C0,k) -> P(C0,k)` | same-carrier clamp boundary; local carrier hardens to `min(value,k)`, excess remains as carrier tension |
 
 Same-carrier local accounting is directional. Forward `0 -> k` and reverse
@@ -107,6 +107,10 @@ they should not fall out of hidden contribution bookkeeping.
 The current executable settling supports modulo through active same-carrier
 reset boundaries. The carrier value is not left as an uninterpreted larger
 number; it hardens to the local residue and leaves unabsorbed carrier tension.
+The same shape is also the first executable level-line cycle: `P(C,12) ->
+P(C,0)` can be read as a 12-part circular phase surface without calibrating a
+radius. The closure declares one marker as both start and end of the local
+cycle; crossed cycles remain tension unless routed into a counter carrier.
 General same-carrier segment shift still needs point identity so coincident
 points can move without accidentally moving every matching point in the
 surface.
@@ -144,10 +148,13 @@ related origin or point. A loop has a return journey, usually through an
 opposed carrier or explicit return relation, so the return path can carry its
 own tension, residue, or blockage.
 
-Same-carrier reset is executable as local accounting, not as a full path loop:
-`P(C,k) -> P(C,0)` hardens the carrier and exposes crossing tension. A true
-cycle or loop still needs an absorber, counter, opposed carrier, or other
-relation to account for that tension.
+Same-carrier reset is executable as local accounting. In a line frame,
+`P(C,k) -> P(C,0)` hardens the carrier and exposes crossing tension; it does
+not imply a return journey through space. In a contour frame, the same shape is
+a partitioned cycle closure because the start and end marker are the same local
+site under different counts. A loop with a traversable return path still needs
+an absorber, counter, opposed carrier, or other relation to account for that
+tension.
 
 Lossless point loops are allowed as structures, but settling stops when a full
 pass returns to the same carrier positions. The remaining load is visible

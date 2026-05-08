@@ -395,6 +395,35 @@ orbit       tangent/contour flow plus radial constraint
 This makes circle more than a wrapped line. It is a hardened contour of a
 field-like settlement around an origin.
 
+The first executable foothold for this is a partitioned level-line cycle. It
+does not require a calibrated radius:
+
+```text
+cycle carrier C
+closure       P(C,n) -> P(C,0)
+```
+
+This says the same contour marker is read at the start and end of a partitioned
+walk. The marker is not a radius and does not declare how far the contour is
+from the source point. It only makes the contour countable in `n` local parts.
+The same relation can be used as modulo, phase residue, or crossing counter
+input. If no counter receives crossed cycles, the crossed participation remains
+visible as carrier tension. If a counter carrier is attached, the same
+structure counts wraparounds.
+
+This is intentionally parallel to a line segment:
+
+```text
+line calibration      origin + endpoint + partition
+contour calibration   marker as start/end + partition
+```
+
+The structural difference is that the line's calibrated origin lies on the
+line, while the contour's generating origin lies elsewhere. A later ray from
+that origin can calibrate the marker against the surrounding structure, but
+many uses do not need that. Gear teeth, clock positions, phase residues, and
+relative cycle ratios can work on the partitioned contour alone.
+
 ## 11. Current Code Implications
 
 The current executable Gojo core is intentionally narrower than this note. It

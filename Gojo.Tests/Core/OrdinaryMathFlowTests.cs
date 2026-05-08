@@ -79,6 +79,48 @@ public sealed class OrdinaryMathFlowTests
     }
 
     [Fact]
+    public void PartitionedCycleWrapsWithoutRadiusCalibration()
+    {
+        var phase = new Carrier();
+        phase.Attach(new Relation(Point(phase, 12), Point(phase, 0)));
+
+        phase.Add(27);
+
+        Assert.Equal(3UL, phase.Value);
+        Assert.Equal(24, phase.Tension);
+    }
+
+    [Fact]
+    public void PartitionedCycleCanCountCrossingsThroughOrdinaryCarryRoute()
+    {
+        var phase = new Carrier();
+        var cycles = new Carrier();
+        phase.Attach(new Relation(Point(phase, 12), Point(cycles, 0)));
+
+        phase.Add(27);
+
+        Assert.Equal(3UL, phase.Value);
+        Assert.Equal(0, phase.Tension);
+        Assert.Equal(2UL, cycles.Value);
+    }
+
+    [Fact]
+    public void PartitionedCyclesCompareByRelationRatioWithoutRadiusCalibration()
+    {
+        var smallCycle = new Carrier();
+        var largeCycle = new Carrier();
+        var ratio = new Relation(Point(smallCycle, 12), Point(largeCycle, 36));
+
+        var projected = ratio.Project(new CarrierLocation(smallCycle, 5), largeCycle);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(largeCycle, 15),
+                new CarrierLocation(smallCycle, 0)),
+            projected);
+    }
+
+    [Fact]
     public void ExactRatioProjectionMultipliesWithoutMutatingCarriers()
     {
         var source = new Carrier();
