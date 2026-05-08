@@ -151,6 +151,10 @@ internal sealed class GearDemoModel
             pair.Driven.DiameterTwentyFourths,
             pair.Driver.RadiusFortyEighths,
             pair.Driven.RadiusFortyEighths,
+            pair.Driver.RootRadiusFortyEighths,
+            pair.Driven.RootRadiusFortyEighths,
+            pair.Driver.TipRadiusFortyEighths,
+            pair.Driven.TipRadiusFortyEighths,
             pair.CenterLineDistanceFortyEighths,
             pair.Numbers.DiametralPitchTicks,
             pair.Numbers.RadiusTicksPerInchTicks,
@@ -365,12 +369,22 @@ internal sealed class GearDemoModel
         Carrier PerimeterTicksCarrier,
         Carrier DiameterTwentyFourthsCarrier,
         Carrier RadiusFortyEighthsCarrier,
+        Carrier RootRadiusFortyEighthsCarrier,
+        Carrier TipRadiusFortyEighthsCarrier,
+        Carrier PitchCircle,
+        Carrier RootCircle,
+        Carrier TipCircle,
         Relation Partition,
         Relation PerimeterToToothPosition,
         Relation PerimeterToRotation,
         Relation TeethToPerimeter,
         Relation TeethToDiameter,
-        Relation DiameterToRadius)
+        Relation DiameterToRadius,
+        Relation RootRadiusOperation,
+        Relation TipRadiusOperation,
+        Relation PitchCircleSource,
+        Relation RootCircleSource,
+        Relation TipCircleSource)
     {
         public int ToothCount => checked((int)ToothCountCarrier.Value);
 
@@ -379,6 +393,10 @@ internal sealed class GearDemoModel
         public int DiameterTwentyFourths => checked((int)DiameterTwentyFourthsCarrier.Value);
 
         public int RadiusFortyEighths => checked((int)RadiusFortyEighthsCarrier.Value);
+
+        public int RootRadiusFortyEighths => checked((int)RootRadiusFortyEighthsCarrier.Value);
+
+        public int TipRadiusFortyEighths => checked((int)TipRadiusFortyEighthsCarrier.Value);
 
         public static GearCarrier Create(Carrier toothCountCarrier, GearNumbers numbers)
         {
@@ -390,6 +408,8 @@ internal sealed class GearDemoModel
             var perimeterTicksCarrier = new Carrier();
             var diameterTwentyFourths = new Carrier();
             var radiusFortyEighths = new Carrier();
+            var rootRadiusFortyEighths = new Carrier();
+            var tipRadiusFortyEighths = new Carrier();
             var toothCountPort = new Relation(
                 Relation.Point(toothCountCarrier, 1),
                 Relation.Point(Carrier.Unknown, 1));
@@ -432,6 +452,42 @@ internal sealed class GearDemoModel
             diameterTwentyFourths.Set(diameterTicks);
             var (radiusTicks, _) = ReadProjection(diameterToRadius.Project(diameterTwentyFourths.ValueSlot, radiusFortyEighths));
             radiusFortyEighths.Set(radiusTicks);
+            var pitchRadiusPort = new Relation(
+                Relation.Point(radiusFortyEighths, 1),
+                Relation.Point(Carrier.Unknown, 1));
+            var addProfilePort = new Relation(
+                Relation.Point(numbers.ToothProfileRadiusTicks, 1),
+                Relation.Point(Carrier.Unknown, 1));
+            var subtractProfilePort = new Relation(
+                Relation.Point(numbers.ToothProfileRadiusTicks, -1),
+                Relation.Point(Carrier.Unknown, 1));
+            var tipRadiusOperation = new Relation(
+                new Relation(pitchRadiusPort, addProfilePort),
+                Relation.Point(tipRadiusFortyEighths, 1));
+            var rootRadiusOperation = new Relation(
+                new Relation(pitchRadiusPort, subtractProfilePort),
+                Relation.Point(rootRadiusFortyEighths, 1));
+            var radiusInput = new Relation(radiusFortyEighths.ValueSlot, numbers.ToothProfileRadiusTicks.ValueSlot);
+            if (!tipRadiusOperation.TryReadOperationFrom(radiusInput, tipRadiusFortyEighths, out var tipRead) ||
+                tipRead.Left is not CarrierLocation tipLocation)
+            {
+                throw new InvalidOperationException("Gear tip radius operation did not produce a Gojo carrier location.");
+            }
+
+            if (!rootRadiusOperation.TryReadOperationFrom(radiusInput, rootRadiusFortyEighths, out var rootRead) ||
+                rootRead.Left is not CarrierLocation rootLocation)
+            {
+                throw new InvalidOperationException("Gear root radius operation did not produce a Gojo carrier location.");
+            }
+
+            tipRadiusFortyEighths.Set(tipLocation.Ticks);
+            rootRadiusFortyEighths.Set(rootLocation.Ticks);
+            var pitchCircleSource = Relation.Point(shapeCenter, checked((long)radiusFortyEighths.Value));
+            var rootCircleSource = Relation.Point(shapeCenter, checked((long)rootRadiusFortyEighths.Value));
+            var tipCircleSource = Relation.Point(shapeCenter, checked((long)tipRadiusFortyEighths.Value));
+            var pitchCircle = new Carrier(UnitShape.CircularFrom(pitchCircleSource));
+            var rootCircle = new Carrier(UnitShape.CircularFrom(rootCircleSource));
+            var tipCircle = new Carrier(UnitShape.CircularFrom(tipCircleSource));
 
             return new GearCarrier(
                 toothCountCarrier,
@@ -442,12 +498,22 @@ internal sealed class GearDemoModel
                 perimeterTicksCarrier,
                 diameterTwentyFourths,
                 radiusFortyEighths,
+                rootRadiusFortyEighths,
+                tipRadiusFortyEighths,
+                pitchCircle,
+                rootCircle,
+                tipCircle,
                 partition,
                 perimeterToToothPosition,
                 perimeterToRotation,
                 teethToPerimeter,
                 teethToDiameter,
-                diameterToRadius);
+                diameterToRadius,
+                rootRadiusOperation,
+                tipRadiusOperation,
+                pitchCircleSource,
+                rootCircleSource,
+                tipCircleSource);
         }
     }
 
@@ -563,6 +629,10 @@ internal readonly record struct GearDemoSnapshot(
     int DrivenDiameterTwentyFourths,
     int DriverRadiusFortyEighths,
     int DrivenRadiusFortyEighths,
+    int DriverRootRadiusFortyEighths,
+    int DrivenRootRadiusFortyEighths,
+    int DriverTipRadiusFortyEighths,
+    int DrivenTipRadiusFortyEighths,
     int CenterLineDistanceFortyEighths,
     int DiametralPitchTicks,
     int RadiusTicksPerInchTicks,
@@ -588,6 +658,14 @@ internal readonly record struct GearDemoSnapshot(
     public double DriverRadiusInches => DriverRadiusFortyEighths / (double)RadiusTicksPerInchTicks;
 
     public double DrivenRadiusInches => DrivenRadiusFortyEighths / (double)RadiusTicksPerInchTicks;
+
+    public double DriverRootRadiusInches => DriverRootRadiusFortyEighths / (double)RadiusTicksPerInchTicks;
+
+    public double DrivenRootRadiusInches => DrivenRootRadiusFortyEighths / (double)RadiusTicksPerInchTicks;
+
+    public double DriverTipRadiusInches => DriverTipRadiusFortyEighths / (double)RadiusTicksPerInchTicks;
+
+    public double DrivenTipRadiusInches => DrivenTipRadiusFortyEighths / (double)RadiusTicksPerInchTicks;
 
     public double CenterLineDistanceInches => CenterLineDistanceFortyEighths / (double)RadiusTicksPerInchTicks;
 

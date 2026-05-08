@@ -47,9 +47,12 @@ internal static class GearDemoRenderer
         var driven = Slider(controlX, driver.Bounds.Bottom + 30d, controlWidth, snapshot.DrivenTeethSlider, "driven teeth", snapshot.DrivenTeeth.ToString());
 
         var gearScale = GearScale(scene, snapshot);
-        var toothDepth = snapshot.ToothProfileInches * BasePixelsPerInch * gearScale;
         var driverRadius = snapshot.DriverRadiusInches * BasePixelsPerInch * gearScale;
         var drivenRadius = snapshot.DrivenRadiusInches * BasePixelsPerInch * gearScale;
+        var driverRootRadius = snapshot.DriverRootRadiusInches * BasePixelsPerInch * gearScale;
+        var drivenRootRadius = snapshot.DrivenRootRadiusInches * BasePixelsPerInch * gearScale;
+        var driverTipRadius = snapshot.DriverTipRadiusInches * BasePixelsPerInch * gearScale;
+        var drivenTipRadius = snapshot.DrivenTipRadiusInches * BasePixelsPerInch * gearScale;
         var centerDistance = snapshot.CenterLineDistanceInches * BasePixelsPerInch * gearScale;
         var gearArea = new Rect(
             scene.X + ScenePadding,
@@ -72,8 +75,8 @@ internal static class GearDemoRenderer
             new GearLayout(
                 driverCenter,
                 driverRadius,
-                Math.Max(10d, driverRadius - toothDepth),
-                driverRadius + toothDepth,
+                Math.Max(1d, driverRootRadius),
+                Math.Max(driverRadius, driverTipRadius),
                 snapshot.DriverTeeth,
                 snapshot.DriverTurns,
                 $"Driver {snapshot.DriverTeeth}T / dia {snapshot.DriverDiameterText}",
@@ -81,8 +84,8 @@ internal static class GearDemoRenderer
             new GearLayout(
                 drivenCenter,
                 drivenRadius,
-                Math.Max(10d, drivenRadius - toothDepth),
-                drivenRadius + toothDepth,
+                Math.Max(1d, drivenRootRadius),
+                Math.Max(drivenRadius, drivenTipRadius),
                 snapshot.DrivenTeeth,
                 snapshot.DrivenProjectedTurns,
                 $"Driven {snapshot.DrivenTeeth}T / dia {snapshot.DrivenDiameterText}",
@@ -115,12 +118,11 @@ internal static class GearDemoRenderer
 
     private static double GearScale(Rect scene, GearDemoSnapshot snapshot)
     {
-        var toothDepth = snapshot.ToothProfileInches * BasePixelsPerInch;
-        var driverRadius = snapshot.DriverRadiusInches * BasePixelsPerInch;
-        var drivenRadius = snapshot.DrivenRadiusInches * BasePixelsPerInch;
+        var driverTipRadius = snapshot.DriverTipRadiusInches * BasePixelsPerInch;
+        var drivenTipRadius = snapshot.DrivenTipRadiusInches * BasePixelsPerInch;
         var centerDistance = snapshot.CenterLineDistanceInches * BasePixelsPerInch;
-        var rawWidth = centerDistance + driverRadius + drivenRadius + toothDepth * 2d;
-        var rawHeight = (Math.Max(driverRadius, drivenRadius) * 2d) + toothDepth * 1.24d;
+        var rawWidth = centerDistance + driverTipRadius + drivenTipRadius;
+        var rawHeight = Math.Max(driverTipRadius, drivenTipRadius) * 2.04d;
         var availableWidth = Math.Max(1d, scene.Width - (ScenePadding * 2d));
         var availableHeight = Math.Max(1d, scene.Height - LabelBand - (ScenePadding * 2d));
         var scale = Math.Min(1d, Math.Min(availableWidth / rawWidth, availableHeight / rawHeight));
@@ -180,20 +182,30 @@ internal static class GearDemoRenderer
 
     private static void DrawScene(SKCanvas canvas, GearDemoLayout layout)
     {
-        DrawPitchCircle(canvas, layout.DriverGear, Palette.DriverSoft);
-        DrawPitchCircle(canvas, layout.DrivenGear, Palette.DrivenSoft);
+        DrawConstructionCircles(canvas, layout.DriverGear, Palette.DriverSoft);
+        DrawConstructionCircles(canvas, layout.DrivenGear, Palette.DrivenSoft);
         DrawMesh(canvas, layout);
         DrawGear(canvas, layout.DriverGear, Palette.Driver, Palette.DriverDark);
         DrawGear(canvas, layout.DrivenGear, Palette.Driven, Palette.DrivenDark);
         DrawGearCaptions(canvas, layout);
     }
 
-    private static void DrawPitchCircle(SKCanvas canvas, GearLayout gear, SKColor color)
+    private static void DrawConstructionCircles(SKCanvas canvas, GearLayout gear, SKColor color)
     {
         using var fill = new SKPaint { IsAntialias = true, Color = color.WithAlpha(34), Style = SKPaintStyle.Fill };
-        using var stroke = new SKPaint { IsAntialias = true, Color = color.WithAlpha(150), Style = SKPaintStyle.Stroke, StrokeWidth = 1.2f };
+        using var pitchStroke = new SKPaint { IsAntialias = true, Color = color.WithAlpha(170), Style = SKPaintStyle.Stroke, StrokeWidth = 1.35f };
+        using var outerStroke = new SKPaint
+        {
+            IsAntialias = true,
+            Color = color.WithAlpha(94),
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 1f,
+            PathEffect = SKPathEffect.CreateDash([5f, 5f], 0f)
+        };
         canvas.DrawCircle(ToFloat(gear.Center.X), ToFloat(gear.Center.Y), ToFloat(gear.Radius), fill);
-        canvas.DrawCircle(ToFloat(gear.Center.X), ToFloat(gear.Center.Y), ToFloat(gear.Radius), stroke);
+        canvas.DrawCircle(ToFloat(gear.Center.X), ToFloat(gear.Center.Y), ToFloat(gear.RootRadius), outerStroke);
+        canvas.DrawCircle(ToFloat(gear.Center.X), ToFloat(gear.Center.Y), ToFloat(gear.TipRadius), outerStroke);
+        canvas.DrawCircle(ToFloat(gear.Center.X), ToFloat(gear.Center.Y), ToFloat(gear.Radius), pitchStroke);
     }
 
     private static void DrawMesh(SKCanvas canvas, GearDemoLayout layout)
