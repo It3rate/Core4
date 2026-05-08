@@ -34,6 +34,12 @@ The tests are:
 Gojo.Tests/Gojo.Tests.csproj
 ```
 
+The first code-only Avalonia/Skia gear projection demo is:
+
+```text
+Gojo.GearDemo/Gojo.GearDemo.csproj
+```
+
 ## Intent
 
 Gojo represents concepts, structure, and operations in physically meaningful
@@ -186,9 +192,17 @@ Segment(source,0,20) -> Segment(target,0,-10)
 ```
 
 Reading `source = 4` through this relation gives `target = -2` with no source
-residue. This is the current foothold for opposed gear ratios: a 20-tooth
-driver perimeter can read against a 10-tooth driven perimeter with opposite
-rotation.
+residue. This is the current foothold for signed frame projection. For physical
+gear tooth contact, the first demo uses eight circular ticks per tooth and a
+one-to-one opposed perimeter-tick read:
+
+```text
+Segment(driver,0,1) -> Segment(driven,0,-1)
+```
+
+That keeps equal tooth travel visible, so larger gears turn slower than smaller
+gears while still allowing in-between visual rotation before the next tooth
+position.
 
 Projection is currently a read. It does not automatically mutate the driven
 carrier unless code deliberately uses the projected value as input.
@@ -270,7 +284,7 @@ Supported now:
 - create circular perimeter carriers
 - partition perimeter carriers by tooth count
 - count completed rotations through ordinary reset/counter relations
-- read opposed gear ratios through signed perimeter projection
+- read opposed gear ratios through signed tooth-contact projection
 - represent radius or diameter as separate linear carriers
 - keep gear values inspectable as carrier value plus tension
 
@@ -316,9 +330,13 @@ Gojo/
 Gojo.Tests/
   Core/             tests for carrier settlement, relations, duality, ports,
                     structural slots, tick refs, and unit shapes
+
+Gojo.GearDemo/
+  code-first Avalonia desktop demo using a render-tick-driven Skia canvas
+  over Gojo circular carriers, tooth partitions, and signed mesh projection
 ```
 
-The root `Gojo.slnx` includes only `Gojo` and `Gojo.Tests`.
+The root `Gojo.slnx` includes only `Gojo`, `Gojo.GearDemo`, and `Gojo.Tests`.
 
 ## Development Guidance
 
