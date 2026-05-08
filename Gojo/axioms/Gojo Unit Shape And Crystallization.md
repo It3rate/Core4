@@ -286,6 +286,13 @@ In current Gojo code:
 - `UnitShape.OrthogonalOf(element)` creates an orthogonal shape unit whose
   surface preserves the source element as provenance and uses a zero-segment
   marker as the orthogonal outlet.
+- `UnitShape.CircularFrom(point)`, `UnitShape.LinearFrom(zeroSegment)`, and
+  `UnitShape.SheetFrom(segment)` are official names for the currently supported
+  orthogonal pushes. They all use the same outlet surface; the source structure
+  distinguishes perimeter-like, ray-like, and sheet-like unit shapes.
+- `Relation.Point(...)`, `Relation.Segment(...)`, and
+  `Relation.OrthogonalOutlet(...)` are construction helpers for those same
+  Gojo relation surfaces, not wrapper objects or symbolic operation tags.
 - `UnitShape.TryReadOrthogonalSource(out source)` and
   `UnitShape.TryReadOrthogonalSource(surface, out source)` expose that
   provenance as a snapshot so callers can inspect point, segment, or

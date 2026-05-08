@@ -18,6 +18,18 @@ public sealed class Relation : IElement, IEquatable<Relation>
         Right = right;
     }
 
+    /// <summary>Creates a point by grounding a carrier location on its carrier.</summary>
+    public static Relation Point(Carrier carrier, long ticks) =>
+        new(new CarrierLocation(carrier, ticks), carrier);
+
+    /// <summary>Creates a directed segment from two carrier-grounded points.</summary>
+    public static Relation Segment(Carrier carrier, long start, long end) =>
+        new(Point(carrier, start), Point(carrier, end));
+
+    /// <summary>Creates the uncalibrated orthogonal outlet surface for a source.</summary>
+    public static Relation OrthogonalOutlet(IElement source) =>
+        new(source ?? throw new ArgumentNullException(nameof(source)), Segment(Carrier.Unknown, 0, 0));
+
     public ulong Id { get; }
 
     public IElement Left { get; private set; }

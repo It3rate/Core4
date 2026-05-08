@@ -25,9 +25,48 @@ public sealed class UnitShape : IEquatable<UnitShape>
 
     /// <summary>Creates a shape unit by pushing a source element into its orthogonal.</summary>
     public static UnitShape OrthogonalOf(IElement source) =>
-        new(new Relation(
-            SnapshotOf(source ?? throw new ArgumentNullException(nameof(source))),
-            Segment(Carrier.Unknown, 0, 0)));
+        new(Relation.OrthogonalOutlet(SnapshotOf(source ?? throw new ArgumentNullException(nameof(source)))));
+
+    /// <summary>Creates a circular or level-line unit shape from a point source.</summary>
+    public static UnitShape CircularFrom(Relation point)
+    {
+        if (!IsUnitPoint(point))
+        {
+            throw new ArgumentException("Circular unit shapes require a point source.", nameof(point));
+        }
+
+        return OrthogonalOf(point);
+    }
+
+    /// <summary>Creates a linear ray-like unit shape from coincident segment points.</summary>
+    public static UnitShape LinearFrom(Relation zeroLengthSegment)
+    {
+        if (!TryReadSegment(zeroLengthSegment, out var left, out var right) ||
+            !left.Carrier.SameIdentityAs(right.Carrier) ||
+            left.Ticks != right.Ticks)
+        {
+            throw new ArgumentException(
+                "Linear orthogonal unit shapes require a zero-length segment source.",
+                nameof(zeroLengthSegment));
+        }
+
+        return OrthogonalOf(zeroLengthSegment);
+    }
+
+    /// <summary>Creates a sheet or rectangle-like unit shape from a nonzero segment.</summary>
+    public static UnitShape SheetFrom(Relation segment)
+    {
+        if (!TryReadSegment(segment, out var left, out var right) ||
+            !left.Carrier.SameIdentityAs(right.Carrier) ||
+            left.Ticks == right.Ticks)
+        {
+            throw new ArgumentException(
+                "Sheet orthogonal unit shapes require a nonzero segment source.",
+                nameof(segment));
+        }
+
+        return OrthogonalOf(segment);
+    }
 
     /// <summary>Creates an additive unit shape from operands.</summary>
     public static UnitShape Additive(params UnitShape[] shapes) =>
@@ -202,21 +241,54 @@ public sealed class UnitShape : IEquatable<UnitShape>
         IsPoint(leftPoint, Carrier.Unknown, 0) &&
         IsPoint(rightPoint, Carrier.Unknown, 0);
 
+    /// <summary>Reads a same-carrier segment relation built from point surfaces.</summary>
+    private static bool TryReadSegment(
+        Relation relation,
+        out CarrierLocation left,
+        out CarrierLocation right)
+    {
+        if (relation.Left is Relation leftPoint &&
+            relation.Right is Relation rightPoint &&
+            IsPoint(leftPoint, out left) &&
+            IsPoint(rightPoint, out right) &&
+            left.Carrier.SameIdentityAs(right.Carrier))
+        {
+            return true;
+        }
+
+        left = default;
+        right = default;
+        return false;
+    }
+
+    /// <summary>Reads a point relation without constraining its tick value.</summary>
+    private static bool IsPoint(Relation relation, out CarrierLocation location)
+    {
+        if (relation.Left is CarrierLocation pointLocation &&
+            relation.Right is Carrier carrier &&
+            pointLocation.Carrier.SameIdentityAs(carrier))
+        {
+            location = pointLocation;
+            return true;
+        }
+
+        location = default;
+        return false;
+    }
+
     /// <summary>Matches a point relation at a specific carrier tick.</summary>
     private static bool IsPoint(Relation relation, Carrier carrier, long ticks) =>
-        relation.Left is CarrierLocation location &&
-        relation.Right is Carrier pointCarrier &&
-        pointCarrier.SameIdentityAs(carrier) &&
+        IsPoint(relation, out var location) &&
         location.Carrier.SameIdentityAs(carrier) &&
         location.Ticks == ticks;
 
     /// <summary>Builds a point relation for unit-shape encoding.</summary>
     private static Relation Point(Carrier carrier, long ticks) =>
-        new(new CarrierLocation(carrier, ticks), carrier);
+        Relation.Point(carrier, ticks);
 
     /// <summary>Builds a segment relation for unit-shape encoding.</summary>
     private static Relation Segment(Carrier carrier, long left, long right) =>
-        new(Point(carrier, left), Point(carrier, right));
+        Relation.Segment(carrier, left, right);
 
     /// <summary>Chains operands as visible relation-shaped participation.</summary>
     private static IElement Chain(IReadOnlyList<IElement> elements)

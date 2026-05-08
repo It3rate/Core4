@@ -514,6 +514,20 @@ as a snapshot. Today, product operations still multiply concrete port
 operands; they do not yet execute `P*+`, `S*+`, or `S(C,a,a)*+` as settlement
 without manually creating the receiving carrier/surface first.
 
+The code names the first three supported orthogonal pushes:
+
+```text
+CircularFrom(point)        level-line/perimeter carrier
+LinearFrom(zero segment)   ray/line carrier
+SheetFrom(segment)         sheet/rectangle-like carrier
+```
+
+These names are only API clarity around relation shape. The perimeter carrier
+for a gear is still an ordinary carrier after crystallization: tooth count is
+ordinary partitioning on that carrier, while direction and mesh ratio are
+relations to another perimeter carrier. A circular carrier does not yet claim a
+global clockwise zero, radius, tooth geometry, or hardening-from-tension rule.
+
 `Carrier.IsInverse` is currently an opposed-flow face for aligned carrier
 settlement. It is not a general contour inverse. A contour inverse should be
 represented by the reversed traversal of a contour surface, just as ordinary

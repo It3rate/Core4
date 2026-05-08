@@ -187,6 +187,81 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
+    public void OfficialCircularShapeComesFromPointOrthogonalOutlet()
+    {
+        var center = new Carrier();
+        var point = Relation.Point(center, 0);
+        var surface = Relation.OrthogonalOutlet(point);
+
+        Assert.True(surface.TryReadUnitShape(out var readShape));
+
+        Assert.True(readShape.CompatibleWith(UnitShape.CircularFrom(point)));
+        Assert.True(readShape.TryReadOrthogonalSource(out var source));
+        Assert.Equal(point, source);
+    }
+
+    [Fact]
+    public void OfficialLinearShapeComesFromZeroLengthSegmentOrthogonalOutlet()
+    {
+        var carrier = new Carrier();
+        var zeroSegment = Relation.Segment(carrier, 0, 0);
+        var point = Relation.Point(carrier, 0);
+
+        var linear = UnitShape.LinearFrom(zeroSegment);
+        var circular = UnitShape.CircularFrom(point);
+
+        Assert.True(Relation.OrthogonalOutlet(zeroSegment).TryReadUnitShape(out var readShape));
+        Assert.True(readShape.CompatibleWith(linear));
+        Assert.False(linear.CompatibleWith(circular));
+    }
+
+    [Fact]
+    public void OfficialSheetShapeComesFromNonzeroSegmentOrthogonalOutlet()
+    {
+        var carrier = new Carrier();
+        var segment = Relation.Segment(carrier, 0, 10);
+        var zeroSegment = Relation.Segment(carrier, 0, 0);
+
+        var sheet = UnitShape.SheetFrom(segment);
+
+        Assert.True(Relation.OrthogonalOutlet(segment).TryReadUnitShape(out var readShape));
+        Assert.True(readShape.CompatibleWith(sheet));
+        Assert.False(sheet.CompatibleWith(UnitShape.LinearFrom(zeroSegment)));
+    }
+
+    [Fact]
+    public void CircularPerimeterCarrierPartitionsGearTeethWithOrdinaryTicks()
+    {
+        var center = new Carrier();
+        var perimeter = new Carrier(UnitShape.CircularFrom(Relation.Point(center, 0)));
+        var rotations = new Carrier();
+        perimeter.Attach(new Relation(Relation.Point(perimeter, 12), Relation.Point(rotations, 0)));
+
+        perimeter.Add(27);
+
+        Assert.Equal(3UL, perimeter.Value);
+        Assert.Equal(2UL, rotations.Value);
+        Assert.Equal(0, perimeter.Tension);
+    }
+
+    [Fact]
+    public void OpposedGearToothRatioCanBeReadThroughCircularPerimeters()
+    {
+        var driverCenter = new Carrier();
+        var drivenCenter = new Carrier();
+        var driver = new Carrier(UnitShape.CircularFrom(Relation.Point(driverCenter, 0)));
+        var driven = new Carrier(UnitShape.CircularFrom(Relation.Point(drivenCenter, 0)));
+        var mesh = new Relation(
+            Relation.Segment(driver, 0, 20),
+            Relation.Segment(driven, 0, -10));
+        driver.Set(4);
+
+        var read = mesh.Project(driver.ValueSlot, driven);
+
+        Assert.Equal(new Relation(new CarrierLocation(driven, -2), new CarrierLocation(driver, 0)), read);
+    }
+
+    [Fact]
     public void TransferPortUsesConcreteTargetUnitShape()
     {
         var light = new Carrier();

@@ -66,6 +66,22 @@ and `S*+` are not yet standalone mutation operators. The goal is to treat
 multiplication-like shape formation as a push into an orthogonal supplied by
 the source structure, not as a hard-coded two-scalar calculation.
 
+Current official constructor names are intentionally descriptive:
+
+```text
+Relation.Point(C,n)                  P(C,n)
+Relation.Segment(C,a,b)              S(C,a,b)
+Relation.OrthogonalOutlet(A)         A -> S(Unknown,0,0)
+UnitShape.CircularFrom(P)            point orthogonal / perimeter carrier
+UnitShape.LinearFrom(S(C,a,a))       zero-segment orthogonal / ray carrier
+UnitShape.SheetFrom(S(C,a,b))        nonzero segment orthogonal / sheet carrier
+```
+
+These names do not add a second representation. They only make the current
+relation shape explicit at API boundaries. Circular and linear carriers can
+look similar after crystallization because both hold ordinary ticks; their
+difference is the source structure preserved in the unit shape.
+
 | Shape | Read |
 |---|---|
 | `P*+` | point pushed into positive orthogonal; unconstrained level-line/circle-like shape candidate |
@@ -82,6 +98,14 @@ orthogonals. A point supplies place but no rotational orientation constraint;
 its unconstrained orthogonal can close as a circle-like level line. A
 zero-length segment supplies a collapsed basis; its orthogonal can become a
 ray or line seed. This distinction should be structural, not a symbolic mode.
+
+For gear-style structures, a circular carrier created from
+`UnitShape.CircularFrom(P(center,0))` can be partitioned directly with ordinary
+ticks. Twelve teeth are just a reset/counter relation at tick `12`; higher
+resolution tooth geometry can later subdivide the same perimeter so a tooth tip
+and tooth valley differ by half a pitch. A simple external gear mesh can be
+read as opposed perimeter projection, for example
+`S(driver,0,20) -> S(driven,0,-10)`.
 
 The `|` notation is intentionally right-calibrating: `shape | calibrator` means
 the left structure is read through the right structure. This matches ordinary
