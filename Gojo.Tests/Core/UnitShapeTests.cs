@@ -127,6 +127,66 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
+    public void OrthogonalRelationSurfaceReadsPointShapeUnit()
+    {
+        var source = new Carrier();
+        var point = Point(source, 0);
+        var surface = new Relation(point, Segment(Carrier.Unknown, 0, 0));
+
+        Assert.True(surface.TryReadUnitShape(out var unitShape));
+
+        Assert.True(unitShape.CompatibleWith(UnitShape.OrthogonalOf(point)));
+        Assert.False(unitShape.CompatibleWith(source.UnitShape));
+    }
+
+    [Fact]
+    public void OrthogonalRelationSurfaceCanCrystallizePartitionedCarrier()
+    {
+        var source = new Carrier();
+        var surface = new Relation(Point(source, 0), Segment(Carrier.Unknown, 0, 0));
+        var cycles = new Carrier();
+
+        Assert.True(surface.TryCrystallize(out var perimeter));
+        perimeter.Attach(new Relation(Point(perimeter, 12), Point(cycles, 0)));
+
+        perimeter.Add(27);
+
+        Assert.True(perimeter.UnitShape.CompatibleWith(UnitShape.OrthogonalOf(Point(source, 0))));
+        Assert.Equal(3UL, perimeter.Value);
+        Assert.Equal(2UL, cycles.Value);
+        Assert.Equal(0, perimeter.Tension);
+    }
+
+    [Fact]
+    public void OrthogonalRelationSurfaceWinsOverZeroExtentPortRead()
+    {
+        var source = new Carrier();
+        var zeroExtentPortLikeSurface = new Relation(Segment(source, 0, 10), Segment(Carrier.Unknown, 0, 0));
+
+        Assert.True(zeroExtentPortLikeSurface.TryReadUnitShape(out var unitShape));
+
+        Assert.True(unitShape.CompatibleWith(UnitShape.OrthogonalOf(Segment(source, 0, 10))));
+        Assert.False(unitShape.CompatibleWith(source.UnitShape));
+    }
+
+    [Fact]
+    public void OrthogonalRelationSurfaceReadsSegmentAndCoincidentPointSources()
+    {
+        var carrier = new Carrier();
+        var segment = Segment(carrier, 0, 10);
+        var coincidentPoints = new Relation(Point(carrier, 5), Point(carrier, 5));
+        var segmentSurface = new Relation(segment, Segment(Carrier.Unknown, 0, 0));
+        var raySurface = new Relation(coincidentPoints, Segment(Carrier.Unknown, 0, 0));
+
+        Assert.True(segmentSurface.TryReadUnitShape(out var segmentShape));
+        Assert.True(raySurface.TryReadUnitShape(out var rayShape));
+
+        Assert.True(segmentShape.CompatibleWith(UnitShape.OrthogonalOf(segment)));
+        Assert.True(rayShape.CompatibleWith(UnitShape.OrthogonalOf(coincidentPoints)));
+        Assert.False(rayShape.CompatibleWith(UnitShape.OrthogonalOf(Point(carrier, 5))));
+    }
+
+    [Fact]
     public void TransferPortUsesConcreteTargetUnitShape()
     {
         var light = new Carrier();

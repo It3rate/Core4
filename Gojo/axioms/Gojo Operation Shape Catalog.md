@@ -18,7 +18,8 @@ Notation:
 - `S0.P0` and `S0.P1` mean the first and second point of segment `S0`
 - `A -> B` means an ordinary `Relation(A, B)`
 - `A*+` and `A*-` are provisional notation for positive/opposed orthogonal
-  pushes from `A`; this is not yet an executable operator
+  pushes from `A`; the current relation-readable surface is
+  `A -> S(Unknown,0,0)`
 - `A | B` is provisional notation for "A through calibrator B"; the right
   side calibrates the left side
 - `^n` means repeated relation shape, not a primitive exponent operator
@@ -48,13 +49,22 @@ tension by itself.
 
 ## Orthogonal Shape-Unit Candidates
 
-These shapes are conceptual footholds for the next unit-shape layer. They can
-now be represented as unit-shape provenance with
-`UnitShape.OrthogonalOf(element)` and inspected with
-`UnitShape.TryReadOrthogonalSource(out source)`, but they are not yet
-executable operation syntax. The goal is to treat multiplication-like shape
-formation as a push into an orthogonal supplied by the source structure, not as
-a hard-coded two-scalar calculation.
+These shapes are conceptual footholds for the next unit-shape layer. They are
+represented as relation-readable unit-shape provenance by relating the source
+to the uncalibrated zero-segment orthogonal outlet:
+
+```text
+A*+  ~=  A -> S(Unknown,0,0)
+```
+
+`Relation.TryReadUnitShape(...)` and `Relation.TryCrystallize(...)` now
+recognize that surface before ordinary port reads. `UnitShape.OrthogonalOf`
+emits the same structure, and `UnitShape.TryReadOrthogonalSource(out source)`
+or `UnitShape.TryReadOrthogonalSource(surface, out source)` inspects it.
+Settlement still needs an explicit carrier/surface to receive the shape; `P*+`
+and `S*+` are not yet standalone mutation operators. The goal is to treat
+multiplication-like shape formation as a push into an orthogonal supplied by
+the source structure, not as a hard-coded two-scalar calculation.
 
 | Shape | Read |
 |---|---|

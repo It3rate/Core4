@@ -359,6 +359,11 @@ public sealed class Relation : IElement, IEquatable<Relation>
             return true;
         }
 
+        if (TryReadOrthogonalUnitShape(out unitShape))
+        {
+            return true;
+        }
+
         if (TryReadPortSurface(this, out var port) &&
             TryReadPortUnitShape(port, out unitShape))
         {
@@ -368,6 +373,19 @@ public sealed class Relation : IElement, IEquatable<Relation>
         if (TryReadFrame(this, out var frame))
         {
             unitShape = frame.Carrier.UnitShape;
+            return true;
+        }
+
+        unitShape = null!;
+        return false;
+    }
+
+    /// <summary>Reads a source-to-zero-segment surface as an orthogonal shape unit.</summary>
+    private bool TryReadOrthogonalUnitShape(out UnitShape unitShape)
+    {
+        if (UnitShape.TryReadOrthogonalSource(this, out var source))
+        {
+            unitShape = UnitShape.OrthogonalOf(source);
             return true;
         }
 

@@ -286,11 +286,14 @@ In current Gojo code:
 - `UnitShape.OrthogonalOf(element)` creates an orthogonal shape unit whose
   surface preserves the source element as provenance and uses a zero-segment
   marker as the orthogonal outlet.
-- `UnitShape.TryReadOrthogonalSource(out source)` exposes that provenance as a
-  snapshot so callers can inspect point, segment, or zero-segment origin
-  structure without mutating the shape.
+- `UnitShape.TryReadOrthogonalSource(out source)` and
+  `UnitShape.TryReadOrthogonalSource(surface, out source)` expose that
+  provenance as a snapshot so callers can inspect point, segment, or
+  zero-segment origin structure without mutating the shape.
 - `Relation.TryReadUnitShape(...)` calculates unit shape from existing
   relation surfaces:
+  - `source -> S(Unknown,0,0)` exposes an orthogonal shape unit, and this read
+    wins before the same surface can be treated as a zero-extent port
   - same-carrier point/segment frames expose that carrier's unit shape
   - transfer/calibration ports expose the concrete target unit shape
   - `Unknown` output ports inherit the source unit shape for discovery reads

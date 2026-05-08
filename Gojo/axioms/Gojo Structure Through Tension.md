@@ -504,13 +504,15 @@ A calibrated flow unit can remain relation-shaped as a basis segment. A contour
 unit needs a closed/fused contour surface; zero, partition, and revolution
 count are later calibration structures attached by orthogonal markers.
 
-The code now has a unit-shape-level orthogonal outlet through
-`UnitShape.OrthogonalOf(element)`. That is enough to create a carrier whose
-tick shape remembers that it came from a point, segment, or zero-length segment
-orthogonal. `UnitShape.TryReadOrthogonalSource(out source)` exposes that
-provenance as a snapshot. Today, product operations still multiply concrete
-port operands; they do not yet execute `P*+`, `S*+`, or `S(C,a,a)*+` as
-settlement without manually creating the receiving carrier/surface first.
+The code now has a relation-readable unit-shape-level orthogonal outlet:
+`source -> S(Unknown,0,0)`. `UnitShape.OrthogonalOf(element)` emits that
+surface, and `Relation.TryReadUnitShape(...)` recognizes it before ordinary
+zero-extent port reads. That is enough to crystallize a carrier whose tick
+shape remembers that it came from a point, segment, or zero-length segment
+orthogonal. `UnitShape.TryReadOrthogonalSource(out source)` exposes the source
+as a snapshot. Today, product operations still multiply concrete port
+operands; they do not yet execute `P*+`, `S*+`, or `S(C,a,a)*+` as settlement
+without manually creating the receiving carrier/surface first.
 
 `Carrier.IsInverse` is currently an opposed-flow face for aligned carrier
 settlement. It is not a general contour inverse. A contour inverse should be
@@ -523,14 +525,14 @@ Likely near-term adjustments:
 1. Keep Carrier.Value/Tension as the one-shot settlement foothold.
 2. Keep UnitShape stable and read-only as the crystallized tick promise.
 3. Rename or document linear reads as linear-frame reads if ambiguity grows.
-4. Add uncalibrated flow and contour unit-shape examples as relation structures
-   before adding executable settlement.
+4. Extend uncalibrated flow and contour unit-shape examples from
+   `source -> S(Unknown,0,0)` toward executable settlement.
 5. Represent flow endpoints and contour zero as orthogonal calibration marker
    relations, not as absolute fields on the shape.
 6. Add settlement-candidate reads only when there is a concrete operation that
    needs them, such as circular traversal, min/max, or hardening from tension.
-7. Extend the orthogonal outlet convention from unit-shape provenance into
-   executable uncalibrated shape-unit settlement.
+7. Keep the orthogonal outlet convention relation-shaped as it moves from
+   provenance into executable uncalibrated shape-unit settlement.
 ```
 
 The important compatibility rule is that crystallization hardens unit shape,
