@@ -15,8 +15,7 @@ public sealed class GearDemoCanvas : Control
     private bool isPlaying = true;
     private bool isAttached;
     private TimeSpan? lastFrameTime;
-    private double speedTicksPerSecond = 64d;
-    private double pendingDriveTicks;
+    private double pendingFrameMilliseconds;
     private Point? hoverPoint;
     private Action<Point>? activeDrag;
 
@@ -31,7 +30,7 @@ public sealed class GearDemoCanvas : Control
         base.Render(context);
         var bounds = new Rect(Bounds.Size);
         var snapshot = model.Read();
-        layout = GearDemoRenderer.Arrange(bounds, snapshot, speedTicksPerSecond);
+        layout = GearDemoRenderer.Arrange(bounds, snapshot);
         context.Custom(new GearDemoDrawOperation(
             bounds,
             layout,
@@ -90,31 +89,17 @@ public sealed class GearDemoCanvas : Control
             return;
         }
 
-        if (layout.StepButton.Contains(point))
-        {
-            model.Drive(1);
-            CompletePointer(e);
-            return;
-        }
-
-        if (layout.BurstButton.Contains(point))
-        {
-            model.Drive(GearDemoModel.TicksPerTooth);
-            CompletePointer(e);
-            return;
-        }
-
         if (layout.ResetButton.Contains(point))
         {
             model.Reset();
-            pendingDriveTicks = 0d;
+            pendingFrameMilliseconds = 0d;
             CompletePointer(e);
             return;
         }
 
         if (layout.SpeedSlider.Bounds.Contains(point))
         {
-            BeginDrag(e, p => speedTicksPerSecond = SliderValue(layout.SpeedSlider, p));
+            BeginDrag(e, p => model.SetSpeedTicksPerSecond((int)Math.Round(SliderValue(layout.SpeedSlider, p), MidpointRounding.AwayFromZero)));
             return;
         }
 
@@ -166,7 +151,7 @@ public sealed class GearDemoCanvas : Control
         else if (e.Key == Key.R)
         {
             model.Reset();
-            pendingDriveTicks = 0d;
+            pendingFrameMilliseconds = 0d;
             e.Handled = true;
         }
 
@@ -196,14 +181,14 @@ public sealed class GearDemoCanvas : Control
         if (lastFrameTime is { } last)
         {
             var seconds = Math.Clamp((now - last).TotalSeconds, 0d, 0.1d);
-            if (isPlaying && speedTicksPerSecond > 0d)
+            if (isPlaying)
             {
-                pendingDriveTicks += speedTicksPerSecond * seconds;
-                var wholeTicks = (long)Math.Floor(pendingDriveTicks);
-                if (wholeTicks > 0)
+                pendingFrameMilliseconds += seconds * 1000d;
+                var wholeMilliseconds = (long)Math.Floor(pendingFrameMilliseconds);
+                if (wholeMilliseconds > 0)
                 {
-                    model.Drive(wholeTicks);
-                    pendingDriveTicks -= wholeTicks;
+                    model.AdvanceClock(wholeMilliseconds);
+                    pendingFrameMilliseconds -= wholeMilliseconds;
                     InvalidateVisual();
                 }
             }
@@ -236,7 +221,7 @@ public sealed class GearDemoCanvas : Control
         if (layout.Bounds.Width <= 0d || layout.Bounds.Height <= 0d)
         {
             var bounds = new Rect(Bounds.Size);
-            layout = GearDemoRenderer.Arrange(bounds, model.Read(), speedTicksPerSecond);
+            layout = GearDemoRenderer.Arrange(bounds, model.Read());
         }
     }
 

@@ -333,7 +333,9 @@ Gojo.Tests/
 
 Gojo.GearDemo/
   code-first Avalonia desktop demo using a render-tick-driven Skia canvas
-  over Gojo circular carriers, tooth partitions, and signed mesh projection
+  over Gojo slider carriers, timer projection, circular carriers, tooth
+  partitions, radius/diameter reads, center-line structure, and signed mesh
+  projection
 ```
 
 The root `Gojo.slnx` includes only `Gojo`, `Gojo.GearDemo`, and `Gojo.Tests`.

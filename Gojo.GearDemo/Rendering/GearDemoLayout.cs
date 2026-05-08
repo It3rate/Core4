@@ -7,8 +7,6 @@ internal readonly record struct GearDemoLayout(
     Rect Scene,
     Rect Side,
     Rect PlayButton,
-    Rect StepButton,
-    Rect BurstButton,
     Rect ResetButton,
     SliderLayout SpeedSlider,
     SliderLayout DriverTeethSlider,

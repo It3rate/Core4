@@ -13,13 +13,11 @@ internal static class GearDemoRenderer
     private const double SceneMinWidth = 420d;
     private const double ScenePadding = 30d;
     private const double LabelBand = 88d;
-    private const double DiametralPitch = 24d;
     private const double BasePixelsPerInch = 430d;
 
     public static GearDemoLayout Arrange(
         Rect bounds,
-        GearDemoSnapshot snapshot,
-        double speedTicksPerSecond)
+        GearDemoSnapshot snapshot)
     {
         var content = new Rect(
             OuterPadding,
@@ -39,22 +37,20 @@ internal static class GearDemoRenderer
         var controlX = side.X + controlPad;
         var controlWidth = Math.Max(1d, side.Width - (controlPad * 2d));
         var gap = 8d;
-        var buttonWidth = Math.Max(42d, (controlWidth - (gap * 3d)) / 4d);
+        var buttonWidth = Math.Max(76d, (controlWidth - gap) / 2d);
         var buttonY = side.Y + 2d;
         var play = new Rect(controlX, buttonY, buttonWidth, 32d);
-        var step = new Rect(play.Right + gap, buttonY, buttonWidth, 32d);
-        var burst = new Rect(step.Right + gap, buttonY, buttonWidth, 32d);
-        var reset = new Rect(burst.Right + gap, buttonY, buttonWidth, 32d);
+        var reset = new Rect(play.Right + gap, buttonY, buttonWidth, 32d);
 
-        var speed = Slider(controlX, buttonY + 58d, controlWidth, 0d, 160d, speedTicksPerSecond, "ticks/s", $"{speedTicksPerSecond:0.0}");
-        var driver = Slider(controlX, speed.Bounds.Bottom + 30d, controlWidth, 6d, 48d, snapshot.DriverTeeth, "driver teeth", snapshot.DriverTeeth.ToString());
-        var driven = Slider(controlX, driver.Bounds.Bottom + 30d, controlWidth, 6d, 48d, snapshot.DrivenTeeth, "driven teeth", snapshot.DrivenTeeth.ToString());
+        var speed = Slider(controlX, buttonY + 58d, controlWidth, snapshot.SpeedSlider, "ticks/s", snapshot.SpeedTicksPerSecond.ToString());
+        var driver = Slider(controlX, speed.Bounds.Bottom + 30d, controlWidth, snapshot.DriverTeethSlider, "driver teeth", snapshot.DriverTeeth.ToString());
+        var driven = Slider(controlX, driver.Bounds.Bottom + 30d, controlWidth, snapshot.DrivenTeethSlider, "driven teeth", snapshot.DrivenTeeth.ToString());
 
         var gearScale = GearScale(scene, snapshot);
-        var toothDepth = BasePixelsPerInch / DiametralPitch * 0.64d * gearScale;
-        var driverRadius = snapshot.DriverDiameterInches * BasePixelsPerInch * 0.5d * gearScale;
-        var drivenRadius = snapshot.DrivenDiameterInches * BasePixelsPerInch * 0.5d * gearScale;
-        var centerDistance = driverRadius + drivenRadius + (toothDepth * 0.88d);
+        var toothDepth = snapshot.ToothProfileInches * BasePixelsPerInch * gearScale;
+        var driverRadius = snapshot.DriverRadiusInches * BasePixelsPerInch * gearScale;
+        var drivenRadius = snapshot.DrivenRadiusInches * BasePixelsPerInch * gearScale;
+        var centerDistance = snapshot.CenterLineDistanceInches * BasePixelsPerInch * gearScale;
         var gearArea = new Rect(
             scene.X + ScenePadding,
             scene.Y + ScenePadding,
@@ -69,8 +65,6 @@ internal static class GearDemoRenderer
             scene,
             side,
             play,
-            step,
-            burst,
             reset,
             speed,
             driver,
@@ -78,8 +72,8 @@ internal static class GearDemoRenderer
             new GearLayout(
                 driverCenter,
                 driverRadius,
-                Math.Max(10d, driverRadius - toothDepth * 0.52d),
-                driverRadius + toothDepth * 0.62d,
+                Math.Max(10d, driverRadius - toothDepth),
+                driverRadius + toothDepth,
                 snapshot.DriverTeeth,
                 snapshot.DriverTurns,
                 $"Driver {snapshot.DriverTeeth}T / dia {snapshot.DriverDiameterText}",
@@ -87,8 +81,8 @@ internal static class GearDemoRenderer
             new GearLayout(
                 drivenCenter,
                 drivenRadius,
-                Math.Max(10d, drivenRadius - toothDepth * 0.52d),
-                drivenRadius + toothDepth * 0.62d,
+                Math.Max(10d, drivenRadius - toothDepth),
+                drivenRadius + toothDepth,
                 snapshot.DrivenTeeth,
                 snapshot.DrivenProjectedTurns,
                 $"Driven {snapshot.DrivenTeeth}T / dia {snapshot.DrivenDiameterText}",
@@ -121,10 +115,11 @@ internal static class GearDemoRenderer
 
     private static double GearScale(Rect scene, GearDemoSnapshot snapshot)
     {
-        var toothDepth = BasePixelsPerInch / DiametralPitch * 0.64d;
-        var driverRadius = snapshot.DriverDiameterInches * BasePixelsPerInch * 0.5d;
-        var drivenRadius = snapshot.DrivenDiameterInches * BasePixelsPerInch * 0.5d;
-        var rawWidth = ((driverRadius + drivenRadius) * 2d) + toothDepth * 2.12d;
+        var toothDepth = snapshot.ToothProfileInches * BasePixelsPerInch;
+        var driverRadius = snapshot.DriverRadiusInches * BasePixelsPerInch;
+        var drivenRadius = snapshot.DrivenRadiusInches * BasePixelsPerInch;
+        var centerDistance = snapshot.CenterLineDistanceInches * BasePixelsPerInch;
+        var rawWidth = centerDistance + driverRadius + drivenRadius + toothDepth * 2d;
         var rawHeight = (Math.Max(driverRadius, drivenRadius) * 2d) + toothDepth * 1.24d;
         var availableWidth = Math.Max(1d, scene.Width - (ScenePadding * 2d));
         var availableHeight = Math.Max(1d, scene.Height - LabelBand - (ScenePadding * 2d));
@@ -136,17 +131,15 @@ internal static class GearDemoRenderer
         double x,
         double y,
         double width,
-        double minimum,
-        double maximum,
-        double value,
+        GojoSliderSnapshot slider,
         string label,
         string readout)
     {
         var bounds = new Rect(x, y, width, 42d);
         var track = new Rect(x + 4d, y + 26d, Math.Max(1d, width - 8d), 6d);
-        var t = maximum <= minimum ? 0d : (Math.Clamp(value, minimum, maximum) - minimum) / (maximum - minimum);
+        var t = slider.Range <= 0 ? 0d : slider.PositionTicks / (double)slider.Range;
         var knob = new Point(track.X + track.Width * t, track.Center.Y);
-        return new SliderLayout(bounds, track, knob, minimum, maximum, value, label, readout);
+        return new SliderLayout(bounds, track, knob, slider.Minimum, slider.Maximum, slider.ValueTicks, label, readout);
     }
 
     private static void DrawOpenSpaces(SKCanvas canvas, GearDemoLayout layout)
@@ -169,8 +162,6 @@ internal static class GearDemoRenderer
         GearDemoInteraction interaction)
     {
         DrawButton(canvas, layout.PlayButton, interaction.IsPlaying ? "pause" : "play", interaction.HoverPoint);
-        DrawButton(canvas, layout.StepButton, "+1", interaction.HoverPoint);
-        DrawButton(canvas, layout.BurstButton, $"+{GearDemoSnapshot.TicksPerTooth}", interaction.HoverPoint);
         DrawButton(canvas, layout.ResetButton, "reset", interaction.HoverPoint);
 
         DrawSlider(canvas, layout.SpeedSlider, interaction.HoverPoint);
@@ -181,6 +172,7 @@ internal static class GearDemoRenderer
         var y = layout.DrivenTeethSlider.Bounds.Bottom + 34d;
         DrawReadout(canvas, x, ref y, "diameter", $"{snapshot.DriverDiameterText} / {snapshot.DrivenDiameterText}");
         DrawReadout(canvas, x, ref y, "mesh", snapshot.MeshLabel);
+        DrawReadout(canvas, x, ref y, "centers", $"segment 0 -> {snapshot.CenterLineDistanceFortyEighths}/48 in");
         DrawReadout(canvas, x, ref y, "driver", $"ticks {snapshot.DriverInputTicks}, tooth {snapshot.DriverToothPosition}/{snapshot.DriverTeeth}, rotations {snapshot.DriverRotations}");
         DrawReadout(canvas, x, ref y, "driven read", $"ticks {snapshot.DrivenProjectedTicks}, tooth {snapshot.DrivenProjectedToothPosition}/{snapshot.DrivenTeeth}, rotations {snapshot.DrivenProjectedRotations}");
         DrawReadout(canvas, x, ref y, "tension", $"{snapshot.DriverTension} -> {snapshot.ProjectionResidueTicks}");

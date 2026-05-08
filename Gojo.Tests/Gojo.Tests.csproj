@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Gojo\Gojo.csproj" />
+    <ProjectReference Include="..\Gojo.GearDemo\Gojo.GearDemo.csproj" />
   </ItemGroup>
 
   <ItemGroup>
