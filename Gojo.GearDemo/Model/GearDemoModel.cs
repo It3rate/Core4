@@ -167,30 +167,39 @@ internal sealed class GearDemoModel
     {
         private GojoSlider(int minimum, int maximum)
         {
-            Minimum = minimum;
-            Maximum = maximum;
-            Range = checked(maximum - minimum);
+            Minimum = new Carrier();
+            Maximum = new Carrier();
+            Range = new Carrier();
             Position = new Carrier();
             Output = new Carrier();
+            Minimum.Set(minimum);
+            Maximum.Set(maximum);
+            Range.Set(checked(maximum - minimum));
             Position.Attach(new Relation(
-                Relation.Point(Position, Range),
-                Relation.Point(Position, Range)));
+                Relation.Point(Position, RangeTicks),
+                Relation.Point(Position, RangeTicks)));
             Projection = new Relation(
-                Relation.Segment(Position, 0, Range),
-                Relation.Segment(Output, minimum, maximum));
+                Relation.Segment(Position, 0, RangeTicks),
+                Relation.Segment(Output, MinimumTicks, MaximumTicks));
         }
 
-        public int Minimum { get; }
+        public Carrier Minimum { get; }
 
-        public int Maximum { get; }
+        public Carrier Maximum { get; }
 
-        public int Range { get; }
+        public Carrier Range { get; }
 
         public Carrier Position { get; }
 
         public Carrier Output { get; }
 
         public Relation Projection { get; }
+
+        public long MinimumTicks => checked((long)Minimum.Value);
+
+        public long MaximumTicks => checked((long)Maximum.Value);
+
+        public long RangeTicks => checked((long)Range.Value);
 
         public static GojoSlider Create(int minimum, int maximum, int value)
         {
@@ -201,7 +210,7 @@ internal sealed class GearDemoModel
 
         public void SetOutput(int value)
         {
-            var clamped = Math.Clamp(value, Minimum, Maximum);
+            var clamped = Math.Clamp((long)value, MinimumTicks, MaximumTicks);
             var projected = Projection.Project(new CarrierLocation(Output, clamped), Position);
             var (position, _) = ReadProjection(projected);
             Position.Set(position);
@@ -212,9 +221,9 @@ internal sealed class GearDemoModel
         {
             ProjectOutput();
             return new GojoSliderSnapshot(
-                Minimum,
-                Maximum,
-                Range,
+                MinimumTicks,
+                MaximumTicks,
+                RangeTicks,
                 checked((long)Position.Value),
                 checked((long)Output.Value),
                 Position.Tension,
@@ -230,29 +239,39 @@ internal sealed class GearDemoModel
     }
 
     private sealed record GearCarrier(
-        int ToothCount,
-        int PerimeterTicks,
         Carrier ToothCountCarrier,
         Carrier ShapeCenter,
         Carrier Perimeter,
         Carrier Rotations,
+        Carrier PerimeterTicksCarrier,
         Carrier DiameterTwentyFourthsCarrier,
         Carrier RadiusFortyEighthsCarrier,
-        int DiameterTwentyFourths,
-        int RadiusFortyEighths,
         Relation Partition,
+        Relation TeethToPerimeter,
         Relation TeethToDiameter,
         Relation DiameterToRadius)
     {
+        public int ToothCount => checked((int)ToothCountCarrier.Value);
+
+        public int PerimeterTicks => checked((int)PerimeterTicksCarrier.Value);
+
+        public int DiameterTwentyFourths => checked((int)DiameterTwentyFourthsCarrier.Value);
+
+        public int RadiusFortyEighths => checked((int)RadiusFortyEighthsCarrier.Value);
+
         public static GearCarrier Create(Carrier toothCountCarrier)
         {
-            var toothCount = checked((int)toothCountCarrier.Value);
-            var perimeterTicks = checked(toothCount * TicksPerTooth);
             var shapeCenter = new Carrier();
             var perimeter = new Carrier(UnitShape.CircularFrom(Relation.Point(shapeCenter, 0)));
             var rotations = new Carrier();
+            var perimeterTicksCarrier = new Carrier();
             var diameterTwentyFourths = new Carrier();
             var radiusFortyEighths = new Carrier();
+            var teethToPerimeter = new Relation(
+                Relation.Segment(toothCountCarrier, 0, 1),
+                Relation.Segment(perimeterTicksCarrier, 0, TicksPerTooth));
+            var (perimeterTicks, _) = ReadProjection(teethToPerimeter.Project(toothCountCarrier.ValueSlot, perimeterTicksCarrier));
+            perimeterTicksCarrier.Set(perimeterTicks);
             var partition = perimeter.Attach(new Relation(
                 Relation.Point(perimeter, perimeterTicks),
                 Relation.Point(rotations, 0)));
@@ -268,17 +287,15 @@ internal sealed class GearDemoModel
             radiusFortyEighths.Set(radiusTicks);
 
             return new GearCarrier(
-                toothCount,
-                perimeterTicks,
                 toothCountCarrier,
                 shapeCenter,
                 perimeter,
                 rotations,
+                perimeterTicksCarrier,
                 diameterTwentyFourths,
                 radiusFortyEighths,
-                checked((int)diameterTwentyFourths.Value),
-                checked((int)radiusFortyEighths.Value),
                 partition,
+                teethToPerimeter,
                 teethToDiameter,
                 diameterToRadius);
         }
@@ -289,15 +306,13 @@ internal sealed class GearDemoModel
         GearCarrier Driven,
         Carrier CenterLine,
         Carrier CenterDistance,
-        int DriverCenterFortyEighths,
-        int DrivenCenterFortyEighths,
         Carrier CenterClearance,
         Relation CenterDistanceOperation,
         Relation CenterLineSegment,
         Relation DriverInputToPerimeter,
         Relation Mesh)
     {
-        public int CenterLineDistanceFortyEighths => DrivenCenterFortyEighths - DriverCenterFortyEighths;
+        public int CenterLineDistanceFortyEighths => checked((int)CenterDistance.Value);
 
         public static GearPair Create(Carrier driverToothCount, Carrier drivenToothCount, Carrier driverInputTicks)
         {
@@ -343,8 +358,6 @@ internal sealed class GearDemoModel
                 driven,
                 centerLine,
                 centerDistance,
-                0,
-                drivenCenter,
                 centerClearance,
                 centerDistanceOperation,
                 centerLineSegment,
@@ -360,9 +373,9 @@ internal sealed class GearDemoModel
 }
 
 internal readonly record struct GojoSliderSnapshot(
-    int Minimum,
-    int Maximum,
-    int Range,
+    long Minimum,
+    long Maximum,
+    long Range,
     long PositionTicks,
     long ValueTicks,
     long PositionTension,
