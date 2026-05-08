@@ -11,13 +11,13 @@ internal sealed class GearDemoModel
     private const int MaximumSpeedTicksPerSecond = 96;
     private const int ClockTicksPerSecond = 1000;
     private const int DiametralPitch = 24;
-    private const int RadiusTicksPerInch = DiametralPitch * 2;
     private const int CenterClearanceRadiusTicks = 2;
     private const int ToothProfileRadiusTicks = 1;
 
-    private readonly GojoSlider speedSlider = GojoSlider.Create(0, MaximumSpeedTicksPerSecond, 3);
-    private readonly GojoSlider driverTeethSlider = GojoSlider.Create(MinimumTeeth, MaximumTeeth, 24);
-    private readonly GojoSlider drivenTeethSlider = GojoSlider.Create(MinimumTeeth, MaximumTeeth, 16);
+    private readonly GearNumbers numbers;
+    private readonly GojoSlider speedSlider;
+    private readonly GojoSlider driverTeethSlider;
+    private readonly GojoSlider drivenTeethSlider;
     private readonly Carrier driverInputTicks = new();
     private readonly Carrier clockDriveNumeratorResidue = new();
     private GearPair pair;
@@ -25,7 +25,11 @@ internal sealed class GearDemoModel
 
     public GearDemoModel()
     {
-        pair = GearPair.Create(driverTeethSlider.Output, drivenTeethSlider.Output, driverInputTicks);
+        numbers = GearNumbers.Create(TicksPerTooth, DiametralPitch, ToothProfileRadiusTicks);
+        speedSlider = GojoSlider.Create(0, MaximumSpeedTicksPerSecond, 3);
+        driverTeethSlider = GojoSlider.Create(MinimumTeeth, MaximumTeeth, 24);
+        drivenTeethSlider = GojoSlider.Create(MinimumTeeth, MaximumTeeth, 16);
+        pair = GearPair.Create(driverTeethSlider.Output, drivenTeethSlider.Output, driverInputTicks, numbers);
     }
 
     public int DriverTeeth => pair.Driver.ToothCount;
@@ -82,7 +86,7 @@ internal sealed class GearDemoModel
 
     public void Reset()
     {
-        pair = GearPair.Create(driverTeethSlider.Output, drivenTeethSlider.Output, driverInputTicks);
+        pair = GearPair.Create(driverTeethSlider.Output, drivenTeethSlider.Output, driverInputTicks, numbers);
         driverInputTicks.Set(0);
         clockDriveNumeratorResidue.Set(0);
         lastClockRead = default;
@@ -115,6 +119,8 @@ internal sealed class GearDemoModel
         var drivenProjectedLocation = new CarrierLocation(pair.Driven.Perimeter, projectedTicks);
         var (drivenProjectedToothPosition, _) = ReadProjection(pair.Driven.PerimeterToToothPosition.Project(drivenProjectedLocation, pair.Driven.ToothPosition));
         var (drivenProjectedRotations, _) = ReadProjection(pair.Driven.PerimeterToRotation.Project(drivenProjectedLocation, pair.Driven.Rotations));
+        var driverCircularToothPosition = ReadCircularValue(pair.Driver.ToothPosition, driverToothPosition, pair.Driver.ToothCount);
+        var drivenCircularToothPosition = ReadCircularValue(pair.Driven.ToothPosition, drivenProjectedToothPosition, pair.Driven.ToothCount);
 
         return new GearDemoSnapshot(
             speedSlider.Read(),
@@ -129,11 +135,11 @@ internal sealed class GearDemoModel
             pair.Driven.PerimeterTicks,
             checked((long)driverInputTicks.Value),
             pair.Driver.Perimeter.Value,
-            PositiveModulo(driverToothPosition, pair.Driver.ToothCount),
+            driverCircularToothPosition,
             pair.Driver.Perimeter.Tension,
             pair.Driver.Rotations.Value,
             projectedTicks,
-            PositiveModulo(drivenProjectedToothPosition, pair.Driven.ToothCount),
+            drivenCircularToothPosition,
             drivenProjectedRotations,
             projectionResidue,
             visibleProjectedTicks,
@@ -146,6 +152,10 @@ internal sealed class GearDemoModel
             pair.Driver.RadiusFortyEighths,
             pair.Driven.RadiusFortyEighths,
             pair.CenterLineDistanceFortyEighths,
+            pair.Numbers.DiametralPitchTicks,
+            pair.Numbers.RadiusTicksPerInchTicks,
+            pair.Numbers.ToothProfileRadiusTicksValue,
+            pair.Numbers.HalfPitchTicksValue,
             pair.CenterLineSegment,
             MeshLabel());
     }
@@ -153,7 +163,7 @@ internal sealed class GearDemoModel
     private void RebuildPair()
     {
         var ticks = checked((long)driverInputTicks.Value);
-        pair = GearPair.Create(driverTeethSlider.Output, drivenTeethSlider.Output, driverInputTicks);
+        pair = GearPair.Create(driverTeethSlider.Output, drivenTeethSlider.Output, driverInputTicks, numbers);
         pair.Driver.Perimeter.Add(checked((ulong)ticks));
     }
 
@@ -167,14 +177,83 @@ internal sealed class GearDemoModel
         return (0, 0);
     }
 
-    private static int PositiveModulo(long value, int modulus)
+    private static int ReadCircularValue(Carrier circularPrototype, long ticks, int cycleTicks)
     {
-        var remainder = value % modulus;
-        return (int)(remainder < 0 ? remainder + modulus : remainder);
+        if (cycleTicks <= 0)
+        {
+            return 0;
+        }
+
+        var circular = new Carrier(circularPrototype.UnitShape);
+        circular.Attach(new Relation(
+            Relation.Point(circular, cycleTicks),
+            Relation.Point(circular, 0)));
+        var positiveTicks = ticks;
+        if (positiveTicks < 0)
+        {
+            var cycles = checked((-positiveTicks / cycleTicks) + 1);
+            positiveTicks = checked(positiveTicks + checked(cycles * cycleTicks));
+        }
+
+        circular.Add(checked((ulong)positiveTicks));
+        return checked((int)circular.Value);
     }
 
     private static string MeshLabel() =>
         $"{TicksPerTooth} ticks/tooth, driver tick -> -driven tick";
+
+    private sealed record GearNumbers(
+        Carrier TicksPerToothCarrier,
+        Carrier DiametralPitch,
+        Carrier RadiusTicksPerInch,
+        Carrier ToothProfileRadiusTicks,
+        Carrier HalfPitchTicks,
+        Relation DiametralPitchToRadiusTicks,
+        Relation TicksPerToothToHalfPitch)
+    {
+        public int TicksPerToothTicks => checked((int)TicksPerToothCarrier.Value);
+
+        public int DiametralPitchTicks => checked((int)DiametralPitch.Value);
+
+        public int RadiusTicksPerInchTicks => checked((int)RadiusTicksPerInch.Value);
+
+        public int ToothProfileRadiusTicksValue => checked((int)ToothProfileRadiusTicks.Value);
+
+        public int HalfPitchTicksValue => checked((int)HalfPitchTicks.Value);
+
+        public static GearNumbers Create(int ticksPerTooth, int diametralPitch, int toothProfileRadiusTicks)
+        {
+            var ticksPerToothCarrier = new Carrier();
+            var diametralPitchCarrier = new Carrier();
+            var radiusTicksPerInch = new Carrier();
+            var toothProfileRadiusTicksCarrier = new Carrier();
+            var halfPitchTicks = new Carrier();
+            ticksPerToothCarrier.Set(ticksPerTooth);
+            diametralPitchCarrier.Set(diametralPitch);
+            toothProfileRadiusTicksCarrier.Set(toothProfileRadiusTicks);
+
+            var diametralPitchToRadiusTicks = new Relation(
+                Relation.Segment(diametralPitchCarrier, 0, 1),
+                Relation.Segment(radiusTicksPerInch, 0, 2));
+            var (radiusTicks, _) = ReadProjection(diametralPitchToRadiusTicks.Project(diametralPitchCarrier.ValueSlot, radiusTicksPerInch));
+            radiusTicksPerInch.Set(radiusTicks);
+
+            var ticksPerToothToHalfPitch = new Relation(
+                Relation.Segment(ticksPerToothCarrier, 0, 2),
+                Relation.Segment(halfPitchTicks, 0, 1));
+            var (halfPitch, _) = ReadProjection(ticksPerToothToHalfPitch.Project(ticksPerToothCarrier.ValueSlot, halfPitchTicks));
+            halfPitchTicks.Set(halfPitch);
+
+            return new GearNumbers(
+                ticksPerToothCarrier,
+                diametralPitchCarrier,
+                radiusTicksPerInch,
+                toothProfileRadiusTicksCarrier,
+                halfPitchTicks,
+                diametralPitchToRadiusTicks,
+                ticksPerToothToHalfPitch);
+        }
+    }
 
     private sealed class GojoSlider
     {
@@ -187,7 +266,16 @@ internal sealed class GearDemoModel
             Output = new Carrier();
             Minimum.Set(minimum);
             Maximum.Set(maximum);
-            Range.Set(checked(maximum - minimum));
+            var maximumPort = new Relation(
+                Relation.Point(Maximum, 1),
+                Relation.Point(Carrier.Unknown, 1));
+            var minimumPort = new Relation(
+                Relation.Point(Minimum, -1),
+                Relation.Point(Carrier.Unknown, 1));
+            RangeOperation = new Relation(
+                new Relation(maximumPort, minimumPort),
+                Relation.Point(Range, 1));
+            ReadRange();
             Position.Attach(new Relation(
                 Relation.Point(Position, RangeTicks),
                 Relation.Point(Position, RangeTicks)));
@@ -207,6 +295,8 @@ internal sealed class GearDemoModel
         public Carrier Output { get; }
 
         public Relation Projection { get; }
+
+        public Relation RangeOperation { get; }
 
         public long MinimumTicks => checked((long)Minimum.Value);
 
@@ -240,7 +330,22 @@ internal sealed class GearDemoModel
                 checked((long)Position.Value),
                 checked((long)Output.Value),
                 Position.Tension,
+                RangeOperation,
                 Projection);
+        }
+
+        private void ReadRange()
+        {
+            if (!RangeOperation.TryReadOperationFrom(
+                    new Relation(Maximum.ValueSlot, Minimum.ValueSlot),
+                    Range,
+                    out var rangeRead) ||
+                rangeRead.Left is not CarrierLocation rangeLocation)
+            {
+                throw new InvalidOperationException("Slider range operation did not produce a Gojo carrier location.");
+            }
+
+            Range.Set(rangeLocation.Ticks);
         }
 
         private void ProjectOutput()
@@ -275,25 +380,44 @@ internal sealed class GearDemoModel
 
         public int RadiusFortyEighths => checked((int)RadiusFortyEighthsCarrier.Value);
 
-        public static GearCarrier Create(Carrier toothCountCarrier)
+        public static GearCarrier Create(Carrier toothCountCarrier, GearNumbers numbers)
         {
             var shapeCenter = new Carrier();
             var perimeter = new Carrier(UnitShape.CircularFrom(Relation.Point(shapeCenter, 0)));
             var rotations = new Carrier();
-            var toothPosition = new Carrier();
+            var toothPositionCenter = new Carrier();
+            var toothPosition = new Carrier(UnitShape.CircularFrom(Relation.Point(toothPositionCenter, 0)));
             var perimeterTicksCarrier = new Carrier();
             var diameterTwentyFourths = new Carrier();
             var radiusFortyEighths = new Carrier();
+            var toothCountPort = new Relation(
+                Relation.Point(toothCountCarrier, 1),
+                Relation.Point(Carrier.Unknown, 1));
+            var ticksPerToothPort = new Relation(
+                Relation.Point(numbers.TicksPerToothCarrier, 1),
+                Relation.Point(Carrier.Unknown, 1));
             var teethToPerimeter = new Relation(
-                Relation.Segment(toothCountCarrier, 0, 1),
-                Relation.Segment(perimeterTicksCarrier, 0, TicksPerTooth));
-            var (perimeterTicks, _) = ReadProjection(teethToPerimeter.Project(toothCountCarrier.ValueSlot, perimeterTicksCarrier));
-            perimeterTicksCarrier.Set(perimeterTicks);
+                new Relation(toothCountPort, ticksPerToothPort),
+                Relation.Segment(perimeterTicksCarrier, 0, 1));
+            if (!teethToPerimeter.TryReadOperationFrom(
+                    new Relation(toothCountCarrier.ValueSlot, numbers.TicksPerToothCarrier.ValueSlot),
+                    perimeterTicksCarrier,
+                    out var perimeterRead) ||
+                perimeterRead.Left is not CarrierLocation perimeterLocation)
+            {
+                throw new InvalidOperationException("Gear perimeter operation did not produce a Gojo carrier location.");
+            }
+
+            perimeterTicksCarrier.Set(perimeterLocation.Ticks);
+            var perimeterTicks = checked((int)perimeterTicksCarrier.Value);
             var partition = perimeter.Attach(new Relation(
                 Relation.Point(perimeter, perimeterTicks),
                 Relation.Point(rotations, 0)));
+            toothPosition.Attach(new Relation(
+                Relation.Point(toothPosition, checked((long)toothCountCarrier.Value)),
+                Relation.Point(toothPosition, 0)));
             var perimeterToToothPosition = new Relation(
-                Relation.Segment(perimeter, 0, TicksPerTooth),
+                Relation.Segment(perimeter, 0, numbers.TicksPerToothTicks),
                 Relation.Segment(toothPosition, 0, 1));
             var perimeterToRotation = new Relation(
                 Relation.Segment(perimeter, 0, perimeterTicks),
@@ -330,6 +454,7 @@ internal sealed class GearDemoModel
     private sealed record GearPair(
         GearCarrier Driver,
         GearCarrier Driven,
+        GearNumbers Numbers,
         Carrier CenterLine,
         Carrier CenterDistance,
         Carrier CenterClearance,
@@ -340,10 +465,10 @@ internal sealed class GearDemoModel
     {
         public int CenterLineDistanceFortyEighths => checked((int)CenterDistance.Value);
 
-        public static GearPair Create(Carrier driverToothCount, Carrier drivenToothCount, Carrier driverInputTicks)
+        public static GearPair Create(Carrier driverToothCount, Carrier drivenToothCount, Carrier driverInputTicks, GearNumbers numbers)
         {
-            var driver = GearCarrier.Create(driverToothCount);
-            var driven = GearCarrier.Create(drivenToothCount);
+            var driver = GearCarrier.Create(driverToothCount, numbers);
+            var driven = GearCarrier.Create(drivenToothCount, numbers);
             var centerLine = new Carrier(UnitShape.LinearFrom(Relation.Segment(new Carrier(), 0, 0)));
             var centerDistance = new Carrier();
             var centerClearance = new Carrier();
@@ -382,6 +507,7 @@ internal sealed class GearDemoModel
             return new GearPair(
                 driver,
                 driven,
+                numbers,
                 centerLine,
                 centerDistance,
                 centerClearance,
@@ -405,6 +531,7 @@ internal readonly record struct GojoSliderSnapshot(
     long PositionTicks,
     long ValueTicks,
     long PositionTension,
+    Relation RangeOperation,
     Relation Projection);
 
 internal readonly record struct GearDemoSnapshot(
@@ -437,13 +564,14 @@ internal readonly record struct GearDemoSnapshot(
     int DriverRadiusFortyEighths,
     int DrivenRadiusFortyEighths,
     int CenterLineDistanceFortyEighths,
+    int DiametralPitchTicks,
+    int RadiusTicksPerInchTicks,
+    int ToothProfileRadiusTicks,
+    int HalfPitchTicks,
     Relation CenterLineSegment,
     string MeshLabel)
 {
-    private const int DiametralPitch = 24;
-    private const int RadiusTicksPerInch = DiametralPitch * 2;
     public const int TicksPerTooth = GearDemoModel.TicksPerTooth;
-    public const int ToothProfileRadiusTicks = 1;
 
     public int SpeedTicksPerSecond => checked((int)SpeedSlider.ValueTicks);
 
@@ -453,21 +581,21 @@ internal readonly record struct GearDemoSnapshot(
 
     public double VisibleDrivenTurns => DrivenPerimeterTicks == 0 ? 0d : VisibleDrivenProjectedTicks / (double)DrivenPerimeterTicks;
 
-    public double DriverDiameterInches => DriverDiameterTwentyFourths / (double)DiametralPitch;
+    public double DriverDiameterInches => DriverDiameterTwentyFourths / (double)DiametralPitchTicks;
 
-    public double DrivenDiameterInches => DrivenDiameterTwentyFourths / (double)DiametralPitch;
+    public double DrivenDiameterInches => DrivenDiameterTwentyFourths / (double)DiametralPitchTicks;
 
-    public double DriverRadiusInches => DriverRadiusFortyEighths / (double)RadiusTicksPerInch;
+    public double DriverRadiusInches => DriverRadiusFortyEighths / (double)RadiusTicksPerInchTicks;
 
-    public double DrivenRadiusInches => DrivenRadiusFortyEighths / (double)RadiusTicksPerInch;
+    public double DrivenRadiusInches => DrivenRadiusFortyEighths / (double)RadiusTicksPerInchTicks;
 
-    public double CenterLineDistanceInches => CenterLineDistanceFortyEighths / (double)RadiusTicksPerInch;
+    public double CenterLineDistanceInches => CenterLineDistanceFortyEighths / (double)RadiusTicksPerInchTicks;
 
-    public double ToothProfileInches => ToothProfileRadiusTicks / (double)RadiusTicksPerInch;
+    public double ToothProfileInches => ToothProfileRadiusTicks / (double)RadiusTicksPerInchTicks;
 
-    public string DriverDiameterText => FractionalInches(DriverDiameterTwentyFourths, DiametralPitch);
+    public string DriverDiameterText => FractionalInches(DriverDiameterTwentyFourths, DiametralPitchTicks);
 
-    public string DrivenDiameterText => FractionalInches(DrivenDiameterTwentyFourths, DiametralPitch);
+    public string DrivenDiameterText => FractionalInches(DrivenDiameterTwentyFourths, DiametralPitchTicks);
 
     public string ClockResidueText => FractionalTicks(ClockDriveNumeratorResidue, 1000, "tick");
 

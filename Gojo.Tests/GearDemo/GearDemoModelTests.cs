@@ -55,6 +55,23 @@ public sealed class GearDemoModelTests
         model.Drive(15 * GearDemoModel.TicksPerTooth);
 
         snapshot = model.Read();
+        Assert.Equal(0, snapshot.DrivenProjectedToothPosition);
         Assert.Equal(-1, snapshot.DrivenProjectedRotations);
+    }
+
+    [Fact]
+    public void DemoScaleValuesAreReadFromGojoCarriers()
+    {
+        var model = new GearDemoModel();
+
+        var snapshot = model.Read();
+
+        Assert.Equal(96, snapshot.SpeedSlider.Range);
+        Assert.Equal(24, snapshot.DiametralPitchTicks);
+        Assert.Equal(48, snapshot.RadiusTicksPerInchTicks);
+        Assert.Equal(1, snapshot.ToothProfileRadiusTicks);
+        Assert.Equal(4, snapshot.HalfPitchTicks);
+        Assert.Equal(192, snapshot.DriverPerimeterTicks);
+        Assert.NotNull(snapshot.SpeedSlider.RangeOperation);
     }
 }
