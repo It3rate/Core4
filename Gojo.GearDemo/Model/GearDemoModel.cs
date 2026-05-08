@@ -26,7 +26,7 @@ internal sealed class GearDemoModel
     public GearDemoModel()
     {
         numbers = GearNumbers.Create(TicksPerTooth, DiametralPitch, ToothProfileRadiusTicks);
-        speedSlider = GojoSlider.Create(0, MaximumSpeedTicksPerSecond, 3);
+        speedSlider = GojoSlider.Create(0, MaximumSpeedTicksPerSecond, 16);
         driverTeethSlider = GojoSlider.Create(MinimumTeeth, MaximumTeeth, 24);
         drivenTeethSlider = GojoSlider.Create(MinimumTeeth, MaximumTeeth, 16);
         pair = GearPair.Create(driverTeethSlider.Output, drivenTeethSlider.Output, driverInputTicks, numbers);

@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="Gojo/Gojo.csproj" />
+  <Project Path="Gojo.GearDemo.Browser/Gojo.GearDemo.Browser.csproj" />
   <Project Path="Gojo.GearDemo/Gojo.GearDemo.csproj" />
   <Project Path="Gojo.Tests/Gojo.Tests.csproj" />
 </Solution>

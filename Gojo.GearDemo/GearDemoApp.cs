@@ -11,6 +11,10 @@ public sealed class GearDemoApp : Application
         {
             desktop.MainWindow = new GearDemoWindow();
         }
+        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
+        {
+            singleView.MainView = new GearDemoCanvas();
+        }
 
         base.OnFrameworkInitializationCompleted();
     }

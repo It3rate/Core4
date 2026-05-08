@@ -37,10 +37,11 @@ internal static class GearDemoRenderer
         var controlX = side.X + controlPad;
         var controlWidth = Math.Max(1d, side.Width - (controlPad * 2d));
         var gap = 8d;
-        var buttonWidth = Math.Max(76d, (controlWidth - gap) / 2d);
+        var buttonWidth = Math.Max(62d, (controlWidth - (gap * 2d)) / 3d);
         var buttonY = side.Y + 2d;
         var play = new Rect(controlX, buttonY, buttonWidth, 32d);
         var reset = new Rect(play.Right + gap, buttonY, buttonWidth, 32d);
+        var web = new Rect(reset.Right + gap, buttonY, buttonWidth, 32d);
 
         var speed = Slider(controlX, buttonY + 58d, controlWidth, snapshot.SpeedSlider, "ticks/s", snapshot.SpeedTicksPerSecond.ToString());
         var driver = Slider(controlX, speed.Bounds.Bottom + 30d, controlWidth, snapshot.DriverTeethSlider, "driver teeth", snapshot.DriverTeeth.ToString());
@@ -75,6 +76,7 @@ internal static class GearDemoRenderer
             side,
             play,
             reset,
+            web,
             speed,
             driver,
             driven,
@@ -177,6 +179,15 @@ internal static class GearDemoRenderer
     {
         DrawButton(canvas, layout.PlayButton, interaction.IsPlaying ? "pause" : "play", interaction.HoverPoint);
         DrawButton(canvas, layout.ResetButton, "reset", interaction.HoverPoint);
+        if (interaction.WebButtonText is { } webButtonText)
+        {
+            DrawButton(canvas, layout.WebButton, webButtonText, interaction.HoverPoint);
+        }
+
+        if (!string.IsNullOrWhiteSpace(interaction.WebStatusText))
+        {
+            DrawText(canvas, interaction.WebStatusText, layout.PlayButton.X, layout.PlayButton.Bottom + 8d, 11f, Palette.Muted, false);
+        }
 
         DrawSlider(canvas, layout.SpeedSlider, interaction.HoverPoint);
         DrawSlider(canvas, layout.DriverTeethSlider, interaction.HoverPoint);
@@ -488,4 +499,8 @@ internal static class GearDemoRenderer
     }
 }
 
-internal readonly record struct GearDemoInteraction(bool IsPlaying, Point? HoverPoint);
+internal readonly record struct GearDemoInteraction(
+    bool IsPlaying,
+    Point? HoverPoint,
+    string? WebButtonText,
+    string? WebStatusText);

@@ -5,6 +5,9 @@ using Avalonia.Media;
 using Avalonia.VisualTree;
 using Gojo.GearDemo.Model;
 using Gojo.GearDemo.Rendering;
+#if !GOJO_GEAR_BROWSER
+using Gojo.GearDemo.Services;
+#endif
 
 namespace Gojo.GearDemo;
 
@@ -18,6 +21,11 @@ public sealed class GearDemoCanvas : Control
     private double pendingFrameMilliseconds;
     private Point? hoverPoint;
     private Action<Point>? activeDrag;
+#if !GOJO_GEAR_BROWSER
+    private bool isPublishingWeb;
+    private string webButtonText = "web";
+    private string? webStatusText;
+#endif
 
     public GearDemoCanvas()
     {
@@ -35,7 +43,16 @@ public sealed class GearDemoCanvas : Control
             bounds,
             layout,
             snapshot,
-            new GearDemoInteraction(isPlaying, hoverPoint)));
+            new GearDemoInteraction(
+                isPlaying,
+                hoverPoint,
+#if GOJO_GEAR_BROWSER
+                null,
+                null)));
+#else
+                webButtonText,
+                webStatusText)));
+#endif
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -96,6 +113,15 @@ public sealed class GearDemoCanvas : Control
             CompletePointer(e);
             return;
         }
+
+#if !GOJO_GEAR_BROWSER
+        if (layout.WebButton.Contains(point))
+        {
+            _ = PublishWebAsync();
+            CompletePointer(e);
+            return;
+        }
+#endif
 
         if (layout.SpeedSlider.Bounds.Contains(point))
         {
@@ -215,6 +241,63 @@ public sealed class GearDemoCanvas : Control
         e.Handled = true;
         InvalidateVisual();
     }
+
+#if !GOJO_GEAR_BROWSER
+    private async Task PublishWebAsync()
+    {
+        if (isPublishingWeb)
+        {
+            return;
+        }
+
+        isPublishingWeb = true;
+        webButtonText = "web...";
+        webStatusText = "publishing /gears";
+        InvalidateVisual();
+
+        try
+        {
+            await GearDemoWebPublisher.PublishDeployAndOpenAsync().ConfigureAwait(true);
+            webButtonText = "web";
+            webStatusText = "deployed /gears";
+        }
+        catch (Exception exception)
+        {
+            (webButtonText, webStatusText) = WebFailure(exception);
+        }
+        finally
+        {
+            isPublishingWeb = false;
+            InvalidateVisual();
+        }
+    }
+
+    private static (string Button, string Status) WebFailure(Exception exception)
+    {
+        var message = exception.Message;
+        if (message.Contains("SWA_CLI_DEPLOYMENT_TOKEN", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("token", "local build ready; deploy token missing");
+        }
+
+        if (message.Contains("npx", StringComparison.OrdinalIgnoreCase) ||
+            message.Contains("Node.js", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("node", "local build ready; node/npx missing");
+        }
+
+        return ("failed", TrimStatus(message));
+    }
+
+    private static string TrimStatus(string message)
+    {
+        const int maxLength = 52;
+        var singleLine = message.ReplaceLineEndings(" ").Trim();
+        return singleLine.Length <= maxLength
+            ? singleLine
+            : string.Concat(singleLine.AsSpan(0, maxLength - 3), "...");
+    }
+#endif
 
     private void EnsureLayout()
     {
