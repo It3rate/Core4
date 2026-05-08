@@ -111,6 +111,10 @@ internal sealed class GearDemoModel
         var visibleRead = pair.Mesh.Project(pair.Driver.Perimeter.ValueSlot, pair.Driven.Perimeter);
         var (projectedTicks, projectionResidue) = ReadProjection(totalRead);
         var (visibleProjectedTicks, visibleResidue) = ReadProjection(visibleRead);
+        var (driverToothPosition, _) = ReadProjection(pair.Driver.PerimeterToToothPosition.Project(pair.Driver.Perimeter.ValueSlot, pair.Driver.ToothPosition));
+        var drivenProjectedLocation = new CarrierLocation(pair.Driven.Perimeter, projectedTicks);
+        var (drivenProjectedToothPosition, _) = ReadProjection(pair.Driven.PerimeterToToothPosition.Project(drivenProjectedLocation, pair.Driven.ToothPosition));
+        var (drivenProjectedRotations, _) = ReadProjection(pair.Driven.PerimeterToRotation.Project(drivenProjectedLocation, pair.Driven.Rotations));
 
         return new GearDemoSnapshot(
             speedSlider.Read(),
@@ -125,9 +129,12 @@ internal sealed class GearDemoModel
             pair.Driven.PerimeterTicks,
             checked((long)driverInputTicks.Value),
             pair.Driver.Perimeter.Value,
+            PositiveModulo(driverToothPosition, pair.Driver.ToothCount),
             pair.Driver.Perimeter.Tension,
             pair.Driver.Rotations.Value,
             projectedTicks,
+            PositiveModulo(drivenProjectedToothPosition, pair.Driven.ToothCount),
+            drivenProjectedRotations,
             projectionResidue,
             visibleProjectedTicks,
             visibleResidue,
@@ -158,6 +165,12 @@ internal sealed class GearDemoModel
         }
 
         return (0, 0);
+    }
+
+    private static int PositiveModulo(long value, int modulus)
+    {
+        var remainder = value % modulus;
+        return (int)(remainder < 0 ? remainder + modulus : remainder);
     }
 
     private static string MeshLabel() =>
@@ -243,10 +256,13 @@ internal sealed class GearDemoModel
         Carrier ShapeCenter,
         Carrier Perimeter,
         Carrier Rotations,
+        Carrier ToothPosition,
         Carrier PerimeterTicksCarrier,
         Carrier DiameterTwentyFourthsCarrier,
         Carrier RadiusFortyEighthsCarrier,
         Relation Partition,
+        Relation PerimeterToToothPosition,
+        Relation PerimeterToRotation,
         Relation TeethToPerimeter,
         Relation TeethToDiameter,
         Relation DiameterToRadius)
@@ -264,6 +280,7 @@ internal sealed class GearDemoModel
             var shapeCenter = new Carrier();
             var perimeter = new Carrier(UnitShape.CircularFrom(Relation.Point(shapeCenter, 0)));
             var rotations = new Carrier();
+            var toothPosition = new Carrier();
             var perimeterTicksCarrier = new Carrier();
             var diameterTwentyFourths = new Carrier();
             var radiusFortyEighths = new Carrier();
@@ -275,6 +292,12 @@ internal sealed class GearDemoModel
             var partition = perimeter.Attach(new Relation(
                 Relation.Point(perimeter, perimeterTicks),
                 Relation.Point(rotations, 0)));
+            var perimeterToToothPosition = new Relation(
+                Relation.Segment(perimeter, 0, TicksPerTooth),
+                Relation.Segment(toothPosition, 0, 1));
+            var perimeterToRotation = new Relation(
+                Relation.Segment(perimeter, 0, perimeterTicks),
+                Relation.Segment(rotations, 0, 1));
             var teethToDiameter = new Relation(
                 Relation.Point(toothCountCarrier, 1),
                 Relation.Point(diameterTwentyFourths, 1));
@@ -291,10 +314,13 @@ internal sealed class GearDemoModel
                 shapeCenter,
                 perimeter,
                 rotations,
+                toothPosition,
                 perimeterTicksCarrier,
                 diameterTwentyFourths,
                 radiusFortyEighths,
                 partition,
+                perimeterToToothPosition,
+                perimeterToRotation,
                 teethToPerimeter,
                 teethToDiameter,
                 diameterToRadius);
@@ -394,9 +420,12 @@ internal readonly record struct GearDemoSnapshot(
     int DrivenPerimeterTicks,
     long DriverInputTicks,
     ulong DriverValue,
+    int DriverToothPosition,
     long DriverTension,
     ulong DriverRotations,
     long DrivenProjectedTicks,
+    int DrivenProjectedToothPosition,
+    long DrivenProjectedRotations,
     long ProjectionResidueTicks,
     long VisibleDrivenProjectedTicks,
     long VisibleProjectionResidueTicks,
@@ -417,12 +446,6 @@ internal readonly record struct GearDemoSnapshot(
     public const int ToothProfileRadiusTicks = 1;
 
     public int SpeedTicksPerSecond => checked((int)SpeedSlider.ValueTicks);
-
-    public int DriverToothPosition => PositiveModulo(checked((long)DriverValue / TicksPerTooth), DriverTeeth);
-
-    public int DrivenProjectedToothPosition => PositiveModulo(DrivenProjectedTicks / TicksPerTooth, DrivenTeeth);
-
-    public long DrivenProjectedRotations => DrivenProjectedTicks / DrivenPerimeterTicks;
 
     public double DriverTurns => DriverPerimeterTicks == 0 ? 0d : DriverInputTicks / (double)DriverPerimeterTicks;
 
@@ -447,12 +470,6 @@ internal readonly record struct GearDemoSnapshot(
     public string DrivenDiameterText => FractionalInches(DrivenDiameterTwentyFourths, DiametralPitch);
 
     public string ClockResidueText => FractionalTicks(ClockDriveNumeratorResidue, 1000, "tick");
-
-    private static int PositiveModulo(long value, int modulus)
-    {
-        var remainder = value % modulus;
-        return (int)(remainder < 0 ? remainder + modulus : remainder);
-    }
 
     private static string FractionalInches(int numerator, int denominator) =>
         FractionalTicks(numerator, denominator, "in");
