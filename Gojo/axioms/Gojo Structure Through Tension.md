@@ -504,10 +504,12 @@ A calibrated flow unit can remain relation-shaped as a basis segment. A contour
 unit needs a closed/fused contour surface; zero, partition, and revolution
 count are later calibration structures attached by orthogonal markers.
 
-The code also does not yet have an element-level orthogonal outlet. Today, a
-product operation multiplies concrete port operands. It cannot yet say
-`P*+`, `S*+`, or `S(C,a,a)*+` as "this element pushed into its own
-orthogonal" without manually creating the receiving carrier/surface first.
+The code now has a unit-shape-level orthogonal outlet through
+`UnitShape.OrthogonalOf(element)`. That is enough to create a carrier whose
+tick shape remembers that it came from a point, segment, or zero-length segment
+orthogonal. Today, product operations still multiply concrete port operands;
+they do not yet execute `P*+`, `S*+`, or `S(C,a,a)*+` as settlement without
+manually creating the receiving carrier/surface first.
 
 `Carrier.IsInverse` is currently an opposed-flow face for aligned carrier
 settlement. It is not a general contour inverse. A contour inverse should be
@@ -526,8 +528,8 @@ Likely near-term adjustments:
    relations, not as absolute fields on the shape.
 6. Add settlement-candidate reads only when there is a concrete operation that
    needs them, such as circular traversal, min/max, or hardening from tension.
-7. Add an orthogonal outlet convention before trying to execute uncalibrated
-   shape-unit multiplication.
+7. Extend the orthogonal outlet convention from unit-shape provenance into
+   executable uncalibrated shape-unit settlement.
 ```
 
 The important compatibility rule is that crystallization hardens unit shape,

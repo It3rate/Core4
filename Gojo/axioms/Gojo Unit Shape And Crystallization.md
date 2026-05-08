@@ -283,6 +283,9 @@ In current Gojo code:
   read surface does not mutate the carrier's basis.
 - an inverse carrier shares the forward carrier's unit shape; inverse flow is
   not itself a new unit kind.
+- `UnitShape.OrthogonalOf(element)` creates an orthogonal shape unit whose
+  surface preserves the source element as provenance and uses a zero-segment
+  marker as the orthogonal outlet.
 - `Relation.TryReadUnitShape(...)` calculates unit shape from existing
   relation surfaces:
   - same-carrier point/segment frames expose that carrier's unit shape

@@ -48,10 +48,12 @@ tension by itself.
 
 ## Orthogonal Shape-Unit Candidates
 
-These shapes are conceptual footholds for the next unit-shape layer. They are
-not yet executable operation syntax. The goal is to treat multiplication-like
-shape formation as a push into an orthogonal supplied by the source structure,
-not as a hard-coded two-scalar calculation.
+These shapes are conceptual footholds for the next unit-shape layer. They can
+now be represented as unit-shape provenance with
+`UnitShape.OrthogonalOf(element)`, but they are not yet executable operation
+syntax. The goal is to treat multiplication-like shape formation as a push into
+an orthogonal supplied by the source structure, not as a hard-coded two-scalar
+calculation.
 
 | Shape | Read |
 |---|---|

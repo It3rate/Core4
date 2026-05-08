@@ -23,6 +23,12 @@ public sealed class UnitShape : IEquatable<UnitShape>
     public static UnitShape Atom(Carrier carrier) =>
         new(Point(carrier, 1));
 
+    /// <summary>Creates a shape unit by pushing a source element into its orthogonal.</summary>
+    public static UnitShape OrthogonalOf(IElement source) =>
+        new(new Relation(
+            SnapshotOf(source ?? throw new ArgumentNullException(nameof(source))),
+            Segment(Carrier.Unknown, 0, 0)));
+
     /// <summary>Creates an additive unit shape from operands.</summary>
     public static UnitShape Additive(params UnitShape[] shapes) =>
         Additive((IReadOnlyList<UnitShape>)shapes);
@@ -126,9 +132,17 @@ public sealed class UnitShape : IEquatable<UnitShape>
 
     /// <summary>Flattens nested product operands while preserving point atoms.</summary>
     private static IElement[] Flatten(IElement element) =>
-        element is Relation relation && !IsUnitPoint(relation) && !IsUnitSegment(relation)
+        element is Relation relation &&
+            !IsUnitPoint(relation) &&
+            !IsUnitSegment(relation) &&
+            !IsOrthogonalSurface(relation)
             ? [.. Flatten(relation.Left), .. Flatten(relation.Right)]
             : [element];
+
+    /// <summary>Returns true for an orthogonal shape-unit surface.</summary>
+    private static bool IsOrthogonalSurface(IElement element) =>
+        element is Relation relation &&
+        IsZeroSegment(relation.Right);
 
     /// <summary>Returns true for the unit segment marker used by product shapes.</summary>
     private static bool IsUnitSegment(IElement element) =>
@@ -144,6 +158,14 @@ public sealed class UnitShape : IEquatable<UnitShape>
         relation.Left is CarrierLocation location &&
         relation.Right is Carrier carrier &&
         location.Carrier.SameIdentityAs(carrier);
+
+    /// <summary>Returns true for the zero segment marker used by orthogonal shapes.</summary>
+    private static bool IsZeroSegment(IElement element) =>
+        element is Relation relation &&
+        relation.Left is Relation leftPoint &&
+        relation.Right is Relation rightPoint &&
+        IsPoint(leftPoint, Carrier.Unknown, 0) &&
+        IsPoint(rightPoint, Carrier.Unknown, 0);
 
     /// <summary>Matches a point relation at a specific carrier tick.</summary>
     private static bool IsPoint(Relation relation, Carrier carrier, long ticks) =>

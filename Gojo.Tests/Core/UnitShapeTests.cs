@@ -46,6 +46,45 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
+    public void PointOrthogonalCanCreatePartitionedCircleCarrierWithoutRadiusCalibration()
+    {
+        var source = new Carrier();
+        var circleShape = UnitShape.OrthogonalOf(Point(source, 0));
+        var perimeter = new Carrier(circleShape);
+        var cycles = new Carrier();
+        perimeter.Attach(new Relation(Point(perimeter, 12), Point(cycles, 0)));
+
+        perimeter.Add(27);
+
+        Assert.True(perimeter.UnitShape.CompatibleWith(circleShape));
+        Assert.Equal(3UL, perimeter.Value);
+        Assert.Equal(2UL, cycles.Value);
+        Assert.Equal(0, perimeter.Tension);
+    }
+
+    [Fact]
+    public void ZeroLengthSegmentOrthogonalIsRayLikeAndDistinctFromPointOrthogonal()
+    {
+        var carrier = new Carrier();
+        var pointOrthogonal = UnitShape.OrthogonalOf(Point(carrier, 0));
+        var rayOrthogonal = UnitShape.OrthogonalOf(Segment(carrier, 0, 0));
+        var sameRayShape = UnitShape.OrthogonalOf(Segment(carrier, 0, 0));
+
+        Assert.False(rayOrthogonal.CompatibleWith(pointOrthogonal));
+        Assert.True(rayOrthogonal.CompatibleWith(sameRayShape));
+    }
+
+    [Fact]
+    public void OrthogonalShapeRemainsAtomicInsideProductParticipationReads()
+    {
+        var carrier = new Carrier();
+        var rayOrthogonal = UnitShape.OrthogonalOf(Segment(carrier, 0, 0));
+        var repeatedRay = UnitShape.Product(rayOrthogonal, rayOrthogonal);
+
+        Assert.Equal(2, repeatedRay.ProductParticipationOf(rayOrthogonal));
+    }
+
+    [Fact]
     public void TransferPortUsesConcreteTargetUnitShape()
     {
         var light = new Carrier();
