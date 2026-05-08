@@ -63,6 +63,21 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
+    public void OrthogonalShapeReadsSourceAsSnapshot()
+    {
+        var carrier = new Carrier();
+        var segment = Segment(carrier, 0, 10);
+        var sheetShape = UnitShape.OrthogonalOf(segment);
+
+        Assert.True(sheetShape.TryReadOrthogonalSource(out var source));
+        Assert.Equal(segment, source);
+
+        Assert.True(((Relation)source).Perturb(new CarrierLocation(carrier, 5)));
+        Assert.True(sheetShape.TryReadOrthogonalSource(out var reread));
+        Assert.Equal(segment, reread);
+    }
+
+    [Fact]
     public void ZeroLengthSegmentOrthogonalIsRayLikeAndDistinctFromPointOrthogonal()
     {
         var carrier = new Carrier();
@@ -72,6 +87,33 @@ public sealed class UnitShapeTests
 
         Assert.False(rayOrthogonal.CompatibleWith(pointOrthogonal));
         Assert.True(rayOrthogonal.CompatibleWith(sameRayShape));
+    }
+
+    [Fact]
+    public void CoincidentPointsCreateRayLikeOrthogonalWithoutParentSegment()
+    {
+        var carrier = new Carrier();
+        var coincidentPoints = new Relation(Point(carrier, 5), Point(carrier, 5));
+        var rayShape = UnitShape.OrthogonalOf(coincidentPoints);
+
+        Assert.True(rayShape.TryReadOrthogonalSource(out var source));
+        Assert.Equal(coincidentPoints, source);
+        Assert.False(rayShape.CompatibleWith(UnitShape.OrthogonalOf(Point(carrier, 5))));
+    }
+
+    [Fact]
+    public void SegmentOrthogonalCanCreateRectangularShapeCarrier()
+    {
+        var carrier = new Carrier();
+        var basis = Segment(carrier, 0, 10);
+        var rectangleShape = UnitShape.OrthogonalOf(basis);
+        var rectangleCarrier = new Carrier(rectangleShape);
+
+        rectangleCarrier.Set(4);
+
+        Assert.True(rectangleCarrier.UnitShape.CompatibleWith(rectangleShape));
+        Assert.Equal(4UL, rectangleCarrier.Value);
+        Assert.Equal(0, rectangleCarrier.Tension);
     }
 
     [Fact]

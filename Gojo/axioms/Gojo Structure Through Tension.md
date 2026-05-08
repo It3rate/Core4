@@ -507,9 +507,10 @@ count are later calibration structures attached by orthogonal markers.
 The code now has a unit-shape-level orthogonal outlet through
 `UnitShape.OrthogonalOf(element)`. That is enough to create a carrier whose
 tick shape remembers that it came from a point, segment, or zero-length segment
-orthogonal. Today, product operations still multiply concrete port operands;
-they do not yet execute `P*+`, `S*+`, or `S(C,a,a)*+` as settlement without
-manually creating the receiving carrier/surface first.
+orthogonal. `UnitShape.TryReadOrthogonalSource(out source)` exposes that
+provenance as a snapshot. Today, product operations still multiply concrete
+port operands; they do not yet execute `P*+`, `S*+`, or `S(C,a,a)*+` as
+settlement without manually creating the receiving carrier/surface first.
 
 `Carrier.IsInverse` is currently an opposed-flow face for aligned carrier
 settlement. It is not a general contour inverse. A contour inverse should be

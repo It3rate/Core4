@@ -90,6 +90,19 @@ public sealed class UnitShape : IEquatable<UnitShape>
         return operands.Sum(operand => new UnitShape(operand).ProductParticipationOf(unit));
     }
 
+    /// <summary>Reads the source element if this shape is an orthogonal push.</summary>
+    public bool TryReadOrthogonalSource(out IElement source)
+    {
+        if (TryReadOrthogonalSource(surface, out var orthogonalSource))
+        {
+            source = SnapshotOf(orthogonalSource);
+            return true;
+        }
+
+        source = default!;
+        return false;
+    }
+
     /// <summary>Returns true when two unit shapes can collapse as the same unit.</summary>
     public bool CompatibleWith(UnitShape other) => Equals(other);
 
@@ -135,14 +148,23 @@ public sealed class UnitShape : IEquatable<UnitShape>
         element is Relation relation &&
             !IsUnitPoint(relation) &&
             !IsUnitSegment(relation) &&
-            !IsOrthogonalSurface(relation)
+            !TryReadOrthogonalSource(relation, out _)
             ? [.. Flatten(relation.Left), .. Flatten(relation.Right)]
             : [element];
 
-    /// <summary>Returns true for an orthogonal shape-unit surface.</summary>
-    private static bool IsOrthogonalSurface(IElement element) =>
-        element is Relation relation &&
-        IsZeroSegment(relation.Right);
+    /// <summary>Reads the source from an orthogonal shape-unit surface.</summary>
+    private static bool TryReadOrthogonalSource(IElement element, out IElement source)
+    {
+        if (element is Relation relation &&
+            IsZeroSegment(relation.Right))
+        {
+            source = relation.Left;
+            return true;
+        }
+
+        source = default!;
+        return false;
+    }
 
     /// <summary>Returns true for the unit segment marker used by product shapes.</summary>
     private static bool IsUnitSegment(IElement element) =>
