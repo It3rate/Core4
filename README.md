@@ -1,5 +1,10 @@
 # Core4
 
+> **Current active solution:** Gojo is now the latest Core4 model. New kernel
+> work should use `Gojo.slnx`, `Gojo/`, and `Gojo.Tests/`. The older Core4,
+> Kernel, Runtime, and Probe projects remain in this repository for historical
+> comparison and reference.
+
 Core4 is an experimental numeric engine for representing structure, relation, and tension directly in number form.
 
 The project is built around the idea that a system should not rely on symbolic case lists, enums, or hand-authored tags when a concept can instead be carried by a physically interpretable numeric structure. Core4 numbers are intended to stay inspectable while they are incomplete, under tension, branching, or partially frozen. The goal is not to "solve an equation" once and stop, but to let structure form, harden, relax, and lower tension dynamically.
