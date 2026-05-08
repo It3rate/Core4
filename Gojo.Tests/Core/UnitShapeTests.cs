@@ -540,8 +540,8 @@ public sealed class UnitShapeTests
     }
 
     private static Relation Point(Carrier carrier, long ticks) =>
-        new(new CarrierLocation(carrier, ticks), carrier);
+        Relation.Point(carrier, ticks);
 
     private static Relation Segment(Carrier carrier, long left, long right) =>
-        new(Point(carrier, left), Point(carrier, right));
+        Relation.Segment(carrier, left, right);
 }
