@@ -102,7 +102,6 @@ A segment has several natural potential expressions:
 
 ```text
 aligned continuation       flow beyond either endpoint
-endpoint escape            ray, branch, cone, or new route from an endpoint
 orthogonal side potential  sheet/side-wall/shell around the segment
 parallel contour           equal-distance or equal-tension offset from segment
 ```
