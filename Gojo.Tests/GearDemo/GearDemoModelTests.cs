@@ -117,6 +117,19 @@ public sealed class GearDemoModelTests
     }
 
     [Fact]
+    public void GearNumbersPersistPitchProjectionResidues()
+    {
+        var numbers = GearNumbers.Create(7, GearDemoDefaults.DiametralPitch, GearDemoDefaults.ToothProfileRadiusTicks);
+
+        Assert.Equal(3, numbers.HalfPitchTicksValue);
+        Assert.Equal(1UL, numbers.HalfPitchResidue.Value);
+        Assert.Equal(1, numbers.QuarterPitchTicksValue);
+        Assert.Equal(1UL, numbers.QuarterPitchResidue.Value);
+        AssertContainsCarrier(numbers.Structure, numbers.HalfPitchResidue);
+        AssertContainsCarrier(numbers.Structure, numbers.QuarterPitchResidue);
+    }
+
+    [Fact]
     public void ChangingGearTeethSettlesExistingMechanismInsteadOfRebuildingPair()
     {
         var model = new GearDemoModel();
