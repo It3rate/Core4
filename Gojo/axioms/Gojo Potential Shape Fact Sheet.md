@@ -147,6 +147,13 @@ boundary-only contour can exist without fill. A filled region and an empty
 boundary are different settlement claims and should remain distinguishable as
 structure.
 
+Fill is not limited to area or volume. A linear segment can be only two related
+points, or it can be a filled interval between those points when
+multiplication-like potential activates and hardens the in-between
+participation. That line fill is the same general fill idea as area fill or
+volume fill, constrained by the available/container structure. It can also have
+opposed or inverse fill participation.
+
 This is a key distinction. A square made from four boundary segments can remain
 linear boundary structure; its interior does not fill merely because the
 segments enclose a region. Fill appears when orthogonal potential is activated
