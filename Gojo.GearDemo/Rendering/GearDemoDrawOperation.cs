@@ -10,7 +10,7 @@ namespace Gojo.GearDemo.Rendering;
 internal sealed class GearDemoDrawOperation(
     Rect bounds,
     GearDemoLayout layout,
-    GearDemoSnapshot snapshot,
+    GearDemoInspection inspection,
     GearDemoInteraction interaction) : ICustomDrawOperation
 {
     public Rect Bounds { get; } = bounds;
@@ -26,7 +26,7 @@ internal sealed class GearDemoDrawOperation(
         }
 
         using var lease = leaseFeature.Lease();
-        GearDemoRenderer.Render(lease.SkCanvas, layout, snapshot, interaction);
+        GearDemoRenderer.Render(lease.SkCanvas, layout, inspection, interaction);
     }
 
     public void Dispose()

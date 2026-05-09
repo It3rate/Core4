@@ -86,38 +86,68 @@ internal static class GearDemoAdapters
             readout);
     }
 
-    public static GearDemoRenderRead ToRenderRead(GearDemoSnapshot snapshot)
+    public static GearProjectionRead ReadGearProjection(GearDemoInspection inspection)
     {
-        var driverDiameterText = FractionalInches(snapshot.DriverDiameterTwentyFourths, snapshot.DiametralPitchTicks);
-        var drivenDiameterText = FractionalInches(snapshot.DrivenDiameterTwentyFourths, snapshot.DiametralPitchTicks);
+        var pair = inspection.Pair;
+        var driverPerimeterRead = pair.DriverInputToPerimeter.Project(inspection.DriverInputTicks.ValueSlot, pair.Driver.Perimeter);
+        var (driverPerimeterTicks, _) = ReadProjection(driverPerimeterRead);
+        var driverPerimeterLocation = new CarrierLocation(pair.Driver.Perimeter, driverPerimeterTicks);
+        var drivenPerimeterRead = pair.Mesh.Project(driverPerimeterLocation, pair.Driven.Perimeter);
+        var (drivenProjectedTicks, projectionResidue) = ReadProjection(drivenPerimeterRead);
+        var (driverToothPosition, _) = ReadProjection(pair.Driver.PerimeterToToothPosition.Project(driverPerimeterLocation, pair.Driver.ToothPosition));
+        var (driverRotations, _) = ReadProjection(pair.Driver.PerimeterToRotation.Project(driverPerimeterLocation, pair.Driver.Rotations));
+        var drivenProjectedLocation = new CarrierLocation(pair.Driven.Perimeter, drivenProjectedTicks);
+        var (drivenProjectedToothPosition, _) = ReadProjection(pair.Driven.PerimeterToToothPosition.Project(drivenProjectedLocation, pair.Driven.ToothPosition));
+        var (drivenProjectedRotations, _) = ReadProjection(pair.Driven.PerimeterToRotation.Project(drivenProjectedLocation, pair.Driven.Rotations));
+
+        return new GearProjectionRead(
+            ToLong(inspection.DriverInputTicks),
+            driverPerimeterTicks,
+            ReadCircularValue(pair.Driver.ToothPosition, driverToothPosition, pair.Driver.ToothCount),
+            driverRotations,
+            pair.Driver.Perimeter.Tension,
+            drivenProjectedTicks,
+            ReadCircularValue(pair.Driven.ToothPosition, drivenProjectedToothPosition, pair.Driven.ToothCount),
+            drivenProjectedRotations,
+            projectionResidue);
+    }
+
+    public static GearDemoRenderRead ToRenderRead(GearDemoInspection inspection)
+    {
+        var pair = inspection.Pair;
+        var projection = ReadGearProjection(inspection);
+        var speed = inspection.SpeedSlider.Read();
+        var driverDiameterText = FractionalInches(pair.Driver.DiameterTwentyFourths, pair.Numbers.DiametralPitchTicks);
+        var drivenDiameterText = FractionalInches(pair.Driven.DiameterTwentyFourths, pair.Numbers.DiametralPitchTicks);
         return new GearDemoRenderRead(
-            ToInt(snapshot.SpeedSlider.Value.Ticks),
-            Turns(snapshot.DriverInputTicks, snapshot.DriverPerimeterTicks),
-            Turns(snapshot.DrivenProjectedTicks, snapshot.DrivenPerimeterTicks),
-            Turns(snapshot.VisibleDrivenProjectedTicks, snapshot.DrivenPerimeterTicks),
-            snapshot.DriverDiameterTwentyFourths / (double)snapshot.DiametralPitchTicks,
-            snapshot.DrivenDiameterTwentyFourths / (double)snapshot.DiametralPitchTicks,
-            snapshot.DriverRadiusFortyEighths / (double)snapshot.RadiusTicksPerInchTicks,
-            snapshot.DrivenRadiusFortyEighths / (double)snapshot.RadiusTicksPerInchTicks,
-            snapshot.DriverRootRadiusFortyEighths / (double)snapshot.RadiusTicksPerInchTicks,
-            snapshot.DrivenRootRadiusFortyEighths / (double)snapshot.RadiusTicksPerInchTicks,
-            snapshot.DriverTipRadiusFortyEighths / (double)snapshot.RadiusTicksPerInchTicks,
-            snapshot.DrivenTipRadiusFortyEighths / (double)snapshot.RadiusTicksPerInchTicks,
-            snapshot.CenterLineDistanceFortyEighths / (double)snapshot.RadiusTicksPerInchTicks,
-            snapshot.ToothProfileRadiusTicks / (double)snapshot.RadiusTicksPerInchTicks,
-            driverDiameterText,
-            drivenDiameterText,
-            FractionalTicks(snapshot.ClockDriveNumeratorResidue, GearDemoDefaults.ClockTicksPerSecond, "tick"),
-            MeshLabel(snapshot.HalfPitchTicks),
+            ToInt(speed.Value.Ticks),
+            pair.Driver.ToothCount,
+            pair.Driven.ToothCount,
+            pair.Driver.PerimeterTicks,
+            pair.Driven.PerimeterTicks,
+            pair.Numbers.HalfPitchTicksValue,
+            pair.Numbers.QuarterPitchTicksValue,
+            pair.DriverMeshPhaseTicks,
+            pair.DrivenMeshPhaseTicks,
+            Turns(projection.DriverInputTicks, pair.Driver.PerimeterTicks),
+            Turns(projection.DrivenProjectedTicks, pair.Driven.PerimeterTicks),
+            pair.Driver.RadiusFortyEighths / (double)pair.Numbers.RadiusTicksPerInchTicks,
+            pair.Driven.RadiusFortyEighths / (double)pair.Numbers.RadiusTicksPerInchTicks,
+            pair.Driver.RootRadiusFortyEighths / (double)pair.Numbers.RadiusTicksPerInchTicks,
+            pair.Driven.RootRadiusFortyEighths / (double)pair.Numbers.RadiusTicksPerInchTicks,
+            pair.Driver.TipRadiusFortyEighths / (double)pair.Numbers.RadiusTicksPerInchTicks,
+            pair.Driven.TipRadiusFortyEighths / (double)pair.Numbers.RadiusTicksPerInchTicks,
+            pair.CenterLineDistanceFortyEighths / (double)pair.Numbers.RadiusTicksPerInchTicks,
+            MeshLabel(pair.Numbers.HalfPitchTicksValue),
             $"{driverDiameterText} / {drivenDiameterText}",
-            $"segment 0 -> {snapshot.CenterLineDistanceFortyEighths}/48 in",
-            $"ticks {snapshot.DriverInputTicks}, tooth {snapshot.DriverToothPosition}/{snapshot.DriverTeeth}, rotations {snapshot.DriverRotations}",
-            $"ticks {snapshot.DrivenProjectedTicks}, tooth {snapshot.DrivenProjectedToothPosition}/{snapshot.DrivenTeeth}, rotations {snapshot.DrivenProjectedRotations}",
-            $"{snapshot.DriverTension} -> {snapshot.ProjectionResidueTicks}",
-            $"Driver {snapshot.DriverTeeth}T / dia {driverDiameterText}",
-            $"value {snapshot.DriverValue}/{snapshot.DriverPerimeterTicks}, rotations {snapshot.DriverRotations}, tension {snapshot.DriverTension}",
-            $"Driven {snapshot.DrivenTeeth}T / dia {drivenDiameterText}",
-            $"projected {snapshot.DrivenProjectedTicks}/{snapshot.DrivenPerimeterTicks}, rotations {snapshot.DrivenProjectedRotations}, residue {snapshot.ProjectionResidueTicks}");
+            $"segment 0 -> {pair.CenterLineDistanceFortyEighths}/48 in",
+            $"ticks {projection.DriverInputTicks}, tooth {projection.DriverToothPosition}/{pair.Driver.ToothCount}, rotations {projection.DriverRotations}",
+            $"ticks {projection.DrivenProjectedTicks}, tooth {projection.DrivenProjectedToothPosition}/{pair.Driven.ToothCount}, rotations {projection.DrivenProjectedRotations}",
+            $"{projection.DriverTension} -> {projection.ProjectionResidueTicks}",
+            $"Driver {pair.Driver.ToothCount}T / dia {driverDiameterText}",
+            $"value {projection.DriverPerimeterTicks}/{pair.Driver.PerimeterTicks}, rotations {projection.DriverRotations}, tension {projection.DriverTension}",
+            $"Driven {pair.Driven.ToothCount}T / dia {drivenDiameterText}",
+            $"projected {projection.DrivenProjectedTicks}/{pair.Driven.PerimeterTicks}, rotations {projection.DrivenProjectedRotations}, residue {projection.ProjectionResidueTicks}");
     }
 
     public static string MeshLabel(int drivenPhaseTicks) =>
@@ -185,11 +215,16 @@ internal static class GearDemoAdapters
 
 internal readonly record struct GearDemoRenderRead(
     int SpeedTicksPerSecond,
+    int DriverTeeth,
+    int DrivenTeeth,
+    int DriverPerimeterTicks,
+    int DrivenPerimeterTicks,
+    int HalfPitchTicks,
+    int QuarterPitchTicks,
+    long DriverMeshPhaseTicks,
+    long DrivenMeshPhaseTicks,
     double DriverTurns,
     double DrivenProjectedTurns,
-    double VisibleDrivenTurns,
-    double DriverDiameterInches,
-    double DrivenDiameterInches,
     double DriverRadiusInches,
     double DrivenRadiusInches,
     double DriverRootRadiusInches,
@@ -197,10 +232,6 @@ internal readonly record struct GearDemoRenderRead(
     double DriverTipRadiusInches,
     double DrivenTipRadiusInches,
     double CenterLineDistanceInches,
-    double ToothProfileInches,
-    string DriverDiameterText,
-    string DrivenDiameterText,
-    string ClockResidueText,
     string MeshLabel,
     string DiameterReadout,
     string CenterReadout,
@@ -211,3 +242,14 @@ internal readonly record struct GearDemoRenderRead(
     string DriverState,
     string DrivenCaption,
     string DrivenState);
+
+internal readonly record struct GearProjectionRead(
+    long DriverInputTicks,
+    long DriverPerimeterTicks,
+    int DriverToothPosition,
+    long DriverRotations,
+    long DriverTension,
+    long DrivenProjectedTicks,
+    int DrivenProjectedToothPosition,
+    long DrivenProjectedRotations,
+    long ProjectionResidueTicks);

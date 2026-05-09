@@ -33,12 +33,12 @@ public sealed class GearDemoCanvas : Control
     {
         base.Render(context);
         var bounds = new Rect(Bounds.Size);
-        var snapshot = model.Read();
-        layout = GearDemoRenderer.Arrange(bounds, snapshot);
+        var inspection = model.Inspect();
+        layout = GearDemoRenderer.Arrange(bounds, inspection);
         context.Custom(new GearDemoDrawOperation(
             bounds,
             layout,
-            snapshot,
+            inspection,
             new GearDemoInteraction(
                 isPlaying,
                 hoverPoint,
@@ -279,7 +279,7 @@ public sealed class GearDemoCanvas : Control
         if (layout.Bounds.Width <= 0d || layout.Bounds.Height <= 0d)
         {
             var bounds = new Rect(Bounds.Size);
-            layout = GearDemoRenderer.Arrange(bounds, model.Read());
+            layout = GearDemoRenderer.Arrange(bounds, model.Inspect());
         }
     }
 

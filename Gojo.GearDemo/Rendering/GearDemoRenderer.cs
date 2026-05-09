@@ -17,9 +17,9 @@ internal static class GearDemoRenderer
     private const double LabelBand = 88d;
     private const double BasePixelsPerInch = 430d;
 
-    public static GearDemoLayout Arrange(Rect bounds, GearDemoSnapshot snapshot)
+    public static GearDemoLayout Arrange(Rect bounds, GearDemoInspection inspection)
     {
-        var read = GearDemoAdapters.ToRenderRead(snapshot);
+        var read = GearDemoAdapters.ToRenderRead(inspection);
         var content = new Rect(
             OuterPadding,
             OuterPadding,
@@ -44,9 +44,9 @@ internal static class GearDemoRenderer
         var reset = new Rect(play.Right + gap, buttonY, buttonWidth, 32d);
         var web = new Rect(reset.Right + gap, buttonY, buttonWidth, 32d);
 
-        var speed = GearDemoAdapters.SliderLayout(controlX, buttonY + 58d, controlWidth, snapshot.SpeedSlider, "ticks/s", read.SpeedTicksPerSecond.ToString());
-        var driver = GearDemoAdapters.SliderLayout(controlX, speed.Bounds.Bottom + 30d, controlWidth, snapshot.DriverTeethSlider, "driver teeth", snapshot.DriverTeeth.ToString());
-        var driven = GearDemoAdapters.SliderLayout(controlX, driver.Bounds.Bottom + 30d, controlWidth, snapshot.DrivenTeethSlider, "driven teeth", snapshot.DrivenTeeth.ToString());
+        var speed = GearDemoAdapters.SliderLayout(controlX, buttonY + 58d, controlWidth, inspection.SpeedSlider.Read(), "ticks/s", read.SpeedTicksPerSecond.ToString());
+        var driver = GearDemoAdapters.SliderLayout(controlX, speed.Bounds.Bottom + 30d, controlWidth, inspection.DriverTeethSlider.Read(), "driver teeth", read.DriverTeeth.ToString());
+        var driven = GearDemoAdapters.SliderLayout(controlX, driver.Bounds.Bottom + 30d, controlWidth, inspection.DrivenTeethSlider.Read(), "driven teeth", read.DrivenTeeth.ToString());
 
         var gearScale = GearScale(scene, read);
         var driverRadius = read.DriverRadiusInches * BasePixelsPerInch * gearScale;
@@ -64,12 +64,12 @@ internal static class GearDemoRenderer
         var sceneCenter = gearArea.Center;
         var driverCenter = new Point(sceneCenter.X - (centerDistance * 0.5d), sceneCenter.Y);
         var drivenCenter = new Point(sceneCenter.X + (centerDistance * 0.5d), sceneCenter.Y);
-        var driverPhase = 0.25d - GearDemoAdapters.PhaseTurns(snapshot.DriverMeshPhaseTicks, snapshot.DriverPerimeterTicks);
-        var drivenPhase = 0.75d - GearDemoAdapters.PhaseTurns(snapshot.DrivenMeshPhaseTicks, snapshot.DrivenPerimeterTicks);
-        var driverRootHalf = GearDemoAdapters.PhaseTurns(snapshot.HalfPitchTicks, snapshot.DriverPerimeterTicks);
-        var drivenRootHalf = GearDemoAdapters.PhaseTurns(snapshot.HalfPitchTicks, snapshot.DrivenPerimeterTicks);
-        var driverTipHalf = GearDemoAdapters.PhaseTurns(snapshot.QuarterPitchTicks, snapshot.DriverPerimeterTicks);
-        var drivenTipHalf = GearDemoAdapters.PhaseTurns(snapshot.QuarterPitchTicks, snapshot.DrivenPerimeterTicks);
+        var driverPhase = 0.25d - GearDemoAdapters.PhaseTurns(read.DriverMeshPhaseTicks, read.DriverPerimeterTicks);
+        var drivenPhase = 0.75d - GearDemoAdapters.PhaseTurns(read.DrivenMeshPhaseTicks, read.DrivenPerimeterTicks);
+        var driverRootHalf = GearDemoAdapters.PhaseTurns(read.HalfPitchTicks, read.DriverPerimeterTicks);
+        var drivenRootHalf = GearDemoAdapters.PhaseTurns(read.HalfPitchTicks, read.DrivenPerimeterTicks);
+        var driverTipHalf = GearDemoAdapters.PhaseTurns(read.QuarterPitchTicks, read.DriverPerimeterTicks);
+        var drivenTipHalf = GearDemoAdapters.PhaseTurns(read.QuarterPitchTicks, read.DrivenPerimeterTicks);
 
         return new GearDemoLayout(
             bounds,
@@ -86,7 +86,7 @@ internal static class GearDemoRenderer
                 driverRadius,
                 Math.Max(1d, driverRootRadius),
                 Math.Max(driverRadius, driverTipRadius),
-                snapshot.DriverTeeth,
+                read.DriverTeeth,
                 read.DriverTurns,
                 driverPhase,
                 driverRootHalf,
@@ -98,7 +98,7 @@ internal static class GearDemoRenderer
                 drivenRadius,
                 Math.Max(1d, drivenRootRadius),
                 Math.Max(drivenRadius, drivenTipRadius),
-                snapshot.DrivenTeeth,
+                read.DrivenTeeth,
                 read.DrivenProjectedTurns,
                 drivenPhase,
                 drivenRootHalf,
@@ -110,12 +110,12 @@ internal static class GearDemoRenderer
     public static void Render(
         SKCanvas canvas,
         GearDemoLayout layout,
-        GearDemoSnapshot snapshot,
+        GearDemoInspection inspection,
         GearDemoInteraction interaction)
     {
         canvas.Clear(GojoDemoUi.Palette.Background);
         DrawOpenSpaces(canvas, layout);
-        DrawSide(canvas, layout, GearDemoAdapters.ToRenderRead(snapshot), interaction);
+        DrawSide(canvas, layout, GearDemoAdapters.ToRenderRead(inspection), interaction);
         DrawScene(canvas, layout);
     }
 

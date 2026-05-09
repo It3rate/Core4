@@ -18,15 +18,15 @@ public sealed class GearDemoModelTests
             model.AdvanceClock(16);
         }
 
-        var snapshot = model.Read();
-        Assert.Equal(1, snapshot.DriverInputTicks);
-        Assert.Equal(920, snapshot.ClockDriveNumeratorResidue);
+        var inspection = model.Inspect();
+        Assert.Equal(1, GearDemoAdapters.ToLong(inspection.DriverInputTicks));
+        Assert.Equal(920, inspection.ClockDrive.Read().DriveNumeratorResidue);
 
         model.AdvanceClock(40);
 
-        snapshot = model.Read();
-        Assert.Equal(2, snapshot.DriverInputTicks);
-        Assert.Equal(0, snapshot.ClockDriveNumeratorResidue);
+        inspection = model.Inspect();
+        Assert.Equal(2, GearDemoAdapters.ToLong(inspection.DriverInputTicks));
+        Assert.Equal(0, inspection.ClockDrive.Read().DriveNumeratorResidue);
     }
 
     [Fact]
@@ -37,11 +37,11 @@ public sealed class GearDemoModelTests
 
         model.AdvanceClock(999);
 
-        Assert.Equal(0, model.Read().DriverInputTicks);
+        Assert.Equal(0, GearDemoAdapters.ToLong(model.Inspect().DriverInputTicks));
 
         model.AdvanceClock(1);
 
-        Assert.Equal(1, model.Read().DriverInputTicks);
+        Assert.Equal(1, GearDemoAdapters.ToLong(model.Inspect().DriverInputTicks));
     }
 
     [Fact]
@@ -51,15 +51,17 @@ public sealed class GearDemoModelTests
 
         model.Drive(GearDemoModel.TicksPerTooth);
 
-        var snapshot = model.Read();
-        Assert.Equal(1, snapshot.DriverToothPosition);
-        Assert.Equal(snapshot.DrivenTeeth - 1, snapshot.DrivenProjectedToothPosition);
+        var inspection = model.Inspect();
+        var projection = GearDemoAdapters.ReadGearProjection(inspection);
+        Assert.Equal(1, projection.DriverToothPosition);
+        Assert.Equal(inspection.Pair.Driven.ToothCount - 1, projection.DrivenProjectedToothPosition);
 
         model.Drive(15 * GearDemoModel.TicksPerTooth);
 
-        snapshot = model.Read();
-        Assert.Equal(0, snapshot.DrivenProjectedToothPosition);
-        Assert.Equal(-1, snapshot.DrivenProjectedRotations);
+        inspection = model.Inspect();
+        projection = GearDemoAdapters.ReadGearProjection(inspection);
+        Assert.Equal(0, projection.DrivenProjectedToothPosition);
+        Assert.Equal(-1, projection.DrivenProjectedRotations);
     }
 
     [Fact]
@@ -67,22 +69,23 @@ public sealed class GearDemoModelTests
     {
         var model = new GearDemoModel();
 
-        var snapshot = model.Read();
+        var inspection = model.Inspect();
+        var pair = inspection.Pair;
 
-        Assert.Equal(96, snapshot.SpeedSlider.Range.Ticks);
-        Assert.Equal(24, snapshot.DiametralPitchTicks);
-        Assert.Equal(48, snapshot.RadiusTicksPerInchTicks);
-        Assert.Equal(1, snapshot.ToothProfileRadiusTicks);
-        Assert.Equal(4, snapshot.HalfPitchTicks);
-        Assert.Equal(2, snapshot.QuarterPitchTicks);
-        Assert.Equal(0, snapshot.DriverMeshPhaseTicks);
-        Assert.Equal(snapshot.HalfPitchTicks, snapshot.DrivenMeshPhaseTicks);
-        Assert.Equal(192, snapshot.DriverPerimeterTicks);
-        Assert.Equal(24, snapshot.DriverRadiusFortyEighths);
-        Assert.Equal(23, snapshot.DriverRootRadiusFortyEighths);
-        Assert.Equal(25, snapshot.DriverTipRadiusFortyEighths);
-        Assert.Equal("8 ticks/tooth, driven phase +4", GearDemoAdapters.MeshLabel(snapshot.HalfPitchTicks));
-        Assert.NotNull(snapshot.SpeedSlider.TrackSegment);
+        Assert.Equal(96, inspection.SpeedSlider.Read().Range.Ticks);
+        Assert.Equal(24, pair.Numbers.DiametralPitchTicks);
+        Assert.Equal(48, pair.Numbers.RadiusTicksPerInchTicks);
+        Assert.Equal(1, pair.Numbers.ToothProfileRadiusTicksValue);
+        Assert.Equal(4, pair.Numbers.HalfPitchTicksValue);
+        Assert.Equal(2, pair.Numbers.QuarterPitchTicksValue);
+        Assert.Equal(0, pair.DriverMeshPhaseTicks);
+        Assert.Equal(pair.Numbers.HalfPitchTicksValue, pair.DrivenMeshPhaseTicks);
+        Assert.Equal(192, pair.Driver.PerimeterTicks);
+        Assert.Equal(24, pair.Driver.RadiusFortyEighths);
+        Assert.Equal(23, pair.Driver.RootRadiusFortyEighths);
+        Assert.Equal(25, pair.Driver.TipRadiusFortyEighths);
+        Assert.Equal("8 ticks/tooth, driven phase +4", GearDemoAdapters.MeshLabel(pair.Numbers.HalfPitchTicksValue));
+        Assert.NotNull(inspection.SpeedSlider.TrackSegment);
     }
 
     [Fact]
