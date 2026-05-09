@@ -23,6 +23,8 @@
     <Compile Include="..\Gojo.GearDemo\GearDemoApp.cs" Link="GearDemoApp.cs" />
     <Compile Include="..\Gojo.GearDemo\GearDemoCanvas.cs" Link="GearDemoCanvas.cs" />
     <Compile Include="..\Gojo.GearDemo\GearDemoWindow.cs" Link="GearDemoWindow.cs" />
+    <Compile Include="..\Gojo.GearDemo\Adapters\**\*.cs" Link="Adapters\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Gojo.GearDemo\Components\**\*.cs" Link="Components\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\Gojo.GearDemo\Model\**\*.cs" Link="Model\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\Gojo.GearDemo\Rendering\**\*.cs" Link="Rendering\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>

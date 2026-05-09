@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
+using Gojo.GearDemo.Components;
 using Gojo.GearDemo.Model;
 
 namespace Gojo.GearDemo.Rendering;

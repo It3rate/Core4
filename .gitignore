@@ -17,6 +17,7 @@
 mono_crash.*
 
 publish-browser/
+publish-deploy-root/
 
 # Build results
 [Dd]ebug/

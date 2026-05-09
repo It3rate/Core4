@@ -18,6 +18,7 @@ internal static class GearDemoWebPublisher
         var gearWebRoot = Path.Combine(publishDirectory, "wwwroot");
         var sharedWebRoot = Path.Combine(root, "Core4.AvaloniaProbe", "publish-browser", "wwwroot");
         var sharedGearRoute = Path.Combine(sharedWebRoot, "gears");
+        var deployWebRoot = Path.Combine(root, "Gojo.GearDemo", "publish-deploy-root");
 
         await RunAsync(
             "dotnet",
@@ -25,10 +26,11 @@ internal static class GearDemoWebPublisher
             root).ConfigureAwait(false);
 
         CopyDirectory(gearWebRoot, sharedGearRoute, sharedWebRoot);
+        CopyDirectory(sharedWebRoot, deployWebRoot, root, ShouldDeployFile);
 
         var deploymentToken = RequireDeploymentToken();
         var npxPath = await EnsureNpxAsync(root).ConfigureAwait(false);
-        await DeployAsync(npxPath, sharedWebRoot, root, deploymentToken).ConfigureAwait(false);
+        await DeployAsync(npxPath, deployWebRoot, deployWebRoot, deploymentToken).ConfigureAwait(false);
         OpenBrowser();
     }
 
@@ -66,7 +68,11 @@ internal static class GearDemoWebPublisher
         }
     }
 
-    private static void CopyDirectory(string source, string target, string allowedRoot)
+    private static void CopyDirectory(
+        string source,
+        string target,
+        string allowedRoot,
+        Func<FileInfo, bool>? includeFile = null)
     {
         if (!Directory.Exists(source))
         {
@@ -96,10 +102,20 @@ internal static class GearDemoWebPublisher
 
         foreach (var file in Directory.EnumerateFiles(sourceFull, "*", SearchOption.AllDirectories))
         {
+            var fileInfo = new FileInfo(file);
+            if (includeFile is not null && !includeFile(fileInfo))
+            {
+                continue;
+            }
+
             var relative = Path.GetRelativePath(sourceFull, file);
             File.Copy(file, Path.Combine(targetFull, relative), overwrite: true);
         }
     }
+
+    private static bool ShouldDeployFile(FileInfo file) =>
+        !string.Equals(file.Extension, ".br", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(file.Extension, ".gz", StringComparison.OrdinalIgnoreCase);
 
     private static async Task DeployAsync(string npxPath, string webRoot, string workingDirectory, string deploymentToken)
     {

@@ -1,3 +1,5 @@
+using Gojo.GearDemo.Adapters;
+using Gojo.GearDemo.Components;
 using Gojo.GearDemo.Model;
 
 namespace Gojo.Tests.GearDemo;
@@ -66,7 +68,7 @@ public sealed class GearDemoModelTests
 
         var snapshot = model.Read();
 
-        Assert.Equal(96, snapshot.SpeedSlider.Range);
+        Assert.Equal(96, snapshot.SpeedSlider.Range.Ticks);
         Assert.Equal(24, snapshot.DiametralPitchTicks);
         Assert.Equal(48, snapshot.RadiusTicksPerInchTicks);
         Assert.Equal(1, snapshot.ToothProfileRadiusTicks);
@@ -78,7 +80,29 @@ public sealed class GearDemoModelTests
         Assert.Equal(24, snapshot.DriverRadiusFortyEighths);
         Assert.Equal(23, snapshot.DriverRootRadiusFortyEighths);
         Assert.Equal(25, snapshot.DriverTipRadiusFortyEighths);
-        Assert.Equal("8 ticks/tooth, driven phase +4", snapshot.MeshLabel);
-        Assert.NotNull(snapshot.SpeedSlider.RangeOperation);
+        Assert.Equal("8 ticks/tooth, driven phase +4", GearDemoAdapters.MeshLabel(snapshot.HalfPitchTicks));
+        Assert.NotNull(snapshot.SpeedSlider.RangeRelation);
+    }
+
+    [Fact]
+    public void GojoSliderUsesOneCarrierAsTrackValueAndRangeBasis()
+    {
+        var slider = GojoSlider.Create(6, 48, 24);
+
+        var snapshot = slider.Read();
+
+        Assert.Same(snapshot.Track, slider.Output);
+        Assert.Same(snapshot.Track, snapshot.Minimum.Carrier);
+        Assert.Same(snapshot.Track, snapshot.Maximum.Carrier);
+        Assert.Same(snapshot.Track, snapshot.Range.Carrier);
+        Assert.Same(snapshot.Track, snapshot.Position.Carrier);
+        Assert.Same(snapshot.Track, snapshot.Value.Carrier);
+        Assert.Equal(6, snapshot.Minimum.Ticks);
+        Assert.Equal(48, snapshot.Maximum.Ticks);
+        Assert.Equal(42, snapshot.Range.Ticks);
+        Assert.Equal(18, snapshot.Position.Ticks);
+        Assert.Equal(24, snapshot.Value.Ticks);
+        Assert.All(snapshot.TrackSegment.CarrierLocations(), location => Assert.Same(snapshot.Track, location.Carrier));
+        Assert.All(snapshot.RangeRelation.CarrierLocations(), location => Assert.Same(snapshot.Track, location.Carrier));
     }
 }

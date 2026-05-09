@@ -3,6 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using Gojo.GearDemo.Adapters;
+using Gojo.GearDemo.Components;
 using Gojo.GearDemo.Model;
 using Gojo.GearDemo.Rendering;
 #if !GOJO_GEAR_BROWSER
@@ -14,11 +16,10 @@ namespace Gojo.GearDemo;
 public sealed class GearDemoCanvas : Control
 {
     private readonly GearDemoModel model = new();
+    private readonly GojoFrameClock frameClock = new();
     private GearDemoLayout layout;
     private bool isPlaying = true;
     private bool isAttached;
-    private TimeSpan? lastFrameTime;
-    private double pendingFrameMilliseconds;
     private Point? hoverPoint;
     private Action<Point>? activeDrag;
 #if !GOJO_GEAR_BROWSER
@@ -65,7 +66,7 @@ public sealed class GearDemoCanvas : Control
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         isAttached = false;
-        lastFrameTime = null;
+        frameClock.Reset();
         base.OnDetachedFromVisualTree(e);
     }
 
@@ -109,7 +110,7 @@ public sealed class GearDemoCanvas : Control
         if (layout.ResetButton.Contains(point))
         {
             model.Reset();
-            pendingFrameMilliseconds = 0d;
+            frameClock.Reset();
             CompletePointer(e);
             return;
         }
@@ -125,19 +126,19 @@ public sealed class GearDemoCanvas : Control
 
         if (layout.SpeedSlider.Bounds.Contains(point))
         {
-            BeginDrag(e, p => model.SetSpeedTicksPerSecond((int)Math.Round(SliderValue(layout.SpeedSlider, p), MidpointRounding.AwayFromZero)));
+            BeginDrag(e, p => model.SetSpeedTicksPerSecond(GearDemoAdapters.SliderValue(layout.SpeedSlider, p)));
             return;
         }
 
         if (layout.DriverTeethSlider.Bounds.Contains(point))
         {
-            BeginDrag(e, p => model.SetDriverTeeth((int)Math.Round(SliderValue(layout.DriverTeethSlider, p), MidpointRounding.AwayFromZero)));
+            BeginDrag(e, p => model.SetDriverTeeth(GearDemoAdapters.SliderValue(layout.DriverTeethSlider, p)));
             return;
         }
 
         if (layout.DrivenTeethSlider.Bounds.Contains(point))
         {
-            BeginDrag(e, p => model.SetDrivenTeeth((int)Math.Round(SliderValue(layout.DrivenTeethSlider, p), MidpointRounding.AwayFromZero)));
+            BeginDrag(e, p => model.SetDrivenTeeth(GearDemoAdapters.SliderValue(layout.DrivenTeethSlider, p)));
             return;
         }
     }
@@ -177,7 +178,7 @@ public sealed class GearDemoCanvas : Control
         else if (e.Key == Key.R)
         {
             model.Reset();
-            pendingFrameMilliseconds = 0d;
+            frameClock.Reset();
             e.Handled = true;
         }
 
@@ -204,23 +205,10 @@ public sealed class GearDemoCanvas : Control
             return;
         }
 
-        if (lastFrameTime is { } last)
+        if (frameClock.Advance(now, isPlaying, model.AdvanceClock))
         {
-            var seconds = Math.Clamp((now - last).TotalSeconds, 0d, 0.1d);
-            if (isPlaying)
-            {
-                pendingFrameMilliseconds += seconds * 1000d;
-                var wholeMilliseconds = (long)Math.Floor(pendingFrameMilliseconds);
-                if (wholeMilliseconds > 0)
-                {
-                    model.AdvanceClock(wholeMilliseconds);
-                    pendingFrameMilliseconds -= wholeMilliseconds;
-                    InvalidateVisual();
-                }
-            }
+            InvalidateVisual();
         }
-
-        lastFrameTime = now;
         RequestFrame();
     }
 
@@ -308,11 +296,4 @@ public sealed class GearDemoCanvas : Control
         }
     }
 
-    private static double SliderValue(SliderLayout slider, Point point)
-    {
-        var t = slider.Track.Width <= 0d
-            ? 0d
-            : (point.X - slider.Track.X) / slider.Track.Width;
-        return slider.Minimum + (Math.Clamp(t, 0d, 1d) * (slider.Maximum - slider.Minimum));
-    }
 }
