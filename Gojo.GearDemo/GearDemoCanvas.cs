@@ -126,19 +126,19 @@ public sealed class GearDemoCanvas : Control
 
         if (layout.SpeedSlider.Bounds.Contains(point))
         {
-            BeginDrag(e, p => model.SetSpeedTicksPerSecond(GearDemoAdapters.SliderValue(layout.SpeedSlider, p)));
+            BeginDrag(e, p => model.SetSpeedSliderPosition(GearDemoAdapters.SliderValue(layout.SpeedSlider, p)));
             return;
         }
 
         if (layout.DriverTeethSlider.Bounds.Contains(point))
         {
-            BeginDrag(e, p => model.SetDriverTeeth(GearDemoAdapters.SliderValue(layout.DriverTeethSlider, p)));
+            BeginDrag(e, p => model.SetDriverTeethSliderPosition(GearDemoAdapters.SliderValue(layout.DriverTeethSlider, p)));
             return;
         }
 
         if (layout.DrivenTeethSlider.Bounds.Contains(point))
         {
-            BeginDrag(e, p => model.SetDrivenTeeth(GearDemoAdapters.SliderValue(layout.DrivenTeethSlider, p)));
+            BeginDrag(e, p => model.SetDrivenTeethSliderPosition(GearDemoAdapters.SliderValue(layout.DrivenTeethSlider, p)));
             return;
         }
     }

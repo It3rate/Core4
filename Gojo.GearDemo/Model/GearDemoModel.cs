@@ -57,15 +57,30 @@ internal sealed class GearDemoModel
     public void SetSpeedTicksPerSecond(int ticksPerSecond) =>
         speedSlider.SetOutput(ticksPerSecond);
 
+    public void SetSpeedSliderPosition(int ticks) =>
+        speedSlider.SetPosition(ticks);
+
     public void SetDriverTeeth(int toothCount)
     {
         driverTeethSlider.SetOutput(toothCount);
         RebuildPair();
     }
 
+    public void SetDriverTeethSliderPosition(int ticks)
+    {
+        driverTeethSlider.SetPosition(ticks);
+        RebuildPair();
+    }
+
     public void SetDrivenTeeth(int toothCount)
     {
         drivenTeethSlider.SetOutput(toothCount);
+        RebuildPair();
+    }
+
+    public void SetDrivenTeethSliderPosition(int ticks)
+    {
+        drivenTeethSlider.SetPosition(ticks);
         RebuildPair();
     }
 

@@ -70,11 +70,20 @@ internal static class GearDemoAdapters
         string label,
         string readout)
     {
+        var boundaries = slider.TrackSegment.BoundariesOn(slider.Track);
         var bounds = new Rect(x, y, width, 42d);
         var track = new Rect(x + 4d, y + 26d, Math.Max(1d, width - 8d), 6d);
         var t = slider.Range.Ticks <= 0 ? 0d : slider.Position.Ticks / (double)slider.Range.Ticks;
         var knob = new Point(track.X + track.Width * t, track.Center.Y);
-        return new SliderLayout(bounds, track, knob, slider.Minimum.Ticks, slider.Maximum.Ticks, slider.Value.Ticks, label, readout);
+        return new SliderLayout(
+            bounds,
+            track,
+            knob,
+            boundaries.LeftLocation.Ticks,
+            boundaries.RightLocation.Ticks,
+            slider.OutputValue.Ticks,
+            label,
+            readout);
     }
 
     public static GearDemoRenderRead ToRenderRead(GearDemoSnapshot snapshot)
@@ -82,7 +91,7 @@ internal static class GearDemoAdapters
         var driverDiameterText = FractionalInches(snapshot.DriverDiameterTwentyFourths, snapshot.DiametralPitchTicks);
         var drivenDiameterText = FractionalInches(snapshot.DrivenDiameterTwentyFourths, snapshot.DiametralPitchTicks);
         return new GearDemoRenderRead(
-            ToInt(snapshot.SpeedSlider.Value.Ticks),
+            ToInt(snapshot.SpeedSlider.OutputValue.Ticks),
             Turns(snapshot.DriverInputTicks, snapshot.DriverPerimeterTicks),
             Turns(snapshot.DrivenProjectedTicks, snapshot.DrivenPerimeterTicks),
             Turns(snapshot.VisibleDrivenProjectedTicks, snapshot.DrivenPerimeterTicks),
