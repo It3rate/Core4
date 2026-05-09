@@ -106,6 +106,13 @@ orthogonal side potential  sheet/side-wall/shell around the segment
 parallel contour           equal-distance or equal-tension offset from segment
 ```
 
+Endpoint escape is intentionally not a default segment potential in this
+sheet. A bounded segment is a section of a larger linear potential, so curved
+or circular endpoint behavior should come from additional route, boundary, or
+container structure when that structure is actually present. This leaves gears,
+belts, caps, rounded ends, and branch routes under explicit structural control
+instead of making every segment endpoint automatically circular.
+
 `UnitShape.LinearFrom(zeroSegment)` should be read as a zero-segment
 orthogonal: a ray/line potential constrained by a collapsed basis. It does not
 know external direction until connected to an oriented structure.
@@ -139,6 +146,22 @@ Fill requires a boundary relation or equivalent hardening structure. A
 boundary-only contour can exist without fill. A filled region and an empty
 boundary are different settlement claims and should remain distinguishable as
 structure.
+
+This is a key distinction. A square made from four boundary segments can remain
+linear boundary structure; its interior does not fill merely because the
+segments enclose a region. Fill appears when orthogonal potential is activated
+and bounded, for example by a multiplication-like use of the boundary:
+
+```text
+boundary-only shape       connected contour, no interior material claim
+boundary * orthogonal     fill potential activated
+bounded fill potential    interior hardens as area/material participation
+exterior orthogonal       unbounded outside potential, interior may remain empty
+```
+
+This lets branching, merging, outlines, tracks, belts, and frames exist without
+accidentally creating area. Fill is a settlement claim, not an automatic
+consequence of closure.
 
 ## 6. Shared Rule For Shapes
 
@@ -177,14 +200,19 @@ surface orientation          filled / empty, inside / outside
 ```
 
 For ordinary line carriers, the forward face is the normal positive direction
-and the inverse face is the opposed direction. For perimeter carriers, the
-forward face is the normal contour direction and the inverse face is the
-opposed contour direction.
+and the inverse face is the opposed direction. This does not mean "right" until
+the line is calibrated to a space where right and left exist. For perimeter
+carriers, the forward face is the normal contour direction and the inverse face
+is the opposed contour direction. This does not mean clockwise or
+counterclockwise until the contour is calibrated to a view/container where
+front/back, up/down, or handedness exists.
 
-The default contour convention may be counterclockwise for the forward
-perimeter and clockwise for the inverse perimeter, but this is only a default
-read. A richer structure should be able to define handedness by connecting
-radial, contour, and container orientation explicitly.
+A floating grid has no true up. A drifting contour has no true clockwise. It
+may have internally consistent forward/inverse relations, but names like up,
+right, clockwise, and counterclockwise are supplied by later attachment to a
+field, screen, gravitational frame, observer frame, or other oriented
+container. If all internal definitions are consistent, attaching the structure
+to such a container should make the visible orientation settle correctly.
 
 ## 8. Code Implications
 
