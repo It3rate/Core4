@@ -122,11 +122,11 @@ public sealed class GearDemoModelTests
         var numbers = GearNumbers.Create(7, GearDemoDefaults.DiametralPitch, GearDemoDefaults.ToothProfileRadiusTicks);
 
         Assert.Equal(3, numbers.HalfPitchTicksValue);
-        Assert.Equal(1UL, numbers.HalfPitchResidue.Value);
+        Assert.Equal(1UL, numbers.Outputs.HalfPitch.Residue.Value);
         Assert.Equal(1, numbers.QuarterPitchTicksValue);
-        Assert.Equal(1UL, numbers.QuarterPitchResidue.Value);
-        AssertContainsCarrier(numbers.Structure, numbers.HalfPitchResidue);
-        AssertContainsCarrier(numbers.Structure, numbers.QuarterPitchResidue);
+        Assert.Equal(1UL, numbers.Outputs.QuarterPitch.Residue.Value);
+        AssertContainsCarrier(numbers.Structure, numbers.Outputs.HalfPitch.Residue);
+        AssertContainsCarrier(numbers.Structure, numbers.Outputs.QuarterPitch.Residue);
     }
 
     [Fact]
