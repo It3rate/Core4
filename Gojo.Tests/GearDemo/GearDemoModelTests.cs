@@ -78,6 +78,8 @@ public sealed class GearDemoModelTests
         Assert.Equal(1, pair.Numbers.ToothProfileRadiusTicksValue);
         Assert.Equal(4, pair.Numbers.HalfPitchTicksValue);
         Assert.Equal(2, pair.Numbers.QuarterPitchTicksValue);
+        Assert.Equal(2, GearDemoAdapters.ReadProjection(
+            pair.Numbers.HalfPitchToQuarterPitch.Project(pair.Numbers.HalfPitchTicks.ValueSlot, pair.Numbers.QuarterPitchTicks)).ProjectedTicks);
         Assert.Equal(0, pair.DriverMeshPhaseTicks);
         Assert.Equal(pair.Numbers.HalfPitchTicksValue, pair.DrivenMeshPhaseTicks);
         Assert.Equal(192, pair.Driver.PerimeterTicks);
@@ -86,6 +88,32 @@ public sealed class GearDemoModelTests
         Assert.Equal(25, pair.Driver.TipRadiusFortyEighths);
         Assert.Equal("8 ticks/tooth, driven phase +4", GearDemoAdapters.MeshLabel(pair.Numbers.HalfPitchTicksValue));
         Assert.NotNull(inspection.SpeedSlider.TrackSegment);
+    }
+
+    [Fact]
+    public void GearMechanismKeepsDerivedCircularStructureConnectedToSourceTicks()
+    {
+        var model = new GearDemoModel();
+        var pair = model.Inspect().Pair;
+        var driver = pair.Driver;
+
+        Assert.Same(driver.Perimeter, driver.PitchCircle);
+        Assert.True(driver.PitchCircleSource.LeftLocation.SameTickRefAs(driver.RadiusFortyEighthsCarrier.ValueSlot));
+        Assert.True(driver.RootCircleSource.LeftLocation.SameTickRefAs(driver.RootRadiusFortyEighthsCarrier.ValueSlot));
+        Assert.True(driver.TipCircleSource.LeftLocation.SameTickRefAs(driver.TipRadiusFortyEighthsCarrier.ValueSlot));
+        Assert.True(((Relation)driver.Partition.Left).LeftLocation.SameTickRefAs(driver.PerimeterTicksCarrier.ValueSlot));
+        Assert.True(((Relation)driver.ToothPartition.Left).LeftLocation.SameTickRefAs(driver.ToothCountCarrier.ValueSlot));
+        Assert.True(((Relation)pair.CenterLineSegment.Right).LeftLocation.SameTickRefAs(pair.CenterDistance.ValueSlot));
+
+        AssertContainsCarrier(driver.Structure, driver.ToothCountCarrier);
+        AssertContainsCarrier(driver.Structure, driver.ShapeCenter);
+        AssertContainsCarrier(driver.Structure, driver.Perimeter);
+        AssertContainsCarrier(driver.Structure, driver.RootCircle);
+        AssertContainsCarrier(driver.Structure, driver.TipCircle);
+        AssertContainsCarrier(pair.Structure, pair.Driver.Perimeter);
+        AssertContainsCarrier(pair.Structure, pair.Driven.Perimeter);
+        AssertContainsCarrier(pair.Structure, pair.CenterLine);
+        AssertContainsCarrier(pair.Structure, pair.CenterDistance);
     }
 
     [Fact]
@@ -135,4 +163,6 @@ public sealed class GearDemoModelTests
         Assert.Equal(80, snapshot.Position.Ticks);
     }
 
+    private static void AssertContainsCarrier(Relation structure, Carrier carrier) =>
+        Assert.Contains(carrier, structure.Carriers());
 }
