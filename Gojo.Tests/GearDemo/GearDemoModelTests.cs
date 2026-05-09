@@ -117,6 +117,35 @@ public sealed class GearDemoModelTests
     }
 
     [Fact]
+    public void ChangingGearTeethSettlesExistingMechanismInsteadOfRebuildingPair()
+    {
+        var model = new GearDemoModel();
+        var pair = model.Inspect().Pair;
+
+        model.SetDriverTeeth(30);
+
+        var changed = model.Inspect().Pair;
+        Assert.Same(pair, changed);
+        Assert.Equal(30, changed.Driver.ToothCount);
+        Assert.Equal(240, changed.Driver.PerimeterTicks);
+        Assert.Equal(30, changed.Driver.DiameterTwentyFourths);
+        Assert.Equal(30, changed.Driver.RadiusFortyEighths);
+        Assert.Equal(29, changed.Driver.RootRadiusFortyEighths);
+        Assert.Equal(31, changed.Driver.TipRadiusFortyEighths);
+        Assert.Equal(16, changed.Driven.ToothCount);
+        Assert.Equal(48, changed.CenterLineDistanceFortyEighths);
+
+        model.SetDrivenTeeth(20);
+
+        changed = model.Inspect().Pair;
+        Assert.Same(pair, changed);
+        Assert.Equal(30, changed.Driver.ToothCount);
+        Assert.Equal(20, changed.Driven.ToothCount);
+        Assert.Equal(160, changed.Driven.PerimeterTicks);
+        Assert.Equal(52, changed.CenterLineDistanceFortyEighths);
+    }
+
+    [Fact]
     public void GojoSliderSitsOnTheCarrierItRepresents()
     {
         var toothCount = new Carrier();

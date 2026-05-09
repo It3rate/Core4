@@ -85,6 +85,11 @@ public sealed class Relation : IElement, IEquatable<Relation>
     /// <summary>Applies this relation as settlement structure in an attached world.</summary>
     internal bool Apply()
     {
+        if (TryApplyLiveOutput())
+        {
+            return true;
+        }
+
         var left = CarrierSitesOf(Left);
         var right = CarrierSitesOf(Right);
         if (!TryReadOneCarrier(left, out var leftSites) ||
@@ -106,6 +111,54 @@ public sealed class Relation : IElement, IEquatable<Relation>
         }
 
         return rightSites.IsOrigin && RoutePositiveTension(leftSites, rightSites);
+    }
+
+    #endregion
+
+    #region Live Output Ports
+
+    /// <summary>Applies an input-to-port relation as a live output read into the port's concrete target carrier.</summary>
+    private bool TryApplyLiveOutput()
+    {
+        if (Right is not Relation port)
+        {
+            return false;
+        }
+
+        return TryApplyLiveProjectionOutput(Left, port) ||
+            TryApplyLiveOperationOutput(Left, port);
+    }
+
+    /// <summary>Applies a live single-slot projection shaped as input -> (source surface -> target surface).</summary>
+    private static bool TryApplyLiveProjectionOutput(IElement input, Relation port)
+    {
+        if (input is not CarrierLocation location)
+        {
+            return false;
+        }
+
+        if (TryProjectToTargetSurface(port.Left, port.Right, location, out var projection) ||
+            TryProjectToTargetSurface(port.Right, port.Left, location, out projection))
+        {
+            return projection.Target.Carrier.ReceiveTo(projection.Target.Ticks);
+        }
+
+        return false;
+    }
+
+    /// <summary>Applies a live operation output shaped as input group -> operation surface.</summary>
+    private static bool TryApplyLiveOperationOutput(IElement input, Relation operation)
+    {
+        if (!TryReadFrame(operation.Right, out var targetFrame) ||
+            targetFrame.Carrier.IsUnknown ||
+            !operation.TryReadOperationFrom(input, targetFrame.Carrier, out var read) ||
+            read.Left is not CarrierLocation target ||
+            !target.Carrier.SameIdentityAs(targetFrame.Carrier))
+        {
+            return false;
+        }
+
+        return target.Carrier.ReceiveTo(target.Ticks);
     }
 
     #endregion

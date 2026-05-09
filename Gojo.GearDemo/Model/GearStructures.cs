@@ -11,19 +11,11 @@ internal static class GearStructure
     public static Relation SegmentFromZeroTo(Carrier carrier, TickRef end) =>
         new(PointAt(carrier, new TickRef(0)), PointAt(carrier, end));
 
-    public static long ProjectInto(Relation relation, CarrierLocation input, Carrier target)
+    public static Relation BindOutput(Carrier anchor, IElement input, Relation port)
     {
-        var (ticks, _) = GearDemoAdapters.ReadProjection(relation.Project(input, target));
-        target.Set(ticks);
-        return ticks;
-    }
-
-    public static long ReadOperationInto(Relation operation, IElement input, Carrier target)
-    {
-        operation.TryReadOperationFrom(input, target, out var read);
-        var ticks = read?.Left is CarrierLocation location ? location.Ticks : 0;
-        target.Set(ticks);
-        return ticks;
+        var binding = new Relation(input, port);
+        anchor.Attach(binding);
+        return binding;
     }
 
     public static Relation AttachStructure(Carrier anchor, params IElement[] elements)
@@ -85,23 +77,35 @@ internal sealed record GearNumbers(
         var diametralPitchToRadiusTicks = new Relation(
             Relation.Segment(diametralPitchCarrier, 0, 1),
             Relation.Segment(radiusTicksPerInch, 0, 2));
-        GearStructure.ProjectInto(diametralPitchToRadiusTicks, diametralPitchCarrier.ValueSlot, radiusTicksPerInch);
+        var radiusTicksOutput = GearStructure.BindOutput(
+            ticksPerToothCarrier,
+            diametralPitchCarrier.ValueSlot,
+            diametralPitchToRadiusTicks);
 
         var ticksPerToothToHalfPitch = new Relation(
             Relation.Segment(ticksPerToothCarrier, 0, 2),
             Relation.Segment(halfPitchTicks, 0, 1));
-        GearStructure.ProjectInto(ticksPerToothToHalfPitch, ticksPerToothCarrier.ValueSlot, halfPitchTicks);
+        var halfPitchOutput = GearStructure.BindOutput(
+            ticksPerToothCarrier,
+            ticksPerToothCarrier.ValueSlot,
+            ticksPerToothToHalfPitch);
 
         var halfPitchToQuarterPitch = new Relation(
             Relation.Segment(halfPitchTicks, 0, 2),
             Relation.Segment(quarterPitchTicks, 0, 1));
-        GearStructure.ProjectInto(halfPitchToQuarterPitch, halfPitchTicks.ValueSlot, quarterPitchTicks);
+        var quarterPitchOutput = GearStructure.BindOutput(
+            ticksPerToothCarrier,
+            halfPitchTicks.ValueSlot,
+            halfPitchToQuarterPitch);
 
         var structure = GearStructure.AttachStructure(
             ticksPerToothCarrier,
             Relation.Point(ticksPerToothCarrier, 0),
             Relation.Point(diametralPitchCarrier, 0),
             Relation.Point(toothProfileRadiusTicksCarrier, 0),
+            radiusTicksOutput,
+            halfPitchOutput,
+            quarterPitchOutput,
             diametralPitchToRadiusTicks,
             ticksPerToothToHalfPitch,
             halfPitchToQuarterPitch);
@@ -183,20 +187,26 @@ internal sealed record GearCarrier(
         var teethToPerimeter = new Relation(
             new Relation(toothCountPort, ticksPerToothPort),
             Relation.Segment(perimeterTicksCarrier, 0, 1));
-        GearStructure.ReadOperationInto(
-            teethToPerimeter,
+        var perimeterTicksOutput = GearStructure.BindOutput(
+            toothCountCarrier,
             new Relation(toothCountCarrier.ValueSlot, numbers.TicksPerToothCarrier.ValueSlot),
-            perimeterTicksCarrier);
+            teethToPerimeter);
 
         var teethToDiameter = new Relation(
             Relation.Point(toothCountCarrier, 1),
             Relation.Point(diameterTwentyFourths, 1));
-        GearStructure.ProjectInto(teethToDiameter, toothCountCarrier.ValueSlot, diameterTwentyFourths);
+        var diameterOutput = GearStructure.BindOutput(
+            toothCountCarrier,
+            toothCountCarrier.ValueSlot,
+            teethToDiameter);
 
         var diameterToRadius = new Relation(
             Relation.Point(diameterTwentyFourths, 1),
             Relation.Point(radiusFortyEighths, 1));
-        GearStructure.ProjectInto(diameterToRadius, diameterTwentyFourths.ValueSlot, radiusFortyEighths);
+        var radiusOutput = GearStructure.BindOutput(
+            toothCountCarrier,
+            diameterTwentyFourths.ValueSlot,
+            diameterToRadius);
 
         var pitchRadiusPort = new Relation(
             Relation.Point(radiusFortyEighths, 1),
@@ -214,8 +224,8 @@ internal sealed record GearCarrier(
             new Relation(pitchRadiusPort, subtractProfilePort),
             Relation.Point(rootRadiusFortyEighths, 1));
         var radiusInput = new Relation(radiusFortyEighths.ValueSlot, numbers.ToothProfileRadiusTicks.ValueSlot);
-        GearStructure.ReadOperationInto(tipRadiusOperation, radiusInput, tipRadiusFortyEighths);
-        GearStructure.ReadOperationInto(rootRadiusOperation, radiusInput, rootRadiusFortyEighths);
+        var tipRadiusOutput = GearStructure.BindOutput(toothCountCarrier, radiusInput, tipRadiusOperation);
+        var rootRadiusOutput = GearStructure.BindOutput(toothCountCarrier, radiusInput, rootRadiusOperation);
 
         var perimeterSource = Relation.Point(shapeCenter, 0);
         var pitchCircleSource = GearStructure.PointAt(shapeCenter, radiusFortyEighths.ValueSlot.Tick);
@@ -251,6 +261,11 @@ internal sealed record GearCarrier(
             pitchCircleSource,
             rootCircleSource,
             tipCircleSource,
+            perimeterTicksOutput,
+            diameterOutput,
+            radiusOutput,
+            rootRadiusOutput,
+            tipRadiusOutput,
             teethToPerimeter,
             teethToDiameter,
             diameterToRadius,
@@ -343,7 +358,10 @@ internal sealed record GearPair(
         var drivenMeshPhaseOffset = new Relation(
             Relation.Segment(numbers.HalfPitchTicks, 0, 1),
             Relation.Segment(drivenMeshPhase, 0, 1));
-        GearStructure.ProjectInto(drivenMeshPhaseOffset, numbers.HalfPitchTicks.ValueSlot, drivenMeshPhase);
+        var drivenMeshPhaseOutput = GearStructure.BindOutput(
+            driverInputTicks,
+            numbers.HalfPitchTicks.ValueSlot,
+            drivenMeshPhaseOffset);
 
         var driverRadiusPort = new Relation(
             Relation.Point(driver.RadiusFortyEighthsCarrier, 1),
@@ -360,7 +378,10 @@ internal sealed record GearPair(
         var centerDistanceInput = new Relation(
             new Relation(driver.RadiusFortyEighthsCarrier.ValueSlot, driven.RadiusFortyEighthsCarrier.ValueSlot),
             centerClearance.ValueSlot);
-        GearStructure.ReadOperationInto(centerDistanceOperation, centerDistanceInput, centerDistance);
+        var centerDistanceOutput = GearStructure.BindOutput(
+            driverInputTicks,
+            centerDistanceInput,
+            centerDistanceOperation);
 
         var centerLineSegment = GearStructure.SegmentFromZeroTo(centerLine, centerDistance.ValueSlot.Tick);
         var driverInputToPerimeter = new Relation(
@@ -377,6 +398,8 @@ internal sealed record GearPair(
             Relation.Point(driverInputTicks, 0),
             centerLineSeed,
             centerLineSegment,
+            drivenMeshPhaseOutput,
+            centerDistanceOutput,
             drivenMeshPhaseOffset,
             centerDistanceOperation,
             driverInputToPerimeter,

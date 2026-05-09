@@ -1,5 +1,4 @@
 using Gojo.Core;
-using Gojo.GearDemo.Adapters;
 using Gojo.GearDemo.Components;
 
 namespace Gojo.GearDemo.Model;
@@ -60,39 +59,20 @@ internal sealed class GearDemoModel
     public void SetSpeedSliderPosition(int ticks) =>
         speedSlider.SetPosition(ticks);
 
-    public void SetDriverTeeth(int toothCount)
-    {
+    public void SetDriverTeeth(int toothCount) =>
         driverTeethSlider.SetPosition(toothCount);
-        RebuildPair();
-    }
 
-    public void SetDriverTeethSliderPosition(int ticks)
-    {
+    public void SetDriverTeethSliderPosition(int ticks) =>
         driverTeethSlider.SetPosition(ticks);
-        RebuildPair();
-    }
 
-    public void SetDrivenTeeth(int toothCount)
-    {
+    public void SetDrivenTeeth(int toothCount) =>
         drivenTeethSlider.SetPosition(toothCount);
-        RebuildPair();
-    }
 
-    public void SetDrivenTeethSliderPosition(int ticks)
-    {
+    public void SetDrivenTeethSliderPosition(int ticks) =>
         drivenTeethSlider.SetPosition(ticks);
-        RebuildPair();
-    }
 
     public GearDemoInspection Inspect() =>
         new(speedSlider, driverTeethSlider, drivenTeethSlider, clockDrive, driverInputTicks, pair);
-
-    private void RebuildPair()
-    {
-        var ticks = GearDemoAdapters.ToLong(driverInputTicks);
-        pair = CreatePair();
-        pair.Driver.Perimeter.Add(checked((ulong)ticks));
-    }
 
     private GearPair CreatePair() =>
         GearPair.Create(

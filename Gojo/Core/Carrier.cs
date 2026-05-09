@@ -116,7 +116,7 @@ public sealed class Carrier : IElement
     /// <summary>Attaches relation structure to each carrier it references and settles.</summary>
     public Relation Attach(Relation relation)
     {
-        foreach (var carrier in relation.Carriers().Distinct())
+        foreach (var carrier in relation.Carriers().Where(carrier => !carrier.IsUnknown).Distinct())
         {
             if (!carrier.relations.Any(existing => existing.SameIdentityAs(relation)))
             {
@@ -195,6 +195,15 @@ public sealed class Carrier : IElement
 
         Tension = checked(Tension + ticks);
         AbsorbTension();
+    }
+
+    /// <summary>Feeds the delta required to make visible value approach ticks without starting another settlement pass.</summary>
+    internal bool ReceiveTo(long ticks)
+    {
+        var beforeValue = Value;
+        var beforeTension = Tension;
+        Receive(checked(ticks - checked((long)Value)));
+        return Value != beforeValue || Tension != beforeTension;
     }
 
     /// <summary>Sets visible value and leaves the supplied residue as tension.</summary>
@@ -317,7 +326,7 @@ public sealed class Carrier : IElement
 
             foreach (var relation in carrier.relations)
             {
-                foreach (var related in relation.Carriers())
+                foreach (var related in relation.Carriers().Where(carrier => !carrier.IsUnknown))
                 {
                     pending.Enqueue(related);
                 }
