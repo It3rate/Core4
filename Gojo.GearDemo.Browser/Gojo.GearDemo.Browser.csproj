@@ -3,7 +3,6 @@
     <TargetFramework>net10.0-browser</TargetFramework>
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DefineConstants>$(DefineConstants);GOJO_GEAR_BROWSER</DefineConstants>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <WasmBuildNative>true</WasmBuildNative>
@@ -16,16 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Gojo\Gojo.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\Gojo.GearDemo\GearDemoApp.cs" Link="GearDemoApp.cs" />
-    <Compile Include="..\Gojo.GearDemo\GearDemoCanvas.cs" Link="GearDemoCanvas.cs" />
-    <Compile Include="..\Gojo.GearDemo\GearDemoWindow.cs" Link="GearDemoWindow.cs" />
-    <Compile Include="..\Gojo.GearDemo\Adapters\**\*.cs" Link="Adapters\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\Gojo.GearDemo\Components\**\*.cs" Link="Components\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\Gojo.GearDemo\Model\**\*.cs" Link="Model\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\Gojo.GearDemo\Rendering\**\*.cs" Link="Rendering\%(RecursiveDir)%(Filename)%(Extension)" />
+    <ProjectReference Include="..\Gojo.GearDemo\Gojo.GearDemo.csproj" />
   </ItemGroup>
 </Project>

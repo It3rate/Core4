@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Gojo.GearDemo.Services;
+namespace Gojo.GearDemo.Desktop.Services;
 
 internal static class GearDemoWebPublisher
 {

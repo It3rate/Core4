@@ -7,9 +7,6 @@ using Gojo.GearDemo.Adapters;
 using Gojo.GearDemo.Components;
 using Gojo.GearDemo.Model;
 using Gojo.GearDemo.Rendering;
-#if !GOJO_GEAR_BROWSER
-using Gojo.GearDemo.Services;
-#endif
 
 namespace Gojo.GearDemo;
 
@@ -22,11 +19,9 @@ public sealed class GearDemoCanvas : Control
     private bool isAttached;
     private Point? hoverPoint;
     private Action<Point>? activeDrag;
-#if !GOJO_GEAR_BROWSER
     private bool isPublishingWeb;
     private string webButtonText = "web";
     private string? webStatusText;
-#endif
 
     public GearDemoCanvas()
     {
@@ -47,13 +42,8 @@ public sealed class GearDemoCanvas : Control
             new GearDemoInteraction(
                 isPlaying,
                 hoverPoint,
-#if GOJO_GEAR_BROWSER
-                null,
-                null)));
-#else
-                webButtonText,
+                GearDemoHostServices.CanPublishWeb ? webButtonText : null,
                 webStatusText)));
-#endif
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -115,14 +105,12 @@ public sealed class GearDemoCanvas : Control
             return;
         }
 
-#if !GOJO_GEAR_BROWSER
-        if (layout.WebButton.Contains(point))
+        if (GearDemoHostServices.CanPublishWeb && layout.WebButton.Contains(point))
         {
             _ = PublishWebAsync();
             CompletePointer(e);
             return;
         }
-#endif
 
         if (layout.SpeedSlider.Bounds.Contains(point))
         {
@@ -230,10 +218,10 @@ public sealed class GearDemoCanvas : Control
         InvalidateVisual();
     }
 
-#if !GOJO_GEAR_BROWSER
     private async Task PublishWebAsync()
     {
-        if (isPublishingWeb)
+        var publish = GearDemoHostServices.PublishWebAsync;
+        if (isPublishingWeb || publish is null)
         {
             return;
         }
@@ -245,7 +233,7 @@ public sealed class GearDemoCanvas : Control
 
         try
         {
-            await GearDemoWebPublisher.PublishDeployAndOpenAsync().ConfigureAwait(true);
+            await publish().ConfigureAwait(true);
             webButtonText = "web";
             webStatusText = "deployed /gears";
         }
@@ -285,7 +273,6 @@ public sealed class GearDemoCanvas : Control
             ? singleLine
             : string.Concat(singleLine.AsSpan(0, maxLength - 3), "...");
     }
-#endif
 
     private void EnsureLayout()
     {
