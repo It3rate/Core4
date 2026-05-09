@@ -117,16 +117,16 @@ public sealed class GearDemoModelTests
     }
 
     [Fact]
-    public void GearNumbersPersistPitchProjectionResidues()
+    public void GearNumbersReadPitchAtRequestedResolutionWithoutPersistingReadResidue()
     {
         var numbers = GearNumbers.Create(7, GearDemoDefaults.DiametralPitch, GearDemoDefaults.ToothProfileRadiusTicks);
 
         Assert.Equal(3, numbers.HalfPitchTicksValue);
-        Assert.Equal(1UL, numbers.Outputs.HalfPitch.Residue.Value);
         Assert.Equal(1, numbers.QuarterPitchTicksValue);
-        Assert.Equal(1UL, numbers.Outputs.QuarterPitch.Residue.Value);
-        AssertContainsCarrier(numbers.Structure, numbers.Outputs.HalfPitch.Residue);
-        AssertContainsCarrier(numbers.Structure, numbers.Outputs.QuarterPitch.Residue);
+        Assert.Equal(7, numbers.TicksPerToothTicks);
+        Assert.Equal(0, numbers.TicksPerToothCarrier.Tension);
+        Assert.Equal(0, numbers.HalfPitchTicks.Tension);
+        Assert.Equal(0, numbers.QuarterPitchTicks.Tension);
     }
 
     [Fact]

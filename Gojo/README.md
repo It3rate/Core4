@@ -207,6 +207,14 @@ position.
 Projection is currently a read. It does not automatically mutate the driven
 carrier unless code deliberately uses the projected value as input.
 
+For live reads that should continuously feed a concrete carrier,
+`anchor.AttachLiveOutput(input, port)` creates ordinary relation structure of
+the form `input -> output port`. The projected value settles into the requested
+port target. Read residue remains virtual because the source is still present
+and can be read again at another available resolution. Residue is preserved as
+tension in transfer/import paths where discarding the remainder would lose
+incoming change.
+
 ## Current Crystallization Model
 
 Crystallization hardens unit shape, not mutable value.

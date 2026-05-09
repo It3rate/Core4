@@ -30,6 +30,10 @@ public sealed class Relation : IElement, IEquatable<Relation>
     public static Relation OrthogonalOutlet(IElement source) =>
         new(source ?? throw new ArgumentNullException(nameof(source)), Segment(Carrier.Unknown, 0, 0));
 
+    /// <summary>Creates a live read from an input structure into a concrete output port.</summary>
+    public static Relation LiveOutput(IElement input, Relation outputPort) =>
+        new(input, outputPort);
+
     public ulong Id { get; }
 
     public IElement Left { get; private set; }
@@ -125,32 +129,12 @@ public sealed class Relation : IElement, IEquatable<Relation>
             return false;
         }
 
-        return TryApplyLiveOutputWithResidue(Left, port) ||
-            TryApplyLiveProjectionOutput(Left, port) ||
+        return TryApplyLiveProjectionOutput(Left, port) ||
             TryApplyLiveOperationOutput(Left, port);
     }
 
-    /// <summary>Applies input -> (output port -> residue output surface).</summary>
-    private static bool TryApplyLiveOutputWithResidue(IElement input, Relation outputSurface)
-    {
-        if (outputSurface.Left is not Relation valuePort)
-        {
-            return false;
-        }
-
-        return TryApplyLiveProjectionOutput(input, valuePort, outputSurface.Right) ||
-            TryApplyLiveOperationOutput(input, valuePort, outputSurface.Right);
-    }
-
     /// <summary>Applies a live single-slot projection shaped as input -> (source surface -> target surface).</summary>
-    private static bool TryApplyLiveProjectionOutput(IElement input, Relation port) =>
-        TryApplyLiveProjectionOutput(input, port, residueOutput: null);
-
-    /// <summary>Applies a live single-slot projection and optionally persists the projection residue.</summary>
-    private static bool TryApplyLiveProjectionOutput(
-        IElement input,
-        Relation port,
-        IElement? residueOutput)
+    private static bool TryApplyLiveProjectionOutput(IElement input, Relation port)
     {
         if (input is not CarrierLocation location)
         {
@@ -164,12 +148,6 @@ public sealed class Relation : IElement, IEquatable<Relation>
             {
                 new(projection.Target.Carrier, projection.Target.Ticks)
             };
-            if (residueOutput is not null &&
-                !TryCollectResidueOutputTargets(projection.Residue, residueOutput, targets))
-            {
-                return false;
-            }
-
             return ApplyLiveOutputTargets(targets);
         }
 
@@ -177,14 +155,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
     }
 
     /// <summary>Applies a live operation output shaped as input group -> operation surface.</summary>
-    private static bool TryApplyLiveOperationOutput(IElement input, Relation operation) =>
-        TryApplyLiveOperationOutput(input, operation, residueOutput: null);
-
-    /// <summary>Applies a live operation output and optionally persists the operation residue shape.</summary>
-    private static bool TryApplyLiveOperationOutput(
-        IElement input,
-        Relation operation,
-        IElement? residueOutput)
+    private static bool TryApplyLiveOperationOutput(IElement input, Relation operation)
     {
         if (!TryReadFrame(operation.Right, out var targetFrame) ||
             targetFrame.Carrier.IsUnknown ||
@@ -199,63 +170,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         {
             new(target.Carrier, target.Ticks)
         };
-        if (residueOutput is not null &&
-            !TryCollectResidueOutputTargets(read.Right, residueOutput, targets))
-        {
-            return false;
-        }
-
         return ApplyLiveOutputTargets(targets);
-    }
-
-    /// <summary>Collects concrete carrier targets for a relation-shaped residue output surface.</summary>
-    private static bool TryCollectResidueOutputTargets(
-        IElement residue,
-        IElement output,
-        List<LiveOutputTarget> targets)
-    {
-        if (residue is CarrierLocation location &&
-            output is Relation port &&
-            (TryProjectToTargetSurface(port.Left, port.Right, location, out var projection) ||
-                TryProjectToTargetSurface(port.Right, port.Left, location, out projection)))
-        {
-            targets.Add(new LiveOutputTarget(projection.Target.Carrier, projection.Target.Ticks));
-            return true;
-        }
-
-        if (residue is Relation residueGroup &&
-            output is Relation outputGroup &&
-            !TryReadPortSurface(outputGroup, out _))
-        {
-            return TryCollectResidueOutputTargets(residueGroup.Left, outputGroup.Left, targets) &&
-                TryCollectResidueOutputTargets(residueGroup.Right, outputGroup.Right, targets);
-        }
-
-        if (output is Relation aggregatePort &&
-            TryReadPortSurface(aggregatePort, out _))
-        {
-            var residues = CarrierLocationsOf(residue);
-            if (residues.Length == 0)
-            {
-                return false;
-            }
-
-            foreach (var residueLocation in residues)
-            {
-                if (TryProjectToTargetSurface(aggregatePort.Left, aggregatePort.Right, residueLocation, out var residueProjection) ||
-                    TryProjectToTargetSurface(aggregatePort.Right, aggregatePort.Left, residueLocation, out residueProjection))
-                {
-                    targets.Add(new LiveOutputTarget(residueProjection.Target.Carrier, residueProjection.Target.Ticks));
-                    continue;
-                }
-
-                return false;
-            }
-
-            return true;
-        }
-
-        return false;
     }
 
     /// <summary>Feeds every validated live output target into its carrier by delta.</summary>

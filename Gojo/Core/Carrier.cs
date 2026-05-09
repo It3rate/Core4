@@ -166,6 +166,10 @@ public sealed class Carrier : IElement
     public bool TrySetFrom(Relation port, Carrier source) =>
         TrySetFrom(port, source.ValueSlot);
 
+    /// <summary>Attaches a live read from an input structure into a concrete output port.</summary>
+    public Relation AttachLiveOutput(IElement input, Relation outputPort) =>
+        Attach(Relation.LiveOutput(input, outputPort));
+
     /// <summary>Imports a visible location through a port and keeps residue as tension.</summary>
     public bool TrySetFrom(Relation port, CarrierLocation input)
     {
