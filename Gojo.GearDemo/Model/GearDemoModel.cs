@@ -45,7 +45,7 @@ internal sealed class GearDemoModel
     }
 
     public void AdvanceClock(long elapsedMilliseconds) =>
-        clockDrive.Advance(elapsedMilliseconds, speedSlider.Output, Drive);
+        clockDrive.Advance(elapsedMilliseconds, speedSlider.Track, Drive);
 
     public void Reset()
     {
@@ -55,14 +55,14 @@ internal sealed class GearDemoModel
     }
 
     public void SetSpeedTicksPerSecond(int ticksPerSecond) =>
-        speedSlider.SetOutput(ticksPerSecond);
+        speedSlider.SetPosition(ticksPerSecond);
 
     public void SetSpeedSliderPosition(int ticks) =>
         speedSlider.SetPosition(ticks);
 
     public void SetDriverTeeth(int toothCount)
     {
-        driverTeethSlider.SetOutput(toothCount);
+        driverTeethSlider.SetPosition(toothCount);
         RebuildPair();
     }
 
@@ -74,7 +74,7 @@ internal sealed class GearDemoModel
 
     public void SetDrivenTeeth(int toothCount)
     {
-        drivenTeethSlider.SetOutput(toothCount);
+        drivenTeethSlider.SetPosition(toothCount);
         RebuildPair();
     }
 
@@ -153,8 +153,8 @@ internal sealed class GearDemoModel
 
     private GearPair CreatePair() =>
         GearPair.Create(
-            driverTeethSlider.Output,
-            drivenTeethSlider.Output,
+            driverTeethSlider.Track,
+            drivenTeethSlider.Track,
             driverInputTicks,
             numbers,
             GearDemoDefaults.CenterClearanceRadiusTicks);

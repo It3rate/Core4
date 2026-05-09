@@ -391,6 +391,25 @@ public sealed class CarrierReadTests
     }
 
     [Fact]
+    public void RelationSegmentConstructorCanBeReadAsBoundariesAndFlow()
+    {
+        var carrier = new Carrier();
+        var segment = Relation.Segment(carrier, 6, 48);
+
+        var boundaries = segment.BoundariesOn(carrier);
+        var span = segment.SpanOn(carrier);
+        var flow = segment.FlowOn(carrier);
+
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(carrier, 6),
+                new CarrierLocation(carrier, 48)),
+            boundaries);
+        Assert.Equal(new CarrierLocation(carrier, 42), span);
+        Assert.Equal(new CarrierLocation(carrier, 42), flow);
+    }
+
+    [Fact]
     public void RelationBoundaryReadReturnsZeroWhenReaderCannotSeeBothEndpoints()
     {
         var x = new Carrier();

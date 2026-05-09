@@ -11,6 +11,7 @@ public sealed class Carrier : IElement
 
     private Carrier? inverse;
     private readonly List<Relation> relations = [];
+    private readonly TickRef valueTick = new(0);
     private bool settling;
 
     #region Construction and Identity
@@ -64,13 +65,13 @@ public sealed class Carrier : IElement
 
     #region State and Slots
 
-    public ulong Value { get; private set; }
+    public ulong Value => checked((ulong)valueTick.Ticks);
 
     public long Tension { get; private set; }
 
     public bool HasState => Value != 0 || Tension != 0;
 
-    public CarrierLocation ValueSlot => new(this, Value);
+    public CarrierLocation ValueSlot => new(this, valueTick);
 
     public CarrierLocation TensionSlot => new(this, Tension);
 
@@ -204,7 +205,7 @@ public sealed class Carrier : IElement
             return false;
         }
 
-        Value = value;
+        SetValue(value);
         AddResidualTension(tension);
         return true;
     }
@@ -230,8 +231,8 @@ public sealed class Carrier : IElement
             return false;
         }
 
-        Value -= shared;
-        other.Value -= shared;
+        SetValue(Value - shared);
+        other.SetValue(other.Value - shared);
         return true;
     }
 
@@ -339,7 +340,7 @@ public sealed class Carrier : IElement
     {
         if (Tension > 0)
         {
-            Value = checked(Value + checked((ulong)Tension));
+            SetValue(checked(Value + checked((ulong)Tension)));
             Tension = 0;
             return;
         }
@@ -352,14 +353,16 @@ public sealed class Carrier : IElement
         var draw = checked((ulong)-Tension);
         if (Value >= draw)
         {
-            Value -= draw;
+            SetValue(Value - draw);
             Tension = 0;
             return;
         }
 
         Tension = -checked((long)(draw - Value));
-        Value = 0;
+        SetValue(0);
     }
+
+    private void SetValue(ulong value) => valueTick.Set(checked((long)value));
 
     #endregion
 }

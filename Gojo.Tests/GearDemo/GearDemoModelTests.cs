@@ -1,6 +1,7 @@
 using Gojo.GearDemo.Adapters;
 using Gojo.GearDemo.Components;
 using Gojo.GearDemo.Model;
+using Gojo.Core;
 
 namespace Gojo.Tests.GearDemo;
 
@@ -81,61 +82,54 @@ public sealed class GearDemoModelTests
         Assert.Equal(23, snapshot.DriverRootRadiusFortyEighths);
         Assert.Equal(25, snapshot.DriverTipRadiusFortyEighths);
         Assert.Equal("8 ticks/tooth, driven phase +4", GearDemoAdapters.MeshLabel(snapshot.HalfPitchTicks));
-        Assert.NotNull(snapshot.SpeedSlider.OutputRelation);
+        Assert.NotNull(snapshot.SpeedSlider.TrackSegment);
     }
 
     [Fact]
-    public void GojoSliderUsesRangeAndPositionSegmentsOnOneTrackCarrier()
+    public void GojoSliderSitsOnTheCarrierItRepresents()
     {
-        var slider = GojoSlider.Create(6, 48, 24);
+        var toothCount = new Carrier();
+        toothCount.Set(24);
+        var slider = GojoSlider.Create(toothCount, 6, 48);
 
         var snapshot = slider.Read();
         var boundaries = snapshot.TrackSegment.BoundariesOn(snapshot.Track);
 
+        Assert.Same(toothCount, slider.Track);
         Assert.Same(snapshot.Track, snapshot.Range.Carrier);
         Assert.Same(snapshot.Track, snapshot.Position.Carrier);
-        Assert.Same(snapshot.Track, snapshot.TrackValue.Carrier);
-        Assert.Same(snapshot.Output, slider.Output);
-        Assert.Same(snapshot.Output, snapshot.OutputValue.Carrier);
+        Assert.Same(snapshot.Track, snapshot.Value.Carrier);
+        Assert.True(snapshot.PositionSegment.RightLocation.SameTickRefAs(toothCount.ValueSlot));
         Assert.Equal(6, boundaries.LeftLocation.Ticks);
         Assert.Equal(48, boundaries.RightLocation.Ticks);
         Assert.Equal(42, snapshot.Range.Ticks);
         Assert.Equal(18, snapshot.Position.Ticks);
-        Assert.Equal(24, snapshot.TrackValue.Ticks);
-        Assert.Equal(24, snapshot.OutputValue.Ticks);
+        Assert.Equal(24, snapshot.Value.Ticks);
         Assert.All(snapshot.TrackSegment.CarrierLocations(), location => Assert.Same(snapshot.Track, location.Carrier));
         Assert.All(snapshot.PositionSegment.CarrierLocations(), location => Assert.Same(snapshot.Track, location.Carrier));
     }
 
     [Fact]
-    public void GojoSliderFlowsBothWaysThroughOutputRelation()
+    public void GojoSliderValueSlotUsesTheRepresentedCarrierTickRef()
     {
-        var slider = GojoSlider.Create(0, 100, 0, 200, 50);
+        var represented = new Carrier();
+        var valueLocation = represented.ValueSlot;
+        var slider = GojoSlider.Create(represented, 0, 100);
 
         slider.SetPosition(25);
         var snapshot = slider.Read();
 
-        Assert.Equal(25, snapshot.TrackValue.Ticks);
+        Assert.Equal(25, valueLocation.Ticks);
+        Assert.Equal(25, represented.ValueSlot.Ticks);
+        Assert.Equal(25, snapshot.Value.Ticks);
         Assert.Equal(25, snapshot.Position.Ticks);
-        Assert.Equal(50, snapshot.OutputValue.Ticks);
 
-        slider.SetOutput(150);
+        represented.Set(80);
         snapshot = slider.Read();
 
-        Assert.Equal(75, snapshot.TrackValue.Ticks);
-        Assert.Equal(75, snapshot.Position.Ticks);
-        Assert.Equal(150, snapshot.OutputValue.Ticks);
+        Assert.Equal(80, valueLocation.Ticks);
+        Assert.Equal(80, snapshot.Value.Ticks);
+        Assert.Equal(80, snapshot.Position.Ticks);
     }
 
-    [Fact]
-    public void GojoSliderKeepsInexactProjectionResidueAsTension()
-    {
-        var slider = GojoSlider.Create(0, 10, 0, 3, 0);
-
-        slider.SetPosition(5);
-
-        var snapshot = slider.Read();
-        Assert.Equal(1, snapshot.OutputValue.Ticks);
-        Assert.Equal(5, snapshot.TrackTension.Ticks);
-    }
 }

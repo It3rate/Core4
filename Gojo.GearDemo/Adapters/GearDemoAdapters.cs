@@ -81,7 +81,7 @@ internal static class GearDemoAdapters
             knob,
             boundaries.LeftLocation.Ticks,
             boundaries.RightLocation.Ticks,
-            slider.OutputValue.Ticks,
+            slider.Value.Ticks,
             label,
             readout);
     }
@@ -91,7 +91,7 @@ internal static class GearDemoAdapters
         var driverDiameterText = FractionalInches(snapshot.DriverDiameterTwentyFourths, snapshot.DiametralPitchTicks);
         var drivenDiameterText = FractionalInches(snapshot.DrivenDiameterTwentyFourths, snapshot.DiametralPitchTicks);
         return new GearDemoRenderRead(
-            ToInt(snapshot.SpeedSlider.OutputValue.Ticks),
+            ToInt(snapshot.SpeedSlider.Value.Ticks),
             Turns(snapshot.DriverInputTicks, snapshot.DriverPerimeterTicks),
             Turns(snapshot.DrivenProjectedTicks, snapshot.DrivenPerimeterTicks),
             Turns(snapshot.VisibleDrivenProjectedTicks, snapshot.DrivenPerimeterTicks),

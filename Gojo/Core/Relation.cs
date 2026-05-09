@@ -139,18 +139,15 @@ public sealed class Relation : IElement, IEquatable<Relation>
     /// <summary>Reads this relation's sorted boundary sites in a carrier frame.</summary>
     public Relation BoundariesOn(Carrier reader)
     {
-        if (!TryGetCarrierLocations(out var leftLocation, out var rightLocation))
+        if (!TryReadFrame(this, out var frame) || !FrameAccepts(frame, reader))
         {
             var zero = new CarrierLocation(reader, 0);
             return new(zero, zero);
         }
 
-        if (!TryReadInCarrier(reader, leftLocation, rightLocation, out var leftTicks, out var rightTicks))
-        {
-            var zero = new CarrierLocation(reader, 0);
-            return new(zero, zero);
-        }
-
+        frame = ResolveFrameCarrier(frame, reader);
+        var leftTicks = frame.Start;
+        var rightTicks = frame.End;
         var start = Math.Min(leftTicks, rightTicks);
         var end = Math.Max(leftTicks, rightTicks);
         return new(new CarrierLocation(reader, start), new CarrierLocation(reader, end));
@@ -168,34 +165,25 @@ public sealed class Relation : IElement, IEquatable<Relation>
     /// <summary>Reads directed flow from left site to right site in a carrier frame.</summary>
     public CarrierLocation FlowOn(Carrier reader)
     {
-        if (!TryGetCarrierLocations(out var leftLocation, out var rightLocation))
+        if (!TryReadFrame(this, out var frame) || !FrameAccepts(frame, reader))
         {
             return new CarrierLocation(reader, 0);
         }
 
-        if (!TryReadInCarrier(reader, leftLocation, rightLocation, out var leftTicks, out var rightTicks))
-        {
-            return new CarrierLocation(reader, 0);
-        }
-
-        return new CarrierLocation(reader, rightTicks - leftTicks);
+        frame = ResolveFrameCarrier(frame, reader);
+        return new CarrierLocation(reader, frame.Extent);
     }
 
     /// <summary>Reads traversal start/end states carrying boundary point plus flow.</summary>
     public Relation TraversalSitesOn(Carrier reader)
     {
-        if (!TryGetCarrierLocations(out var leftLocation, out var rightLocation))
+        if (!TryReadFrame(this, out var frame) || !FrameAccepts(frame, reader))
         {
             var zero = new CarrierLocation(reader, 0);
             return new(new Relation(zero, zero), new Relation(zero, zero));
         }
 
-        if (!TryReadInCarrier(reader, leftLocation, rightLocation, out var leftTicks, out var rightTicks))
-        {
-            var zero = new CarrierLocation(reader, 0);
-            return new(new Relation(zero, zero), new Relation(zero, zero));
-        }
-
+        frame = ResolveFrameCarrier(frame, reader);
         var flow = FlowOn(reader);
         if (flow.Ticks == 0)
         {
@@ -205,8 +193,8 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
         var zeroFlow = new CarrierLocation(flow.Carrier, 0);
         return new(
-            new Relation(new CarrierLocation(flow.Carrier, leftTicks), zeroFlow),
-            new Relation(new CarrierLocation(flow.Carrier, rightTicks), flow));
+            new Relation(new CarrierLocation(flow.Carrier, frame.Start), zeroFlow),
+            new Relation(new CarrierLocation(flow.Carrier, frame.End), flow));
     }
 
     #endregion

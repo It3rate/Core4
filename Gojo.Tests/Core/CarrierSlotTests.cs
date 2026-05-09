@@ -76,6 +76,23 @@ public sealed class CarrierSlotTests
     }
 
     [Fact]
+    public void ValueSlotKeepsStableTickReferenceAcrossCarrierChanges()
+    {
+        var carrier = new Carrier();
+        var value = carrier.ValueSlot;
+
+        carrier.Set(17);
+
+        Assert.True(value.SameTickRefAs(carrier.ValueSlot));
+        Assert.Equal(17, value.Ticks);
+
+        carrier.Set(4);
+
+        Assert.True(value.SameTickRefAs(carrier.ValueSlot));
+        Assert.Equal(4, value.Ticks);
+    }
+
+    [Fact]
     public void ValueSlotReadsSettledResidueWithoutImplicitTensionInspection()
     {
         var carrier = new Carrier();
