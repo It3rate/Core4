@@ -328,6 +328,7 @@ Gojo/axioms/
 Most important current files:
 
 - `Gojo Unit Shape And Crystallization.md`
+- `Gojo Potential Shape Fact Sheet.md`
 - `Gojo Operation Shape Catalog.md`
 - `Gojo Structure Through Tension.md`
 - `Gojo Carrier Settlement Algorithm.md`
