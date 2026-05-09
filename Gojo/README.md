@@ -256,6 +256,17 @@ and records `2` completed rotations on the rotation carrier.
 This does not yet require radius calibration. Radius, diameter, tooth tips, and
 tooth valleys can be represented by additional relation structure later.
 
+The carrier itself can be inspected for its structural source:
+`perimeter.TryReadCircularOrigin(out origin)` succeeds when its unit shape came
+from a point orthogonal. A radial line carrier can likewise be inspected with
+`radius.TryReadLinearOrigin(out origin)` when it came from a zero-length segment
+orthogonal. A radius calibration is not stored as a separate circle object; it
+is ordinary connected structure such as
+`Point(radius, r) -> Point(perimeter, p)` between a radial endpoint and a
+perimeter marker whose source origins already align. Forward perimeter faces are
+the normal contour face, and inverse perimeter faces are the opposed contour
+face, but richer handedness still needs explicit structure.
+
 ### Linear / Ray
 
 A zero-length segment orthogonal creates a ray or line carrier:

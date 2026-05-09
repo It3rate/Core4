@@ -75,6 +75,12 @@ public sealed class Carrier : IElement
 
     public CarrierLocation TensionSlot => new(this, Tension);
 
+    public bool TryReadCircularOrigin(out CarrierLocation origin) =>
+        UnitShape.TryReadCircularSource(out origin);
+
+    public bool TryReadLinearOrigin(out CarrierLocation origin) =>
+        UnitShape.TryReadLinearSource(out origin);
+
     #endregion
 
     #region Duality and Reads

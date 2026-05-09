@@ -155,6 +155,37 @@ public sealed class UnitShape : IEquatable<UnitShape>
         return false;
     }
 
+    /// <summary>Reads the origin point of a circular/level-line orthogonal unit.</summary>
+    public bool TryReadCircularSource(out CarrierLocation origin)
+    {
+        if (TryReadOrthogonalSourceCore(surface, out var source) &&
+            source is Relation point &&
+            IsPoint(point, out origin))
+        {
+            return true;
+        }
+
+        origin = default;
+        return false;
+    }
+
+    /// <summary>Reads the collapsed origin segment of a ray/line orthogonal unit.</summary>
+    public bool TryReadLinearSource(out CarrierLocation origin)
+    {
+        if (TryReadOrthogonalSourceCore(surface, out var source) &&
+            source is Relation segment &&
+            TryReadSegment(segment, out var left, out var right) &&
+            left.Carrier.SameIdentityAs(right.Carrier) &&
+            left.Ticks == right.Ticks)
+        {
+            origin = left;
+            return true;
+        }
+
+        origin = default;
+        return false;
+    }
+
     /// <summary>Returns true when two unit shapes can collapse as the same unit.</summary>
     public bool CompatibleWith(UnitShape other) => Equals(other);
 
