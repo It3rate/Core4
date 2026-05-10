@@ -315,24 +315,24 @@ public sealed class Relation : IElement, IEquatable<Relation>
             return false;
         }
 
-        if (FrameAccepts(leftFrame, location.Carrier) &&
+        if (FrameAcceptsProjectionSource(leftFrame, location.Carrier) &&
             FrameAccepts(rightFrame, reader))
         {
             projected = ProjectBetween(
                 location,
                 reader,
-                ResolveFrameCarrier(leftFrame, location.Carrier),
+                ResolveProjectionSourceFrame(leftFrame, location.Carrier),
                 ResolveFrameCarrier(rightFrame, reader));
             return true;
         }
 
-        if (FrameAccepts(rightFrame, location.Carrier) &&
+        if (FrameAcceptsProjectionSource(rightFrame, location.Carrier) &&
             FrameAccepts(leftFrame, reader))
         {
             projected = ProjectBetween(
                 location,
                 reader,
-                ResolveFrameCarrier(rightFrame, location.Carrier),
+                ResolveProjectionSourceFrame(rightFrame, location.Carrier),
                 ResolveFrameCarrier(leftFrame, reader));
             return true;
         }
@@ -1078,9 +1078,22 @@ public sealed class Relation : IElement, IEquatable<Relation>
     private static bool FrameAccepts(CarrierFrame frame, Carrier carrier) =>
         frame.Carrier.IsUnknown || carrier.SameIdentityAs(frame.Carrier);
 
+    /// <summary>Returns true when an origin basis can read a same-unit source carrier.</summary>
+    private static bool FrameAcceptsProjectionSource(CarrierFrame frame, Carrier carrier) =>
+        FrameAccepts(frame, carrier) ||
+        (frame.Start == 0 &&
+            !frame.Carrier.IsUnknown &&
+            frame.Carrier.UnitShape.CompatibleWith(carrier.UnitShape));
+
     /// <summary>Replaces Unknown frame carrier with the concrete carrier for a read.</summary>
     private static CarrierFrame ResolveFrameCarrier(CarrierFrame frame, Carrier carrier) =>
         frame.Carrier.IsUnknown
+            ? new CarrierFrame(carrier, frame.Start, frame.End)
+            : frame;
+
+    /// <summary>Rebases a projection source frame onto a compatible concrete carrier.</summary>
+    private static CarrierFrame ResolveProjectionSourceFrame(CarrierFrame frame, Carrier carrier) =>
+        frame.Carrier.IsUnknown || !carrier.SameIdentityAs(frame.Carrier)
             ? new CarrierFrame(carrier, frame.Start, frame.End)
             : frame;
 

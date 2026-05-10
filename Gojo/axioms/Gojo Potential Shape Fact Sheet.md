@@ -163,6 +163,16 @@ relations. A crystallized area behaves the same way at a higher grade: it is a
 carrier of square participation, while boundary access is optional preserved
 structure rather than the fill itself.
 
+Non-additive operation results are the same kind of hardening. Relating two
+length-like bounds through a segment-output operation can produce an area-like
+carrier whose value is the filled participation. The operands remain the
+construction bounds from which a rectangle or other source shape may be
+computed. If the same relation is kept only as a reusable transform, the result
+may be discarded; this is closer to ratio/process use than to saved fill.
+Reusable origin bases, such as `0..1` unit frames, may read later carriers with
+the same unit shape. Positioned frames remain local to their carrier unless a
+relation explicitly connects or projects them.
+
 This is a key distinction. A square made from four boundary segments can remain
 linear boundary structure; its interior does not fill merely because the
 segments enclose a region. Fill appears when orthogonal potential is activated

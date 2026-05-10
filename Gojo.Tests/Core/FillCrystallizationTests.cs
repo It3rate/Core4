@@ -33,6 +33,87 @@ public sealed class FillCrystallizationTests
     }
 
     [Fact]
+    public void FilledSegmentCarrierCanFeedAreaOperationThroughUnitBasis()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var horizontal = new Carrier(lengthShape);
+        var vertical = new Carrier(lengthShape);
+        var areaBasis = new Carrier();
+        var width = Relation.Segment(horizontal, 0, 3);
+        var height = Relation.Segment(vertical, 0, 2);
+        var widthPort = new Relation(Relation.Point(horizontal, 1), Relation.Point(Carrier.Unknown, 1));
+        var heightPort = new Relation(Relation.Point(vertical, 1), Relation.Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(widthPort, heightPort), Relation.Segment(areaBasis, 0, 1));
+
+        Assert.True(width.TryCrystallizeFill(out var widthFill));
+        Assert.True(height.TryCrystallizeFill(out var heightFill));
+        Assert.True(operation.TryCrystallize(
+            new Relation(widthFill.ValueSlot, heightFill.ValueSlot),
+            out var area,
+            out var read));
+
+        Assert.Equal(6UL, area.Value);
+        Assert.True(area.UnitShape.CompatibleWith(UnitShape.Product(lengthShape, lengthShape)));
+        Assert.Equal(2, area.UnitShape.ProductParticipationOf(lengthShape));
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(area, 6),
+                new Relation(new CarrierLocation(widthFill, 0), new CarrierLocation(heightFill, 0))),
+            read);
+    }
+
+    [Fact]
+    public void AreaResultCarrierCanFeedLaterOperationThroughProductUnitBasis()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var horizontal = new Carrier(lengthShape);
+        var vertical = new Carrier(lengthShape);
+        var depth = new Carrier(lengthShape);
+        var areaBasis = new Carrier(UnitShape.Product(lengthShape, lengthShape));
+        var volumeBasis = new Carrier();
+        var width = Relation.Segment(horizontal, 0, 3);
+        var height = Relation.Segment(vertical, 0, 2);
+        var areaOperation = new Relation(
+            new Relation(
+                new Relation(Relation.Point(horizontal, 1), Relation.Point(Carrier.Unknown, 1)),
+                new Relation(Relation.Point(vertical, 1), Relation.Point(Carrier.Unknown, 1))),
+            Relation.Segment(areaBasis, 0, 1));
+        var volumeOperation = new Relation(
+            new Relation(
+                new Relation(Relation.Point(areaBasis, 1), Relation.Point(Carrier.Unknown, 1)),
+                new Relation(Relation.Point(depth, 1), Relation.Point(Carrier.Unknown, 1))),
+            Relation.Segment(volumeBasis, 0, 1));
+        depth.Set(5);
+
+        Assert.True(width.TryCrystallizeFill(out var widthFill));
+        Assert.True(height.TryCrystallizeFill(out var heightFill));
+        Assert.True(areaOperation.TryCrystallize(
+            new Relation(widthFill.ValueSlot, heightFill.ValueSlot),
+            out var area,
+            out _));
+        Assert.True(volumeOperation.TryCrystallize(
+            new Relation(area.ValueSlot, depth.ValueSlot),
+            out var volume,
+            out _));
+
+        Assert.Equal(30UL, volume.Value);
+        Assert.Equal(3, volume.UnitShape.ProductParticipationOf(lengthShape));
+    }
+
+    [Fact]
+    public void SameUnitCarrierDoesNotFeedPositionedProjectionFrame()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var positioned = new Carrier(lengthShape);
+        var fill = new Carrier(lengthShape);
+        var reader = new Carrier();
+        var port = new Relation(Relation.Segment(positioned, 5, 6), Relation.Point(Carrier.Unknown, 1));
+        fill.Set(6);
+
+        Assert.False(port.TryProject(fill.ValueSlot, reader, out _));
+    }
+
+    [Fact]
     public void ZeroLengthFrameDoesNotHardenAsFill()
     {
         var line = new Carrier();
