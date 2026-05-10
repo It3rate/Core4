@@ -154,6 +154,15 @@ participation. That line fill is the same general fill idea as area fill or
 volume fill, constrained by the available/container structure. It can also have
 opposed or inverse fill participation.
 
+This means a filled segment is not identical to its endpoints or to the
+construction relation that discovered them. When crystallized, the segment fill
+is an ordinary carrier holding the interval magnitude and the forward or inverse
+face of that participation. It does not need to know the start point or end
+point unless that construction provenance is still preserved by neighboring
+relations. A crystallized area behaves the same way at a higher grade: it is a
+carrier of square participation, while boundary access is optional preserved
+structure rather than the fill itself.
+
 This is a key distinction. A square made from four boundary segments can remain
 linear boundary structure; its interior does not fill merely because the
 segments enclose a region. Fill appears when orthogonal potential is activated

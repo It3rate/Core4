@@ -485,6 +485,32 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>
+    /// Crystallizes a bounded non-point frame as a filled interval carrier.
+    /// The carrier records magnitude and face, not construction endpoints.
+    /// </summary>
+    public bool TryCrystallizeFill(out Carrier carrier)
+    {
+        if (IsPoint(out _, out _) ||
+            !TryReadFrame(this, out var frame) ||
+            frame.Carrier.IsUnknown ||
+            frame.Extent == 0)
+        {
+            carrier = null!;
+            return false;
+        }
+
+        var fill = new Carrier(frame.Carrier.UnitShape);
+        if (frame.Extent < 0)
+        {
+            fill = fill.Inverse();
+        }
+
+        fill.Set(MagnitudeOf(frame.Extent));
+        carrier = fill;
+        return true;
+    }
+
     /// <summary>Creates a crystal carrier and projects compatible current value into it.</summary>
     public bool TryCrystallize(IElement input, out Carrier carrier, out Relation read)
     {
