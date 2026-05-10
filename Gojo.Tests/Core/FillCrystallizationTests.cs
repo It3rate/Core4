@@ -5,6 +5,30 @@ namespace Gojo.Tests.Core;
 public sealed class FillCrystallizationTests
 {
     [Fact]
+    public void FillMeasureReadsCurrentBoundaryWithoutCrystallizing()
+    {
+        var line = new Carrier();
+        var start = new TickRef(2);
+        var end = new TickRef(5);
+        var segment = new Relation(
+            new Relation(new CarrierLocation(line, start), line),
+            new Relation(new CarrierLocation(line, end), line));
+        var reader = new Carrier(line.UnitShape);
+
+        Assert.True(segment.TryReadFillMeasureOn(reader, out var measure));
+        Assert.Equal(3, measure.Ticks);
+        Assert.True(measure.Carrier.SameIdentityAs(reader));
+        Assert.Equal(0UL, reader.Value);
+
+        end.Set(9);
+
+        Assert.True(segment.TryReadFillMeasureOn(reader, out var reread));
+        Assert.Equal(7, reread.Ticks);
+        Assert.True(reread.Carrier.SameIdentityAs(reader));
+        Assert.Equal(0UL, reader.Value);
+    }
+
+    [Fact]
     public void SegmentCrystallizesAsFilledIntervalCarrier()
     {
         var line = new Carrier();
@@ -19,6 +43,26 @@ public sealed class FillCrystallizationTests
     }
 
     [Fact]
+    public void CrystallizedFillKeepsIndependentMeasureWhenBoundaryMoves()
+    {
+        var line = new Carrier();
+        var start = new TickRef(2);
+        var end = new TickRef(5);
+        var segment = new Relation(
+            new Relation(new CarrierLocation(line, start), line),
+            new Relation(new CarrierLocation(line, end), line));
+        var reader = new Carrier(line.UnitShape);
+
+        Assert.True(segment.TryCrystallizeFill(out var fill));
+        end.Set(9);
+        Assert.True(segment.TryReadFillMeasureOn(reader, out var reread));
+
+        Assert.Equal(3UL, fill.Value);
+        Assert.Equal(7, reread.Ticks);
+        Assert.False(fill.SameIdentityAs(reader));
+    }
+
+    [Fact]
     public void ReversedSegmentCrystallizesAsInverseFilledIntervalCarrier()
     {
         var line = new Carrier();
@@ -30,6 +74,19 @@ public sealed class FillCrystallizationTests
         Assert.True(fill.IsInverse);
         Assert.False(fill.SameIdentityAs(line));
         Assert.True(fill.UnitShape.CompatibleWith(line.UnitShape));
+    }
+
+    [Fact]
+    public void ReversedFillMeasureReadsOnInverseReaderFace()
+    {
+        var line = new Carrier();
+        var segment = Relation.Segment(line, 7, 2);
+        var reader = new Carrier(line.UnitShape);
+
+        Assert.True(segment.TryReadFillMeasureOn(reader, out var measure));
+
+        Assert.Equal(5, measure.Ticks);
+        Assert.True(measure.Carrier.SameIdentityAs(reader.Inverse()));
     }
 
     [Fact]
@@ -111,6 +168,16 @@ public sealed class FillCrystallizationTests
         fill.Set(6);
 
         Assert.False(port.TryProject(fill.ValueSlot, reader, out _));
+    }
+
+    [Fact]
+    public void FillMeasureRequiresCompatibleReaderUnit()
+    {
+        var line = new Carrier();
+        var segment = Relation.Segment(line, 2, 5);
+        var incompatible = new Carrier();
+
+        Assert.False(segment.TryReadFillMeasureOn(incompatible, out _));
     }
 
     [Fact]

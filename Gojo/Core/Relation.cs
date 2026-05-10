@@ -491,23 +491,36 @@ public sealed class Relation : IElement, IEquatable<Relation>
     /// </summary>
     public bool TryCrystallizeFill(out Carrier carrier)
     {
-        if (IsPoint(out _, out _) ||
-            !TryReadFrame(this, out var frame) ||
-            frame.Carrier.IsUnknown ||
-            frame.Extent == 0)
+        if (!TryReadFillFrame(out var frame))
         {
             carrier = null!;
             return false;
         }
 
         var fill = new Carrier(frame.Carrier.UnitShape);
-        if (frame.Extent < 0)
+        if (!TryReadFillMeasureOn(fill, out var measure))
         {
-            fill = fill.Inverse();
+            carrier = null!;
+            return false;
         }
 
-        fill.Set(MagnitudeOf(frame.Extent));
-        carrier = fill;
+        measure.Carrier.Set(MagnitudeOf(measure.Ticks));
+        carrier = measure.Carrier;
+        return true;
+    }
+
+    /// <summary>Reads the current filled interval measure without crystallizing it.</summary>
+    public bool TryReadFillMeasureOn(Carrier reader, out CarrierLocation measure)
+    {
+        if (!TryReadFillFrame(out var frame) ||
+            !reader.UnitShape.CompatibleWith(frame.Carrier.UnitShape))
+        {
+            measure = default;
+            return false;
+        }
+
+        var target = frame.Extent < 0 ? reader.Inverse() : reader;
+        measure = new CarrierLocation(target, MagnitudeOf(frame.Extent));
         return true;
     }
 
@@ -662,6 +675,24 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
         basis = default;
         return false;
+    }
+
+    /// <summary>Reads this relation as a bounded non-point fill frame.</summary>
+    private bool TryReadFillFrame(out CarrierFrame frame)
+    {
+        // TODO: Generalize deferred fill measurement beyond single-carrier
+        // interval frames once higher-grade fills can expose bounded measure
+        // ports, approximation resolution, and unresolved measure tension.
+        if (IsPoint(out _, out _) ||
+            !TryReadFrame(this, out frame) ||
+            frame.Carrier.IsUnknown ||
+            frame.Extent == 0)
+        {
+            frame = default;
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>Reads a location, point, or segment-like surface as a carrier frame.</summary>

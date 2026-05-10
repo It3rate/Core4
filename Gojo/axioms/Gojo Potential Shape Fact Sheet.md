@@ -163,6 +163,12 @@ relations. A crystallized area behaves the same way at a higher grade: it is a
 carrier of square participation, while boundary access is optional preserved
 structure rather than the fill itself.
 
+Before crystallization, a fill may keep its boundary as the source of truth and
+measure itself only when read. If the boundary moves, the next measure read uses
+the new boundary. Once crystallized, the measured carrier is independent; later
+changes to the original boundary do not rewrite that crystallized value unless a
+live relation explicitly connects them again.
+
 Non-additive operation results are the same kind of hardening. Relating two
 length-like bounds through a segment-output operation can produce an area-like
 carrier whose value is the filled participation. The operands remain the
