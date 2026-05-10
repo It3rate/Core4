@@ -220,6 +220,9 @@ The same rule should avoid special-case shape classes. If a behavior seems to
 need a new symbolic type, first ask which source, container, and calibration
 relations would make it discoverable.
 
+For additive grouping, attributes, and observer reads over these shape
+structures, see `Gojo Groups Attributes And Lenses.md`.
+
 ## 7. Direction And Inverse
 
 Each settlement orientation has inverse directions.

@@ -329,6 +329,7 @@ Most important current files:
 
 - `Gojo Unit Shape And Crystallization.md`
 - `Gojo Potential Shape Fact Sheet.md`
+- `Gojo Groups Attributes And Lenses.md`
 - `Gojo Operation Shape Catalog.md`
 - `Gojo Structure Through Tension.md`
 - `Gojo Carrier Settlement Algorithm.md`
