@@ -261,6 +261,9 @@ TryReadAdditiveParticipantsOn
                            inspects actual holder participants in order
 TryReadAdditiveUnitShapeOn
                            reads a holder group's additive unit participation
+CreateLowResolutionFill    creates one tick of unresolved fill participation
+CreateLowResolutionInverseFill
+                           creates one inverse/anti-fill tick
 UnitShape.Product(...)    represents multiplicative/product participation
 Relation point output     additive operation read
 Relation segment output   multiplicative/product operation read
@@ -274,7 +277,6 @@ The missing pieces are mostly semantic and inspection footholds:
 
 ```text
 ordered contour/group structure for boundaries
-low-resolution fill carriers that do not require area measurement
 attribute carrier ladders such as RGB/HSL -> color
 named lens structures for area, bbox, perimeter, hit, centroid, render
 stable live result carriers with provenance

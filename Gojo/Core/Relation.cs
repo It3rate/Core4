@@ -42,6 +42,12 @@ public sealed class Relation : IElement, IEquatable<Relation>
     public static Relation AdditiveGroup(Carrier holder, params IElement[] participants) =>
         new(ChainAdditiveAttachments(holder, participants), holder);
 
+    /// <summary>Creates one tick of unresolved fill participation from this structure.</summary>
+    public Carrier CreateLowResolutionFill() => CreateLowResolutionFill(inverse: false);
+
+    /// <summary>Creates one inverse tick of unresolved fill participation from this structure.</summary>
+    public Carrier CreateLowResolutionInverseFill() => CreateLowResolutionFill(inverse: true);
+
     public ulong Id { get; }
 
     public IElement Left { get; private set; }
@@ -530,6 +536,15 @@ public sealed class Relation : IElement, IEquatable<Relation>
         var target = frame.Extent < 0 ? reader.Inverse() : reader;
         measure = new CarrierLocation(target, MagnitudeOf(frame.Extent));
         return true;
+    }
+
+    /// <summary>Creates a one-tick fill marker without measuring the source structure.</summary>
+    private Carrier CreateLowResolutionFill(bool inverse)
+    {
+        var fill = new Carrier(UnitShape.OrthogonalOf(this));
+        var face = inverse ? fill.Inverse() : fill;
+        face.Set(1);
+        return face;
     }
 
     /// <summary>Creates a crystal carrier and projects compatible current value into it.</summary>
