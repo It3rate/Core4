@@ -554,17 +554,32 @@ public sealed class Relation : IElement, IEquatable<Relation>
     /// <summary>Creates a crystal carrier and projects compatible current value into it.</summary>
     public bool TryCrystallize(IElement input, out Carrier carrier, out Relation read)
     {
+        if (!TryCrystallize(input, out carrier, out _, out read))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>Creates a crystal carrier, its operation basis, and projects compatible current value into it.</summary>
+    public bool TryCrystallize(IElement input, out Carrier carrier, out Relation basis, out Relation read)
+    {
         if (!TryReadUnitShape(out var unitShape))
         {
             carrier = null!;
+            basis = null!;
             read = null!;
             return false;
         }
 
         var crystal = new Carrier(unitShape);
-        if (!TryProjectCrystallizedValueFrom(input, crystal, out read))
+        if (!TryReadOperationBasisOn(crystal, out basis) ||
+            !TryProjectCrystallizedValueFrom(input, crystal, out read))
         {
             carrier = null!;
+            basis = null!;
+            read = null!;
             return false;
         }
 
@@ -588,6 +603,35 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
         crystal.Set(target.Ticks);
         return true;
+    }
+
+    /// <summary>Reads this operation's output basis rebound onto a concrete result carrier.</summary>
+    public bool TryReadOperationBasisOn(Carrier carrier, out Relation basis)
+    {
+        var operands = new List<UnitShape>();
+        if (!TryCollectOperationUnitShapes(Left, operands) ||
+            operands.Count == 0)
+        {
+            basis = null!;
+            return false;
+        }
+
+        if (TryReadPointFrame(Right, out var pointFrame) &&
+            pointFrame.Extent != 0)
+        {
+            basis = Point(carrier, pointFrame.End);
+            return true;
+        }
+
+        if (TryReadFrame(Right, out var segmentFrame) &&
+            segmentFrame.Extent != 0)
+        {
+            basis = Segment(carrier, segmentFrame.Start, segmentFrame.End);
+            return true;
+        }
+
+        basis = null!;
+        return false;
     }
 
     #endregion
@@ -1070,7 +1114,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         if (TryReadFrame(Right, out var segmentFrame) &&
             segmentFrame.Extent != 0)
         {
-            unitShape = UnitShape.Product(operands);
+            unitShape = UnitShape.OrthogonalProduct(operands);
             return true;
         }
 

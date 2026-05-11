@@ -288,6 +288,8 @@ UnitShape.OrthogonalProduct
 TryReadOrthogonalProductOperands
                            inspects explicit orthogonal product operands
 UnitShape.Product(...)    represents multiplicative/product participation
+TryCrystallize(input, out carrier, out basis, out read)
+                           returns operation result plus rebound basis
 Relation point output     additive operation read
 Relation segment output   multiplicative/product operation read
 TryReadFillMeasureOn      deferred interval-fill measure

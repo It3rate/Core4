@@ -512,6 +512,83 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
+    public void CrystallizeFromReturnsOperationBasisReboundToNewCarrier()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var width = new Carrier(lengthShape);
+        var height = new Carrier(lengthShape);
+        var result = new Carrier();
+        var widthPort = new Relation(Point(width, 1), Point(Carrier.Unknown, 1));
+        var heightPort = new Relation(Point(height, 1), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(widthPort, heightPort), Segment(result, 0, 10));
+        width.Set(3);
+        height.Set(4);
+
+        Assert.True(operation.TryCrystallize(
+            new Relation(width.ValueSlot, height.ValueSlot),
+            out var crystal,
+            out var basis,
+            out var read));
+
+        Assert.Equal(Segment(crystal, 0, 10), basis);
+        Assert.Equal(120UL, crystal.Value);
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(crystal, 120),
+                new Relation(new CarrierLocation(width, 0), new CarrierLocation(height, 0))),
+            read);
+    }
+
+    [Fact]
+    public void AdditiveCrystallizeReturnsPointBasisReboundToNewCarrier()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var x = new Carrier(lengthShape);
+        var y = new Carrier(lengthShape);
+        var result = new Carrier();
+        var xPort = new Relation(Point(x, 1), Point(Carrier.Unknown, 1));
+        var yPort = new Relation(Point(y, 1), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(xPort, yPort), Point(result, 1));
+        x.Set(3);
+        y.Set(4);
+
+        Assert.True(operation.TryCrystallize(
+            new Relation(x.ValueSlot, y.ValueSlot),
+            out var crystal,
+            out var basis,
+            out _));
+
+        Assert.Equal(Point(crystal, 1), basis);
+        Assert.Equal(7UL, crystal.Value);
+        Assert.True(crystal.UnitShape.CompatibleWith(lengthShape));
+    }
+
+    [Fact]
+    public void ReturnedOperationBasisIsExternalRelationNotCarrierDefault()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var width = new Carrier(lengthShape);
+        var height = new Carrier(lengthShape);
+        var result = new Carrier();
+        var widthPort = new Relation(Point(width, 1), Point(Carrier.Unknown, 1));
+        var heightPort = new Relation(Point(height, 1), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(widthPort, heightPort), Segment(result, 0, 10));
+        width.Set(3);
+        height.Set(4);
+
+        Assert.True(operation.TryCrystallize(
+            new Relation(width.ValueSlot, height.ValueSlot),
+            out var crystal,
+            out var basis,
+            out _));
+
+        Assert.True(basis.Perturb(new CarrierLocation(crystal, 5)));
+
+        Assert.Equal(120UL, crystal.Value);
+        Assert.Equal(Segment(crystal, 5, 15), basis);
+    }
+
+    [Fact]
     public void CrystallizedProjectionPreservesOperationOutputBasis()
     {
         var lengthShape = new Carrier().UnitShape;
