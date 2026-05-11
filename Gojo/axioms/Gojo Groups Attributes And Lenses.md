@@ -5,6 +5,13 @@ attribute attachment, low-resolution fill, and observer/read lenses. It is a
 conceptual bridge between current `UnitShape`/`Relation` behavior and future
 group, fill, and graphics-style structures.
 
+Geometric examples such as area, contour, and interior are useful, but they are
+not the whole model. The same rules apply to non-geometric combinations such as
+people times hours, rate times time, or any two non-aligned positive directions
+that create one product participation. In this note, "area" often means the
+product participation created by combining non-aligned positives; geometric
+area is only one familiar case.
+
 ## 1. Additive Participation
 
 The type of a carrier is its `UnitShape`. Additive properties are relations to
@@ -131,8 +138,9 @@ inverse   anti-fill, emptying pressure, exterior-side participation
 ```
 
 This lets a region carry color, texture, hit participation, clipping, or other
-attributes without first computing its exact area. Area is one possible read of
-the fill. It is not the fill itself.
+attributes without first computing its exact numeric measure. The product/fill
+is the participation itself; its numeric area value is one
+resolution/calibration of that participation.
 
 More precisely, low-resolution fill and area are different resolutions of the
 same interior participation. A one-tick fill says only that interior
