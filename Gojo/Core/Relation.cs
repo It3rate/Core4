@@ -34,6 +34,14 @@ public sealed class Relation : IElement, IEquatable<Relation>
     public static Relation LiveOutput(IElement input, Relation outputPort) =>
         new(input, outputPort);
 
+    /// <summary>Creates additive participation from a holder origin to a participant.</summary>
+    public static Relation AdditiveAttachment(Carrier holder, IElement participant) =>
+        new(Point(holder, 0), participant);
+
+    /// <summary>Creates an ordered additive group anchored by a holder carrier.</summary>
+    public static Relation AdditiveGroup(Carrier holder, params IElement[] participants) =>
+        new(ChainAdditiveAttachments(holder, participants), holder);
+
     public ulong Id { get; }
 
     public IElement Left { get; private set; }
@@ -595,6 +603,53 @@ public sealed class Relation : IElement, IEquatable<Relation>
         left = default;
         right = default;
         return false;
+    }
+
+    /// <summary>Reads ordered additive participants attached to a holder origin.</summary>
+    public bool TryReadAdditiveParticipantsOn(Carrier holder, out IElement[] participants)
+    {
+        if (TryReadAdditiveAttachment(this, holder, out var participant))
+        {
+            participants = [participant];
+            return true;
+        }
+
+        if (Right is Carrier groupHolder && groupHolder.SameIdentityAs(holder))
+        {
+            var collected = new List<IElement>();
+            CollectAdditiveParticipants(Left, holder, collected);
+            participants = [.. collected];
+            return true;
+        }
+
+        participants = [];
+        return false;
+    }
+
+    /// <summary>Reads the additive unit participation of holder participants.</summary>
+    public bool TryReadAdditiveUnitShapeOn(Carrier holder, out UnitShape unitShape)
+    {
+        if (!TryReadAdditiveParticipantsOn(holder, out var participants) ||
+            participants.Length == 0)
+        {
+            unitShape = null!;
+            return false;
+        }
+
+        var shapes = new List<UnitShape>();
+        foreach (var participant in participants)
+        {
+            if (!TryReadElementUnitShape(participant, out var shape))
+            {
+                unitShape = null!;
+                return false;
+            }
+
+            shapes.Add(shape);
+        }
+
+        unitShape = UnitShape.Additive(shapes);
+        return true;
     }
 
     /// <summary>Returns the direct left carrier-location slot or throws.</summary>
@@ -1330,6 +1385,83 @@ public sealed class Relation : IElement, IEquatable<Relation>
         Relation relation => relation.Carriers(),
         _ => []
     };
+
+    /// <summary>Builds an ordered chain of additive holder attachments.</summary>
+    private static IElement ChainAdditiveAttachments(
+        Carrier holder,
+        IReadOnlyList<IElement> participants)
+    {
+        if (participants.Count == 0)
+        {
+            return Point(holder, 0);
+        }
+
+        IElement chain = AdditiveAttachment(holder, participants[0]);
+        for (var index = 1; index < participants.Count; index++)
+        {
+            chain = new Relation(chain, AdditiveAttachment(holder, participants[index]));
+        }
+
+        return chain;
+    }
+
+    /// <summary>Collects ordered participants from a nested additive group chain.</summary>
+    private static void CollectAdditiveParticipants(
+        IElement element,
+        Carrier holder,
+        List<IElement> participants)
+    {
+        if (TryReadAdditiveAttachment(element, holder, out var participant))
+        {
+            participants.Add(participant);
+            return;
+        }
+
+        if (element is Relation relation)
+        {
+            CollectAdditiveParticipants(relation.Left, holder, participants);
+            CollectAdditiveParticipants(relation.Right, holder, participants);
+        }
+    }
+
+    /// <summary>Reads one holder-origin additive attachment.</summary>
+    private static bool TryReadAdditiveAttachment(
+        IElement element,
+        Carrier holder,
+        out IElement participant)
+    {
+        if (element is Relation relation &&
+            relation.Left is Relation holderOrigin &&
+            holderOrigin.IsPoint(out var origin, out var originCarrier) &&
+            originCarrier.SameIdentityAs(holder) &&
+            origin.Ticks == 0)
+        {
+            participant = relation.Right;
+            return true;
+        }
+
+        participant = default!;
+        return false;
+    }
+
+    /// <summary>Reads the unit shape carried by a participant element.</summary>
+    private static bool TryReadElementUnitShape(IElement element, out UnitShape unitShape)
+    {
+        switch (element)
+        {
+            case Carrier carrier:
+                unitShape = carrier.UnitShape;
+                return true;
+            case CarrierLocation location:
+                unitShape = location.Carrier.UnitShape;
+                return true;
+            case Relation relation:
+                return relation.TryReadUnitShape(out unitShape);
+            default:
+                unitShape = null!;
+                return false;
+        }
+    }
 
     #endregion
 
