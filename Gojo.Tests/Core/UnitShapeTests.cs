@@ -380,6 +380,46 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
+    public void AlignedProductOfCompatibleUnitsKeepsSharedType()
+    {
+        var lengthShape = new Carrier().UnitShape;
+
+        var aligned = UnitShape.AlignedProduct(lengthShape, lengthShape);
+
+        Assert.True(aligned.CompatibleWith(lengthShape));
+        Assert.False(aligned.TryReadOrthogonalProductOperands(out _));
+    }
+
+    [Fact]
+    public void OrthogonalProductOfCompatibleUnitsCreatesProductType()
+    {
+        var lengthShape = new Carrier().UnitShape;
+
+        var orthogonal = UnitShape.OrthogonalProduct(lengthShape, lengthShape);
+
+        Assert.False(orthogonal.CompatibleWith(lengthShape));
+        Assert.Equal(2, orthogonal.ProductParticipationOf(lengthShape));
+        Assert.True(orthogonal.TryReadOrthogonalProductOperands(out var operands));
+        Assert.Equal(2, operands.Length);
+        Assert.True(operands[0].CompatibleWith(lengthShape));
+        Assert.True(operands[1].CompatibleWith(lengthShape));
+    }
+
+    [Fact]
+    public void AlignedProductOfDifferentUnitsStaysAdditiveParticipation()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var heatShape = new Carrier().UnitShape;
+
+        var aligned = UnitShape.AlignedProduct(lengthShape, heatShape);
+
+        Assert.True(aligned.TryReadAdditiveOperands(out var operands));
+        Assert.Equal(2, operands.Length);
+        Assert.True(operands[0].CompatibleWith(lengthShape));
+        Assert.True(operands[1].CompatibleWith(heatShape));
+    }
+
+    [Fact]
     public void CrystallizedCarrierUsesDerivedUnitShapeWithoutProjectingValue()
     {
         var lengthShape = new Carrier().UnitShape;

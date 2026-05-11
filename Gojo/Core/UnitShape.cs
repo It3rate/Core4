@@ -93,6 +93,22 @@ public sealed class UnitShape : IEquatable<UnitShape>
     public static UnitShape Product(params UnitShape[] shapes) =>
         Product((IReadOnlyList<UnitShape>)shapes);
 
+    /// <summary>Creates a same-type calibrated product from aligned operands.</summary>
+    public static UnitShape AlignedProduct(params UnitShape[] shapes) =>
+        AlignedProduct((IReadOnlyList<UnitShape>)shapes);
+
+    /// <summary>Collapses compatible aligned operands to their shared type.</summary>
+    public static UnitShape AlignedProduct(IReadOnlyList<UnitShape> shapes) =>
+        Additive(shapes);
+
+    /// <summary>Creates a new product type from non-aligned operand participation.</summary>
+    public static UnitShape OrthogonalProduct(params UnitShape[] shapes) =>
+        OrthogonalProduct((IReadOnlyList<UnitShape>)shapes);
+
+    /// <summary>Creates a new product type from non-aligned operand participation.</summary>
+    public static UnitShape OrthogonalProduct(IReadOnlyList<UnitShape> shapes) =>
+        Product(shapes);
+
     /// <summary>Preserves repeated product participation as relation structure.</summary>
     public static UnitShape Product(IReadOnlyList<UnitShape> shapes)
     {
@@ -127,6 +143,19 @@ public sealed class UnitShape : IEquatable<UnitShape>
         }
 
         return operands.Sum(operand => new UnitShape(operand).ProductParticipationOf(unit));
+    }
+
+    /// <summary>Reads product operands when this shape represents orthogonal product participation.</summary>
+    public bool TryReadOrthogonalProductOperands(out UnitShape[] operands)
+    {
+        if (TryReadProductOperands(surface, out var operandSurfaces))
+        {
+            operands = [.. operandSurfaces.Select(operand => new UnitShape(SnapshotOf(operand)))];
+            return true;
+        }
+
+        operands = [];
+        return false;
     }
 
     /// <summary>Reads unlike additive participation operands when this shape is a group.</summary>

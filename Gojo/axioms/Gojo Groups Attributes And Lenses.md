@@ -153,6 +153,14 @@ the only available result because no area expression/mechanic has been attached
 yet. The absence of a high-resolution area lens should not prevent the fill
 from existing.
 
+The one-tick fill is a chosen resolution/calibration, not a hidden area
+calculation. If width and height each have resolution 10, a full square-unit
+area read might expose 100 sub-ticks of product participation. A low-resolution
+fill instead chooses a coarser result carrier where one tick stands for all
+currently unresolved interior participation. Future resolution-changing
+relations should make that coarsening explicit rather than calculating the
+full product and then discarding precision.
+
 The same idea applies to low-resolution type selection. "Apple" and "orange"
 can become "fruit" when a projection lowers resolution to shared structure such
 as edible, sweet, grows-from-plant, or another selected common participation.
@@ -274,6 +282,11 @@ TryReadAdditiveUnitShapeOn
 CreateLowResolutionFill    creates one tick of unresolved fill participation
 CreateLowResolutionInverseFill
                            creates one inverse/anti-fill tick
+UnitShape.AlignedProduct   keeps compatible aligned operands at shared type
+UnitShape.OrthogonalProduct
+                           creates product type from non-aligned operands
+TryReadOrthogonalProductOperands
+                           inspects explicit orthogonal product operands
 UnitShape.Product(...)    represents multiplicative/product participation
 Relation point output     additive operation read
 Relation segment output   multiplicative/product operation read
@@ -290,7 +303,7 @@ ordered contour/group structure for boundaries
 named lens structures for area, bbox, perimeter, hit, centroid, render
 stable live result carriers with provenance
 unit projection/cast structure for apples/oranges -> fruit-like reads
-inspectable aligned-vs-orthogonal distinction for product-like relations
+relation-level aligned-vs-orthogonal product selection
 ordered additive group reads separate from unordered participation reads
 orthogonal/noise tension distinct from aligned overflow tension
 ```
