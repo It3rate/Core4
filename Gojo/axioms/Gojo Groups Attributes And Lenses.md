@@ -257,6 +257,7 @@ UnitShape.Additive(...)   collapses compatible units; preserves unlike units
 TryReadAdditiveOperands   inspects unlike additive participation in order
 AdditiveAttachment        attaches one participant to a holder origin
 AdditiveGroup             anchors ordered additive participants on a holder
+Carrier.AttachAdditive    attaches an additive ladder to a carrier holder
 TryReadAdditiveParticipantsOn
                            inspects actual holder participants in order
 TryReadAdditiveUnitShapeOn
@@ -277,7 +278,6 @@ The missing pieces are mostly semantic and inspection footholds:
 
 ```text
 ordered contour/group structure for boundaries
-attribute carrier ladders such as RGB/HSL -> color
 named lens structures for area, bbox, perimeter, hit, centroid, render
 stable live result carriers with provenance
 unit projection/cast structure for apples/oranges -> fruit-like reads

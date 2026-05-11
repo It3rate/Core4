@@ -176,6 +176,10 @@ public sealed class Carrier : IElement
     public Relation AttachLiveOutput(IElement input, Relation outputPort) =>
         Attach(Relation.LiveOutput(input, outputPort));
 
+    /// <summary>Attaches ordered additive participants to this holder carrier.</summary>
+    public Relation AttachAdditive(params IElement[] participants) =>
+        Attach(Relation.AdditiveGroup(this, participants));
+
     /// <summary>Imports a visible location through a port and keeps residue as tension.</summary>
     public bool TrySetFrom(Relation port, CarrierLocation input)
     {
