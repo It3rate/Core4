@@ -7,6 +7,10 @@ group, fill, and graphics-style structures.
 
 ## 1. Additive Participation
 
+The type of a carrier is its `UnitShape`. Additive properties are relations to
+that typed carrier or to a holder around it; they are not part of the unit shape
+itself unless a later projection explicitly casts them into a shared type.
+
 An additive relation has two natural outcomes depending on unit compatibility.
 
 ```text
@@ -28,7 +32,50 @@ additive holder whose participants do not collapse to one unit shape. If later
 structure projects them into a shared unit, the same additive relation can be
 read as a sum at that shared type.
 
-## 2. Group Holders
+## 2. Aligned And Orthogonal Combination
+
+Aligned properties share a type. A non-additive relation between aligned
+properties quantifies, scales, routes, or calibrates that type without creating
+a new one.
+
+```text
+aligned length ratio       length read in another basis
+decimal ladder carry       same numeric type across related carriers
+same-axis overflow         internal tension/routing on that carrier type
+```
+
+Orthogonal properties are not already the same participation. A non-additive
+relation between orthogonal properties creates a new type.
+
+```text
+width * height             area-like participation
+boundary * interior side   fill/region participation
+time * rate                quantity-through-time participation
+```
+
+This distinction matters for tension. Overflow or residue inside an aligned
+domain is internal tension for that carrier and can route along aligned
+structure. Unaccounted change that has no correlation to the expected aligned
+change is noise or orthogonal tension from that carrier's point of view.
+Additive attributes have no automatic tension path because they are defined as
+uncorrelated participation. If later behavior reveals correlation, a new
+relation can harden between the attribute and the typed structure.
+
+Example:
+
+```text
+banana + yellow       additive attachment at first
+banana <-> yellow     correlated relation after repeated evidence
+green banana          tension/information only after that correlation exists
+```
+
+Current Gojo product surfaces do not yet explicitly know whether operands are
+aligned or orthogonal. `Relation` point outputs and segment outputs provide a
+foothold, but richer code will need inspectable alignment/orthogonality
+structure rather than treating every product of compatible units as the same
+kind of type creation.
+
+## 3. Group Holders
 
 A group holder is a carrier or relation site that gathers participants around a
 shared zero or junction. It may have no useful scalar value. Its job is to make
@@ -52,7 +99,23 @@ An unordered additive group and an ordered contour are not the same read, even
 when they contain the same segments. Those distinctions should be carried by
 relations among the participants or by the lens used to inspect them.
 
-## 3. Boundary, Fill, And Low Resolution
+Additive participation should preserve construction order even when a later
+lens ignores it. A polyline, polygon, contour, shopping basket, and temporary
+selection may all use additive gathering, but only some reads care about order.
+Preserving order in structure lets both ordered and unordered lenses remain
+available.
+
+Group selection is almost the opposite of type inspection:
+
+```text
+group/selection read   follows additive attachments and participants
+type read              follows unit shape, aligned structure, and provenance
+```
+
+A useful system needs both. Selection asks "what participates here?" Type
+inspection asks "what kind of thing is this, and how is that kind derived?"
+
+## 4. Boundary, Fill, And Low Resolution
 
 A boundary group does not automatically contain fill. It exposes potential
 uses. A fill exists when there is a region or interior participation carrier
@@ -71,7 +134,24 @@ This lets a region carry color, texture, hit participation, clipping, or other
 attributes without first computing its exact area. Area is one possible read of
 the fill. It is not the fill itself.
 
-## 4. Attribute Carriers
+More precisely, low-resolution fill and area are different resolutions of the
+same interior participation. A one-tick fill says only that interior
+participation exists. A square-unit area read measures the same interior at a
+higher resolution. Neither is infinite precision; both are observer reads at
+available resolution.
+
+Low-resolution fill may be chosen deliberately as an optimization, or it may be
+the only available result because no area expression/mechanic has been attached
+yet. The absence of a high-resolution area lens should not prevent the fill
+from existing.
+
+The same idea applies to low-resolution type selection. "Apple" and "orange"
+can become "fruit" when a projection lowers resolution to shared structure such
+as edible, sweet, grows-from-plant, or another selected common participation.
+The shared type is not found by ignoring structure; it is produced by selecting
+which additive/aligned properties matter at that resolution.
+
+## 5. Attribute Carriers
 
 Attributes are carriers attached by relation structure, not metadata fields.
 
@@ -108,7 +188,12 @@ RGB, HSL, palette index, and sampled texture are not hidden properties. They
 are alternate relation paths into color participation. The color carrier is the
 thing that can attach to a fill; the component ladders explain or produce it.
 
-## 5. Lenses And Observer Reads
+Attributes may begin as uncorrelated additive participation. When repeated
+structure shows correlation, an attribute can become an expected relation
+rather than a casual attachment. That change should add visible relation
+structure; it should not silently mutate the unit shape.
+
+## 6. Lenses And Observer Reads
 
 A lens is relation structure that reads a group, boundary, fill, or attribute
 into some result carrier. A single boundary or region can expose many lenses:
@@ -142,7 +227,7 @@ The lens result can be live, reading from the current source structure, or
 crystallized as an independent carrier copy. Crystallization copies a read; it
 does not make the source boundary or fill stop existing.
 
-## 6. Metaphorical Attachment
+## 7. Metaphorical Attachment
 
 Gojo should allow useful metaphorical units when the relation is explicit.
 
@@ -155,7 +240,7 @@ The rule is not "forbid category mistakes." The rule is "make the projection or
 attachment visible." A metaphor becomes meaningful when there is relation
 structure that carries how the metaphor participates.
 
-## 7. Compatibility With Current Code
+## 8. Compatibility With Current Code
 
 Current Gojo code is already close in several places:
 
@@ -181,6 +266,9 @@ attribute carrier ladders such as RGB/HSL -> color
 named lens structures for area, bbox, perimeter, hit, centroid, render
 stable live result carriers with provenance
 unit projection/cast structure for apples/oranges -> fruit-like reads
+inspectable aligned-vs-orthogonal distinction for product-like relations
+ordered additive group reads separate from unordered participation reads
+orthogonal/noise tension distinct from aligned overflow tension
 ```
 
 The current code should therefore be treated as compatible but incomplete. It
