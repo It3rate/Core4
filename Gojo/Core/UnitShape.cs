@@ -80,13 +80,13 @@ public sealed class UnitShape : IEquatable<UnitShape>
             return Atom(Carrier.Unknown);
         }
 
-        var first = shapes[0];
-        if (shapes.All(first.CompatibleWith))
+        var operands = DistinctCompatible(shapes);
+        if (operands.Count == 1)
         {
-            return first;
+            return operands[0];
         }
 
-        return new UnitShape(new Relation(Chain([.. shapes.Select(shape => shape.surface)]), Point(Carrier.Unknown, 1)));
+        return new UnitShape(new Relation(Chain([.. operands.Select(shape => shape.surface)]), Point(Carrier.Unknown, 1)));
     }
 
     /// <summary>Creates a multiplicative unit shape from operands.</summary>
@@ -127,6 +127,19 @@ public sealed class UnitShape : IEquatable<UnitShape>
         }
 
         return operands.Sum(operand => new UnitShape(operand).ProductParticipationOf(unit));
+    }
+
+    /// <summary>Reads unlike additive participation operands when this shape is a group.</summary>
+    public bool TryReadAdditiveOperands(out UnitShape[] operands)
+    {
+        if (TryReadAdditiveOperands(surface, out var operandSurfaces))
+        {
+            operands = [.. operandSurfaces.Select(operand => new UnitShape(SnapshotOf(operand)))];
+            return true;
+        }
+
+        operands = [];
+        return false;
     }
 
     /// <summary>Reads the source element if this shape is an orthogonal push.</summary>
@@ -226,6 +239,20 @@ public sealed class UnitShape : IEquatable<UnitShape>
         return false;
     }
 
+    /// <summary>Reads additive operands from the additive-surface encoding.</summary>
+    private static bool TryReadAdditiveOperands(IElement surface, out IElement[] operands)
+    {
+        if (surface is Relation relation &&
+            IsAdditiveMarker(relation.Right))
+        {
+            operands = FlattenAdditive(relation.Left);
+            return true;
+        }
+
+        operands = [];
+        return false;
+    }
+
     /// <summary>Flattens nested product operands while preserving point atoms.</summary>
     private static IElement[] Flatten(IElement element) =>
         element is Relation relation &&
@@ -234,6 +261,45 @@ public sealed class UnitShape : IEquatable<UnitShape>
             !TryReadOrthogonalSourceCore(relation, out _)
             ? [.. Flatten(relation.Left), .. Flatten(relation.Right)]
             : [element];
+
+    /// <summary>Flattens additive chains while preserving product and orthogonal operands.</summary>
+    private static IElement[] FlattenAdditive(IElement element)
+    {
+        if (element is not Relation relation)
+        {
+            return [element];
+        }
+
+        if (IsAdditiveMarker(relation.Right))
+        {
+            return FlattenAdditive(relation.Left);
+        }
+
+        if (IsUnitPoint(relation) ||
+            IsUnitSegment(relation) ||
+            IsProductSurface(relation) ||
+            TryReadOrthogonalSourceCore(relation, out _))
+        {
+            return [element];
+        }
+
+        return [.. FlattenAdditive(relation.Left), .. FlattenAdditive(relation.Right)];
+    }
+
+    /// <summary>Combines compatible additive operands while preserving first-seen order.</summary>
+    private static List<UnitShape> DistinctCompatible(IReadOnlyList<UnitShape> shapes)
+    {
+        var operands = new List<UnitShape>();
+        foreach (var shape in shapes)
+        {
+            if (!operands.Any(operand => operand.CompatibleWith(shape)))
+            {
+                operands.Add(shape);
+            }
+        }
+
+        return operands;
+    }
 
     /// <summary>Reads the source from an orthogonal shape-unit surface.</summary>
     private static bool TryReadOrthogonalSourceCore(IElement element, out IElement source)
@@ -254,8 +320,18 @@ public sealed class UnitShape : IEquatable<UnitShape>
         element is Relation relation &&
         relation.Left is Relation leftPoint &&
         relation.Right is Relation rightPoint &&
-        IsPoint(leftPoint, Carrier.Unknown, 0) &&
-        IsPoint(rightPoint, Carrier.Unknown, 1);
+            IsPoint(leftPoint, Carrier.Unknown, 0) &&
+            IsPoint(rightPoint, Carrier.Unknown, 1);
+
+    /// <summary>Returns true for a product shape surface.</summary>
+    private static bool IsProductSurface(IElement element) =>
+        element is Relation relation &&
+        IsUnitSegment(relation.Right);
+
+    /// <summary>Returns true for the unit point marker used by additive group shapes.</summary>
+    private static bool IsAdditiveMarker(IElement element) =>
+        element is Relation relation &&
+        IsPoint(relation, Carrier.Unknown, 1);
 
     /// <summary>Returns true for a carrier-grounded point atom.</summary>
     private static bool IsUnitPoint(IElement element) =>

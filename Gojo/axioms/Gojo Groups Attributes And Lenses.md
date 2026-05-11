@@ -254,6 +254,7 @@ Current Gojo code is already close in several places:
 
 ```text
 UnitShape.Additive(...)   collapses compatible units; preserves unlike units
+TryReadAdditiveOperands   inspects unlike additive participation in order
 UnitShape.Product(...)    represents multiplicative/product participation
 Relation point output     additive operation read
 Relation segment output   multiplicative/product operation read
@@ -267,7 +268,6 @@ The missing pieces are mostly semantic and inspection footholds:
 
 ```text
 first-class additive group holder reads
-public inspection of additive unit-shape operands
 ordered contour/group structure for boundaries
 low-resolution fill carriers that do not require area measurement
 attribute carrier ladders such as RGB/HSL -> color

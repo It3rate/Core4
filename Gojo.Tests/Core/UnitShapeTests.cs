@@ -320,6 +320,48 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
+    public void CompatibleAdditiveUnitShapeCollapsesWithoutGroupOperands()
+    {
+        var fruitShape = new Carrier().UnitShape;
+
+        var unitShape = UnitShape.Additive(fruitShape, fruitShape);
+
+        Assert.True(unitShape.CompatibleWith(fruitShape));
+        Assert.False(unitShape.TryReadAdditiveOperands(out _));
+    }
+
+    [Fact]
+    public void AdditiveUnitShapeCombinesCompatibleOperandsBeforeGrouping()
+    {
+        var appleShape = new Carrier().UnitShape;
+        var orangeShape = new Carrier().UnitShape;
+        var bananaShape = new Carrier().UnitShape;
+
+        var groupShape = UnitShape.Additive(appleShape, orangeShape, appleShape, bananaShape, orangeShape);
+
+        Assert.True(groupShape.TryReadAdditiveOperands(out var operands));
+        Assert.Equal(3, operands.Length);
+        Assert.True(operands[0].CompatibleWith(appleShape));
+        Assert.True(operands[1].CompatibleWith(orangeShape));
+        Assert.True(operands[2].CompatibleWith(bananaShape));
+    }
+
+    [Fact]
+    public void AdditiveOperandReadPreservesProductOperandsAsOneParticipant()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var timeShape = new Carrier().UnitShape;
+        var areaShape = UnitShape.Product(lengthShape, lengthShape);
+
+        var groupShape = UnitShape.Additive(areaShape, timeShape);
+
+        Assert.True(groupShape.TryReadAdditiveOperands(out var operands));
+        Assert.Equal(2, operands.Length);
+        Assert.True(operands[0].CompatibleWith(areaShape));
+        Assert.True(operands[1].CompatibleWith(timeShape));
+    }
+
+    [Fact]
     public void MultiplicativeOperationDerivesProductUnitShape()
     {
         var lengthShape = new Carrier().UnitShape;
