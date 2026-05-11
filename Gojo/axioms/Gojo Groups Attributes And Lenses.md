@@ -1,7 +1,7 @@
 # Gojo Groups, Attributes, And Lenses
 
 This note captures the current working model for additive participation,
-attribute attachment, low-resolution fill, and observer/read lenses. It is a
+attribute attachment, fill bases, and observer/read lenses. It is a
 conceptual bridge between current `UnitShape`/`Relation` behavior and future
 group, fill, and graphics-style structures.
 
@@ -76,11 +76,25 @@ banana <-> yellow     correlated relation after repeated evidence
 green banana          tension/information only after that correlation exists
 ```
 
-Current Gojo product surfaces do not yet explicitly know whether operands are
-aligned or orthogonal. `Relation` point outputs and segment outputs provide a
-foothold, but richer code will need inspectable alignment/orthogonality
-structure rather than treating every product of compatible units as the same
-kind of type creation.
+Current Gojo exposes this distinction through `UnitShape.AlignedProduct` and
+`UnitShape.OrthogonalProduct`. Relation point outputs read as additive/aligned
+participation; relation segment outputs read as orthogonal product
+participation. The distinction is still carried by structure and chosen read,
+not by an opaque operation tag.
+
+An orthogonal product can be crystallized as a basis/handle without measuring
+the operands. For example, width and height can be combined in an operation
+surface and crystallized into an area-like carrier whose unit shape is the
+product kind, while the current width and height values remain untouched and
+unmultiplied. A measured read is a separate step that uses an explicit output
+frame/basis to decide the result ticks.
+
+That means result resolution belongs to the chosen output/read basis, not to
+the `UnitShape` alone. The unit shape says what kind of participation one tick
+means. A relation or lens that measures the product says how source basis
+ticks project into result basis ticks. Creating the product carrier alone is
+therefore structural crystallization, not a hidden calculation at a guessed
+precision.
 
 ## 3. Group Holders
 
@@ -128,38 +142,35 @@ A boundary group does not automatically contain fill. It exposes potential
 uses. A fill exists when there is a region or interior participation carrier
 attached to the boundary/group.
 
-Area does not have to be calculated in order for a fill to exist. At low
-resolution, fill may be only an interior marker:
+Area does not have to be calculated in order for a fill basis to exist. A
+fill basis may be a single-marker carrier for the product/interior kind:
 
 ```text
-0 ticks   no filled interior at this resolution
-1 tick    filled/interior participation
-inverse   anti-fill, emptying pressure, exterior-side participation
+0 ticks   no basis participation currently held
+1 tick    a basis marker of this fill kind
+inverse   inverse/anti-fill basis marker
 ```
 
 This lets a region carry color, texture, hit participation, clipping, or other
-attributes without first computing its exact numeric measure. The product/fill
-is the participation itself; its numeric area value is one
-resolution/calibration of that participation.
+attributes without first computing its exact numeric measure. The fill basis is
+a handle for the product/interior kind; its numeric area value is a separate
+resolution/calibration read of that participation.
 
-More precisely, low-resolution fill and area are different resolutions of the
-same interior participation. A one-tick fill says only that interior
-participation exists. A square-unit area read measures the same interior at a
-higher resolution. Neither is infinite precision; both are observer reads at
-available resolution.
+More precisely, a fill basis and an area measure are different uses of the same
+interior participation. A fill basis says "this kind of participation is
+present and attachable." A square-unit area read measures a source structure
+against that basis or another chosen basis. Neither is infinite precision; both
+are available only through relation structure.
 
-Low-resolution fill may be chosen deliberately as an optimization, or it may be
-the only available result because no area expression/mechanic has been attached
-yet. The absence of a high-resolution area lens should not prevent the fill
-from existing.
+Fill basis creation may be chosen deliberately when no area expression/mechanic
+has been attached yet. The absence of a high-resolution area lens should not
+prevent the fill kind from existing as an attachable carrier.
 
-The one-tick fill is a chosen resolution/calibration, not a hidden area
-calculation. If width and height each have resolution 10, a full square-unit
-area read might expose 100 sub-ticks of product participation. A low-resolution
-fill instead chooses a coarser result carrier where one tick stands for all
-currently unresolved interior participation. Future resolution-changing
-relations should make that coarsening explicit rather than calculating the
-full product and then discarding precision.
+The fill basis is not a hidden area calculation. If width and height
+each have their own basis, a measured area read should use explicit relation
+structure to decide its result basis and resolution. Creating the basis carrier
+alone does not calculate the rectangle and then discard precision; it gives us
+the product kind that later reads can measure against.
 
 The same idea applies to low-resolution type selection. "Apple" and "orange"
 can become "fruit" when a projection lowers resolution to shared structure such
@@ -279,9 +290,8 @@ TryReadAdditiveParticipantsOn
 TryReadOrderedElementsOn  names ordered participant inspection
 TryReadAdditiveUnitShapeOn
                            reads a holder group's additive unit participation
-CreateLowResolutionFill    creates one tick of unresolved fill participation
-CreateLowResolutionInverseFill
-                           creates one inverse/anti-fill tick
+CreateFillBasis            creates fill-kind basis participation
+CreateInverseFillBasis     creates inverse/anti-fill basis participation
 UnitShape.AlignedProduct   keeps compatible aligned operands at shared type
 UnitShape.OrthogonalProduct
                            creates product type from non-aligned operands

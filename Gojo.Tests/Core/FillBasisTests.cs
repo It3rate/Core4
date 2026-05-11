@@ -2,10 +2,10 @@ using Gojo.Core;
 
 namespace Gojo.Tests.Core;
 
-public sealed class LowResolutionFillTests
+public sealed class FillBasisTests
 {
     [Fact]
-    public void BoundaryGroupCreatesOneTickFillWithoutMeasuringArea()
+    public void BoundaryGroupCreatesFillBasisWithoutMeasuringArea()
     {
         var holder = new Carrier();
         var horizontal = new Carrier();
@@ -14,7 +14,7 @@ public sealed class LowResolutionFillTests
         var side = Relation.Segment(vertical, 0, 2);
         var boundary = Relation.AdditiveGroup(holder, bottom, side);
 
-        var fill = boundary.CreateLowResolutionFill();
+        var fill = boundary.CreateFillBasis();
 
         Assert.Equal(1UL, fill.Value);
         Assert.False(fill.IsInverse);
@@ -27,13 +27,13 @@ public sealed class LowResolutionFillTests
     }
 
     [Fact]
-    public void LowResolutionFillUsesOrthogonalSourceShapeInsteadOfBoundaryUnit()
+    public void FillBasisUsesOrthogonalSourceShapeInsteadOfBoundaryUnit()
     {
         var line = new Carrier();
         var segment = Relation.Segment(line, 2, 5);
         var measureReader = new Carrier(line.UnitShape);
 
-        var fill = segment.CreateLowResolutionFill();
+        var fill = segment.CreateFillBasis();
 
         Assert.Equal(1UL, fill.Value);
         Assert.True(segment.TryReadFillMeasureOn(measureReader, out var measure));
@@ -43,12 +43,12 @@ public sealed class LowResolutionFillTests
     }
 
     [Fact]
-    public void LowResolutionInverseFillMarksOpposedParticipation()
+    public void InverseFillBasisMarksOpposedParticipation()
     {
         var holder = new Carrier();
         var boundary = Relation.AdditiveGroup(holder, new Carrier());
 
-        var fill = boundary.CreateLowResolutionInverseFill();
+        var fill = boundary.CreateInverseFillBasis();
 
         Assert.Equal(1UL, fill.Value);
         Assert.True(fill.IsInverse);
@@ -57,13 +57,13 @@ public sealed class LowResolutionFillTests
     }
 
     [Fact]
-    public void LowResolutionFillCanCarryAdditiveAttributesWithoutAreaMeasure()
+    public void FillBasisCanCarryAdditiveAttributesWithoutAreaMeasure()
     {
         var boundaryHolder = new Carrier();
         var attributeHolder = new Carrier();
         var segment = Relation.Segment(new Carrier(), 0, 4);
         var boundary = Relation.AdditiveGroup(boundaryHolder, segment);
-        var fill = boundary.CreateLowResolutionFill();
+        var fill = boundary.CreateFillBasis();
         var color = new Carrier();
         var attributedFill = Relation.AdditiveGroup(attributeHolder, fill, color);
 

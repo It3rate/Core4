@@ -46,11 +46,11 @@ public sealed class Relation : IElement, IEquatable<Relation>
     public static Relation OrderedGroup(Carrier holder, params IElement[] elements) =>
         AdditiveGroup(holder, elements);
 
-    /// <summary>Creates one tick of unresolved fill participation from this structure.</summary>
-    public Carrier CreateLowResolutionFill() => CreateLowResolutionFill(inverse: false);
+    /// <summary>Creates a fill basis carrier without measuring this structure.</summary>
+    public Carrier CreateFillBasis() => CreateFillBasis(inverse: false);
 
-    /// <summary>Creates one inverse tick of unresolved fill participation from this structure.</summary>
-    public Carrier CreateLowResolutionInverseFill() => CreateLowResolutionFill(inverse: true);
+    /// <summary>Creates an inverse fill basis carrier without measuring this structure.</summary>
+    public Carrier CreateInverseFillBasis() => CreateFillBasis(inverse: true);
 
     public ulong Id { get; }
 
@@ -542,8 +542,8 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
-    /// <summary>Creates a one-tick fill marker without measuring the source structure.</summary>
-    private Carrier CreateLowResolutionFill(bool inverse)
+    /// <summary>Creates a fill basis carrier without measuring the source structure.</summary>
+    private Carrier CreateFillBasis(bool inverse)
     {
         var fill = new Carrier(UnitShape.OrthogonalOf(this));
         var face = inverse ? fill.Inverse() : fill;

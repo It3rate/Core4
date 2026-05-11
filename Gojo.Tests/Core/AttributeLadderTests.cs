@@ -88,7 +88,7 @@ public sealed class AttributeLadderTests
         var boundary = Relation.AdditiveGroup(
             boundaryHolder,
             Relation.Segment(new Carrier(), 0, 4));
-        var fill = boundary.CreateLowResolutionFill();
+        var fill = boundary.CreateFillBasis();
         var color = new Carrier();
         var red = new Carrier();
         var green = new Carrier();

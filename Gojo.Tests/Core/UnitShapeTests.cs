@@ -438,6 +438,27 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
+    public void OrthogonalProductCanCrystallizeResultBasisWithoutMultiplyingValues()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var width = new Carrier(lengthShape);
+        var height = new Carrier(lengthShape);
+        var result = new Carrier();
+        var widthPort = new Relation(Point(width, 1), Point(Carrier.Unknown, 1));
+        var heightPort = new Relation(Point(height, 1), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(widthPort, heightPort), Segment(result, 0, 1));
+        width.Set(5);
+        height.Set(2);
+
+        Assert.True(operation.TryCrystallize(out var crystal));
+
+        Assert.True(crystal.UnitShape.CompatibleWith(UnitShape.OrthogonalProduct(lengthShape, lengthShape)));
+        Assert.Equal(0UL, crystal.Value);
+        Assert.Equal(5UL, width.Value);
+        Assert.Equal(2UL, height.Value);
+    }
+
+    [Fact]
     public void UnitShapeSurfaceReadIsSnapshotNotMutableBasis()
     {
         var lengthShape = new Carrier().UnitShape;
