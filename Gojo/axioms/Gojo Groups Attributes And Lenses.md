@@ -159,6 +159,13 @@ as edible, sweet, grows-from-plant, or another selected common participation.
 The shared type is not found by ignoring structure; it is produced by selecting
 which additive/aligned properties matter at that resolution.
 
+Current `CarrierLocation` values are grounded on a carrier. An ordered pair
+such as `(xAxis:3, yAxis:2)` may be detached from a larger basis holder, but it
+is still calibrated to its component carriers. True ungrounded or uncalibrated
+datasets are a separate future concept and should not be modeled with
+`Carrier.Unknown`, because `Carrier.Unknown` is already a wildcard in frame and
+port reads.
+
 ## 5. Attribute Carriers
 
 Attributes are carriers attached by relation structure, not metadata fields.
@@ -257,9 +264,11 @@ UnitShape.Additive(...)   collapses compatible units; preserves unlike units
 TryReadAdditiveOperands   inspects unlike additive participation in order
 AdditiveAttachment        attaches one participant to a holder origin
 AdditiveGroup             anchors ordered additive participants on a holder
+OrderedGroup              names the same ordered/additive holder structure
 Carrier.AttachAdditive    attaches an additive ladder to a carrier holder
 TryReadAdditiveParticipantsOn
                            inspects actual holder participants in order
+TryReadOrderedElementsOn  names ordered participant inspection
 TryReadAdditiveUnitShapeOn
                            reads a holder group's additive unit participation
 CreateLowResolutionFill    creates one tick of unresolved fill participation

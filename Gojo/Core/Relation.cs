@@ -42,6 +42,10 @@ public sealed class Relation : IElement, IEquatable<Relation>
     public static Relation AdditiveGroup(Carrier holder, params IElement[] participants) =>
         new(ChainAdditiveAttachments(holder, participants), holder);
 
+    /// <summary>Creates an ordered group anchored by a holder carrier.</summary>
+    public static Relation OrderedGroup(Carrier holder, params IElement[] elements) =>
+        AdditiveGroup(holder, elements);
+
     /// <summary>Creates one tick of unresolved fill participation from this structure.</summary>
     public Carrier CreateLowResolutionFill() => CreateLowResolutionFill(inverse: false);
 
@@ -640,6 +644,10 @@ public sealed class Relation : IElement, IEquatable<Relation>
         participants = [];
         return false;
     }
+
+    /// <summary>Reads ordered elements attached to a holder origin.</summary>
+    public bool TryReadOrderedElementsOn(Carrier holder, out IElement[] elements) =>
+        TryReadAdditiveParticipantsOn(holder, out elements);
 
     /// <summary>Reads the additive unit participation of holder participants.</summary>
     public bool TryReadAdditiveUnitShapeOn(Carrier holder, out UnitShape unitShape)
