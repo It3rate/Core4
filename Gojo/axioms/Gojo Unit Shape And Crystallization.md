@@ -340,3 +340,5 @@ Later work must clarify:
 - compact scale-signature reads for fast scaling behavior
 - deeper structured units such as radians, arc-length/radius, and geometric or
   dynamic units whose net scale signature is not the whole meaning
+- expected basis and resolution derivation, described in
+  `Gojo Crystallized Resolution.md`

@@ -328,6 +328,7 @@ Gojo/axioms/
 Most important current files:
 
 - `Gojo Unit Shape And Crystallization.md`
+- `Gojo Crystallized Resolution.md`
 - `Gojo Potential Shape Fact Sheet.md`
 - `Gojo Groups Attributes And Lenses.md`
 - `Gojo Operation Shape Catalog.md`
