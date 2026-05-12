@@ -86,7 +86,7 @@ inches, one interior marker, a thumbnail fill, or another calibrated read.
 ## 4. Current Default Policy
 
 Until Gojo has full scientific-resolution propagation, the practical default
-policy should be conservative and inspectable.
+policy is conservative and inspectable.
 
 For orthogonal products where both operands participate as independent
 dimensions, derive an expected output basis from the coarsest participating
@@ -112,6 +112,15 @@ miles per hour * hours -> miles
 The time basis affects residue/tension in the read, but it should not become
 the mile carrier's tick kind. A poor time clock can make distance values jump
 or leave residue; it does not redefine what one mile tick means.
+
+The current code has a first foothold for this: when an operation output frame
+is unbound, concrete target frames exposed by operand ports are treated as
+dominant basis candidates. This lets a relation surface say "read this operand
+through miles" and have the crystallized output basis preserve that mile
+calibration. Because that operand has already been projected through the
+dominant basis, the output read does not multiply by that basis a second time.
+Full unit cancellation for `miles/hour * hour -> miles` still needs explicit
+inverse unit participation.
 
 For count products such as man-hours, the coarsest ordinary participant is
 usually acceptable as the default. If people are whole-count only, the
@@ -143,7 +152,13 @@ Current Gojo already has the basic split:
   current value through an explicit read.
 - `UnitShape.AlignedProduct(...)` and `UnitShape.OrthogonalProduct(...)`
   separate same-kind participation from new product-kind participation.
+- unbound operation output frames derive their returned basis from exposed
+  operand port bases.
+- concrete operation output frames are explicit and keep winning over derived
+  operand-basis defaults.
+- concrete operand target frames act as dominant basis candidates for the first
+  ratio/per-style foothold.
 
 The next code step is not to put resolution inside `UnitShape`. It is to make
-the expected output basis derivation more explicit for aligned products,
-orthogonal products, and per/cancelled participation.
+inverse unit participation and cancellation explicit so per-style products can
+derive both their dominant basis and their surviving result kind.

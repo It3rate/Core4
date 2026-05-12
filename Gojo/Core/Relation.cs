@@ -401,6 +401,28 @@ public sealed class Relation : IElement, IEquatable<Relation>
     public bool TryReadOperationFrom(IElement input, Carrier reader, out Relation read) =>
         TryReadOperationFrom(input, reader, bindOutputToReader: false, out read);
 
+    /// <summary>Reads an operation surface through a concrete output basis.</summary>
+    private bool TryReadOperationFrom(IElement input, Carrier reader, Relation outputBasis, out Relation read)
+    {
+        if (!TryReadFrame(outputBasis, out var targetFrame) ||
+            !targetFrame.Carrier.SameIdentityAs(reader))
+        {
+            read = default!;
+            return false;
+        }
+
+        var scaleByOutputBasis = true;
+        if (TryReadFrame(Right, out var operationFrame) &&
+            operationFrame.Carrier.IsUnknown &&
+            TryReadExpectedOperationBasisExtent(operationFrame.Extent, out _, out var hasDominantBasis) &&
+            hasDominantBasis)
+        {
+            scaleByOutputBasis = false;
+        }
+
+        return TryReadOperationFrom(input, reader, targetFrame, scaleByOutputBasis, out read);
+    }
+
     /// <summary>Reads an operation surface, optionally binding output to the reader.</summary>
     private bool TryReadOperationFrom(
         IElement input,
@@ -441,6 +463,41 @@ public sealed class Relation : IElement, IEquatable<Relation>
 
             var result = operands.Aggregate(1L, (ticks, operand) => checked(ticks * operand.Ticks));
             read = OperationResult(segmentTargetFrame, result, operands);
+            return true;
+        }
+
+        read = default!;
+        return false;
+    }
+
+    /// <summary>Reads an operation surface using an already resolved output frame.</summary>
+    private bool TryReadOperationFrom(
+        IElement input,
+        Carrier reader,
+        CarrierFrame targetFrame,
+        bool scaleByOutputBasis,
+        out Relation read)
+    {
+        var operands = new List<OperationOperand>();
+        if (!TryCollectOperationOperands(Left, input, reader, operands) ||
+            operands.Count == 0 ||
+            targetFrame.Extent == 0)
+        {
+            read = default!;
+            return false;
+        }
+
+        if (TryReadPointFrame(Right, out _))
+        {
+            var result = operands.Aggregate(0L, (ticks, operand) => checked(ticks + operand.Ticks));
+            read = OperationResult(targetFrame, result, operands, scaleByOutputBasis);
+            return true;
+        }
+
+        if (TryReadFrame(Right, out _))
+        {
+            var result = operands.Aggregate(1L, (ticks, operand) => checked(ticks * operand.Ticks));
+            read = OperationResult(targetFrame, result, operands, scaleByOutputBasis);
             return true;
         }
 
@@ -593,7 +650,8 @@ public sealed class Relation : IElement, IEquatable<Relation>
         if (!TryReadUnitShape(out var unitShape) ||
             !crystal.UnitShape.CompatibleWith(unitShape) ||
             !CanProjectOperationValueAsSingleCrystal() ||
-            !TryReadOperationFrom(input, crystal, bindOutputToReader: true, out read) ||
+            !TryReadOperationBasisOn(crystal, out var basis) ||
+            !TryReadOperationFrom(input, crystal, basis, out read) ||
             read.Left is not CarrierLocation target ||
             !target.Carrier.SameIdentityAs(crystal))
         {
@@ -619,14 +677,22 @@ public sealed class Relation : IElement, IEquatable<Relation>
         if (TryReadPointFrame(Right, out var pointFrame) &&
             pointFrame.Extent != 0)
         {
-            basis = Point(carrier, pointFrame.End);
+            var extent = pointFrame.Carrier.IsUnknown &&
+                TryReadExpectedOperationBasisExtent(pointFrame.Extent, out var expectedExtent)
+                    ? expectedExtent
+                    : pointFrame.Extent;
+            basis = Point(carrier, extent);
             return true;
         }
 
         if (TryReadFrame(Right, out var segmentFrame) &&
             segmentFrame.Extent != 0)
         {
-            basis = Segment(carrier, segmentFrame.Start, segmentFrame.End);
+            var extent = segmentFrame.Carrier.IsUnknown &&
+                TryReadExpectedOperationBasisExtent(segmentFrame.Extent, out var expectedExtent)
+                    ? expectedExtent
+                    : segmentFrame.Extent;
+            basis = Segment(carrier, segmentFrame.Start, checked(segmentFrame.Start + extent));
             return true;
         }
 
@@ -1014,13 +1080,75 @@ public sealed class Relation : IElement, IEquatable<Relation>
         Carrier reader,
         List<OperationOperand> operands)
     {
-        if (!TryProjectThrough(port.Left, port.Right, input, reader, out var projection))
+        if (!TryProjectOperationOperandThrough(port.Left, port.Right, input, reader, out var projection))
         {
             return false;
         }
 
         operands.Add(new OperationOperand(projection.Target.Ticks, projection.Residue));
         return true;
+    }
+
+    /// <summary>Projects an operation operand through its exposed port basis into the operation reader.</summary>
+    private static bool TryProjectOperationOperandThrough(
+        IElement sourceSurface,
+        IElement targetSurface,
+        CarrierLocation input,
+        Carrier reader,
+        out SurfaceProjection projection)
+    {
+        if (TryProjectThrough(sourceSurface, targetSurface, input, reader, out projection))
+        {
+            return true;
+        }
+
+        if (!TryReadFrame(sourceSurface, out var sourceFrame) ||
+            !TryReadFrame(targetSurface, out var targetFrame))
+        {
+            projection = default;
+            return false;
+        }
+
+        if (FrameAcceptsProjectionSource(sourceFrame, input.Carrier))
+        {
+            projection = ProjectOperationOperandBetween(
+                input,
+                reader,
+                ResolveProjectionSourceFrame(sourceFrame, input.Carrier),
+                targetFrame);
+            return true;
+        }
+
+        if (!targetFrame.Carrier.IsUnknown &&
+            FrameAcceptsProjectionSource(targetFrame, input.Carrier))
+        {
+            projection = ProjectOperationOperandBetween(
+                input,
+                reader,
+                ResolveProjectionSourceFrame(targetFrame, input.Carrier),
+                sourceFrame);
+            return true;
+        }
+
+        projection = default;
+        return false;
+    }
+
+    /// <summary>Projects an operand into the operation reader while preserving the exposed target basis extent.</summary>
+    private static SurfaceProjection ProjectOperationOperandBetween(
+        CarrierLocation input,
+        Carrier reader,
+        CarrierFrame source,
+        CarrierFrame target)
+    {
+        var projected = ProjectBetween(
+            input,
+            reader,
+            source,
+            new CarrierFrame(reader, target.Start, target.End));
+        return projected.TryGetCarrierLocations(out var targetLocation, out var residue)
+            ? new SurfaceProjection(targetLocation, residue)
+            : default;
     }
 
     /// <summary>Projects input to a concrete target surface carrier.</summary>
@@ -1163,15 +1291,87 @@ public sealed class Relation : IElement, IEquatable<Relation>
         return true;
     }
 
+    /// <summary>Reads the expected output basis extent from exposed operation ports.</summary>
+    private bool TryReadExpectedOperationBasisExtent(long outputExtent, out long extent) =>
+        TryReadExpectedOperationBasisExtent(outputExtent, out extent, out _);
+
+    /// <summary>Reads the expected output basis extent and whether a concrete operand target supplied it.</summary>
+    private bool TryReadExpectedOperationBasisExtent(long outputExtent, out long extent, out bool hasDominantBasis)
+    {
+        var bases = new List<OperationBasis>();
+        if (!TryCollectOperationBases(Left, bases) ||
+            bases.Count == 0)
+        {
+            extent = 0;
+            hasDominantBasis = false;
+            return false;
+        }
+
+        hasDominantBasis = bases.Any(candidate => candidate.IsDominant);
+        var candidates = hasDominantBasis
+            ? bases.Where(candidate => candidate.IsDominant)
+            : bases;
+        var magnitude = candidates
+            .Select(candidate => MagnitudeOf(candidate.Extent))
+            .Where(value => value != 0)
+            .DefaultIfEmpty(MagnitudeOf(outputExtent))
+            .Min();
+        var sign = Math.Sign(outputExtent);
+        extent = SignedTicks(magnitude, sign == 0 ? 1 : sign);
+        return true;
+    }
+
+    /// <summary>Collects basis extents exposed by an operation port surface.</summary>
+    private static bool TryCollectOperationBases(
+        IElement portSurface,
+        List<OperationBasis> bases)
+    {
+        if (TryReadPortSurface(portSurface, out var port))
+        {
+            if (!TryReadPortBasis(port, out var basis))
+            {
+                return false;
+            }
+
+            bases.Add(basis);
+            return true;
+        }
+
+        if (portSurface is Relation portGroup)
+        {
+            return TryCollectOperationBases(portGroup.Left, bases) &&
+                TryCollectOperationBases(portGroup.Right, bases);
+        }
+
+        return false;
+    }
+
+    /// <summary>Reads the exposed basis of a port, with concrete target frames acting as dominant bases.</summary>
+    private static bool TryReadPortBasis(Relation port, out OperationBasis basis)
+    {
+        if (!TryReadFrame(port.Left, out var sourceFrame) ||
+            !TryReadFrame(port.Right, out var targetFrame))
+        {
+            basis = default;
+            return false;
+        }
+
+        basis = targetFrame.Carrier.IsUnknown
+            ? new OperationBasis(sourceFrame.Extent, IsDominant: false)
+            : new OperationBasis(targetFrame.Extent, IsDominant: true);
+        return true;
+    }
+
     /// <summary>Builds operation read output with target value and residue chain.</summary>
     private static Relation OperationResult(
         CarrierFrame targetFrame,
         long value,
-        List<OperationOperand> operands) =>
+        List<OperationOperand> operands,
+        bool scaleByTargetFrame = true) =>
         new(
             new CarrierLocation(
                 targetFrame.Carrier,
-                checked(targetFrame.Start + checked(value * targetFrame.Extent))),
+                checked(targetFrame.Start + (scaleByTargetFrame ? checked(value * targetFrame.Extent) : value))),
             OperationResidue(operands));
 
     /// <summary>Chains operand residues in operation operand order.</summary>
@@ -1716,6 +1916,8 @@ public sealed class Relation : IElement, IEquatable<Relation>
     private readonly record struct LiveOutputTarget(Carrier Carrier, long Ticks);
 
     private readonly record struct OperationOperand(long Ticks, CarrierLocation Residue);
+
+    private readonly record struct OperationBasis(long Extent, bool IsDominant);
 
     private readonly record struct SlotImport(Carrier Target, long TargetTicks, CarrierLocation Residue)
     {

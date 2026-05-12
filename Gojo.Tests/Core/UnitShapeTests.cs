@@ -561,6 +561,83 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
+    public void UnknownProductOutputDerivesCoarsestParticipatingBasis()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var width = new Carrier(lengthShape);
+        var height = new Carrier(lengthShape);
+        var widthPort = new Relation(Segment(width, 0, 12), Point(Carrier.Unknown, 1));
+        var heightPort = new Relation(Segment(height, 0, 4), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(widthPort, heightPort), Segment(Carrier.Unknown, 0, 1));
+        width.Set(24);
+        height.Set(8);
+
+        Assert.True(operation.TryCrystallize(
+            new Relation(width.ValueSlot, height.ValueSlot),
+            out var crystal,
+            out var basis,
+            out var read));
+
+        Assert.Equal(Segment(crystal, 0, 4), basis);
+        Assert.Equal(16UL, crystal.Value);
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(crystal, 16),
+                new Relation(new CarrierLocation(width, 0), new CarrierLocation(height, 0))),
+            read);
+    }
+
+    [Fact]
+    public void ExplicitProductOutputBasisOverridesCoarsestParticipatingBasis()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var width = new Carrier(lengthShape);
+        var height = new Carrier(lengthShape);
+        var result = new Carrier();
+        var widthPort = new Relation(Segment(width, 0, 12), Point(Carrier.Unknown, 1));
+        var heightPort = new Relation(Segment(height, 0, 4), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(widthPort, heightPort), Segment(result, 0, 10));
+        width.Set(24);
+        height.Set(8);
+
+        Assert.True(operation.TryCrystallize(
+            new Relation(width.ValueSlot, height.ValueSlot),
+            out var crystal,
+            out var basis,
+            out _));
+
+        Assert.Equal(Segment(crystal, 0, 10), basis);
+        Assert.Equal(40UL, crystal.Value);
+    }
+
+    [Fact]
+    public void ConcreteOperandTargetActsAsDominantProductBasis()
+    {
+        var rate = new Carrier();
+        var miles = new Carrier();
+        var hours = new Carrier();
+        var ratePort = new Relation(Point(rate, 1), Segment(miles, 0, 12));
+        var hoursPort = new Relation(Segment(hours, 0, 4), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(ratePort, hoursPort), Segment(Carrier.Unknown, 0, 1));
+        rate.Set(2);
+        hours.Set(8);
+
+        Assert.True(operation.TryCrystallize(
+            new Relation(rate.ValueSlot, hours.ValueSlot),
+            out var crystal,
+            out var basis,
+            out var read));
+
+        Assert.Equal(Segment(crystal, 0, 12), basis);
+        Assert.Equal(48UL, crystal.Value);
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(crystal, 48),
+                new Relation(new CarrierLocation(rate, 0), new CarrierLocation(hours, 0))),
+            read);
+    }
+
+    [Fact]
     public void AdditiveCrystallizeReturnsPointBasisReboundToNewCarrier()
     {
         var lengthShape = new Carrier().UnitShape;
