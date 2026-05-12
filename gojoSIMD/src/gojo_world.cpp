@@ -161,36 +161,6 @@ Id World::relationId(RelationRef relation) const
     return relations_.at(relation.index).id;
 }
 
-std::uint32_t World::carrierCount(std::uint8_t bits) const
-{
-    switch (bits)
-    {
-    case 8:
-        return static_cast<std::uint32_t>(carriers8_.ids.size());
-    case 16:
-        return static_cast<std::uint32_t>(carriers16_.ids.size());
-    case 32:
-        return static_cast<std::uint32_t>(carriers32_.ids.size());
-    default:
-        return static_cast<std::uint32_t>(carriers64_.ids.size());
-    }
-}
-
-std::uint32_t World::tickRefCount(std::uint8_t bits) const
-{
-    switch (bits)
-    {
-    case 8:
-        return static_cast<std::uint32_t>(ticks8_.ids.size());
-    case 16:
-        return static_cast<std::uint32_t>(ticks16_.ids.size());
-    case 32:
-        return static_cast<std::uint32_t>(ticks32_.ids.size());
-    default:
-        return static_cast<std::uint32_t>(ticks64_.ids.size());
-    }
-}
-
 ElementRef World::element(CarrierRef carrier) const noexcept
 {
     return ElementRef{ElementStore::carrier, carrier.bits, carrier.index};
