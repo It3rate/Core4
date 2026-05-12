@@ -759,6 +759,34 @@ public sealed class Relation : IElement, IEquatable<Relation>
     public bool TryReadOrderedElementsOn(Carrier holder, out IElement[] elements) =>
         TryReadAdditiveParticipantsOn(holder, out elements);
 
+    /// <summary>Reads the first and last ordered elements when they close through shared coordinate refs.</summary>
+    public bool TryReadOrderedClosureOn(Carrier holder, out Relation closure)
+    {
+        if (!TryReadOrderedElementsOn(holder, out var elements) ||
+            elements.Length < 2 ||
+            !TryReadClosedOrderedEndpoints(elements[0], elements[^1]))
+        {
+            closure = null!;
+            return false;
+        }
+
+        closure = new Relation(elements[0], elements[^1]);
+        return true;
+    }
+
+    /// <summary>Creates a fill basis only when this ordered group closes through shared endpoint refs.</summary>
+    public bool TryCreateContourFillBasisOn(Carrier holder, out Carrier fill)
+    {
+        if (!TryReadOrderedClosureOn(holder, out _))
+        {
+            fill = null!;
+            return false;
+        }
+
+        fill = CreateFillBasis();
+        return true;
+    }
+
     /// <summary>Reads the additive unit participation of holder participants.</summary>
     public bool TryReadAdditiveUnitShapeOn(Carrier holder, out UnitShape unitShape)
     {
@@ -1235,7 +1263,7 @@ public sealed class Relation : IElement, IEquatable<Relation>
         if (TryReadPointFrame(Right, out var pointFrame) &&
             pointFrame.Extent != 0)
         {
-            unitShape = UnitShape.Additive(operands);
+            unitShape = UnitShape.AlignedProduct(operands);
             return true;
         }
 
@@ -1708,6 +1736,44 @@ public sealed class Relation : IElement, IEquatable<Relation>
         }
 
         participant = default!;
+        return false;
+    }
+
+    /// <summary>Returns true when two ordered endpoint elements expose matching shared coordinates.</summary>
+    private static bool TryReadClosedOrderedEndpoints(IElement first, IElement last)
+    {
+        if (!TryReadOrderedCarrierLocations(first, out var firstLocations) ||
+            !TryReadOrderedCarrierLocations(last, out var lastLocations))
+        {
+            return false;
+        }
+
+        return firstLocations.Length != 0 &&
+            firstLocations.Length == lastLocations.Length &&
+            firstLocations.Zip(lastLocations).All(pair =>
+                pair.First.Carrier.SameIdentityAs(pair.Second.Carrier) &&
+                pair.First.SameTickRefAs(pair.Second));
+    }
+
+    /// <summary>Reads an ordered position's coordinate locations without counting its holder origin.</summary>
+    private static bool TryReadOrderedCarrierLocations(IElement element, out CarrierLocation[] locations)
+    {
+        if (element is CarrierLocation location)
+        {
+            locations = [location];
+            return true;
+        }
+
+        if (element is Relation relation &&
+            relation.Right is Carrier holder &&
+            relation.TryReadOrderedElementsOn(holder, out var elements) &&
+            elements.All(item => item is CarrierLocation))
+        {
+            locations = [.. elements.Cast<CarrierLocation>()];
+            return true;
+        }
+
+        locations = [];
         return false;
     }
 

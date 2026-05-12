@@ -126,6 +126,12 @@ selection may all use additive gathering, but only some reads care about order.
 Preserving order in structure lets both ordered and unordered lenses remain
 available.
 
+For contour closure, equal coordinate values are not enough. The current Gojo
+foothold treats an ordered contour as closed when its first and last endpoint
+positions expose matching carrier locations that share the same `TickRef`s.
+That makes closure a physical shared-coordinate relation rather than a
+coincidental numeric equality.
+
 Group selection is almost the opposite of type inspection:
 
 ```text
@@ -136,7 +142,7 @@ type read              follows unit shape, aligned structure, and provenance
 A useful system needs both. Selection asks "what participates here?" Type
 inspection asks "what kind of thing is this, and how is that kind derived?"
 
-## 4. Boundary, Fill, And Low Resolution
+## 4. Boundary, Fill, And Basis Handles
 
 A boundary group does not automatically contain fill. It exposes potential
 uses. A fill exists when there is a region or interior participation carrier
@@ -288,6 +294,9 @@ Carrier.AttachAdditive    attaches an additive ladder to a carrier holder
 TryReadAdditiveParticipantsOn
                            inspects actual holder participants in order
 TryReadOrderedElementsOn  names ordered participant inspection
+TryReadOrderedClosureOn   detects ordered endpoint closure through shared refs
+TryCreateContourFillBasisOn
+                           creates fill basis only for closed contour groups
 TryReadAdditiveUnitShapeOn
                            reads a holder group's additive unit participation
 CreateFillBasis            creates fill-kind basis participation
@@ -300,8 +309,8 @@ TryReadOrthogonalProductOperands
 UnitShape.Product(...)    represents multiplicative/product participation
 TryCrystallize(input, out carrier, out basis, out read)
                            returns operation result plus rebound basis
-Relation point output     additive operation read
-Relation segment output   multiplicative/product operation read
+Relation point output     aligned/additive operation read
+Relation segment output   orthogonal product operation read
 TryReadFillMeasureOn      deferred interval-fill measure
 TryCrystallizeFill        independent interval-fill carrier copy
 OrthogonalOutlet          generic source-to-orthogonal unit-shape foothold
@@ -311,11 +320,9 @@ AttachLiveOutput          live read into a concrete result carrier
 The missing pieces are mostly semantic and inspection footholds:
 
 ```text
-ordered contour/group structure for boundaries
 named lens structures for area, bbox, perimeter, hit, centroid, render
 stable live result carriers with provenance
 unit projection/cast structure for apples/oranges -> fruit-like reads
-relation-level aligned-vs-orthogonal product selection
 ordered additive group reads separate from unordered participation reads
 orthogonal/noise tension distinct from aligned overflow tension
 ```

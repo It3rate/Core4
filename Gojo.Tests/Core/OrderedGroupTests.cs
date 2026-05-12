@@ -100,6 +100,77 @@ public sealed class OrderedGroupTests
 
         Assert.True(((CarrierLocation)first[0]).SameTickRefAs((CarrierLocation)last[0]));
         Assert.True(((CarrierLocation)first[1]).SameTickRefAs((CarrierLocation)last[1]));
+        Assert.True(contour.TryReadOrderedClosureOn(path, out var closure));
+        Assert.Equal(new Relation(points[0], points[3]), closure);
+    }
+
+    [Fact]
+    public void SameValuePolylineEndpointsDoNotCloseWithoutSharedTickReferences()
+    {
+        var path = new Carrier();
+        var xAxis = new Carrier();
+        var yAxis = new Carrier();
+        var p0Holder = new Carrier();
+        var p1Holder = new Carrier();
+        var p2Holder = new Carrier();
+        var p0 = Relation.OrderedGroup(
+            p0Holder,
+            new CarrierLocation(xAxis, 0),
+            new CarrierLocation(yAxis, 0));
+        var p1 = Relation.OrderedGroup(p1Holder, new CarrierLocation(xAxis, 3), new CarrierLocation(yAxis, 0));
+        var p2 = Relation.OrderedGroup(
+            p2Holder,
+            new CarrierLocation(xAxis, 0),
+            new CarrierLocation(yAxis, 0));
+        var polyline = Relation.OrderedGroup(path, p0, p1, p2);
+
+        Assert.False(polyline.TryReadOrderedClosureOn(path, out _));
+    }
+
+    [Fact]
+    public void ClosedContourCanCreateFillBasisFromOrderedStructure()
+    {
+        var path = new Carrier();
+        var xAxis = new Carrier();
+        var yAxis = new Carrier();
+        var originX = new TickRef(0);
+        var originY = new TickRef(0);
+        var p0Holder = new Carrier();
+        var p1Holder = new Carrier();
+        var p2Holder = new Carrier();
+        var p3Holder = new Carrier();
+        var p0 = Relation.OrderedGroup(
+            p0Holder,
+            new CarrierLocation(xAxis, originX),
+            new CarrierLocation(yAxis, originY));
+        var p1 = Relation.OrderedGroup(p1Holder, new CarrierLocation(xAxis, 3), new CarrierLocation(yAxis, 0));
+        var p2 = Relation.OrderedGroup(p2Holder, new CarrierLocation(xAxis, 3), new CarrierLocation(yAxis, 2));
+        var p3 = Relation.OrderedGroup(
+            p3Holder,
+            new CarrierLocation(xAxis, originX),
+            new CarrierLocation(yAxis, originY));
+        var contour = Relation.OrderedGroup(path, p0, p1, p2, p3);
+
+        Assert.True(contour.TryCreateContourFillBasisOn(path, out var fill));
+
+        Assert.Equal(1UL, fill.Value);
+        Assert.True(fill.UnitShape.TryReadOrthogonalSource(out var source));
+        Assert.Equal(contour, source);
+    }
+
+    [Fact]
+    public void OpenPolylineDoesNotCreateContourFillBasis()
+    {
+        var path = new Carrier();
+        var xAxis = new Carrier();
+        var yAxis = new Carrier();
+        var p0Holder = new Carrier();
+        var p1Holder = new Carrier();
+        var p0 = Relation.OrderedGroup(p0Holder, new CarrierLocation(xAxis, 0), new CarrierLocation(yAxis, 0));
+        var p1 = Relation.OrderedGroup(p1Holder, new CarrierLocation(xAxis, 3), new CarrierLocation(yAxis, 2));
+        var polyline = Relation.OrderedGroup(path, p0, p1);
+
+        Assert.False(polyline.TryCreateContourFillBasisOn(path, out _));
     }
 
     [Fact]

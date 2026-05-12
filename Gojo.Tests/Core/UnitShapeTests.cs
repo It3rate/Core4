@@ -286,7 +286,7 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
-    public void AdditiveOperationWithCompatibleUnitsCollapsesToThatUnitShape()
+    public void PointOutputOperationReadsAlignedCompatibleProductAsSharedUnitShape()
     {
         var lengthShape = new Carrier().UnitShape;
         var x = new Carrier(lengthShape);
@@ -302,7 +302,7 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
-    public void AdditiveOperationWithIncompatibleUnitsPreservesUnreducedShape()
+    public void PointOutputOperationReadsAlignedIncompatibleProductAsUnreducedParticipation()
     {
         var length = new Carrier();
         var heat = new Carrier();
@@ -362,7 +362,7 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
-    public void MultiplicativeOperationDerivesProductUnitShape()
+    public void SegmentOutputOperationReadsOrthogonalProductUnitShape()
     {
         var lengthShape = new Carrier().UnitShape;
         var width = new Carrier(lengthShape);
@@ -634,6 +634,33 @@ public sealed class UnitShapeTests
             new Relation(
                 new CarrierLocation(crystal, 48),
                 new Relation(new CarrierLocation(rate, 0), new CarrierLocation(hours, 0))),
+            read);
+    }
+
+    [Fact]
+    public void UnknownAdditiveOutputDerivesCoarsestParticipatingBasis()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var x = new Carrier(lengthShape);
+        var y = new Carrier(lengthShape);
+        var xPort = new Relation(Segment(x, 0, 10), Point(Carrier.Unknown, 1));
+        var yPort = new Relation(Segment(y, 0, 4), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(xPort, yPort), Point(Carrier.Unknown, 1));
+        x.Set(20);
+        y.Set(8);
+
+        Assert.True(operation.TryCrystallize(
+            new Relation(x.ValueSlot, y.ValueSlot),
+            out var crystal,
+            out var basis,
+            out var read));
+
+        Assert.Equal(Point(crystal, 4), basis);
+        Assert.Equal(16UL, crystal.Value);
+        Assert.Equal(
+            new Relation(
+                new CarrierLocation(crystal, 16),
+                new Relation(new CarrierLocation(x, 0), new CarrierLocation(y, 0))),
             read);
     }
 
