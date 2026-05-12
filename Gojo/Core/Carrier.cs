@@ -61,6 +61,12 @@ public sealed class Carrier : IElement
     /// <summary>Stable tick meaning for this carrier; value remains mutable.</summary>
     public UnitShape UnitShape { get; }
 
+    /// <summary>Existing opposed face, when it has already been materialized.</summary>
+    internal Carrier? ExistingInverse => inverse;
+
+    /// <summary>Relations attached to this carrier's local settlement world.</summary>
+    internal IReadOnlyList<Relation> AttachedRelations => relations;
+
     #endregion
 
     #region State and Slots

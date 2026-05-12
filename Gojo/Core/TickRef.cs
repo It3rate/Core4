@@ -6,11 +6,15 @@ namespace Gojo.Core;
 /// </summary>
 public sealed class TickRef(long ticks) : IElement
 {
+    private static ulong idCounter = 1;
+
     /// <summary>Creates a tick reference from an unsigned tick count.</summary>
     public TickRef(ulong ticks)
         : this(checked((long)ticks))
     {
     }
+
+    public ulong Id { get; } = NextId();
 
     public long Ticks { get; private set; } = ticks;
 
@@ -27,4 +31,6 @@ public sealed class TickRef(long ticks) : IElement
     IElement IElement.Dual() => Dual();
 
     public override string ToString() => Ticks.ToString();
+
+    private static ulong NextId() => idCounter++;
 }

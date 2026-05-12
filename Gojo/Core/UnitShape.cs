@@ -7,17 +7,25 @@ namespace Gojo.Core;
 /// </summary>
 public sealed class UnitShape : IEquatable<UnitShape>
 {
+    private static ulong idCounter = 1;
+
     private readonly IElement surface;
 
     private UnitShape(IElement surface)
     {
         this.surface = surface ?? throw new ArgumentNullException(nameof(surface));
+        Id = NextId();
     }
+
+    public ulong Id { get; }
 
     #region Construction and Surface Reads
 
     /// <summary>Returns an inspectable snapshot of the unit surface.</summary>
     public IElement Surface => SnapshotOf(surface);
+
+    /// <summary>Returns the actual immutable unit surface for packed inspection.</summary>
+    internal IElement SurfaceRoot => surface;
 
     /// <summary>Creates a fresh linear unit atom grounded on a carrier.</summary>
     public static UnitShape Atom(Carrier carrier) =>
@@ -444,4 +452,6 @@ public sealed class UnitShape : IEquatable<UnitShape>
     }
 
     #endregion
+
+    private static ulong NextId() => idCounter++;
 }
