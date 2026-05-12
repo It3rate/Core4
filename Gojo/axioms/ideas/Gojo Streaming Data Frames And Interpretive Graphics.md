@@ -1,4 +1,4 @@
-# Gojo Streaming Data Frames And Interpretive Graphics
+ # Gojo Streaming Data Frames And Interpretive Graphics
 
 This is an ideas note, not an implementation contract. It captures a possible
 direction for how Gojo should handle incoming data streams, low-resolution
