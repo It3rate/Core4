@@ -6,7 +6,12 @@ project(gojoSIMD
     LANGUAGES CXX)
 
 add_library(gojoSIMD
-    src/gojo.cpp)
+    src/gojo_operations.cpp
+    src/gojo_projection.cpp
+    src/gojo_settlement.cpp
+    src/gojo_storage.cpp
+    src/gojo_unitshape.cpp
+    src/gojo_world.cpp)
 
 target_include_directories(gojoSIMD
     PUBLIC

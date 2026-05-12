@@ -1,2 +1,5 @@
 build/
 out/
+x64/
+Debug/
+Release/

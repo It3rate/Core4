@@ -28,6 +28,14 @@ AVX-512, ARM NEON, or compiler `std::simd` bindings.
 
 ## Build
 
+Visual Studio:
+
+```powershell
+gojoSIMD\gojoSIMD.sln
+```
+
+CMake:
+
 ```powershell
 cmake -S gojoSIMD -B gojoSIMD/build
 cmake --build gojoSIMD/build
@@ -35,4 +43,6 @@ ctest --test-dir gojoSIMD/build --output-on-failure
 ```
 
 The repository root `Gojo.slnx` remains the active C# solution for the live
-kernel and tests.
+kernel and tests. The C++ projects live in their own solution because adding
+`.vcxproj` files to `Gojo.slnx` makes the dotnet CLI try to import Visual
+Studio C++ targets.

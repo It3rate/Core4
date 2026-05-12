@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gojoSIMD", "gojoSIMD.vcxproj", "{9098656A-F238-45D2-AD76-6C9569C7F70E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gojoSIMD.Tests", "gojoSIMD.Tests.vcxproj", "{AD5F8C3C-14F3-4D13-A8FA-5BE4C49237A6}"
+	ProjectSection(ProjectDependencies) = postProject
+		{9098656A-F238-45D2-AD76-6C9569C7F70E} = {9098656A-F238-45D2-AD76-6C9569C7F70E}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9098656A-F238-45D2-AD76-6C9569C7F70E}.Debug|x64.ActiveCfg = Debug|x64
+		{9098656A-F238-45D2-AD76-6C9569C7F70E}.Debug|x64.Build.0 = Debug|x64
+		{9098656A-F238-45D2-AD76-6C9569C7F70E}.Release|x64.ActiveCfg = Release|x64
+		{9098656A-F238-45D2-AD76-6C9569C7F70E}.Release|x64.Build.0 = Release|x64
+		{AD5F8C3C-14F3-4D13-A8FA-5BE4C49237A6}.Debug|x64.ActiveCfg = Debug|x64
+		{AD5F8C3C-14F3-4D13-A8FA-5BE4C49237A6}.Debug|x64.Build.0 = Debug|x64
+		{AD5F8C3C-14F3-4D13-A8FA-5BE4C49237A6}.Release|x64.ActiveCfg = Release|x64
+		{AD5F8C3C-14F3-4D13-A8FA-5BE4C49237A6}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
