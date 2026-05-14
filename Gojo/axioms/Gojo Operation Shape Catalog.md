@@ -130,6 +130,47 @@ This is carrier-face behavior. It does not mean every reverse segment is an
 inverse carrier, and it does not collapse positive and inverse components
 during addition.
 
+There are two related segment shapes here:
+
+- `S(C,a,b)` is an ordered same-face frame; its direction is the frame extent
+  `b-a`.
+- `DS(C,a,b)` is a directed endpoint segment whose start is opposed-flow
+  participation and whose endpoint is positive-flow participation:
+
+```text
+DS(C,a,b) = P(C*,a) -> P(C,b)
+```
+
+Same-face segment inputs can already participate in product reads through
+their extent. A segment on an inverse face carries inverse-flow participation:
+
+```text
+S(X*,0,2) * S(Y,0,5) -> L(Area*,10)
+```
+
+For a two-sided directed segment product such as:
+
+```text
+(2 inverse + 3 forward) on X
+*
+(4 inverse + 5 forward) on Y
+```
+
+the directed endpoint product read distributes the four endpoint terms as:
+
+```text
+AC: P(X*,2) * P(Y*,4) -> L(Area*,8)
+AD: P(X*,2) * P(Y, 5) -> L(Area*,10)
+BC: P(X, 3) * P(Y*,4) -> L(Area*,12)
+BD: P(X, 3) * P(Y, 5) -> L(Area,15)
+```
+
+So `AC` is not a second subtraction of a positive area. It is already an
+opposed-area term: `Area*:8`, with provenance through inverse/inverse
+endpoint participation. A scalar collapse can freely read that as negative
+area and cancel against `BD`, but the structural product first preserves the
+carrier face.
+
 ## Segment And Scaling Shapes
 
 | Shape | Read |

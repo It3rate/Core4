@@ -114,6 +114,60 @@ public sealed class OperationSurfaceTests
     }
 
     [Fact]
+    public void SegmentOutputOperationReadsSameFaceSegmentExtentsOnInverseFaces()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var x = new Carrier(lengthShape);
+        var inverseX = x.Inverse();
+        var y = new Carrier(lengthShape);
+        var area = new Carrier(UnitShape.Product(lengthShape, lengthShape));
+        var xPort = new Relation(Point(x, 1), Point(Carrier.Unknown, 1));
+        var yPort = new Relation(Point(y, 1), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(xPort, yPort), Segment(area, 0, 1));
+
+        Assert.True(operation.TryReadOperationFrom(
+            new Relation(Segment(inverseX, 0, 2), Segment(y, 0, 5)),
+            area,
+            out var read));
+
+        var target = Assert.IsType<CarrierLocation>(read.Left);
+        Assert.True(target.Carrier.SameIdentityAs(area.Inverse()));
+        Assert.Equal(10, target.Ticks);
+    }
+
+    [Fact]
+    public void SameFaceSegmentProductCollapsesInversePairToSignedScalar()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var x = new Carrier(lengthShape);
+        var inverseX = x.Inverse();
+        var y = new Carrier(lengthShape);
+        var inverseY = y.Inverse();
+        var area = new Carrier(UnitShape.Product(lengthShape, lengthShape));
+        var xPort = new Relation(Point(x, 1), Point(Carrier.Unknown, 1));
+        var yPort = new Relation(Point(y, 1), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(xPort, yPort), Segment(area, 0, 1));
+
+        var ac = Product(Segment(inverseX, 0, 2), Segment(inverseY, 0, 4));
+        var ad = Product(Segment(inverseX, 0, 2), Segment(y, 0, 5));
+        var bc = Product(Segment(x, 0, 3), Segment(inverseY, 0, 4));
+        var bd = Product(Segment(x, 0, 3), Segment(y, 0, 5));
+
+        Assert.Equal(new CarrierLocation(area, -8), ac);
+        Assert.Equal(new CarrierLocation(area.Inverse(), 10), ad);
+        Assert.Equal(new CarrierLocation(area.Inverse(), 12), bc);
+        Assert.Equal(new CarrierLocation(area, 15), bd);
+        Assert.Equal(7, ac.Ticks + bd.Ticks);
+        Assert.Equal(22, ad.Ticks + bc.Ticks);
+
+        CarrierLocation Product(Relation left, Relation right)
+        {
+            Assert.True(operation.TryReadOperationFrom(new Relation(left, right), area, out var read));
+            return Assert.IsType<CarrierLocation>(read.Left);
+        }
+    }
+
+    [Fact]
     public void OperationSurfaceReadsThroughExposedPortBasisAndPreservesResidue()
     {
         var x = new Carrier();

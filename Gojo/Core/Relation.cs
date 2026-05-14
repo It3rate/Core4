@@ -26,6 +26,17 @@ public sealed partial class Relation : IElement, IEquatable<Relation>
     public static Relation Segment(Carrier carrier, long start, long end) =>
         new(Point(carrier, start), Point(carrier, end));
 
+    /// <summary>
+    /// Creates a directed endpoint segment whose start is opposed-flow
+    /// participation and whose end is positive-flow participation.
+    /// </summary>
+    public static Relation DirectedSegment(Carrier carrier, long inverseStart, long positiveEnd)
+    {
+        var forward = carrier ?? Carrier.Unknown;
+        var inverse = forward.IsUnknown ? Carrier.Unknown : forward.Inverse();
+        return new(Point(inverse, inverseStart), Point(forward, positiveEnd));
+    }
+
     /// <summary>Creates the uncalibrated orthogonal outlet surface for a source.</summary>
     public static Relation OrthogonalOutlet(IElement source) =>
         new(source ?? throw new ArgumentNullException(nameof(source)), Segment(Carrier.Unknown, 0, 0));
