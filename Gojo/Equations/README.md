@@ -35,6 +35,28 @@ input sample -> predicted output + source residue
 The data does not become part of the equation. It is admitted through the input
 surface and read into the requested output carrier.
 
+## Sum And Product Surfaces
+
+Weighted sums and products use existing Gojo operation surfaces. The ports are
+ordinary frame relations, and the output surface decides the operation shape:
+
+```text
+// weighted sum
+((Segment(x,0,1) -> Segment(Unknown,0,2))
+  -> (Segment(y,0,1) -> Segment(Unknown,0,3)))
+  -> Point(output,1)
+
+// product
+((Point(width,1) -> Point(Unknown,1))
+  -> (Point(height,1) -> Point(Unknown,1)))
+  -> Segment(area,0,1)
+```
+
+For the sum, each operand is projected into the equation reader basis and then
+added. For the product, each operand is projected and then multiplied. Biases
+or constants can be represented as ordinary supplied slots, such as a bias
+carrier with value `1` and a weighted port of `0..5`.
+
 ## Ordered Map
 
 Mapping a stream is represented as structure:
@@ -49,9 +71,9 @@ MapRoot
 
 SampleN
   + Point(index,N)
-  + input location
+  + input location or relation-shaped input
   + predicted output location
-  + source residue location
+  + source residue location or relation-shaped residue
 ```
 
 The current helper still executes the per-sample loop in code, but the result

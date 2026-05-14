@@ -28,11 +28,52 @@ public static class Equation
             Relation.Segment(RootOrUnknown(input), inputStart, inputEnd),
             Relation.Segment(RootOrUnknown(output), outputStart, outputEnd));
 
+    /// <summary>Creates an operand port that projects one input frame into the equation reader basis.</summary>
+    public static Relation WeightedPort(
+        Carrier input,
+        long inputStart,
+        long inputEnd,
+        long outputStart,
+        long outputEnd) =>
+        new(
+            Relation.Segment(RootOrUnknown(input), inputStart, inputEnd),
+            Relation.Segment(Carrier.Unknown, outputStart, outputEnd));
+
+    /// <summary>Creates a unit operand port for additive or product operation surfaces.</summary>
+    public static Relation UnitPort(Carrier input) =>
+        WeightedPort(input, 0, 1, 0, 1);
+
+    /// <summary>Creates an additive operation surface over relation-shaped operand input.</summary>
+    public static Relation Sum(Carrier output, params Relation[] operandPorts) =>
+        new(PortGroup(operandPorts), Relation.Point(RootOrUnknown(output), 1));
+
+    /// <summary>Creates a product operation surface over relation-shaped operand input.</summary>
+    public static Relation Product(Carrier output, params Relation[] operandPorts) =>
+        new(PortGroup(operandPorts), Relation.Segment(RootOrUnknown(output), 0, 1));
+
     /// <summary>Projects one input sample through an equation into an output carrier.</summary>
     public static Relation Predict(Relation equation, CarrierLocation input, Carrier output) =>
         equation is null
             ? new Relation(new CarrierLocation(RootOrUnknown(output), 0), input)
             : equation.Project(input, RootOrUnknown(output));
+
+    /// <summary>Reads one scalar or relation-shaped input sample through an equation.</summary>
+    public static Relation Predict(Relation equation, IElement input, Carrier output)
+    {
+        if (equation is null)
+        {
+            return new Relation(new CarrierLocation(RootOrUnknown(output), 0), input ?? Relation.Point(Carrier.Unknown, 0));
+        }
+
+        if (equation.TryReadOperationFrom(input, RootOrUnknown(output), out var operationRead))
+        {
+            return operationRead;
+        }
+
+        return input is CarrierLocation location
+            ? Predict(equation, location, output)
+            : new Relation(new CarrierLocation(RootOrUnknown(output), 0), input);
+    }
 
     /// <summary>Projects one input sample only when the equation surface accepts it.</summary>
     public static bool TryPredict(
@@ -47,6 +88,39 @@ public static class Equation
         }
 
         prediction = new Relation(new CarrierLocation(RootOrUnknown(output), 0), input);
+        return false;
+    }
+
+    /// <summary>Reads one scalar or relation-shaped input sample only when the equation accepts it.</summary>
+    public static bool TryPredict(
+        Relation equation,
+        IElement input,
+        Carrier output,
+        out Relation prediction)
+    {
+        if (equation is not null &&
+            (equation.TryReadOperationFrom(input, RootOrUnknown(output), out prediction) ||
+                (input is CarrierLocation location && equation.TryProject(location, RootOrUnknown(output), out prediction))))
+        {
+            return true;
+        }
+
+        prediction = new Relation(new CarrierLocation(RootOrUnknown(output), 0), input ?? Relation.Point(Carrier.Unknown, 0));
+        return false;
+    }
+
+    /// <summary>Reads a prediction as target output plus residue, preserving relation-shaped residue.</summary>
+    public static bool TryReadPrediction(Relation prediction, out CarrierLocation predicted, out IElement residue)
+    {
+        if (prediction?.Left is CarrierLocation target)
+        {
+            predicted = target;
+            residue = prediction.Right;
+            return true;
+        }
+
+        predicted = default;
+        residue = default!;
         return false;
     }
 
@@ -70,6 +144,34 @@ public static class Equation
         {
             var prediction = Predict(equation, inputs[sampleIndex], output);
             samples[sampleIndex] = PredictionSample(index, sampleIndex, inputs[sampleIndex], prediction);
+        }
+
+        return Relation.OrderedGroup(
+            holder,
+            [Relation.Segment(index, 0, count), equation ?? Relation.Point(Carrier.Unknown, 0), .. samples]);
+    }
+
+    /// <summary>
+    /// Applies one equation to an ordered group of scalar or relation-shaped
+    /// input samples.
+    /// </summary>
+    public static Relation Map(
+        Carrier root,
+        Relation equation,
+        IReadOnlyList<IElement> inputs,
+        Carrier output,
+        out Relation[] samples)
+    {
+        var holder = RootOrNew(root);
+        var index = new Carrier();
+        var count = CountOf(inputs);
+        samples = new Relation[count];
+
+        for (var sampleIndex = 0; sampleIndex < count; sampleIndex++)
+        {
+            var input = inputs[sampleIndex] ?? Relation.Point(Carrier.Unknown, 0);
+            var prediction = Predict(equation, input, output);
+            samples[sampleIndex] = PredictionSample(index, sampleIndex, input, prediction);
         }
 
         return Relation.OrderedGroup(
@@ -157,6 +259,34 @@ public static class Equation
         return false;
     }
 
+    /// <summary>Reads one prediction sample while preserving relation-shaped input and residue.</summary>
+    public static bool TryReadPredictionSampleElement(
+        Relation sample,
+        out CarrierLocation index,
+        out IElement input,
+        out CarrierLocation predicted,
+        out IElement residue)
+    {
+        if (TryReadRootElements(sample, out var elements) &&
+            elements.Length == 4 &&
+            elements[0] is Relation indexPoint &&
+            indexPoint.Left is CarrierLocation indexLocation &&
+            elements[2] is CarrierLocation predictedLocation)
+        {
+            index = indexLocation;
+            input = elements[1];
+            predicted = predictedLocation;
+            residue = elements[3];
+            return true;
+        }
+
+        index = default;
+        input = default!;
+        predicted = default;
+        residue = default!;
+        return false;
+    }
+
     /// <summary>Reads one comparison sample group.</summary>
     public static bool TryReadComparisonSample(
         Relation sample,
@@ -185,16 +315,23 @@ public static class Equation
         Carrier index,
         int sampleIndex,
         CarrierLocation input,
+        Relation prediction) =>
+        PredictionSample(index, sampleIndex, (IElement)input, prediction);
+
+    private static Relation PredictionSample(
+        Carrier index,
+        int sampleIndex,
+        IElement input,
         Relation prediction)
     {
-        if (prediction.TryGetCarrierLocations(out var predicted, out var residue))
+        if (prediction.Left is CarrierLocation predicted)
         {
             return Relation.OrderedGroup(
                 new Carrier(),
                 Relation.Point(index, sampleIndex),
                 input,
                 predicted,
-                residue);
+                prediction.Right);
         }
 
         return Relation.OrderedGroup(new Carrier(), Relation.Point(index, sampleIndex), input, prediction);
@@ -242,6 +379,22 @@ public static class Equation
 
         locations = [];
         return false;
+    }
+
+    private static IElement PortGroup(IReadOnlyList<Relation> ports)
+    {
+        if (CountOf(ports) == 0)
+        {
+            return new Relation(Relation.Point(Carrier.Unknown, 1), Relation.Point(Carrier.Unknown, 1));
+        }
+
+        IElement group = ports[0] ?? Relation.Point(Carrier.Unknown, 0);
+        for (var index = 1; index < ports.Count; index++)
+        {
+            group = new Relation(group, ports[index] ?? Relation.Point(Carrier.Unknown, 0));
+        }
+
+        return group;
     }
 
     private static int CountOf<T>(IReadOnlyList<T> values) =>

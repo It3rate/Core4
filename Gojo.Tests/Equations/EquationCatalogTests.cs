@@ -87,4 +87,45 @@ public sealed class EquationCatalogTests
         Assert.Equal(new CarrierLocation(error, -2), secondError);
         Assert.Equal(new CarrierLocation(error, 5), thirdError);
     }
+
+    [Fact]
+    public void WeightedSumEquationCombinesSensorEvidence()
+    {
+        var heat = new Carrier();
+        var light = new Carrier();
+        var sound = new Carrier();
+        var score = new Carrier();
+        var evidence = Equation.Sum(
+            score,
+            Equation.WeightedPort(heat, 0, 100, 0, 4),
+            Equation.WeightedPort(light, 0, 100, 0, 2),
+            Equation.WeightedPort(sound, 0, 100, 0, -1));
+
+        var prediction = Equation.Predict(
+            evidence,
+            new Relation(
+                new Relation(new CarrierLocation(heat, 50), new CarrierLocation(light, 25)),
+                new CarrierLocation(sound, 10)),
+            score);
+
+        Assert.True(Equation.TryReadPrediction(prediction, out var predicted, out _));
+        Assert.Equal(new CarrierLocation(score, 2), predicted);
+    }
+
+    [Fact]
+    public void ProductEquationModelsAreaFromWidthAndHeight()
+    {
+        var width = new Carrier();
+        var height = new Carrier();
+        var area = new Carrier();
+        var rectangleArea = Equation.Product(area, Equation.UnitPort(width), Equation.UnitPort(height));
+
+        var prediction = Equation.Predict(
+            rectangleArea,
+            new Relation(new CarrierLocation(width, 8), new CarrierLocation(height, 5)),
+            area);
+
+        Assert.True(Equation.TryReadPrediction(prediction, out var predicted, out _));
+        Assert.Equal(new CarrierLocation(area, 40), predicted);
+    }
 }

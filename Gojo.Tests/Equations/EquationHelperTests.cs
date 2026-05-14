@@ -90,4 +90,67 @@ public sealed class EquationHelperTests
         Assert.Equal(1, secondIndex.Ticks);
         Assert.Equal(new CarrierLocation(error, -5), secondError);
     }
+
+    [Fact]
+    public void SumEquationPredictsWeightedRelationShapedInput()
+    {
+        var x = new Carrier();
+        var y = new Carrier();
+        var bias = new Carrier();
+        var output = new Carrier();
+        var sum = Equation.Sum(
+            output,
+            Equation.WeightedPort(x, 0, 1, 0, 2),
+            Equation.WeightedPort(y, 0, 1, 0, 3),
+            Equation.WeightedPort(bias, 0, 1, 0, 5));
+        x.Set(3);
+        y.Set(4);
+        bias.Set(1);
+
+        var prediction = Equation.Predict(sum, new Relation(new Relation(x.ValueSlot, y.ValueSlot), bias.ValueSlot), output);
+
+        Assert.True(Equation.TryReadPrediction(prediction, out var predicted, out _));
+        Assert.Equal(new CarrierLocation(output, 23), predicted);
+    }
+
+    [Fact]
+    public void ProductEquationPredictsBilinearInput()
+    {
+        var width = new Carrier();
+        var height = new Carrier();
+        var area = new Carrier();
+        var product = Equation.Product(area, Equation.UnitPort(width), Equation.UnitPort(height));
+        width.Set(3);
+        height.Set(4);
+
+        var prediction = Equation.Predict(product, new Relation(width.ValueSlot, height.ValueSlot), area);
+
+        Assert.True(Equation.TryReadPrediction(prediction, out var predicted, out _));
+        Assert.Equal(new CarrierLocation(area, 12), predicted);
+    }
+
+    [Fact]
+    public void MapPreservesRelationShapedInputsAndResidue()
+    {
+        var root = new Carrier();
+        var x = new Carrier();
+        var y = new Carrier();
+        var output = new Carrier();
+        var sum = Equation.Sum(output, Equation.UnitPort(x), Equation.UnitPort(y));
+        IElement[] inputs =
+        [
+            new Relation(new CarrierLocation(x, 2), new CarrierLocation(y, 3)),
+            new Relation(new CarrierLocation(x, 5), new CarrierLocation(y, 7))
+        ];
+
+        var map = Equation.Map(root, sum, inputs, output, out var samples);
+
+        Assert.True(Equation.TryReadMapSamples(map, out var readSamples));
+        Assert.Equal(samples, readSamples);
+        Assert.True(Equation.TryReadPredictionSampleElement(samples[1], out var index, out var sampleInput, out var predicted, out var residue));
+        Assert.Equal(1, index.Ticks);
+        Assert.Equal(inputs[1], sampleInput);
+        Assert.Equal(new CarrierLocation(output, 12), predicted);
+        Assert.IsType<Relation>(residue);
+    }
 }
