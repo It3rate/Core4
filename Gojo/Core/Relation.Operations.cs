@@ -68,8 +68,8 @@ public sealed partial class Relation
                 return false;
             }
 
-            var result = operands.Aggregate(1L, (ticks, operand) => checked(ticks * operand.Ticks));
-            read = OperationResult(segmentTargetFrame, result, operands);
+            var result = ProductValue(operands);
+            read = OperationResult(segmentTargetFrame, result, operands, invertTargetFace: ProductInvertsFlow(operands));
             return true;
         }
 
@@ -103,8 +103,8 @@ public sealed partial class Relation
 
         if (TryReadFrame(Right, out _))
         {
-            var result = operands.Aggregate(1L, (ticks, operand) => checked(ticks * operand.Ticks));
-            read = OperationResult(targetFrame, result, operands, scaleByOutputBasis);
+            var result = ProductValue(operands);
+            read = OperationResult(targetFrame, result, operands, scaleByOutputBasis, ProductInvertsFlow(operands));
             return true;
         }
 
@@ -366,7 +366,10 @@ public sealed partial class Relation
             return false;
         }
 
-        operands.Add(new OperationOperand(projection.Target.Ticks, projection.Residue));
+        operands.Add(new OperationOperand(
+            projection.Target.Ticks,
+            projection.Residue,
+            OperationOperandInvertsFlow(port.Left, input.Carrier)));
         return true;
     }
 
@@ -501,6 +504,11 @@ public sealed partial class Relation
         port = null!;
         return false;
     }
+
+    /// <summary>Reads whether this operand participates through an inverse-flow face.</summary>
+    private static bool OperationOperandInvertsFlow(IElement sourceSurface, Carrier inputCarrier) =>
+        inputCarrier.IsInverse ||
+        (TryReadFrame(sourceSurface, out var sourceFrame) && sourceFrame.Carrier.IsInverse);
 
     /// <summary>Calculates operation-result unit shape from operand port shapes.</summary>
     private bool TryReadOperationUnitShape(out UnitShape unitShape)
@@ -648,12 +656,30 @@ public sealed partial class Relation
         CarrierFrame targetFrame,
         long value,
         List<OperationOperand> operands,
-        bool scaleByTargetFrame = true) =>
-        new(
+        bool scaleByTargetFrame = true,
+        bool invertTargetFace = false)
+    {
+        var targetCarrier = invertTargetFace
+            ? targetFrame.Carrier.Inverse()
+            : targetFrame.Carrier;
+        return new Relation(
             new CarrierLocation(
-                targetFrame.Carrier,
+                targetCarrier,
                 checked(targetFrame.Start + (scaleByTargetFrame ? checked(value * targetFrame.Extent) : value))),
             OperationResidue(operands));
+    }
+
+    /// <summary>Product output flips face when an odd number of operands are inverse-flow.</summary>
+    private static bool ProductInvertsFlow(IReadOnlyList<OperationOperand> operands) =>
+        operands.Count(operand => operand.InvertsFlow) % 2 != 0;
+
+    /// <summary>Multiplies operand values while preserving inverse-flow pair negation.</summary>
+    private static long ProductValue(IReadOnlyList<OperationOperand> operands)
+    {
+        var result = operands.Aggregate(1L, (ticks, operand) => checked(ticks * operand.Ticks));
+        var inversePairs = operands.Count(operand => operand.InvertsFlow) / 2;
+        return inversePairs % 2 == 0 ? result : checked(-result);
+    }
 
     /// <summary>Chains operand residues in operation operand order.</summary>
     private static IElement OperationResidue(IReadOnlyList<OperationOperand> operands)

@@ -225,6 +225,37 @@ Unit inverse is a scale-law denominator, such as `s^-1` or `s^-2`. It should
 be represented by inverse participation in the unit surface. It should not be
 silently equated with every reverse frame or every opposed-flow carrier face.
 
+An opposed carrier face is nevertheless part of the unit-shape surface. The
+opposed face remains compatible with the positive face, but it is no longer
+the literally identical unit shape:
+
+```text
+positive face      U
+opposed face       U -> P(Unknown,-1)
+```
+
+Compatibility can read through the opposed-face wrapper when asking "is this
+the same kind of unit?", while inspection can still see that a carrier tick is
+flowing through the opposed face.
+
+This matters for multiplication. Multiplying by an opposed-flow carrier is not
+a lookup-table operation. It is the physical action of inverting the carrier
+face of what it acts on. Repeated inverse-flow participation gives the familiar
+cycle:
+
+```text
+i * 1   ->  i
+i * i   -> -1
+i * -1  -> -i
+i * -i  ->  1
+```
+
+In product reads, an odd number of opposed-flow operands writes to the opposed
+output carrier face. Each pair of opposed-flow operands negates the output
+tick value on the resulting face. Addition is different: there is no flow
+interaction, so positive and opposed components should remain separate unless
+an explicit structure says how to merge them.
+
 ## 8. Crystallization Split
 
 Crystallization creates a reusable unit shape and may optionally project a
@@ -281,8 +312,8 @@ In current Gojo code:
 - carriers that share a `UnitShape` keep independent `Value` and `Tension`.
 - unit-shape surfaces are readable as snapshots; external perturbation of a
   read surface does not mutate the carrier's basis.
-- an inverse carrier shares the forward carrier's unit shape; inverse flow is
-  not itself a new unit kind.
+- an inverse carrier has an inspectable opposed-face unit shape that remains
+  compatible with the forward unit shape.
 - `UnitShape.OrthogonalOf(element)` creates an orthogonal shape unit whose
   surface preserves the source element as provenance and uses a zero-segment
   marker as the orthogonal outlet.
@@ -312,6 +343,11 @@ In current Gojo code:
   carrier and projects the current operation read onto it.
 - `Relation.TryProjectCrystallizedValueFrom(input, crystal, out read)` projects
   the current operation read onto an existing compatible crystal carrier.
+- product operation reads preserve opposed-flow participation:
+  - one opposed-flow operand flips the output carrier face
+  - two opposed-flow operands return to the forward carrier face and negate
+    the output value
+  - the same cycle repeats for higher inverse counts
 
 The projection read preserves operand residue as visible relation-shaped
 residue. It does not treat residue as fresh source tension merely because a

@@ -31,6 +31,15 @@ public sealed class UnitShape : IEquatable<UnitShape>
     public static UnitShape Atom(Carrier carrier) =>
         new(Point(carrier, 1));
 
+    /// <summary>Creates the opposed-flow face of an existing unit shape.</summary>
+    public static UnitShape OpposedFaceOf(UnitShape source)
+    {
+        var sourceShape = source ?? Atom(Carrier.Unknown);
+        return TryReadOpposedFaceCore(sourceShape.surface, out var inner)
+            ? new UnitShape(SnapshotOf(inner))
+            : new UnitShape(new Relation(SnapshotOf(sourceShape.surface), Point(Carrier.Unknown, -1)));
+    }
+
     /// <summary>Creates a shape unit by pushing a source element into its orthogonal.</summary>
     public static UnitShape OrthogonalOf(IElement source) =>
         new(Relation.OrthogonalOutlet(SnapshotOf(source ?? throw new ArgumentNullException(nameof(source)))));
@@ -165,6 +174,11 @@ public sealed class UnitShape : IEquatable<UnitShape>
             return 1;
         }
 
+        if (TryReadOpposedFaceCore(surface, out var opposedSource))
+        {
+            return new UnitShape(opposedSource).ProductParticipationOf(unit);
+        }
+
         if (TryReadResolutionCore(surface, out var sourceSurface, out _))
         {
             return new UnitShape(sourceSurface).ProductParticipationOf(unit);
@@ -207,6 +221,11 @@ public sealed class UnitShape : IEquatable<UnitShape>
     /// <summary>Reads the source unit and tick span from a coarse resolution shape.</summary>
     public bool TryReadResolution(out UnitShape source, out long sourceTicksPerTick)
     {
+        if (TryReadOpposedFaceCore(surface, out var opposedSource))
+        {
+            return new UnitShape(opposedSource).TryReadResolution(out source, out sourceTicksPerTick);
+        }
+
         if (TryReadResolutionCore(surface, out var sourceSurface, out sourceTicksPerTick))
         {
             source = new UnitShape(SnapshotOf(sourceSurface));
@@ -221,6 +240,11 @@ public sealed class UnitShape : IEquatable<UnitShape>
     /// <summary>Reads the source element if this shape is an orthogonal push.</summary>
     public bool TryReadOrthogonalSource(out IElement source)
     {
+        if (TryReadOpposedFaceCore(surface, out var opposedSource))
+        {
+            return new UnitShape(opposedSource).TryReadOrthogonalSource(out source);
+        }
+
         if (TryReadOrthogonalSourceCore(surface, out var orthogonalSource))
         {
             source = SnapshotOf(orthogonalSource);
@@ -247,6 +271,11 @@ public sealed class UnitShape : IEquatable<UnitShape>
     /// <summary>Reads the origin point of a circular/level-line orthogonal unit.</summary>
     public bool TryReadCircularSource(out CarrierLocation origin)
     {
+        if (TryReadOpposedFaceCore(surface, out var opposedSource))
+        {
+            return new UnitShape(opposedSource).TryReadCircularSource(out origin);
+        }
+
         if (TryReadOrthogonalSourceCore(surface, out var source) &&
             source is Relation point &&
             IsPoint(point, out origin))
@@ -261,6 +290,11 @@ public sealed class UnitShape : IEquatable<UnitShape>
     /// <summary>Reads the collapsed origin segment of a ray/line orthogonal unit.</summary>
     public bool TryReadLinearSource(out CarrierLocation origin)
     {
+        if (TryReadOpposedFaceCore(surface, out var opposedSource))
+        {
+            return new UnitShape(opposedSource).TryReadLinearSource(out origin);
+        }
+
         if (TryReadOrthogonalSourceCore(surface, out var source) &&
             source is Relation segment &&
             TryReadSegment(segment, out var left, out var right) &&
@@ -276,7 +310,22 @@ public sealed class UnitShape : IEquatable<UnitShape>
     }
 
     /// <summary>Returns true when two unit shapes can collapse as the same unit.</summary>
-    public bool CompatibleWith(UnitShape other) => Equals(other);
+    public bool CompatibleWith(UnitShape other) =>
+        other is not null &&
+        Equals(FlowNeutralSurface(surface), FlowNeutralSurface(other.surface));
+
+    /// <summary>Reads the positive unit shape behind an opposed-flow unit face.</summary>
+    public bool TryReadOpposedFace(out UnitShape source)
+    {
+        if (TryReadOpposedFaceCore(surface, out var sourceSurface))
+        {
+            source = new UnitShape(SnapshotOf(sourceSurface));
+            return true;
+        }
+
+        source = default!;
+        return false;
+    }
 
     /// <summary>Compares stable internal unit surfaces.</summary>
     public bool Equals(UnitShape? other) =>
@@ -304,6 +353,11 @@ public sealed class UnitShape : IEquatable<UnitShape>
     /// <summary>Reads product operands from the product-surface encoding.</summary>
     private static bool TryReadProductOperands(IElement surface, out IElement[] operands)
     {
+        if (TryReadOpposedFaceCore(surface, out var opposedSource))
+        {
+            return TryReadProductOperands(opposedSource, out operands);
+        }
+
         if (surface is Relation relation &&
             IsUnitSegment(relation.Right))
         {
@@ -318,6 +372,11 @@ public sealed class UnitShape : IEquatable<UnitShape>
     /// <summary>Reads additive operands from the additive-surface encoding.</summary>
     private static bool TryReadAdditiveOperands(IElement surface, out IElement[] operands)
     {
+        if (TryReadOpposedFaceCore(surface, out var opposedSource))
+        {
+            return TryReadAdditiveOperands(opposedSource, out operands);
+        }
+
         if (surface is Relation relation &&
             IsAdditiveMarker(relation.Right))
         {
@@ -392,6 +451,27 @@ public sealed class UnitShape : IEquatable<UnitShape>
         source = default!;
         return false;
     }
+
+    /// <summary>Reads the positive source of an opposed-flow unit face.</summary>
+    private static bool TryReadOpposedFaceCore(IElement element, out IElement source)
+    {
+        if (element is Relation relation &&
+            relation.Right is Relation marker &&
+            IsPoint(marker, Carrier.Unknown, -1))
+        {
+            source = relation.Left;
+            return true;
+        }
+
+        source = default!;
+        return false;
+    }
+
+    /// <summary>Removes opposed-flow wrappers for compatibility checks.</summary>
+    private static IElement FlowNeutralSurface(IElement element) =>
+        TryReadOpposedFaceCore(element, out var source)
+            ? FlowNeutralSurface(source)
+            : element;
 
     /// <summary>Reads a coarse-resolution unit surface.</summary>
     private static bool TryReadResolutionCore(

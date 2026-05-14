@@ -55,7 +55,16 @@ taxonomies.
 `C*` means the stable dual carrier returned by `C.Dual()`. It is a physical
 carrier face, not a negative flag on `C`. A scalar read from `C` does not see
 `C*` merely because the carriers are dual. It sees ordinary negative values as
-negative signed locations on `C`.
+negative signed locations on `C`. The dual face has an inspectable opposed
+unit shape that remains compatible with the forward unit shape.
+
+Multiplication is where the carrier face acts. An inverse-flow operand
+inverts the carrier face of the product target. Each pair of inverse-flow
+operands returns the product to the original face and negates the output value,
+giving `1, i, -1, -i` as repeated physical inversion rather than as a symbolic
+operator table. Addition does not perform that flow interaction; positive and
+dual-face components remain separate unless another relation explicitly
+merges them.
 
 The current executable support and traversal reads now use signed locations on
 the reader carrier for reverse participation:

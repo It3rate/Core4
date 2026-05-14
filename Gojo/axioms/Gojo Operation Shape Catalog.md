@@ -7,8 +7,9 @@ structural affordances we have seen or expect to see.
 Current Gojo scalar reverse/negative participation is written as signed
 locations on the same carrier, for example `L(C,-5)`. Rows that mention
 `C_inverse` describe explicit dual-face routes, not the ordinary negative
-scalar side of `C`; those rows are deferred footholds for the later
-inverse-flow / imaginary layer.
+scalar side of `C`. Product reads now preserve inverse-flow participation:
+an opposed operand flips the output carrier face, and each opposed pair
+negates the output tick value.
 
 Notation:
 
@@ -113,10 +114,21 @@ Gojo projection habits where the right side is the target/read surface. The
 notation is provisional; code should not add a parser for it until the relation
 encoding is clear.
 
-Inverse syntax remains open. `i` is a possible marker for inverse/orthogonal
-carrier participation because ordinary imaginary numbers are one instance of
-that structure, but Gojo should not commit until aligned inverse, orthogonal
-inverse, and repetition syntax are all settled.
+Inverse syntax remains open for notation, but the core product behavior is no
+longer deferred. An inverse-flow operand acts by inverting the carrier face of
+what it multiplies. Repeating that action gives the ordinary `1, i, -1, -i`
+cycle without a symbolic operation table:
+
+```text
+i * 1   ->  i
+i * i   -> -1
+i * -1  -> -i
+i * -i  ->  1
+```
+
+This is carrier-face behavior. It does not mean every reverse segment is an
+inverse carrier, and it does not collapse positive and inverse components
+during addition.
 
 ## Segment And Scaling Shapes
 

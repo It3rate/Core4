@@ -20,7 +20,7 @@ public sealed partial class Relation
 
     private readonly record struct LiveOutputTarget(Carrier Carrier, long Ticks);
 
-    private readonly record struct OperationOperand(long Ticks, CarrierLocation Residue);
+    private readonly record struct OperationOperand(long Ticks, CarrierLocation Residue, bool InvertsFlow);
 
     private readonly record struct OperationBasis(long Extent, bool IsDominant);
 

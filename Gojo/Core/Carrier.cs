@@ -102,7 +102,7 @@ public sealed class Carrier : IElement
             return inverse;
         }
 
-        inverse = new Carrier(!IsInverse, UnitShape)
+        inverse = new Carrier(!IsInverse, UnitShape.OpposedFaceOf(UnitShape))
         {
             inverse = this
         };

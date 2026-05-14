@@ -26,13 +26,16 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
-    public void InverseCarrierSharesUnitShapeWithForwardCarrier()
+    public void InverseCarrierHasInspectableOpposedUnitFaceCompatibleWithForwardCarrier()
     {
         var carrier = new Carrier();
 
         var inverse = carrier.Inverse();
 
+        Assert.False(inverse.UnitShape.Equals(carrier.UnitShape));
         Assert.True(inverse.UnitShape.CompatibleWith(carrier.UnitShape));
+        Assert.True(inverse.UnitShape.TryReadOpposedFace(out var source));
+        Assert.True(source.CompatibleWith(carrier.UnitShape));
     }
 
     [Fact]
