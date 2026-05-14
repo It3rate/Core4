@@ -70,22 +70,76 @@ public sealed class EquationCatalogTests
             new CarrierLocation(output, 105)
         };
 
-        Equation.Map(new Carrier(), equation, inputs, output, out var predictions);
+        EquationInspection.Map(new Carrier(), equation, inputs, output, out var predictions);
         var predictedLocations = predictions
             .Select(sample =>
             {
-                Assert.True(Equation.TryReadPredictionSample(sample, out _, out _, out var predicted, out _));
+                Assert.True(EquationInspection.TryReadPredictionSample(sample, out _, out _, out var predicted, out _));
                 return predicted;
             })
             .ToArray();
-        Equation.Compare(new Carrier(), predictedLocations, observed, error, out var comparisons);
+        EquationInspection.Compare(new Carrier(), predictedLocations, observed, error, out var comparisons);
 
-        Assert.True(Equation.TryReadComparisonSample(comparisons[0], out _, out _, out _, out var firstError));
-        Assert.True(Equation.TryReadComparisonSample(comparisons[1], out _, out _, out _, out var secondError));
-        Assert.True(Equation.TryReadComparisonSample(comparisons[2], out _, out _, out _, out var thirdError));
+        Assert.True(EquationInspection.TryReadComparisonSample(comparisons[0], out _, out _, out _, out var firstError));
+        Assert.True(EquationInspection.TryReadComparisonSample(comparisons[1], out _, out _, out _, out var secondError));
+        Assert.True(EquationInspection.TryReadComparisonSample(comparisons[2], out _, out _, out _, out var thirdError));
         Assert.Equal(new CarrierLocation(error, 0), firstError);
         Assert.Equal(new CarrierLocation(error, -2), secondError);
         Assert.Equal(new CarrierLocation(error, 5), thirdError);
+    }
+
+    [Fact]
+    public void CompetingAffineEquationsCanBeComparedByFitMagnitude()
+    {
+        var input = new Carrier();
+        var output = new Carrier();
+        var error = new Carrier();
+        var signedTotal = new Carrier();
+        var magnitudeTotal = new Carrier();
+        var fullScaleCandidate = Equation.Affine(input, 0, 10, output, 0, 100);
+        var lowScaleCandidate = Equation.Affine(input, 0, 10, output, 0, 80);
+        var inputs = new[]
+        {
+            new CarrierLocation(input, 0),
+            new CarrierLocation(input, 5),
+            new CarrierLocation(input, 10)
+        };
+        var observed = new[]
+        {
+            new CarrierLocation(output, 0),
+            new CarrierLocation(output, 48),
+            new CarrierLocation(output, 105)
+        };
+
+        var fullScaleFit = FitMagnitude(fullScaleCandidate);
+        var lowScaleFit = FitMagnitude(lowScaleCandidate);
+
+        Assert.Equal(new CarrierLocation(magnitudeTotal, 7), fullScaleFit);
+        Assert.Equal(new CarrierLocation(magnitudeTotal, 33), lowScaleFit);
+        Assert.True(fullScaleFit.Ticks < lowScaleFit.Ticks);
+
+        CarrierLocation FitMagnitude(Relation candidate)
+        {
+            EquationInspection.Map(new Carrier(), candidate, inputs, output, out var predictionSamples);
+            var predictedLocations = predictionSamples
+                .Select(sample =>
+                {
+                    Assert.True(EquationInspection.TryReadPredictionSample(sample, out _, out _, out var predicted, out _));
+                    return predicted;
+                })
+                .ToArray();
+            EquationInspection.Compare(new Carrier(), predictedLocations, observed, error, out var comparisonSamples);
+            var errors = comparisonSamples
+                .Select(sample =>
+                {
+                    Assert.True(EquationInspection.TryReadComparisonSample(sample, out _, out _, out _, out var sampleError));
+                    return sampleError;
+                })
+                .ToArray();
+            var fit = EquationInspection.SummarizeFit(new Carrier(), errors, signedTotal, magnitudeTotal, out _);
+            Assert.True(EquationInspection.TryReadFitSummary(fit, out _, out var totalMagnitude, out _));
+            return totalMagnitude;
+        }
     }
 
     [Fact]

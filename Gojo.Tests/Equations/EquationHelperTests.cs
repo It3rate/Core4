@@ -49,13 +49,13 @@ public sealed class EquationHelperTests
             new CarrierLocation(input, 10)
         };
 
-        var map = Equation.Map(root, equation, inputs, output, out var samples);
+        var map = EquationInspection.Map(root, equation, inputs, output, out var samples);
 
         Assert.True(map.TryReadOrderedElementsOn(root, out var elements));
         Assert.Equal(5, elements.Length);
-        Assert.True(Equation.TryReadMapSamples(map, out var readSamples));
+        Assert.True(EquationInspection.TryReadMapSamples(map, out var readSamples));
         Assert.Equal(samples, readSamples);
-        Assert.True(Equation.TryReadPredictionSample(samples[1], out var index, out var sampleInput, out var predicted, out var residue));
+        Assert.True(EquationInspection.TryReadPredictionSample(samples[1], out var index, out var sampleInput, out var predicted, out var residue));
         Assert.Equal(1, index.Ticks);
         Assert.Equal(inputs[1], sampleInput);
         Assert.Equal(new CarrierLocation(output, 50), predicted);
@@ -79,12 +79,12 @@ public sealed class EquationHelperTests
             new CarrierLocation(output, 20)
         };
 
-        var comparison = Equation.Compare(root, predictions, observations, error, out var samples);
+        var comparison = EquationInspection.Compare(root, predictions, observations, error, out var samples);
 
-        Assert.True(Equation.TryReadComparisonSamples(comparison, out var readSamples));
+        Assert.True(EquationInspection.TryReadComparisonSamples(comparison, out var readSamples));
         Assert.Equal(samples, readSamples);
-        Assert.True(Equation.TryReadComparisonSample(samples[0], out var firstIndex, out _, out _, out var firstError));
-        Assert.True(Equation.TryReadComparisonSample(samples[1], out var secondIndex, out _, out _, out var secondError));
+        Assert.True(EquationInspection.TryReadComparisonSample(samples[0], out var firstIndex, out _, out _, out var firstError));
+        Assert.True(EquationInspection.TryReadComparisonSample(samples[1], out var secondIndex, out _, out _, out var secondError));
         Assert.Equal(0, firstIndex.Ticks);
         Assert.Equal(new CarrierLocation(error, 2), firstError);
         Assert.Equal(1, secondIndex.Ticks);
@@ -130,6 +130,49 @@ public sealed class EquationHelperTests
     }
 
     [Fact]
+    public void DifferenceEquationReadsObservedMinusPredicted()
+    {
+        var predictedCarrier = new Carrier();
+        var observedCarrier = new Carrier();
+        var error = new Carrier();
+        var difference = Equation.Difference(predictedCarrier, observedCarrier, error);
+
+        var prediction = Equation.Predict(
+            difference,
+            new Relation(new CarrierLocation(predictedCarrier, 25), new CarrierLocation(observedCarrier, 20)),
+            error);
+
+        Assert.True(Equation.TryReadPrediction(prediction, out var predicted, out _));
+        Assert.Equal(new CarrierLocation(error, -5), predicted);
+    }
+
+    [Fact]
+    public void FitSummaryAggregatesSignedAndMagnitudeErrors()
+    {
+        var root = new Carrier();
+        var error = new Carrier();
+        var signedTotal = new Carrier();
+        var magnitudeTotal = new Carrier();
+        var errors = new[]
+        {
+            new CarrierLocation(error, -2),
+            new CarrierLocation(error, 0),
+            new CarrierLocation(error, 5)
+        };
+
+        var fit = EquationInspection.SummarizeFit(root, errors, signedTotal, magnitudeTotal, out var samples);
+
+        Assert.True(EquationInspection.TryReadFitSummary(fit, out var totalSigned, out var totalMagnitude, out var readSamples));
+        Assert.Equal(new CarrierLocation(signedTotal, 3), totalSigned);
+        Assert.Equal(new CarrierLocation(magnitudeTotal, 7), totalMagnitude);
+        Assert.Equal(samples, readSamples);
+        Assert.True(EquationInspection.TryReadFitSample(samples[0], out var firstIndex, out var firstError, out var firstMagnitude));
+        Assert.Equal(0, firstIndex.Ticks);
+        Assert.Equal(errors[0], firstError);
+        Assert.Equal(new CarrierLocation(magnitudeTotal, 2), firstMagnitude);
+    }
+
+    [Fact]
     public void MapPreservesRelationShapedInputsAndResidue()
     {
         var root = new Carrier();
@@ -143,11 +186,11 @@ public sealed class EquationHelperTests
             new Relation(new CarrierLocation(x, 5), new CarrierLocation(y, 7))
         ];
 
-        var map = Equation.Map(root, sum, inputs, output, out var samples);
+        var map = EquationInspection.Map(root, sum, inputs, output, out var samples);
 
-        Assert.True(Equation.TryReadMapSamples(map, out var readSamples));
+        Assert.True(EquationInspection.TryReadMapSamples(map, out var readSamples));
         Assert.Equal(samples, readSamples);
-        Assert.True(Equation.TryReadPredictionSampleElement(samples[1], out var index, out var sampleInput, out var predicted, out var residue));
+        Assert.True(EquationInspection.TryReadPredictionSampleElement(samples[1], out var index, out var sampleInput, out var predicted, out var residue));
         Assert.Equal(1, index.Ticks);
         Assert.Equal(inputs[1], sampleInput);
         Assert.Equal(new CarrierLocation(output, 12), predicted);

@@ -5,6 +5,11 @@ equation is not a symbolic formula object. It is a Gojo surface that admits
 input participation, predicts output participation, and exposes residue or
 error as structure.
 
+`Equation` stays deliberately tight: it builds equation surfaces and performs a
+single local read through them. `EquationInspection` is the separate layer that
+applies those surfaces to ordered sample streams, compares predictions with
+observations, and records fit evidence.
+
 ## Affine Surface
 
 The first equation shape is an affine frame surface:
@@ -59,7 +64,7 @@ carrier with value `1` and a weighted port of `0..5`.
 
 ## Ordered Map
 
-Mapping a stream is represented as structure:
+Mapping a stream is inspection structure built by `EquationInspection`:
 
 ```text
 MapRoot
@@ -83,7 +88,7 @@ making SIMD the source of meaning.
 
 ## Comparison
 
-Comparison is also a structure:
+Comparison is also inspection structure:
 
 ```text
 CompareRoot
@@ -102,6 +107,43 @@ For the first pass, error is `observed - predicted` on a supplied error
 carrier. Later this should become richer tension/residue structure that can
 drive parameter fitting and equation selection.
 
+## Difference And Fit
+
+The difference helper is not a symbolic subtraction node. It is a weighted sum
+surface, so it belongs with `Equation`:
+
+```text
+(predicted port: 0..1 -> 0..-1)
++(observed port:  0..1 -> 0..1)
+  -> Point(error,1)
+```
+
+Given relation-shaped input `(predicted, observed)`, it reads `observed -
+predicted` onto the error carrier.
+
+A fit summary is separate inspection structure. It gathers a stream of error
+samples:
+
+```text
+FitRoot
+  + index span
+  + total signed error
+  + total error magnitude
+  + fit sample 0
+  + fit sample 1
+
+FitSampleN
+  + Point(index,N)
+  + signed error
+  + error magnitude
+```
+
+The magnitude value is a first executable foothold for comparing candidate
+equations. It is still a code-side read of absolute value; a later pass should
+express absolute value, thresholds, and "close enough" as Gojo relation
+structure so fit can drive local selection and settlement without hidden
+classifier logic.
+
 ## Next Targets
 
 The intended sequence is:
@@ -109,8 +151,9 @@ The intended sequence is:
 ```text
 affine frame             y = ax + b
 weighted sum             y = a*x + b*z + c
-difference/error         target - observed
+difference/error         observed - predicted
 product/bilinear         x*z
+fit summary              samples -> signed/magnitude residuals
 piecewise/clamp/gate     bounded local equations
 polynomial               c0 + c1*x + c2*x^2 ...
 state transition         state[t+1] = f(state[t], input[t])

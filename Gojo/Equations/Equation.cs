@@ -3,9 +3,9 @@ using Gojo.Core;
 namespace Gojo.Equations;
 
 /// <summary>
-/// Construction and inspection helpers for relation-shaped equations. These
-/// helpers execute simple reads today, but they leave a visible Gojo structure:
-/// frames, ordered samples, index sites, predictions, residues, and errors.
+/// Construction and single-sample read helpers for relation-shaped equations.
+/// A relation-shaped equation is a Gojo surface: frames, operand ports, and
+/// output participation remain visible as carrier/relation structure.
 /// </summary>
 public static class Equation
 {
@@ -50,6 +50,15 @@ public static class Equation
     /// <summary>Creates a product operation surface over relation-shaped operand input.</summary>
     public static Relation Product(Carrier output, params Relation[] operandPorts) =>
         new(PortGroup(operandPorts), Relation.Segment(RootOrUnknown(output), 0, 1));
+
+    /// <summary>
+    /// Creates an error surface that reads relation-shaped input as observed - predicted.
+    /// </summary>
+    public static Relation Difference(Carrier predicted, Carrier observed, Carrier error) =>
+        Sum(
+            error,
+            WeightedPort(predicted, 0, 1, 0, -1),
+            WeightedPort(observed, 0, 1, 0, 1));
 
     /// <summary>Projects one input sample through an equation into an output carrier.</summary>
     public static Relation Predict(Relation equation, CarrierLocation input, Carrier output) =>
@@ -124,263 +133,6 @@ public static class Equation
         return false;
     }
 
-    /// <summary>
-    /// Applies one equation to an ordered group of input samples. The returned
-    /// structure records the map span, equation, and one sample group per input.
-    /// </summary>
-    public static Relation Map(
-        Carrier root,
-        Relation equation,
-        IReadOnlyList<CarrierLocation> inputs,
-        Carrier output,
-        out Relation[] samples)
-    {
-        var holder = RootOrNew(root);
-        var index = new Carrier();
-        var count = CountOf(inputs);
-        samples = new Relation[count];
-
-        for (var sampleIndex = 0; sampleIndex < count; sampleIndex++)
-        {
-            var prediction = Predict(equation, inputs[sampleIndex], output);
-            samples[sampleIndex] = PredictionSample(index, sampleIndex, inputs[sampleIndex], prediction);
-        }
-
-        return Relation.OrderedGroup(
-            holder,
-            [Relation.Segment(index, 0, count), equation ?? Relation.Point(Carrier.Unknown, 0), .. samples]);
-    }
-
-    /// <summary>
-    /// Applies one equation to an ordered group of scalar or relation-shaped
-    /// input samples.
-    /// </summary>
-    public static Relation Map(
-        Carrier root,
-        Relation equation,
-        IReadOnlyList<IElement> inputs,
-        Carrier output,
-        out Relation[] samples)
-    {
-        var holder = RootOrNew(root);
-        var index = new Carrier();
-        var count = CountOf(inputs);
-        samples = new Relation[count];
-
-        for (var sampleIndex = 0; sampleIndex < count; sampleIndex++)
-        {
-            var input = inputs[sampleIndex] ?? Relation.Point(Carrier.Unknown, 0);
-            var prediction = Predict(equation, input, output);
-            samples[sampleIndex] = PredictionSample(index, sampleIndex, input, prediction);
-        }
-
-        return Relation.OrderedGroup(
-            holder,
-            [Relation.Segment(index, 0, count), equation ?? Relation.Point(Carrier.Unknown, 0), .. samples]);
-    }
-
-    /// <summary>
-    /// Compares predicted and observed samples by shared index and creates
-    /// per-sample error locations. Extra samples on either side are left out.
-    /// </summary>
-    public static Relation Compare(
-        Carrier root,
-        IReadOnlyList<CarrierLocation> predictions,
-        IReadOnlyList<CarrierLocation> observations,
-        Carrier error,
-        out Relation[] samples)
-    {
-        var holder = RootOrNew(root);
-        var errorCarrier = RootOrUnknown(error);
-        var index = new Carrier();
-        var count = Math.Min(CountOf(predictions), CountOf(observations));
-        samples = new Relation[count];
-
-        for (var sampleIndex = 0; sampleIndex < count; sampleIndex++)
-        {
-            samples[sampleIndex] = ComparisonSample(
-                index,
-                sampleIndex,
-                predictions[sampleIndex],
-                observations[sampleIndex],
-                new CarrierLocation(errorCarrier, SaturatingSubtract(observations[sampleIndex].Ticks, predictions[sampleIndex].Ticks)));
-        }
-
-        return Relation.OrderedGroup(holder, [Relation.Segment(index, 0, count), .. samples]);
-    }
-
-    /// <summary>Reads mapped sample groups from a structure returned by Map.</summary>
-    public static bool TryReadMapSamples(Relation map, out Relation[] samples)
-    {
-        if (!TryReadRootElements(map, out var elements) || elements.Length < 2)
-        {
-            samples = [];
-            return false;
-        }
-
-        samples = [.. elements.Skip(2).OfType<Relation>()];
-        return true;
-    }
-
-    /// <summary>Reads comparison sample groups from a structure returned by Compare.</summary>
-    public static bool TryReadComparisonSamples(Relation comparison, out Relation[] samples)
-    {
-        if (!TryReadRootElements(comparison, out var elements) || elements.Length < 1)
-        {
-            samples = [];
-            return false;
-        }
-
-        samples = [.. elements.Skip(1).OfType<Relation>()];
-        return true;
-    }
-
-    /// <summary>Reads one prediction sample group.</summary>
-    public static bool TryReadPredictionSample(
-        Relation sample,
-        out CarrierLocation index,
-        out CarrierLocation input,
-        out CarrierLocation predicted,
-        out CarrierLocation residue)
-    {
-        if (TryReadSampleLocations(sample, expectedLocations: 4, out var locations))
-        {
-            index = locations[0];
-            input = locations[1];
-            predicted = locations[2];
-            residue = locations[3];
-            return true;
-        }
-
-        index = default;
-        input = default;
-        predicted = default;
-        residue = default;
-        return false;
-    }
-
-    /// <summary>Reads one prediction sample while preserving relation-shaped input and residue.</summary>
-    public static bool TryReadPredictionSampleElement(
-        Relation sample,
-        out CarrierLocation index,
-        out IElement input,
-        out CarrierLocation predicted,
-        out IElement residue)
-    {
-        if (TryReadRootElements(sample, out var elements) &&
-            elements.Length == 4 &&
-            elements[0] is Relation indexPoint &&
-            indexPoint.Left is CarrierLocation indexLocation &&
-            elements[2] is CarrierLocation predictedLocation)
-        {
-            index = indexLocation;
-            input = elements[1];
-            predicted = predictedLocation;
-            residue = elements[3];
-            return true;
-        }
-
-        index = default;
-        input = default!;
-        predicted = default;
-        residue = default!;
-        return false;
-    }
-
-    /// <summary>Reads one comparison sample group.</summary>
-    public static bool TryReadComparisonSample(
-        Relation sample,
-        out CarrierLocation index,
-        out CarrierLocation predicted,
-        out CarrierLocation observed,
-        out CarrierLocation error)
-    {
-        if (TryReadSampleLocations(sample, expectedLocations: 4, out var locations))
-        {
-            index = locations[0];
-            predicted = locations[1];
-            observed = locations[2];
-            error = locations[3];
-            return true;
-        }
-
-        index = default;
-        predicted = default;
-        observed = default;
-        error = default;
-        return false;
-    }
-
-    private static Relation PredictionSample(
-        Carrier index,
-        int sampleIndex,
-        CarrierLocation input,
-        Relation prediction) =>
-        PredictionSample(index, sampleIndex, (IElement)input, prediction);
-
-    private static Relation PredictionSample(
-        Carrier index,
-        int sampleIndex,
-        IElement input,
-        Relation prediction)
-    {
-        if (prediction.Left is CarrierLocation predicted)
-        {
-            return Relation.OrderedGroup(
-                new Carrier(),
-                Relation.Point(index, sampleIndex),
-                input,
-                predicted,
-                prediction.Right);
-        }
-
-        return Relation.OrderedGroup(new Carrier(), Relation.Point(index, sampleIndex), input, prediction);
-    }
-
-    private static Relation ComparisonSample(
-        Carrier index,
-        int sampleIndex,
-        CarrierLocation predicted,
-        CarrierLocation observed,
-        CarrierLocation error) =>
-        Relation.OrderedGroup(
-            new Carrier(),
-            Relation.Point(index, sampleIndex),
-            predicted,
-            observed,
-            error);
-
-    private static bool TryReadRootElements(Relation structure, out IElement[] elements)
-    {
-        if (structure?.Right is Carrier holder &&
-            structure.TryReadOrderedElementsOn(holder, out elements))
-        {
-            return true;
-        }
-
-        elements = [];
-        return false;
-    }
-
-    private static bool TryReadSampleLocations(
-        Relation sample,
-        int expectedLocations,
-        out CarrierLocation[] locations)
-    {
-        if (TryReadRootElements(sample, out var elements) &&
-            elements.Length == expectedLocations &&
-            elements[0] is Relation indexPoint &&
-            indexPoint.Left is CarrierLocation index &&
-            elements.Skip(1).All(element => element is CarrierLocation))
-        {
-            locations = [index, .. elements.Skip(1).Cast<CarrierLocation>()];
-            return true;
-        }
-
-        locations = [];
-        return false;
-    }
-
     private static IElement PortGroup(IReadOnlyList<Relation> ports)
     {
         if (CountOf(ports) == 0)
@@ -402,18 +154,4 @@ public static class Equation
 
     private static Carrier RootOrUnknown(Carrier carrier) =>
         carrier ?? Carrier.Unknown;
-
-    private static Carrier RootOrNew(Carrier carrier) =>
-        carrier ?? new Carrier();
-
-    private static long SaturatingSubtract(long left, long right)
-    {
-        var difference = (Int128)left - right;
-        if (difference > long.MaxValue)
-        {
-            return long.MaxValue;
-        }
-
-        return difference < long.MinValue ? long.MinValue : (long)difference;
-    }
 }
