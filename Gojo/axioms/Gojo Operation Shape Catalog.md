@@ -130,16 +130,40 @@ This is carrier-face behavior. It does not mean every reverse segment is an
 inverse carrier, and it does not collapse positive and inverse components
 during addition.
 
-There are two related segment shapes here:
+There are two related segment/fused-value shapes here:
 
 - `S(C,a,b)` is an ordered same-face frame; its direction is the frame extent
   `b-a`.
-- `DS(C,a,b)` is a directed endpoint segment whose start is opposed-flow
-  participation and whose endpoint is positive-flow participation:
+- any binary fused pair containing a carrier and its opposed face, in either
+  order, is a fused carrier-face value for math reads:
+
+```text
+P(C*,a) -> P(C,b)
+P(C,b)  -> P(C*,a)
+L(C*,a) -> L(C,b)
+L(C,b)  -> L(C*,a)
+```
+
+- `DS(C,a,b)` is only a convenient directed endpoint constructor for one such
+  fused pair:
 
 ```text
 DS(C,a,b) = P(C*,a) -> P(C,b)
 ```
+
+The order can carry other interpretation, but multiplication, addition-like
+folding, and scalar collapse should read the fused faces structurally rather
+than checking whether the relation was created by the directed segment helper.
+
+Product operation surfaces inspect these fused carrier-face inputs before
+collapsing to a scalar product. The directed segment helper is therefore only
+a convenient way to build one fused shape; manually constructed positive/opposed
+pairs read the same way.
+
+Aligned point-output operation surfaces also preserve opposed-face
+participation during addition. Adding `L(X*,2)` and `L(Y,5)` through ordinary
+aligned ports produces a fused result like `L(Result*,2) -> L(Result,5)`,
+not the scalar `Result:7` and not the folded scalar `Result:3`.
 
 Same-face segment inputs can already participate in product reads through
 their extent. A segment on an inverse face carries inverse-flow participation:
@@ -156,7 +180,7 @@ For a two-sided directed segment product such as:
 (4 inverse + 5 forward) on Y
 ```
 
-the directed endpoint product read distributes the four endpoint terms as:
+the product read distributes the four endpoint terms as:
 
 ```text
 AC: P(X*,2) * P(Y*,4) -> L(Area*,8)
@@ -170,6 +194,17 @@ opposed-area term: `Area*:8`, with provenance through inverse/inverse
 endpoint participation. A scalar collapse can freely read that as negative
 area and cancel against `BD`, but the structural product first preserves the
 carrier face.
+
+Folding positive and opposed values is a separate scalar-face read:
+
+```text
+Fold(Area:15, Area*:8)  -> Area:7
+Fold(Area:3,  Area*:10) -> Area*:7
+```
+
+That fold is useful when the structure asks for one visible scalar face. It
+should not erase product-term provenance when the multi-component/fused value
+is still being inspected.
 
 ## Segment And Scaling Shapes
 

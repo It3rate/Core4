@@ -37,37 +37,52 @@ public sealed partial class Relation
         bool bindOutputToReader,
         out Relation read)
     {
-        var operands = new List<OperationOperand>();
-        if (!TryCollectOperationOperands(Left, input, reader, operands) ||
-            operands.Count == 0)
-        {
-            read = default!;
-            return false;
-        }
-
         if (TryReadPointFrame(Right, out var pointFrame) &&
             TryResolveOperationTargetFrame(pointFrame, reader, bindOutputToReader, out var pointTargetFrame))
         {
+            var factors = new List<OperationFactor>();
+            if (!TryCollectOperationFactors(Left, input, reader, factors) ||
+                factors.Count == 0)
+            {
+                read = default!;
+                return false;
+            }
+
             if (pointTargetFrame.Extent == 0)
             {
                 read = default!;
                 return false;
             }
 
-            var result = operands.Aggregate(0L, (ticks, operand) => checked(ticks + operand.Ticks));
-            read = OperationResult(pointTargetFrame, result, operands);
+            var operands = OperationComponentsOf(factors);
+            read = OperationSumResult(pointTargetFrame, operands, scaleByTargetFrame: true);
             return true;
         }
 
         if (TryReadFrame(Right, out var segmentFrame) &&
             TryResolveOperationTargetFrame(segmentFrame, reader, bindOutputToReader, out var segmentTargetFrame))
         {
+            var factors = new List<OperationFactor>();
+            if (!TryCollectOperationFactors(Left, input, reader, factors) ||
+                factors.Count == 0)
+            {
+                read = default!;
+                return false;
+            }
+
             if (segmentTargetFrame.Extent == 0)
             {
                 read = default!;
                 return false;
             }
 
+            if (factors.Any(factor => factor.Components.Length > 1))
+            {
+                read = OperationProductExpansion(segmentTargetFrame, factors, scaleByTargetFrame: true);
+                return true;
+            }
+
+            var operands = OperationOperandsOf(factors);
             var result = ProductValue(operands);
             read = OperationResult(segmentTargetFrame, result, operands, invertTargetFace: ProductInvertsFlow(operands));
             return true;
@@ -85,10 +100,7 @@ public sealed partial class Relation
         bool scaleByOutputBasis,
         out Relation read)
     {
-        var operands = new List<OperationOperand>();
-        if (!TryCollectOperationOperands(Left, input, reader, operands) ||
-            operands.Count == 0 ||
-            targetFrame.Extent == 0)
+        if (targetFrame.Extent == 0)
         {
             read = default!;
             return false;
@@ -96,13 +108,36 @@ public sealed partial class Relation
 
         if (TryReadPointFrame(Right, out _))
         {
-            var result = operands.Aggregate(0L, (ticks, operand) => checked(ticks + operand.Ticks));
-            read = OperationResult(targetFrame, result, operands, scaleByOutputBasis);
+            var factors = new List<OperationFactor>();
+            if (!TryCollectOperationFactors(Left, input, reader, factors) ||
+                factors.Count == 0)
+            {
+                read = default!;
+                return false;
+            }
+
+            var operands = OperationComponentsOf(factors);
+            read = OperationSumResult(targetFrame, operands, scaleByOutputBasis);
             return true;
         }
 
         if (TryReadFrame(Right, out _))
         {
+            var factors = new List<OperationFactor>();
+            if (!TryCollectOperationFactors(Left, input, reader, factors) ||
+                factors.Count == 0)
+            {
+                read = default!;
+                return false;
+            }
+
+            if (factors.Any(factor => factor.Components.Length > 1))
+            {
+                read = OperationProductExpansion(targetFrame, factors, scaleByOutputBasis);
+                return true;
+            }
+
+            var operands = OperationOperandsOf(factors);
             var result = ProductValue(operands);
             read = OperationResult(targetFrame, result, operands, scaleByOutputBasis, ProductInvertsFlow(operands));
             return true;
@@ -333,6 +368,58 @@ public sealed partial class Relation
         return false;
     }
 
+    /// <summary>Collects operation factors, expanding fused carrier-face inputs locally.</summary>
+    private static bool TryCollectOperationFactors(
+        IElement portSurface,
+        IElement input,
+        Carrier reader,
+        List<OperationFactor> factors)
+    {
+        if (TryReadPortSurface(portSurface, out var port))
+        {
+            return TryCollectOperationFactor(port, input, reader, factors);
+        }
+
+        if (input is Relation inputGroup &&
+            portSurface is Relation portGroup)
+        {
+            return TryCollectOperationFactors(portGroup.Left, inputGroup.Left, reader, factors) &&
+                TryCollectOperationFactors(portGroup.Right, inputGroup.Right, reader, factors);
+        }
+
+        return false;
+    }
+
+    /// <summary>Collects one operation factor from a port and input element.</summary>
+    private static bool TryCollectOperationFactor(
+        Relation port,
+        IElement input,
+        Carrier reader,
+        List<OperationFactor> factors)
+    {
+        if (TryReadFusedCarrierFaces(input, out var inverseFace, out var positiveFace))
+        {
+            if (!TryReadOperationOperand(port, inverseFace, reader, out var inverseOperand) ||
+                !TryReadOperationOperand(port, positiveFace, reader, out var positiveOperand))
+            {
+                return false;
+            }
+
+            factors.Add(new OperationFactor([inverseOperand, positiveOperand]));
+            return true;
+        }
+
+        var operands = new List<OperationOperand>();
+        if (!TryCollectOperationOperand(port, input, reader, operands) ||
+            operands.Count == 0)
+        {
+            return false;
+        }
+
+        factors.Add(new OperationFactor([.. operands]));
+        return true;
+    }
+
     /// <summary>Collects one operation operand from a port and input element.</summary>
     private static bool TryCollectOperationOperand(
         Relation port,
@@ -361,16 +448,97 @@ public sealed partial class Relation
         Carrier reader,
         List<OperationOperand> operands)
     {
-        if (!TryProjectOperationOperandThrough(port.Left, port.Right, input, reader, out var projection))
+        if (!TryReadOperationOperand(port, input, reader, out var operand))
         {
             return false;
         }
 
-        operands.Add(new OperationOperand(
+        operands.Add(operand);
+        return true;
+    }
+
+    /// <summary>Projects a concrete operation operand without appending it to a group.</summary>
+    private static bool TryReadOperationOperand(
+        Relation port,
+        CarrierLocation input,
+        Carrier reader,
+        out OperationOperand operand)
+    {
+        if (!TryProjectOperationOperandThrough(port.Left, port.Right, input, reader, out var projection))
+        {
+            operand = default;
+            return false;
+        }
+
+        operand = new OperationOperand(
             projection.Target.Ticks,
             projection.Residue,
-            OperationOperandInvertsFlow(port.Left, input.Carrier)));
+            OperationOperandInvertsFlow(port.Left, input.Carrier),
+            input);
         return true;
+    }
+
+    /// <summary>Reads a relation as one positive and one opposed face of the same carrier.</summary>
+    internal static bool TryReadFusedCarrierFaces(
+        IElement fused,
+        out CarrierLocation inverseFace,
+        out CarrierLocation positiveFace)
+    {
+        if (fused is Relation relation &&
+            TryReadFaceComponent(relation.Left, out var left) &&
+            TryReadFaceComponent(relation.Right, out var right) &&
+            TryReadOpposedFaces(left.Carrier, right.Carrier, out var inverseCarrier, out var positiveCarrier))
+        {
+            inverseFace = left.Carrier.SameIdentityAs(inverseCarrier) ? left : right;
+            positiveFace = left.Carrier.SameIdentityAs(positiveCarrier) ? left : right;
+            return true;
+        }
+
+        inverseFace = default;
+        positiveFace = default;
+        return false;
+    }
+
+    /// <summary>Reads a face component from a direct location or grounded point relation.</summary>
+    private static bool TryReadFaceComponent(IElement element, out CarrierLocation location)
+    {
+        if (element is CarrierLocation direct)
+        {
+            location = direct;
+            return true;
+        }
+
+        if (element is Relation point &&
+            point.Left is CarrierLocation pointLocation &&
+            point.Right is Carrier pointCarrier &&
+            pointLocation.Carrier.SameIdentityAs(pointCarrier))
+        {
+            location = pointLocation;
+            return true;
+        }
+
+        location = default;
+        return false;
+    }
+
+    /// <summary>Finds the positive and opposed carrier faces when both are present.</summary>
+    private static bool TryReadOpposedFaces(
+        Carrier first,
+        Carrier second,
+        out Carrier inverse,
+        out Carrier positive)
+    {
+        if (first.IsInverse == second.IsInverse)
+        {
+            inverse = null!;
+            positive = null!;
+            return false;
+        }
+
+        inverse = first.IsInverse ? first : second;
+        positive = first.IsInverse ? second : first;
+        return inverse.ExistingInverse is { } inversePositive && inversePositive.SameIdentityAs(positive) ||
+            positive.ExistingInverse is { } positiveInverse && positiveInverse.SameIdentityAs(inverse);
     }
 
     /// <summary>Projects an operation operand through its exposed port basis into the operation reader.</summary>
@@ -669,6 +837,126 @@ public sealed partial class Relation
             OperationResidue(operands));
     }
 
+    /// <summary>Adds aligned operands while preserving opposed-face participation.</summary>
+    private static Relation OperationSumResult(
+        CarrierFrame targetFrame,
+        IReadOnlyList<OperationOperand> operands,
+        bool scaleByTargetFrame)
+    {
+        if (!operands.Any(operand => operand.InvertsFlow))
+        {
+            return OperationResult(
+                targetFrame,
+                operands.Aggregate(0L, (ticks, operand) => checked(ticks + operand.Ticks)),
+                [.. operands],
+                scaleByTargetFrame);
+        }
+
+        var positive = operands
+            .Where(operand => !operand.InvertsFlow)
+            .Aggregate(0L, (ticks, operand) => checked(ticks + operand.Ticks));
+        var inverse = operands
+            .Where(operand => operand.InvertsFlow)
+            .Aggregate(0L, (ticks, operand) => checked(ticks + operand.Ticks));
+
+        IElement target = positive != 0
+            ? new Relation(
+                OperationFaceLocation(targetFrame, inverse, invertTargetFace: true, scaleByTargetFrame),
+                OperationFaceLocation(targetFrame, positive, invertTargetFace: false, scaleByTargetFrame))
+            : OperationFaceLocation(targetFrame, inverse, invertTargetFace: true, scaleByTargetFrame);
+
+        return new Relation(target, OperationResidue(operands));
+    }
+
+    /// <summary>Projects one face of an aligned operation result into the target frame.</summary>
+    private static CarrierLocation OperationFaceLocation(
+        CarrierFrame targetFrame,
+        long value,
+        bool invertTargetFace,
+        bool scaleByTargetFrame)
+    {
+        var targetCarrier = invertTargetFace && !targetFrame.Carrier.IsUnknown
+            ? targetFrame.Carrier.Inverse()
+            : targetFrame.Carrier;
+        return new CarrierLocation(
+            targetCarrier,
+            checked(targetFrame.Start + (scaleByTargetFrame ? checked(value * targetFrame.Extent) : value)));
+    }
+
+    /// <summary>Builds visible product terms for fused carrier-face factors.</summary>
+    private static Relation OperationProductExpansion(
+        CarrierFrame targetFrame,
+        IReadOnlyList<OperationFactor> factors,
+        bool scaleByTargetFrame)
+    {
+        var terms = new List<IElement>();
+        var residues = new List<IElement>();
+        var combination = new OperationOperand[factors.Count];
+        CollectProductExpansionTerms(
+            targetFrame,
+            factors,
+            scaleByTargetFrame,
+            factorIndex: 0,
+            combination,
+            terms,
+            residues);
+
+        return new Relation(
+            OrderedGroup(new Carrier(), [.. terms]),
+            OrderedGroup(new Carrier(), [.. residues]));
+    }
+
+    /// <summary>Recursively distributes product factors into product-term structure.</summary>
+    private static void CollectProductExpansionTerms(
+        CarrierFrame targetFrame,
+        IReadOnlyList<OperationFactor> factors,
+        bool scaleByTargetFrame,
+        int factorIndex,
+        OperationOperand[] combination,
+        List<IElement> terms,
+        List<IElement> residues)
+    {
+        if (factorIndex == factors.Count)
+        {
+            var termOperands = combination.ToArray();
+            var value = termOperands.Aggregate(1L, (ticks, operand) => checked(ticks * operand.Ticks));
+            var targetCarrier = ProductTermInvertsFlow(termOperands) && !targetFrame.Carrier.IsUnknown
+                ? targetFrame.Carrier.Inverse()
+                : targetFrame.Carrier;
+            var targetTicks = checked(targetFrame.Start + (scaleByTargetFrame ? checked(value * targetFrame.Extent) : value));
+            terms.Add(new Relation(
+                new CarrierLocation(targetCarrier, targetTicks),
+                OperationSource(termOperands)));
+            residues.Add(OperationResidue(termOperands));
+            return;
+        }
+
+        foreach (var component in factors[factorIndex].Components)
+        {
+            combination[factorIndex] = component;
+            CollectProductExpansionTerms(
+                targetFrame,
+                factors,
+                scaleByTargetFrame,
+                factorIndex + 1,
+                combination,
+                terms,
+                residues);
+        }
+    }
+
+    /// <summary>Product terms preserve opposed-face participation before scalar fold.</summary>
+    private static bool ProductTermInvertsFlow(IReadOnlyList<OperationOperand> operands) =>
+        operands.Any(operand => operand.InvertsFlow);
+
+    /// <summary>Flattens every collected factor component for aligned addition.</summary>
+    private static List<OperationOperand> OperationComponentsOf(IReadOnlyList<OperationFactor> factors) =>
+        [.. factors.SelectMany(factor => factor.Components)];
+
+    /// <summary>Flattens single-component product factors back to ordinary scalar operands.</summary>
+    private static List<OperationOperand> OperationOperandsOf(IReadOnlyList<OperationFactor> factors) =>
+        [.. factors.Select(factor => factor.Components[0])];
+
     /// <summary>Product output flips face when an odd number of operands are inverse-flow.</summary>
     private static bool ProductInvertsFlow(IReadOnlyList<OperationOperand> operands) =>
         operands.Count(operand => operand.InvertsFlow) % 2 != 0;
@@ -679,6 +967,18 @@ public sealed partial class Relation
         var result = operands.Aggregate(1L, (ticks, operand) => checked(ticks * operand.Ticks));
         var inversePairs = operands.Count(operand => operand.InvertsFlow) / 2;
         return inversePairs % 2 == 0 ? result : checked(-result);
+    }
+
+    /// <summary>Chains operand source locations in operation operand order.</summary>
+    private static IElement OperationSource(IReadOnlyList<OperationOperand> operands)
+    {
+        IElement source = operands[^1].Source;
+        for (var index = operands.Count - 2; index >= 0; index--)
+        {
+            source = new Relation(operands[index].Source, source);
+        }
+
+        return source;
     }
 
     /// <summary>Chains operand residues in operation operand order.</summary>

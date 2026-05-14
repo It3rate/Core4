@@ -1,4 +1,5 @@
 using Gojo.Core;
+using Gojo.Reads;
 
 namespace Gojo.Tests.Core;
 
@@ -23,6 +24,29 @@ public sealed class OperationSurfaceTests
                 new CarrierLocation(result, 7),
                 new Relation(new CarrierLocation(x, 0), new CarrierLocation(y, 0))),
             read);
+    }
+
+    [Fact]
+    public void PointOutputOperationPreservesOpposedFaceAddition()
+    {
+        var x = new Carrier();
+        var y = new Carrier();
+        var result = new Carrier();
+        var xPort = new Relation(Point(x, 1), Point(Carrier.Unknown, 1));
+        var yPort = new Relation(Point(y, 1), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(xPort, yPort), Point(result, 1));
+
+        Assert.True(operation.TryReadOperationFrom(
+            new Relation(new CarrierLocation(x.Inverse(), 2), new CarrierLocation(y, 5)),
+            result,
+            out var read));
+
+        var fused = Assert.IsType<Relation>(read.Left);
+        Assert.True(fused.TryReadFusedCarrierFaces(out var inverseFace, out var positiveFace));
+        Assert.True(inverseFace.Carrier.SameIdentityAs(result.Inverse()));
+        Assert.Equal(2, inverseFace.Ticks);
+        Assert.True(positiveFace.Carrier.SameIdentityAs(result));
+        Assert.Equal(5, positiveFace.Ticks);
     }
 
     [Fact]
@@ -164,6 +188,42 @@ public sealed class OperationSurfaceTests
         {
             Assert.True(operation.TryReadOperationFrom(new Relation(left, right), area, out var read));
             return Assert.IsType<CarrierLocation>(read.Left);
+        }
+    }
+
+    [Fact]
+    public void ProductOperationDistributesFusedCarrierFaceOperandsAutomatically()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var x = new Carrier(lengthShape);
+        var y = new Carrier(lengthShape);
+        var area = new Carrier(UnitShape.Product(lengthShape, lengthShape));
+        var xPort = new Relation(Point(x, 1), Point(Carrier.Unknown, 1));
+        var yPort = new Relation(Point(y, 1), Point(Carrier.Unknown, 1));
+        var operation = new Relation(new Relation(xPort, yPort), Segment(area, 0, 1));
+        var xFused = new Relation(Point(x, 3), Point(x.Inverse(), 2));
+        var yFused = new Relation(
+            new CarrierLocation(y.Inverse(), 4),
+            new CarrierLocation(y, 5));
+
+        Assert.True(operation.TryReadOperationFrom(new Relation(xFused, yFused), area, out var read));
+
+        var termGroup = Assert.IsType<Relation>(read.Left);
+        var termHolder = Assert.IsType<Carrier>(termGroup.Right);
+        Assert.True(termGroup.TryReadOrderedElementsOn(termHolder, out var terms));
+        Assert.Equal(4, terms.Length);
+        AssertTerm(terms[0], area.Inverse(), 8);
+        AssertTerm(terms[1], area.Inverse(), 10);
+        AssertTerm(terms[2], area.Inverse(), 12);
+        AssertTerm(terms[3], area, 15);
+
+        static void AssertTerm(IElement element, Carrier expectedCarrier, long expectedTicks)
+        {
+            var term = Assert.IsType<Relation>(element);
+            var target = Assert.IsType<CarrierLocation>(term.Left);
+            Assert.True(target.Carrier.SameIdentityAs(expectedCarrier));
+            Assert.Equal(expectedTicks, target.Ticks);
+            Assert.IsType<Relation>(term.Right);
         }
     }
 
