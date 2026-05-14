@@ -35,6 +35,26 @@ public sealed class UnitShape : IEquatable<UnitShape>
     public static UnitShape OrthogonalOf(IElement source) =>
         new(Relation.OrthogonalOutlet(SnapshotOf(source ?? throw new ArgumentNullException(nameof(source)))));
 
+    /// <summary>
+    /// Creates a coarse resolution of an existing unit shape. One tick of the
+    /// returned shape represents the supplied number of source-shape ticks.
+    /// </summary>
+    public static UnitShape ResolutionOf(UnitShape source, long sourceTicksPerTick)
+    {
+        var sourceShape = source ?? Atom(Carrier.Unknown);
+        if (sourceTicksPerTick <= 1)
+        {
+            return sourceShape;
+        }
+
+        if (sourceShape.TryReadResolution(out var innerSource, out var innerTicks))
+        {
+            return ResolutionOf(innerSource, SaturatingMultiply(innerTicks, sourceTicksPerTick));
+        }
+
+        return new UnitShape(new Relation(SnapshotOf(sourceShape.surface), Segment(Carrier.Unknown, 0, sourceTicksPerTick)));
+    }
+
     /// <summary>Creates a circular or level-line unit shape from a point source.</summary>
     public static UnitShape CircularFrom(Relation point)
     {
@@ -145,6 +165,11 @@ public sealed class UnitShape : IEquatable<UnitShape>
             return 1;
         }
 
+        if (TryReadResolutionCore(surface, out var sourceSurface, out _))
+        {
+            return new UnitShape(sourceSurface).ProductParticipationOf(unit);
+        }
+
         if (!TryReadProductOperands(surface, out var operands))
         {
             return 0;
@@ -176,6 +201,20 @@ public sealed class UnitShape : IEquatable<UnitShape>
         }
 
         operands = [];
+        return false;
+    }
+
+    /// <summary>Reads the source unit and tick span from a coarse resolution shape.</summary>
+    public bool TryReadResolution(out UnitShape source, out long sourceTicksPerTick)
+    {
+        if (TryReadResolutionCore(surface, out var sourceSurface, out sourceTicksPerTick))
+        {
+            source = new UnitShape(SnapshotOf(sourceSurface));
+            return true;
+        }
+
+        source = default!;
+        sourceTicksPerTick = 0;
         return false;
     }
 
@@ -295,6 +334,7 @@ public sealed class UnitShape : IEquatable<UnitShape>
         element is Relation relation &&
             !IsUnitPoint(relation) &&
             !IsUnitSegment(relation) &&
+            !IsResolutionSurface(relation) &&
             !TryReadOrthogonalSourceCore(relation, out _)
             ? [.. Flatten(relation.Left), .. Flatten(relation.Right)]
             : [element];
@@ -314,6 +354,7 @@ public sealed class UnitShape : IEquatable<UnitShape>
 
         if (IsUnitPoint(relation) ||
             IsUnitSegment(relation) ||
+            IsResolutionSurface(relation) ||
             IsProductSurface(relation) ||
             TryReadOrthogonalSourceCore(relation, out _))
         {
@@ -352,6 +393,29 @@ public sealed class UnitShape : IEquatable<UnitShape>
         return false;
     }
 
+    /// <summary>Reads a coarse-resolution unit surface.</summary>
+    private static bool TryReadResolutionCore(
+        IElement element,
+        out IElement source,
+        out long sourceTicksPerTick)
+    {
+        if (element is Relation relation &&
+            relation.Right is Relation resolutionSegment &&
+            TryReadSegment(resolutionSegment, out var start, out var end) &&
+            start.Carrier.SameIdentityAs(Carrier.Unknown) &&
+            start.Ticks == 0 &&
+            end.Ticks > 1)
+        {
+            source = relation.Left;
+            sourceTicksPerTick = end.Ticks;
+            return true;
+        }
+
+        source = default!;
+        sourceTicksPerTick = 0;
+        return false;
+    }
+
     /// <summary>Returns true for the unit segment marker used by product shapes.</summary>
     private static bool IsUnitSegment(IElement element) =>
         element is Relation relation &&
@@ -364,6 +428,10 @@ public sealed class UnitShape : IEquatable<UnitShape>
     private static bool IsProductSurface(IElement element) =>
         element is Relation relation &&
         IsUnitSegment(relation.Right);
+
+    /// <summary>Returns true for the coarse-resolution unit marker.</summary>
+    private static bool IsResolutionSurface(IElement element) =>
+        TryReadResolutionCore(element, out _, out _);
 
     /// <summary>Returns true for the unit point marker used by additive group shapes.</summary>
     private static bool IsAdditiveMarker(IElement element) =>
@@ -452,6 +520,17 @@ public sealed class UnitShape : IEquatable<UnitShape>
     }
 
     #endregion
+
+    private static long SaturatingMultiply(long left, long right)
+    {
+        var product = (Int128)left * right;
+        if (product > long.MaxValue)
+        {
+            return long.MaxValue;
+        }
+
+        return product < long.MinValue ? long.MinValue : (long)product;
+    }
 
     private static ulong NextId() => idCounter++;
 }

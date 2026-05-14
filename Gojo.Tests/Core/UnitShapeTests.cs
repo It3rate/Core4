@@ -420,6 +420,61 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
+    public void ResolutionShapeCrystallizesCoarseTickOverSourceUnit()
+    {
+        var lengthShape = new Carrier().UnitShape;
+
+        var hundreds = UnitShape.ResolutionOf(lengthShape, 100);
+
+        Assert.False(hundreds.CompatibleWith(lengthShape));
+        Assert.True(hundreds.TryReadResolution(out var source, out var sourceTicksPerTick));
+        Assert.True(source.CompatibleWith(lengthShape));
+        Assert.Equal(100, sourceTicksPerTick);
+        Assert.Equal(1, hundreds.ProductParticipationOf(lengthShape));
+    }
+
+    [Fact]
+    public void ResolutionShapesRemainCompatibleOnlyAtSameCoarseSpan()
+    {
+        var lengthShape = new Carrier().UnitShape;
+
+        var firstHundreds = UnitShape.ResolutionOf(lengthShape, 100);
+        var secondHundreds = UnitShape.ResolutionOf(lengthShape, 100);
+        var tens = UnitShape.ResolutionOf(lengthShape, 10);
+
+        Assert.True(firstHundreds.CompatibleWith(secondHundreds));
+        Assert.False(firstHundreds.CompatibleWith(tens));
+    }
+
+    [Fact]
+    public void NestedResolutionShapesComposeIntoOneSourceSpan()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var tens = UnitShape.ResolutionOf(lengthShape, 10);
+
+        var thousands = UnitShape.ResolutionOf(tens, 100);
+
+        Assert.True(thousands.TryReadResolution(out var source, out var sourceTicksPerTick));
+        Assert.True(source.CompatibleWith(lengthShape));
+        Assert.Equal(1000, sourceTicksPerTick);
+    }
+
+    [Fact]
+    public void AdditiveOperandReadPreservesResolutionOperandsAsWholeStructure()
+    {
+        var lengthShape = new Carrier().UnitShape;
+        var heatShape = new Carrier().UnitShape;
+        var hundreds = UnitShape.ResolutionOf(lengthShape, 100);
+
+        var grouped = UnitShape.Additive(hundreds, heatShape);
+
+        Assert.True(grouped.TryReadAdditiveOperands(out var operands));
+        Assert.Equal(2, operands.Length);
+        Assert.True(operands[0].CompatibleWith(hundreds));
+        Assert.True(operands[1].CompatibleWith(heatShape));
+    }
+
+    [Fact]
     public void CrystallizedCarrierUsesDerivedUnitShapeWithoutProjectingValue()
     {
         var lengthShape = new Carrier().UnitShape;

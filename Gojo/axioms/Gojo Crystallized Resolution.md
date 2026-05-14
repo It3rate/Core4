@@ -11,11 +11,24 @@ Basis/read structure says how finely that participation is being measured.
 Crystallization preserves kind; accurate resolution usually requires preserving source structure.
 ```
 
-## 1. Unit Shape Does Not Own Resolution
+## 1. Unit Shape Can Own A Coarse Tick Promise
 
 `UnitShape` is the crystallized kind of a carrier tick. It can say that a tick
 is length-like, area-like, circular, additive, inverse, or a product of other
 participations. It should not silently decide the precision of a measurement.
+It can, however, crystallize a stable coarse tick promise when that is the
+concept being represented.
+
+```text
+length unit shape                 what one length tick means
+ResolutionOf(length, 100)          what one hundred-length tick means
+hundreds slot value 3              three coarse ticks
+full lower slots absent            about 300 at this scope
+ones/tens supplied as zero         exactly 300 at ones resolution
+```
+
+This keeps coarse resolution structural without forcing every workspace read
+to pretend it has lower detail.
 
 Resolution lives in the basis/read relation:
 
@@ -29,7 +42,9 @@ area read basis          how a source structure projects into product ticks
 A crystallized unit can return an expected basis when it was constructed from
 sources that already had basis information. That basis is structure returned by
 the construction/read; it is not an invisible property hidden inside the unit
-shape.
+shape. A coarse unit shape says what one coarse tick means; supplied-slot
+witnesses and read lenses still say whether lower detail was absent,
+explicitly zero, or projected from live structure.
 
 ## 2. Crystallization And Scientific Resolution
 
@@ -158,7 +173,10 @@ Current Gojo already has the basic split:
   operand-basis defaults.
 - concrete operand target frames act as dominant basis candidates for the first
   ratio/per-style foothold.
+- `UnitShape.ResolutionOf(source, ticksPerTick)` creates a stable coarse unit
+  shape, and `TryReadResolution(...)` exposes its source and span.
 
-The next code step is not to put resolution inside `UnitShape`. It is to make
-inverse unit participation and cancellation explicit so per-style products can
-derive both their dominant basis and their surviving result kind.
+The next code step is to keep coarse unit shapes connected to workspace
+supplied-slot witnesses, then make inverse unit participation and cancellation
+explicit so per-style products can derive both their dominant basis and their
+surviving result kind.

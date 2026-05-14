@@ -344,14 +344,17 @@ Gojo docs should win when there is a conflict.
 ```text
 Gojo/
   Core/             carrier, location, relation, tick reference, unit shape
+  Equations/        relation-shaped equation surfaces, maps, comparisons
   Reads/            read helpers and legacy read footholds
   Diagnostics/      diagnostics for traversal-oriented inspection
   Interpretation/   boolean-style read experiments
+  Workspace/        scoped/proxy workspace design notes and future mechanics
   axioms/           active model notes and transition notes
 
 Gojo.Tests/
   Core/             tests for carrier settlement, relations, duality, ports,
                     structural slots, tick refs, and unit shapes
+  Equations/        tests for equation helpers and equation catalog cases
 
 Gojo.GearDemo/
   code-first Avalonia desktop demo using a render-tick-driven Skia canvas
