@@ -64,17 +64,19 @@ public static class EquationSequence
         for (var stepIndex = 0; stepIndex < steps.Length; stepIndex++)
         {
             var step = steps[stepIndex];
-            var target = stepIndex == steps.Length - 1
-                ? RootOrUnknown(output)
-                : TryReadOutputCarrier(step, out var stepOutput)
-                    ? stepOutput
-                    : Carrier.Unknown;
-            var read = Equation.Predict(step, current, target);
+            var read = EquationFanout.TryReadBranches(step, out _)
+                ? EquationFanout.Predict(step, current, out _)
+                : Equation.Predict(
+                    step,
+                    current,
+                    stepIndex == steps.Length - 1
+                        ? RootOrUnknown(output)
+                        : TryReadOutputCarrier(step, out var stepOutput)
+                            ? stepOutput
+                            : Carrier.Unknown);
             stepReads[stepIndex] = read;
 
-            current = Equation.TryReadPrediction(read, out var predicted, out _)
-                ? predicted
-                : read;
+            current = read.Left;
         }
 
         return Equation.TryReadPrediction(stepReads[^1], out var final, out _)

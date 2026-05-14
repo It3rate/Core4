@@ -86,6 +86,32 @@ sensor -> normalized sensor -> squared sensor -> score
 width,height -> area -> normalized area
 ```
 
+## Fanout
+
+`EquationFanout` is the paired branching shape for sequence composition. It
+anchors an ordered branch group at a fanout origin:
+
+```text
+Point(fanoutRoot,0)
+  -> BranchGroup
+       + equation branch 0
+       + equation branch 1
+```
+
+Each branch reads the same supplied input. The prediction output is a
+tuple-shaped relation, not an ordered holder group, so it can feed existing
+operation surfaces:
+
+```text
+input -> (branch0 output, branch1 output, branch2 output)
+(branch outputs) -> Sum/Product/etc.
+```
+
+This gives the equation layer the first explicit `one input, many derived
+participations` structure. It is enough to model shapes like `x -> (x, 2x) ->
+sum`, and it points toward polynomial terms where later branches can derive
+`x^2`, `x^3`, or lower-resolution witnesses before a merge surface reads them.
+
 ## Ordered Map
 
 Mapping a stream is inspection structure built by `EquationInspection`:
@@ -178,6 +204,7 @@ weighted sum             y = a*x + b*z + c
 difference/error         observed - predicted
 product/bilinear         x*z
 sequence/composition     f(g(x))
+fanout/merge             x -> (f(x), g(x)) -> h(...)
 fit summary              samples -> signed/magnitude residuals
 piecewise/clamp/gate     bounded local equations
 polynomial               c0 + c1*x + c2*x^2 ...
