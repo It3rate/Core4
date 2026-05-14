@@ -62,6 +62,30 @@ added. For the product, each operand is projected and then multiplied. Biases
 or constants can be represented as ordinary supplied slots, such as a bias
 carrier with value `1` and a weighted port of `0..5`.
 
+## Sequences
+
+`EquationSequence` composes equation surfaces without turning them into a
+symbolic expression tree. A sequence is an ordered Gojo group:
+
+```text
+SequenceRoot
+  + equation step 0
+  + equation step 1
+  + equation step 2
+```
+
+A single read through the sequence feeds each step's predicted output into the
+next step. The final read returns the last predicted output, while the residue
+is an ordered group of the step residues. The sequence itself is the structure;
+the step reads are witnesses of one particular input moving through it.
+
+This is the first foothold for multi-step equations such as:
+
+```text
+sensor -> normalized sensor -> squared sensor -> score
+width,height -> area -> normalized area
+```
+
 ## Ordered Map
 
 Mapping a stream is inspection structure built by `EquationInspection`:
@@ -153,6 +177,7 @@ affine frame             y = ax + b
 weighted sum             y = a*x + b*z + c
 difference/error         observed - predicted
 product/bilinear         x*z
+sequence/composition     f(g(x))
 fit summary              samples -> signed/magnitude residuals
 piecewise/clamp/gate     bounded local equations
 polynomial               c0 + c1*x + c2*x^2 ...
