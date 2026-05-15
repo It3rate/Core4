@@ -20,13 +20,15 @@ public sealed partial class Relation
 
     private readonly record struct LiveOutputTarget(Carrier Carrier, long Ticks);
 
-    private readonly record struct OperationOperand(
+    private readonly record struct OperationSignal(
         long Ticks,
         CarrierLocation Residue,
         bool InvertsFlow,
         CarrierLocation Source);
 
-    private readonly record struct OperationFactor(OperationOperand[] Components);
+    private readonly record struct OperationSignalFactor(OperationSignal[] Components);
+
+    private readonly record struct OperationSignalFlow(OperationSignalFactor[] Factors);
 
     private readonly record struct OperationBasis(long Extent, bool IsDominant);
 
