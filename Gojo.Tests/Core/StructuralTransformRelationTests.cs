@@ -298,6 +298,52 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
+    public void MultipleSourcesShareFreedFiniteTargetCapacity()
+    {
+        var first = new Carrier();
+        var second = new Carrier();
+        var target = new Carrier();
+        target.Attach(new Relation(Point(target, 5), Point(target, 5)));
+        first.Attach(new Relation(Point(first, 1), Point(target, 0)));
+        second.Attach(new Relation(Point(second, 1), Point(target, 0)));
+        target.Add(5);
+        first.Add(4);
+        second.Add(4);
+
+        target.Remove(4);
+
+        Assert.Equal(0UL, first.Value);
+        Assert.Equal(2, first.Tension);
+        Assert.Equal(0UL, second.Value);
+        Assert.Equal(2, second.Tension);
+        Assert.Equal(5UL, target.Value);
+        Assert.Equal(0, target.Tension);
+    }
+
+    [Fact]
+    public void MultipleSourcesRedistributeUnusedTargetAcceptance()
+    {
+        var small = new Carrier();
+        var large = new Carrier();
+        var target = new Carrier();
+        target.Attach(new Relation(Point(target, 5), Point(target, 5)));
+        small.Attach(new Relation(Point(small, 1), Point(target, 0)));
+        large.Attach(new Relation(Point(large, 1), Point(target, 0)));
+        target.Add(5);
+        small.Add(1);
+        large.Add(5);
+
+        target.Remove(4);
+
+        Assert.Equal(0UL, small.Value);
+        Assert.Equal(0, small.Tension);
+        Assert.Equal(0UL, large.Value);
+        Assert.Equal(2, large.Tension);
+        Assert.Equal(5UL, target.Value);
+        Assert.Equal(0, target.Tension);
+    }
+
+    [Fact]
     public void CrossCarrierNonzeroPointRelationDoesNotAbsorbAsCarry()
     {
         var source = new Carrier();

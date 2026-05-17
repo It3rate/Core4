@@ -25,6 +25,27 @@ public sealed partial class Carrier
         long LocalTarget,
         long Unit);
 
+    private sealed class RuntimeRouteSourceGroup
+    {
+        public RuntimeRouteGroupKey Key { get; }
+
+        public RuntimeRouteFlow[] Flows { get; }
+
+        public ulong UnitTicks { get; set; }
+
+        public ulong SourceRemainder { get; set; }
+
+        public ulong Remaining { get; set; }
+
+        public Carrier Source => Key.Source;
+
+        public RuntimeRouteSourceGroup(RuntimeRouteGroupKey key, RuntimeRouteFlow[] flows)
+        {
+            Key = key;
+            Flows = flows;
+        }
+    }
+
     /// <summary>
     /// Coordinates direct positive tension routes that compete for the same
     /// source boundary during this settlement pass. Target absorption is read
@@ -45,19 +66,27 @@ public sealed partial class Carrier
                 flow.Source.Carrier,
                 flow.SourceBoundary,
                 flow.LocalTarget,
-                flow.Unit));
+                flow.Unit))
+            .Select(group => new RuntimeRouteSourceGroup(
+                group.Key,
+                [.. group.OrderBy(flow => flow.Relation.Id)]))
+            .ToArray();
 
         var handled = new HashSet<ulong>();
-        foreach (var group in flows)
-        {
-            var groupFlows = group.OrderBy(flow => flow.Relation.Id).ToArray();
-            if (groupFlows.Length < 2 && !HasFinitePositiveAbsorption(groupFlows[0].Target.Carrier))
-            {
-                continue;
-            }
+        var handledGroups = flows
+            .Where(group => group.Flows.Length > 1 ||
+                group.Flows.Any(flow => HasFinitePositiveAbsorption(flow.Target.Carrier)))
+            .ToArray();
 
-            ApplyRuntimeRouteGroup(groupFlows);
-            foreach (var flow in groupFlows)
+        if (handledGroups.Length == 0)
+        {
+            return handled;
+        }
+
+        ApplyRuntimeRouteGroups(handledGroups);
+        foreach (var group in handledGroups)
+        {
+            foreach (var flow in group.Flows)
             {
                 handled.Add(flow.Relation.Id);
             }
@@ -101,88 +130,170 @@ public sealed partial class Carrier
         return true;
     }
 
-    /// <summary>Allocates one source tension pool across equivalent direct routes.</summary>
-    private static bool ApplyRuntimeRouteGroup(RuntimeRouteFlow[] flows)
+    /// <summary>Coordinates source offers and target acceptance across direct routes.</summary>
+    private static void ApplyRuntimeRouteGroups(RuntimeRouteSourceGroup[] groups)
     {
-        if (flows.Length == 0)
-        {
-            return false;
-        }
+        PrepareRuntimeRouteGroups(groups);
+        var flows = groups
+            .SelectMany((group, groupIndex) => group.Flows.Select(flow => (Flow: flow, GroupIndex: groupIndex)))
+            .ToArray();
+        var accepted = new ulong[flows.Length];
 
-        var source = flows[0].Source.Carrier;
-        var sourceBoundary = flows[0].SourceBoundary;
-        var localTarget = flows[0].LocalTarget;
-        var unit = flows[0].Unit;
-        var changed = AccountRuntimeLocal(source, sourceBoundary, localTarget);
-        if (source.Tension <= 0)
+        while (groups.Any(group => group.Remaining != 0))
         {
-            return changed;
-        }
-
-        var available = checked((ulong)source.Tension);
-        var unitTicks = checked((ulong)unit);
-        var received = available / unitTicks;
-        if (received == 0)
-        {
-            return changed;
-        }
-
-        var allocations = AllocateRuntimeRouteTicks(flows, received);
-        var allocated = allocations.Aggregate(0UL, (sum, ticks) => checked(sum + ticks));
-        for (var index = 0; index < flows.Length; index++)
-        {
-            if (allocations[index] != 0)
+            var requested = new ulong[flows.Length];
+            RequestRuntimeRouteTicks(groups, flows, accepted, requested);
+            if (requested.All(ticks => ticks == 0))
             {
-                flows[index].Target.Carrier.Receive(checked((long)allocations[index]));
+                break;
+            }
+
+            var moved = AcceptRuntimeRouteTicks(groups, flows, requested, accepted);
+            if (moved == 0)
+            {
+                break;
             }
         }
 
-        var rejected = checked(received - allocated);
-        var remaining = checked((rejected * unitTicks) + (available % unitTicks));
-        changed |= source.KeepTensionRemainder(checked((long)remaining));
-        return true;
-    }
-
-    /// <summary>Splits carried ticks across targets while respecting local target clamps.</summary>
-    private static ulong[] AllocateRuntimeRouteTicks(RuntimeRouteFlow[] flows, ulong available)
-    {
-        var allocations = new ulong[flows.Length];
-        if (available == 0)
+        for (var index = 0; index < flows.Length; index++)
         {
-            return allocations;
+            if (accepted[index] != 0)
+            {
+                flows[index].Flow.Target.Carrier.Receive(checked((long)accepted[index]));
+            }
         }
 
-        var remaining = available;
-        var active = Enumerable.Range(0, flows.Length).ToList();
+        foreach (var group in groups)
+        {
+            var remaining = checked((group.Remaining * group.UnitTicks) + group.SourceRemainder);
+            group.Source.KeepTensionRemainder(checked((long)remaining));
+        }
+    }
+
+    /// <summary>Accounts local source boundaries and records source route demand.</summary>
+    private static void PrepareRuntimeRouteGroups(RuntimeRouteSourceGroup[] groups)
+    {
+        foreach (var group in groups)
+        {
+            var first = group.Flows[0];
+            AccountRuntimeLocal(group.Source, first.SourceBoundary, first.LocalTarget);
+            group.UnitTicks = checked((ulong)first.Unit);
+            if (group.Source.Tension <= 0)
+            {
+                group.SourceRemainder = 0;
+                group.Remaining = 0;
+                continue;
+            }
+
+            var available = checked((ulong)group.Source.Tension);
+            group.Remaining = available / group.UnitTicks;
+            group.SourceRemainder = available % group.UnitTicks;
+        }
+    }
+
+    /// <summary>Lets each source split its remaining carried ticks across active route lanes.</summary>
+    private static void RequestRuntimeRouteTicks(
+        RuntimeRouteSourceGroup[] groups,
+        (RuntimeRouteFlow Flow, int GroupIndex)[] flows,
+        ulong[] accepted,
+        ulong[] requested)
+    {
+        for (var groupIndex = 0; groupIndex < groups.Length; groupIndex++)
+        {
+            var group = groups[groupIndex];
+            if (group.Remaining == 0)
+            {
+                continue;
+            }
+
+            var active = Enumerable.Range(0, flows.Length)
+                .Where(index => flows[index].GroupIndex == groupIndex)
+                .Where(index => RuntimeRouteTargetCanReceive(flows, accepted, flows[index].Flow.Target.Carrier))
+                .ToArray();
+            if (active.Length == 0)
+            {
+                continue;
+            }
+
+            var count = checked((ulong)active.Length);
+            var baseShare = group.Remaining / count;
+            var remainder = group.Remaining % count;
+            for (var order = 0; order < active.Length; order++)
+            {
+                requested[active[order]] = baseShare + (checked((ulong)order) < remainder ? 1UL : 0UL);
+            }
+        }
+    }
+
+    /// <summary>Lets targets accept requested ticks, sharing finite intake across inbound flows.</summary>
+    private static ulong AcceptRuntimeRouteTicks(
+        RuntimeRouteSourceGroup[] groups,
+        (RuntimeRouteFlow Flow, int GroupIndex)[] flows,
+        ulong[] requested,
+        ulong[] accepted)
+    {
+        var moved = 0UL;
+        foreach (var targetGroup in Enumerable.Range(0, flows.Length)
+            .Where(index => requested[index] != 0)
+            .GroupBy(index => flows[index].Flow.Target.Carrier))
+        {
+            var target = targetGroup.Key;
+            var indexes = targetGroup.ToArray();
+            var requestedTotal = indexes.Aggregate(0UL, (sum, index) => checked(sum + requested[index]));
+            var targetLeft = RuntimeRouteTargetLeft(flows, accepted, target);
+            var acceptedByTarget = targetLeft.HasValue
+                ? AllocateFiniteRuntimeRouteTicks(indexes, requested, Math.Min(requestedTotal, targetLeft.Value))
+                : indexes.ToDictionary(index => index, index => requested[index]);
+
+            foreach (var (index, ticks) in acceptedByTarget)
+            {
+                if (ticks == 0)
+                {
+                    continue;
+                }
+
+                accepted[index] = checked(accepted[index] + ticks);
+                groups[flows[index].GroupIndex].Remaining = checked(groups[flows[index].GroupIndex].Remaining - ticks);
+                moved = checked(moved + ticks);
+            }
+        }
+
+        return moved;
+    }
+
+    /// <summary>Returns true when a route target is unlimited or still has finite intake left.</summary>
+    private static bool RuntimeRouteTargetCanReceive(
+        (RuntimeRouteFlow Flow, int GroupIndex)[] flows,
+        ulong[] accepted,
+        Carrier target)
+    {
+        var left = RuntimeRouteTargetLeft(flows, accepted, target);
+        return !left.HasValue || left.Value != 0;
+    }
+
+    /// <summary>Shares one finite target intake across the flows currently requesting it.</summary>
+    private static Dictionary<int, ulong> AllocateFiniteRuntimeRouteTicks(
+        int[] indexes,
+        ulong[] requested,
+        ulong capacity)
+    {
+        var accepted = indexes.ToDictionary(index => index, _ => 0UL);
+        var remaining = capacity;
+        var active = indexes.ToList();
         while (remaining != 0 && active.Count != 0)
         {
             var count = checked((ulong)active.Count);
             var baseShare = remaining / count;
             var remainder = remaining % count;
             var moved = 0UL;
-
             for (var order = 0; order < active.Count; order++)
             {
                 var index = active[order];
-                var requested = baseShare + (checked((ulong)order) < remainder ? 1UL : 0UL);
-                if (requested == 0)
-                {
-                    continue;
-                }
-
-                var alreadyAllocatedToTarget = AllocatedRuntimeRouteTicksTo(
-                    flows,
-                    allocations,
-                    flows[index].Target.Carrier);
-                var allowed = RuntimePositiveAbsorptionLeft(
-                    flows[index].Target.Carrier,
-                    alreadyAllocatedToTarget);
-                var accepted = allowed.HasValue
-                    ? Math.Min(requested, allowed.Value)
-                    : requested;
-
-                allocations[index] = checked(allocations[index] + accepted);
-                moved = checked(moved + accepted);
+                var requestLeft = requested[index] - accepted[index];
+                var offered = baseShare + (checked((ulong)order) < remainder ? 1UL : 0UL);
+                var ticks = Math.Min(requestLeft, offered);
+                accepted[index] = checked(accepted[index] + ticks);
+                moved = checked(moved + ticks);
             }
 
             if (moved == 0)
@@ -191,31 +302,28 @@ public sealed partial class Carrier
             }
 
             remaining = checked(remaining - moved);
-            active.RemoveAll(index =>
-                RuntimePositiveAbsorptionLeft(
-                    flows[index].Target.Carrier,
-                    AllocatedRuntimeRouteTicksTo(flows, allocations, flows[index].Target.Carrier)) == 0);
+            active.RemoveAll(index => accepted[index] == requested[index]);
         }
 
-        return allocations;
+        return accepted;
     }
 
-    /// <summary>Counts ticks already allocated to one target carrier in this route group.</summary>
-    private static ulong AllocatedRuntimeRouteTicksTo(
-        RuntimeRouteFlow[] flows,
-        ulong[] allocations,
+    /// <summary>Reads finite target intake left after already accepted route ticks.</summary>
+    private static ulong? RuntimeRouteTargetLeft(
+        (RuntimeRouteFlow Flow, int GroupIndex)[] flows,
+        ulong[] accepted,
         Carrier target)
     {
         var allocated = 0UL;
         for (var index = 0; index < flows.Length; index++)
         {
-            if (flows[index].Target.Carrier.SameIdentityAs(target))
+            if (flows[index].Flow.Target.Carrier.SameIdentityAs(target))
             {
-                allocated = checked(allocated + allocations[index]);
+                allocated = checked(allocated + accepted[index]);
             }
         }
 
-        return allocated;
+        return RuntimePositiveAbsorptionLeft(target, allocated);
     }
 
     /// <summary>Returns true when target relation structure gives the target a finite positive intake.</summary>

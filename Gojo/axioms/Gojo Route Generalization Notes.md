@@ -46,6 +46,9 @@ The current ordinary scalar executable shapes are intentionally small:
     keep without leaving positive target tension
   - if other equivalent routes are available, rejected ticks are redistributed
     to those receivers; otherwise they remain as source tension
+  - if several source carriers feed the same finite receiver in one settlement
+    pass, they negotiate against the same target capacity instead of each
+    seeing a fresh receiver
   - this is a first backpressure foothold, not a complete target-capacity model
 
 - `P(source,k) -> P(receiver,m)` where `m > 0`
