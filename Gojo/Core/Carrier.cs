@@ -5,7 +5,7 @@ namespace Gojo.Core;
 /// mutable value/tension state, and attached relations that settle the
 /// connected local world when new tension enters.
 /// </summary>
-public sealed class Carrier : IElement
+public sealed partial class Carrier : IElement
 {
     private static ulong idCounter = 1;
 
@@ -308,6 +308,7 @@ public sealed class Carrier : IElement
             for (var pass = 0; pass < 256; pass++)
             {
                 var before = Snapshot(carriers);
+                ApplyRuntimeRouteSettlement(carriers);
                 foreach (var relation in carriers.SelectMany(carrier => carrier.relations)
                     .GroupBy(relation => relation.Id)
                     .Select(group => group.First()))

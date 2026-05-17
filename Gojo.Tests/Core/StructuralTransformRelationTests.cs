@@ -191,6 +191,40 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
+    public void EquivalentCrossCarrierRoutesSharePositiveTension()
+    {
+        var source = new Carrier();
+        var first = new Carrier();
+        var second = new Carrier();
+        source.Attach(new Relation(Point(source, 1), Point(first, 0)));
+        source.Attach(new Relation(Point(source, 1), Point(second, 0)));
+
+        source.Add(20);
+
+        Assert.Equal(0UL, source.Value);
+        Assert.Equal(0, source.Tension);
+        Assert.Equal(10UL, first.Value);
+        Assert.Equal(10UL, second.Value);
+    }
+
+    [Fact]
+    public void EquivalentBoundaryRoutesShareCarriedQuantaAndPreserveResidue()
+    {
+        var source = new Carrier();
+        var first = new Carrier();
+        var second = new Carrier();
+        source.Attach(new Relation(Point(source, 10), Point(first, 0)));
+        source.Attach(new Relation(Point(source, 10), Point(second, 0)));
+
+        source.Add(47);
+
+        Assert.Equal(7UL, source.Value);
+        Assert.Equal(0, source.Tension);
+        Assert.Equal(2UL, first.Value);
+        Assert.Equal(2UL, second.Value);
+    }
+
+    [Fact]
     public void CrossCarrierNonzeroPointRelationDoesNotAbsorbAsCarry()
     {
         var source = new Carrier();

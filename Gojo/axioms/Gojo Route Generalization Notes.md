@@ -30,6 +30,15 @@ The current ordinary scalar executable shapes are intentionally small:
   - explicit counter route
   - can absorb carrier tension produced before the route existed
 
+- multiple equivalent `P(source,k) -> P(receiver,0)` routes
+  - are coordinated as one runtime settlement choice when they share the same
+    source carrier, boundary, residue target, and unit
+  - split the carried quotient across direct receiver routes instead of giving
+    all source tension to whichever attached relation happens to settle first
+  - leave the source residue/tension exactly as the boundary accounting
+    requires
+  - this allocation is transient runtime scratch, not durable Gojo structure
+
 - `P(source,k) -> P(receiver,m)` where `m > 0`
   - ratio projection surface
   - does not clear source value or mutate receiver value in the current pass
@@ -71,9 +80,9 @@ inspect carrier value and tension.
 ## Remaining Gap
 
 Extent/stretch projection, refill/borrow, loop hardening, same-carrier cycles,
-branch/merge, and dynamic balancing are not solved by the removed helpers. They
-should come back only as structural relation shapes that carriers can settle
-internally.
+branch/merge, explicit grouped route contexts, target backpressure, and dynamic
+balancing are not solved by the removed helpers. They should come back only as
+structural relation shapes that carriers can settle internally.
 
 The pressure to watch for is API shape: if a behavior needs another named
 method before it can be discovered, try to encode the behavior in carrier
