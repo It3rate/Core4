@@ -225,6 +225,79 @@ public sealed class StructuralTransformRelationTests
     }
 
     [Fact]
+    public void FiniteTargetClampRejectsUnabsorbedDirectRouteTension()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        target.Attach(new Relation(Point(target, 3), Point(target, 3)));
+        source.Attach(new Relation(Point(source, 1), Point(target, 0)));
+
+        source.Add(8);
+
+        Assert.Equal(0UL, source.Value);
+        Assert.Equal(5, source.Tension);
+        Assert.Equal(3UL, target.Value);
+        Assert.Equal(0, target.Tension);
+    }
+
+    [Fact]
+    public void RouteAllocationRedistributesAroundFiniteTargetClamp()
+    {
+        var source = new Carrier();
+        var limited = new Carrier();
+        var open = new Carrier();
+        limited.Attach(new Relation(Point(limited, 3), Point(limited, 3)));
+        source.Attach(new Relation(Point(source, 1), Point(limited, 0)));
+        source.Attach(new Relation(Point(source, 1), Point(open, 0)));
+
+        source.Add(10);
+
+        Assert.Equal(0UL, source.Value);
+        Assert.Equal(0, source.Tension);
+        Assert.Equal(3UL, limited.Value);
+        Assert.Equal(0, limited.Tension);
+        Assert.Equal(7UL, open.Value);
+    }
+
+    [Fact]
+    public void RouteAllocationLeavesRejectedTicksOnSourceWhenTargetsAreFull()
+    {
+        var source = new Carrier();
+        var first = new Carrier();
+        var second = new Carrier();
+        first.Attach(new Relation(Point(first, 2), Point(first, 2)));
+        second.Attach(new Relation(Point(second, 3), Point(second, 3)));
+        source.Attach(new Relation(Point(source, 1), Point(first, 0)));
+        source.Attach(new Relation(Point(source, 1), Point(second, 0)));
+
+        source.Add(9);
+
+        Assert.Equal(0UL, source.Value);
+        Assert.Equal(4, source.Tension);
+        Assert.Equal(2UL, first.Value);
+        Assert.Equal(0, first.Tension);
+        Assert.Equal(3UL, second.Value);
+        Assert.Equal(0, second.Tension);
+    }
+
+    [Fact]
+    public void DuplicateRoutesToSameFiniteTargetShareTargetCapacity()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        target.Attach(new Relation(Point(target, 3), Point(target, 3)));
+        source.Attach(new Relation(Point(source, 1), Point(target, 0)));
+        source.Attach(new Relation(Point(source, 1), Point(target, 0)));
+
+        source.Add(10);
+
+        Assert.Equal(0UL, source.Value);
+        Assert.Equal(7, source.Tension);
+        Assert.Equal(3UL, target.Value);
+        Assert.Equal(0, target.Tension);
+    }
+
+    [Fact]
     public void CrossCarrierNonzeroPointRelationDoesNotAbsorbAsCarry()
     {
         var source = new Carrier();

@@ -308,11 +308,16 @@ public sealed partial class Carrier : IElement
             for (var pass = 0; pass < 256; pass++)
             {
                 var before = Snapshot(carriers);
-                ApplyRuntimeRouteSettlement(carriers);
+                var runtimeRouteRelations = ApplyRuntimeRouteSettlement(carriers);
                 foreach (var relation in carriers.SelectMany(carrier => carrier.relations)
                     .GroupBy(relation => relation.Id)
                     .Select(group => group.First()))
                 {
+                    if (runtimeRouteRelations.Contains(relation.Id))
+                    {
+                        continue;
+                    }
+
                     relation.Apply();
                 }
 

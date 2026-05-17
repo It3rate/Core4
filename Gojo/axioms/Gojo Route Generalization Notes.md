@@ -39,6 +39,15 @@ The current ordinary scalar executable shapes are intentionally small:
     requires
   - this allocation is transient runtime scratch, not durable Gojo structure
 
+- local clamp-limited direct receivers
+  - a receiver with `P(receiver,k) -> P(receiver,k)` exposes finite positive
+    intake up to that clamp point for this runtime pass
+  - a direct route into that receiver transfers only the ticks the receiver can
+    keep without leaving positive target tension
+  - if other equivalent routes are available, rejected ticks are redistributed
+    to those receivers; otherwise they remain as source tension
+  - this is a first backpressure foothold, not a complete target-capacity model
+
 - `P(source,k) -> P(receiver,m)` where `m > 0`
   - ratio projection surface
   - does not clear source value or mutate receiver value in the current pass
@@ -80,9 +89,9 @@ inspect carrier value and tension.
 ## Remaining Gap
 
 Extent/stretch projection, refill/borrow, loop hardening, same-carrier cycles,
-branch/merge, explicit grouped route contexts, target backpressure, and dynamic
-balancing are not solved by the removed helpers. They should come back only as
-structural relation shapes that carriers can settle internally.
+branch/merge, explicit grouped route contexts, richer target backpressure, and
+dynamic balancing are not solved by the removed helpers. They should come back
+only as structural relation shapes that carriers can settle internally.
 
 The pressure to watch for is API shape: if a behavior needs another named
 method before it can be discovered, try to encode the behavior in carrier
