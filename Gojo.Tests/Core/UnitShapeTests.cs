@@ -450,6 +450,73 @@ public sealed class UnitShapeTests
     }
 
     [Fact]
+    public void UnitShapeDescriptorCanGroundAlgebraicAtomProvenance()
+    {
+        var temperature = new Carrier();
+
+        var shape = UnitShape.DescribedAtom(temperature);
+
+        Assert.Equal(1, shape.DescriptorCount);
+        Assert.True(shape.TryReadDescriptor(0, out var descriptor));
+        Assert.Same(temperature, descriptor);
+        Assert.False(shape.TryReadDescriptor(1, out _));
+    }
+
+    [Fact]
+    public void UnitShapeBareAlgebraDisconnectsOptionalDescriptors()
+    {
+        var temperature = UnitShape.DescribedAtom(new Carrier());
+
+        var bare = temperature.Bare();
+
+        Assert.Equal(0, bare.DescriptorCount);
+        Assert.True(temperature.AlgebraicallyCompatibleWith(bare));
+        Assert.False(temperature.CompatibleWith(bare));
+        Assert.True(bare.WithDescriptors(temperature.DescriptorSurfaces).CompatibleWith(temperature));
+    }
+
+    [Fact]
+    public void UnitShapeDescriptorsDistinguishDirectCompatibilityFromAlgebraicCompatibility()
+    {
+        var temperature = UnitShape.DescribedAtom(new Carrier());
+        var distance = UnitShape.DescribedAtom(new Carrier());
+
+        Assert.True(temperature.AlgebraicallyCompatibleWith(distance));
+        Assert.False(temperature.CompatibleWith(distance));
+    }
+
+    [Fact]
+    public void UnitShapeCompositeReusesDescriptorSlotsAlgebraically()
+    {
+        var aDescriptor = new Carrier();
+        var bDescriptor = new Carrier();
+        var a = UnitShape.DescribedAtom(aDescriptor);
+        var b = UnitShape.DescribedAtom(bDescriptor);
+
+        var formula = UnitShape.Additive(
+            UnitShape.Product(a, a),
+            UnitShape.Product(b, b));
+
+        Assert.Equal(2, formula.DescriptorCount);
+        Assert.True(formula.TryReadDescriptor(0, out var first));
+        Assert.True(formula.TryReadDescriptor(1, out var second));
+        Assert.Same(aDescriptor, first);
+        Assert.Same(bDescriptor, second);
+
+        var bare = formula.Bare();
+        Assert.True(bare.AlgebraicallyCompatibleWith(formula));
+        Assert.False(bare.CompatibleWith(formula));
+        Assert.True(bare.WithDescriptors(aDescriptor, bDescriptor).CompatibleWith(formula));
+
+        Assert.True(formula.TryReadAdditiveOperands(out var terms));
+        Assert.Equal(2, terms.Length);
+        Assert.Equal(1, terms[0].DescriptorCount);
+        Assert.Equal(1, terms[1].DescriptorCount);
+        Assert.True(terms[0].CompatibleWith(UnitShape.Product(a, a)));
+        Assert.True(terms[1].CompatibleWith(UnitShape.Product(b, b)));
+    }
+
+    [Fact]
     public void NestedResolutionShapesComposeIntoOneSourceSpan()
     {
         var lengthShape = new Carrier().UnitShape;

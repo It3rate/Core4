@@ -102,6 +102,56 @@ The repeated relation is visible structure. A compact calculated scale
 signature such as `u:+2` may be useful as a read, but it should not replace the
 relation-shaped unit surface as the source of truth.
 
+## 3a. Algebra Surface And Optional Provenance
+
+Unit shape has two separable layers:
+
+```text
+algebra surface        bare calculational structure
+descriptor surface     optional provenance for algebra slots
+```
+
+The algebra surface must remain coherent without descriptors. This allows
+Gojo to try a structure metaphorically, transfer a calculation pattern, or
+discover that a transfer does not work by watching residue and tension.
+Descriptors restrict direct collapse, but they should not prevent exploratory
+algebraic reads.
+
+Descriptor slots are placeholders in the algebra surface. A shape such as:
+
+```text
+A^2 + B^2
+```
+
+has two descriptor entries, `A` and `B`, while the algebra surface references
+those entries repeatedly. It does not need four descriptor slots merely because
+two dimensions are squared.
+
+This gives two useful compatibility reads:
+
+```text
+direct compatibility      same algebra and same descriptors
+algebraic compatibility   same algebra, descriptors ignored
+```
+
+For example, geometric area and man-hours can share product-like algebra while
+remaining different direct unit meanings. A metaphor or adapter can still try
+to map one structure onto the other, but ordinary arithmetic should not
+silently collapse the provenance.
+
+Current code footholds:
+
+```text
+UnitShape.DescribedAtom(descriptor)  creates one algebra slot with provenance
+UnitShape.Bare()                     drops descriptors, keeps algebra slots
+UnitShape.WithDescriptors(...)       reattaches descriptor provenance
+UnitShape.AlgebraicallyCompatibleWith(other)
+```
+
+The descriptor can be any Gojo element, including a carrier used as a concept
+or creation root. It is optional; descriptorless shapes remain valid algebraic
+structures.
+
 ## 4. Addition And Compatibility
 
 Addition can collapse only when unit shapes are compatible:
@@ -314,6 +364,15 @@ In current Gojo code:
   read surface does not mutate the carrier's basis.
 - an inverse carrier has an inspectable opposed-face unit shape that remains
   compatible with the forward unit shape.
+- unit shapes can carry optional descriptor provenance separate from their
+  algebra surface:
+  - `UnitShape.DescribedAtom(descriptor)` creates one algebra placeholder with
+    provenance
+  - `UnitShape.Bare()` returns the same algebra without descriptor provenance
+  - `UnitShape.WithDescriptors(...)` reattaches descriptors to an algebra
+    surface
+  - `CompatibleWith` requires both algebra and descriptors to match
+  - `AlgebraicallyCompatibleWith` compares the bare algebra only
 - `UnitShape.OrthogonalOf(element)` creates an orthogonal shape unit whose
   surface preserves the source element as provenance and uses a zero-segment
   marker as the orthogonal outlet.
