@@ -11,6 +11,14 @@ carrier/relation structure and settle inside the connected carrier world.
 
 The current ordinary scalar executable shapes are intentionally small:
 
+- runtime route discovery
+  - first reads transient direct-route candidates from relation structure
+  - reads finite target intake from local clamp structure such as
+    `P(receiver,k) -> P(receiver,k)`
+  - builds temporary source groups and target states for one settlement pass
+  - does not store route offers, target capacity, or allocation as durable
+    Gojo meaning
+
 - `L(source,0) -> L(source,k)`
   - forward projection/basis surface
   - does not harden value or create tension by itself
