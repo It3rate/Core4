@@ -94,6 +94,28 @@ Different samples in the same stream may be complete, partial, or differently
 resolved. The map records that directly instead of requiring every frame to
 have the same shape before it can participate.
 
+The first stress footholds are deliberately small:
+
+```text
+Fibonacci-like frames:
+  (a,b) -> a+b
+  next frame supplies (b,a+b)
+
+Generated partial frames:
+  complete frame
+  missing input value
+  missing equation port
+  missing output surface
+  repeat...
+```
+
+Missing input values tend to remain visible in prediction residue because the
+input pattern itself is still carried through the read. Missing equation ports
+or output surfaces are still recorded in the unresolved-slot group, but they may
+not survive inside operation residue after the equation read attempts to parse
+the partial operation. The unresolved-slot group is therefore the authoritative
+read for frame completeness.
+
 ## Sum And Product Surfaces
 
 Weighted sums and products use existing Gojo operation surfaces. The ports are
