@@ -72,6 +72,28 @@ This keeps incomplete data frames inspectable. A missing value is not a thrown
 validation failure; it remains visible as an open slot in the residue or
 instantiated structure.
 
+Patterned equation maps apply the same idea to streams of binding frames:
+
+```text
+PatternMapRoot
+  + index span
+  + equation pattern
+  + input pattern
+  + sample 0
+  + sample 1
+
+PatternSampleN
+  + Point(index,N)
+  + supplied slot bindings
+  + predicted output location
+  + residue
+  + unresolved slot surfaces
+```
+
+Different samples in the same stream may be complete, partial, or differently
+resolved. The map records that directly instead of requiring every frame to
+have the same shape before it can participate.
+
 ## Sum And Product Surfaces
 
 Weighted sums and products use existing Gojo operation surfaces. The ports are
