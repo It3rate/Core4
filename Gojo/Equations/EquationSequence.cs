@@ -101,6 +101,11 @@ public static class EquationSequence
 
     private static bool TryReadOutputCarrier(Relation equation, out Carrier carrier)
     {
+        if (TryReadSteps(equation, out var steps) && steps.Length != 0)
+        {
+            return TryReadOutputCarrier(steps[^1], out carrier);
+        }
+
         foreach (var candidate in CarriersOf(equation?.Right))
         {
             if (!candidate.IsUnknown)

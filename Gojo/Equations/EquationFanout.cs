@@ -172,6 +172,11 @@ public static class EquationFanout
 
     private static bool TryReadOutputCarrier(Relation equation, out Carrier carrier)
     {
+        if (EquationSequence.TryReadSteps(equation, out var steps) && steps.Length != 0)
+        {
+            return TryReadOutputCarrier(steps[^1], out carrier);
+        }
+
         foreach (var candidate in CarriersOf(equation?.Right))
         {
             if (!candidate.IsUnknown)

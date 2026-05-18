@@ -43,6 +43,10 @@ public static class Equation
     public static Relation UnitPort(Carrier input) =>
         WeightedPort(input, 0, 1, 0, 1);
 
+    /// <summary>Creates a point-valued equation surface that leaves supplied input as residue.</summary>
+    public static Relation Constant(Carrier output, long ticks) =>
+        Relation.Point(RootOrUnknown(output), ticks);
+
     /// <summary>Creates an additive operation surface over relation-shaped operand input.</summary>
     public static Relation Sum(Carrier output, params Relation[] operandPorts) =>
         new(PortGroup(operandPorts), Relation.Point(RootOrUnknown(output), 1));
@@ -62,26 +66,41 @@ public static class Equation
 
     /// <summary>Projects one input sample through an equation into an output carrier.</summary>
     public static Relation Predict(Relation equation, CarrierLocation input, Carrier output) =>
-        equation is null
-            ? new Relation(new CarrierLocation(RootOrUnknown(output), 0), input)
-            : equation.Project(input, RootOrUnknown(output));
+        Predict(equation, (IElement)input, output);
 
     /// <summary>Reads one scalar or relation-shaped input sample through an equation.</summary>
     public static Relation Predict(Relation equation, IElement input, Carrier output)
     {
+        var supplied = input ?? Relation.Point(Carrier.Unknown, 0);
+        var target = RootOrUnknown(output);
         if (equation is null)
         {
-            return new Relation(new CarrierLocation(RootOrUnknown(output), 0), input ?? Relation.Point(Carrier.Unknown, 0));
+            return new Relation(new CarrierLocation(target, 0), supplied);
         }
 
-        if (equation.TryReadOperationFrom(input, RootOrUnknown(output), out var operationRead))
+        if (EquationSequence.TryReadSteps(equation, out var steps) && steps.Length != 0)
+        {
+            return EquationSequence.Predict(equation, supplied, target, out _);
+        }
+
+        if (EquationFanout.TryReadBranches(equation, out var branches) && branches.Length != 0)
+        {
+            return EquationFanout.Predict(equation, supplied, out _);
+        }
+
+        if (TryReadConstant(equation, target, supplied, out var constantRead))
+        {
+            return constantRead;
+        }
+
+        if (equation.TryReadOperationFrom(supplied, target, out var operationRead))
         {
             return operationRead;
         }
 
-        return input is CarrierLocation location
-            ? Predict(equation, location, output)
-            : new Relation(new CarrierLocation(RootOrUnknown(output), 0), input);
+        return supplied is CarrierLocation location
+            ? ProjectScalar(equation, location, target)
+            : new Relation(new CarrierLocation(target, 0), supplied);
     }
 
     /// <summary>Projects one input sample only when the equation surface accepts it.</summary>
@@ -89,16 +108,8 @@ public static class Equation
         Relation equation,
         CarrierLocation input,
         Carrier output,
-        out Relation prediction)
-    {
-        if (equation is not null && equation.TryProject(input, RootOrUnknown(output), out prediction))
-        {
-            return true;
-        }
-
-        prediction = new Relation(new CarrierLocation(RootOrUnknown(output), 0), input);
-        return false;
-    }
+        out Relation prediction) =>
+        TryPredict(equation, (IElement)input, output, out prediction);
 
     /// <summary>Reads one scalar or relation-shaped input sample only when the equation accepts it.</summary>
     public static bool TryPredict(
@@ -107,14 +118,33 @@ public static class Equation
         Carrier output,
         out Relation prediction)
     {
+        var supplied = input ?? Relation.Point(Carrier.Unknown, 0);
+        var target = RootOrUnknown(output);
         if (equation is not null &&
-            (equation.TryReadOperationFrom(input, RootOrUnknown(output), out prediction) ||
-                (input is CarrierLocation location && equation.TryProject(location, RootOrUnknown(output), out prediction))))
+            EquationSequence.TryReadSteps(equation, out var steps) &&
+            steps.Length != 0)
+        {
+            prediction = EquationSequence.Predict(equation, supplied, target, out _);
+            return true;
+        }
+
+        if (equation is not null &&
+            EquationFanout.TryReadBranches(equation, out var branches) &&
+            branches.Length != 0)
+        {
+            prediction = EquationFanout.Predict(equation, supplied, out _);
+            return true;
+        }
+
+        if (equation is not null &&
+            (TryReadConstant(equation, target, supplied, out prediction) ||
+                equation.TryReadOperationFrom(supplied, target, out prediction) ||
+                (supplied is CarrierLocation location && equation.TryProject(location, target, out prediction))))
         {
             return true;
         }
 
-        prediction = new Relation(new CarrierLocation(RootOrUnknown(output), 0), input ?? Relation.Point(Carrier.Unknown, 0));
+        prediction = new Relation(new CarrierLocation(target, 0), supplied);
         return false;
     }
 
@@ -154,4 +184,28 @@ public static class Equation
 
     private static Carrier RootOrUnknown(Carrier carrier) =>
         carrier ?? Carrier.Unknown;
+
+    private static Relation ProjectScalar(Relation equation, CarrierLocation input, Carrier output) =>
+        equation is null
+            ? new Relation(new CarrierLocation(output, 0), input)
+            : equation.Project(input, output);
+
+    private static bool TryReadConstant(
+        Relation equation,
+        Carrier output,
+        IElement supplied,
+        out Relation prediction)
+    {
+        if (equation?.Left is CarrierLocation point &&
+            equation.Right is Carrier pointCarrier &&
+            point.Carrier.SameIdentityAs(pointCarrier) &&
+            (output.IsUnknown || output.SameIdentityAs(pointCarrier)))
+        {
+            prediction = new Relation(new CarrierLocation(pointCarrier, point.Ticks), supplied);
+            return true;
+        }
+
+        prediction = null!;
+        return false;
+    }
 }
