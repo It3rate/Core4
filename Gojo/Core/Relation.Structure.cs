@@ -185,7 +185,8 @@ public sealed partial class Relation
     {
         if (participants.Count == 0)
         {
-            return Point(holder, 0);
+            // Non-origin marker keeps the empty group from reading as holder -> holder.
+            return Point(holder, 1);
         }
 
         IElement chain = AdditiveAttachment(holder, participants[0]);

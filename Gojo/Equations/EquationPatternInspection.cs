@@ -122,13 +122,8 @@ public static class EquationPatternInspection
     private static Relation BindingGroup(IReadOnlyList<Relation> bindings) =>
         ElementGroup(StructuralPattern.ReadSlotBindings(bindings));
 
-    private static Relation ElementGroup(IReadOnlyList<IElement> elements)
-    {
-        var holder = new Carrier();
-        return CountOf(elements) == 0
-            ? new Relation(Relation.Point(holder, 1), holder)
-            : Relation.OrderedGroup(holder, [.. elements]);
-    }
+    private static Relation ElementGroup(IReadOnlyList<IElement> elements) =>
+        Relation.OrderedGroup(new Carrier(), [.. elements]);
 
     private static Relation[] ReadRelationGroup(Relation group) =>
         TryReadRootElements(group, out var elements)

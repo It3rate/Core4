@@ -5,6 +5,17 @@ namespace Gojo.Tests.Core;
 public sealed class OrderedGroupTests
 {
     [Fact]
+    public void EmptyOrderedGroupReadsNoElements()
+    {
+        var holder = new Carrier();
+
+        var group = Relation.OrderedGroup(holder);
+
+        Assert.True(group.TryReadOrderedElementsOn(holder, out var elements));
+        Assert.Empty(elements);
+    }
+
+    [Fact]
     public void OrderedGroupCanRepresentComponentGroundedPositionBeforeBasisAttachment()
     {
         var position = new Carrier();

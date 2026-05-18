@@ -126,6 +126,11 @@ selection may all use additive gathering, but only some reads care about order.
 Preserving order in structure lets both ordered and unordered lenses remain
 available.
 
+An empty ordered/additive group is still a real group surface, but it must not
+look like a holder-origin attachment to itself. Current Gojo creates the empty
+chain with a non-origin holder point, so local reads return zero participants
+instead of a phantom participant containing the holder carrier.
+
 For contour closure, equal coordinate values are not enough. The current Gojo
 foothold treats an ordered contour as closed when its first and last endpoint
 positions expose matching carrier locations that share the same `TickRef`s.
