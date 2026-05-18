@@ -29,6 +29,27 @@ public sealed class PatternedRelationTests
     }
 
     [Fact]
+    public void DescriptorSlotPortPatternProjectsThroughBoundSurfaces()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        var portPattern = new Relation(UnitShape.DescriptorSlot(0), UnitShape.DescriptorSlot(1));
+        source.Set(27);
+
+        Assert.True(PatternedRelation.TryProject(
+            portPattern,
+            source.ValueSlot,
+            target,
+            out var projected,
+            StructuralPattern.BindDescriptor(0, Relation.Segment(source, 0, 10)),
+            StructuralPattern.BindDescriptor(1, Relation.Point(target, 1))));
+
+        Assert.Equal(
+            new Relation(new CarrierLocation(target, 2), new CarrierLocation(source, 7)),
+            projected);
+    }
+
+    [Fact]
     public void PlaceholderOperationPatternReadsBoundAddition()
     {
         var xPort = new Placeholder();

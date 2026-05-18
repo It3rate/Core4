@@ -3,7 +3,7 @@ using Gojo.Core;
 namespace Gojo.Patterns;
 
 /// <summary>
-/// Small helpers for applying placeholder bindings to ordinary Gojo structure.
+/// Small helpers for applying slot bindings to ordinary Gojo structure.
 /// The helpers produce relation/carrier/location structure; they are not a
 /// durable pattern or repeat object.
 /// </summary>
@@ -46,6 +46,66 @@ public static class StructuralPattern
         return false;
     }
 
+    /// <summary>Reads an element when it can serve as a structural pattern slot.</summary>
+    public static bool TryReadSlot(IElement element, out IElement slot)
+    {
+        if (element is Placeholder placeholder)
+        {
+            slot = placeholder;
+            return true;
+        }
+
+        if (UnitShape.TryReadDescriptorSlot(element, out var descriptorIndex))
+        {
+            slot = UnitShape.DescriptorSlot(descriptorIndex);
+            return true;
+        }
+
+        slot = default!;
+        return false;
+    }
+
+    /// <summary>Reads relation-shaped binding from any supported structural pattern slot.</summary>
+    public static bool TryReadSlotBinding(Relation relation, out IElement slot, out IElement element)
+    {
+        if (TryReadSlot(relation.Left, out slot))
+        {
+            element = relation.Right;
+            return true;
+        }
+
+        element = default!;
+        return false;
+    }
+
+    /// <summary>Reads distinct slot surfaces from a pattern in traversal order.</summary>
+    public static IElement[] ReadSlots(IElement pattern)
+    {
+        var slots = new List<IElement>();
+        ReadSlots(pattern, slots);
+        return [.. slots];
+    }
+
+    /// <summary>Reads distinct slot-shaped bindings in first-seen order.</summary>
+    public static Relation[] ReadSlotBindings(params Relation[] bindings) =>
+        ReadSlotBindings((IReadOnlyList<Relation>)bindings);
+
+    /// <summary>Reads distinct slot-shaped bindings in first-seen order.</summary>
+    public static Relation[] ReadSlotBindings(IReadOnlyList<Relation> bindings)
+    {
+        var slotBindings = new List<Relation>();
+        foreach (var binding in bindings)
+        {
+            if (TryReadSlotBinding(binding, out var slot, out var element) &&
+                !slotBindings.Any(existing => Equals(existing.Left, slot)))
+            {
+                slotBindings.Add(new Relation(slot, element));
+            }
+        }
+
+        return [.. slotBindings];
+    }
+
     /// <summary>Applies bindings to every matching placeholder or descriptor slot inside a pattern.</summary>
     public static IElement Apply(IElement pattern, params Relation[] bindings) =>
         Apply(pattern, (IReadOnlyList<Relation>)bindings);
@@ -53,9 +113,8 @@ public static class StructuralPattern
     /// <summary>Applies bindings to every matching placeholder or descriptor slot inside a pattern.</summary>
     public static IElement Apply(IElement pattern, IReadOnlyList<Relation> bindings)
     {
-        var map = ReadBindings(bindings);
-        var descriptors = ReadDescriptorBindings(bindings);
-        return Apply(pattern, map, descriptors);
+        var slotBindings = ReadSlotBindings(bindings);
+        return ApplyCore(pattern, slotBindings);
     }
 
     /// <summary>Instantiates one pattern once per binding frame.</summary>
@@ -89,16 +148,16 @@ public static class StructuralPattern
         IReadOnlyList<Relation> currentFrame,
         IReadOnlyList<Relation> transitions)
     {
-        var current = ReadBindings(currentFrame);
-        var descriptors = ReadDescriptorBindings(currentFrame);
+        var current = ReadSlotBindings(currentFrame);
         var next = new List<Relation>();
-        var seen = new HashSet<Placeholder>();
+        var seen = new List<IElement>();
         foreach (var transition in transitions)
         {
-            if (TryReadBinding(transition, out var placeholder, out var element) &&
-                seen.Add(placeholder))
+            if (TryReadSlotBinding(transition, out var slot, out var element) &&
+                !seen.Any(existing => Equals(existing, slot)))
             {
-                next.Add(Bind(placeholder, Apply(element, current, descriptors)));
+                seen.Add(slot);
+                next.Add(new Relation(slot, ApplyCore(element, current)));
             }
         }
 
@@ -122,76 +181,74 @@ public static class StructuralPattern
         return surface;
     }
 
-    private static IElement Apply(
-        IElement element,
-        IReadOnlyDictionary<Placeholder, IElement> bindings,
-        IReadOnlyDictionary<int, IElement> descriptorBindings)
+    private static void ReadSlots(IElement element, List<IElement> slots)
     {
-        if (UnitShape.TryReadDescriptorSlot(element, out var descriptorIndex) &&
-            descriptorBindings.TryGetValue(descriptorIndex, out var descriptorBound))
+        if (TryReadSlot(element, out var slot))
         {
-            return descriptorBound;
+            if (!slots.Any(existing => Equals(existing, slot)))
+            {
+                slots.Add(slot);
+            }
+
+            return;
+        }
+
+        if (element is Relation relation)
+        {
+            ReadSlots(relation.Left, slots);
+            ReadSlots(relation.Right, slots);
+        }
+    }
+
+    private static IElement ApplyCore(IElement element, IReadOnlyList<Relation> bindings)
+    {
+        if (TryReadSlot(element, out var slot) &&
+            TryReadBoundSlot(slot, bindings, out var slotBound))
+        {
+            return slotBound;
         }
 
         return element switch
         {
-            Placeholder placeholder when TryReadBoundPlaceholder(placeholder, bindings, out var bound) => bound,
             Relation relation => new Relation(
-                Apply(relation.Left, bindings, descriptorBindings),
-                Apply(relation.Right, bindings, descriptorBindings)),
+                ApplyCore(relation.Left, bindings),
+                ApplyCore(relation.Right, bindings)),
             CarrierLocation location => new CarrierLocation(location.Carrier, location.Tick),
             _ => element
         };
     }
 
-    private static bool TryReadBoundPlaceholder(
-        Placeholder placeholder,
-        IReadOnlyDictionary<Placeholder, IElement> bindings,
+    private static bool TryReadBoundSlot(
+        IElement slot,
+        IReadOnlyList<Relation> bindings,
         out IElement bound)
     {
-        if (bindings.TryGetValue(placeholder, out bound!))
+        foreach (var binding in bindings)
         {
-            return true;
+            if (Equals(binding.Left, slot))
+            {
+                bound = binding.Right;
+                return true;
+            }
+        }
+
+        if (slot is not Placeholder placeholder)
+        {
+            bound = default!;
+            return false;
         }
 
         var dual = placeholder.Dual();
-        if (bindings.TryGetValue(dual, out var dualBound))
+        foreach (var binding in bindings)
         {
-            bound = dualBound.Dual();
-            return true;
+            if (Equals(binding.Left, dual))
+            {
+                bound = binding.Right.Dual();
+                return true;
+            }
         }
 
         bound = default!;
         return false;
-    }
-
-    private static Dictionary<Placeholder, IElement> ReadBindings(IReadOnlyList<Relation> bindings)
-    {
-        var map = new Dictionary<Placeholder, IElement>();
-        foreach (var binding in bindings)
-        {
-            if (TryReadBinding(binding, out var placeholder, out var element) &&
-                !map.ContainsKey(placeholder))
-            {
-                map.Add(placeholder, element);
-            }
-        }
-
-        return map;
-    }
-
-    private static Dictionary<int, IElement> ReadDescriptorBindings(IReadOnlyList<Relation> bindings)
-    {
-        var map = new Dictionary<int, IElement>();
-        foreach (var binding in bindings)
-        {
-            if (TryReadDescriptorBinding(binding, out var descriptorIndex, out var element) &&
-                !map.ContainsKey(descriptorIndex))
-            {
-                map.Add(descriptorIndex, element);
-            }
-        }
-
-        return map;
     }
 }

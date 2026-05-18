@@ -45,6 +45,28 @@ provenance or value surface without changing the crystallized unit-shape
 encoding. This is a bridge between "slot" as a repeat placeholder and "slot" as
 an algebraic unit-shape descriptor.
 
+The helper reads both forms through one local slot-surface pass:
+
+```text
+slot surface -> concrete element
+```
+
+At the moment, a slot surface can be an identity placeholder or a unit-shape
+descriptor slot. The source of truth is still the element on the left of the
+binding relation. The code-side helper only recognizes and substitutes that
+visible surface.
+
+Slot discovery is also local traversal:
+
+```text
+read slots(pattern) => first distinct slot surfaces found inside pattern
+```
+
+This gives equation and repeat helpers a way to ask which sites are open
+without storing a separate list of ports. Descriptor slots are treated as whole
+surfaces during this read; the helper does not descend into their marker
+relation.
+
 ## Repeat
 
 The first executable repeat helper does not create a durable repeat object.

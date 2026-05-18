@@ -124,6 +124,47 @@ public sealed class StructuralPatternTests
     }
 
     [Fact]
+    public void SlotReadRecognizesPlaceholdersAndDescriptorSlots()
+    {
+        var placeholder = new Placeholder();
+        var descriptorSlot = UnitShape.DescriptorSlot(2);
+
+        Assert.True(StructuralPattern.TryReadSlot(placeholder, out var readPlaceholder));
+        Assert.Same(placeholder, readPlaceholder);
+        Assert.True(StructuralPattern.TryReadSlot(descriptorSlot, out var readDescriptorSlot));
+        Assert.Equal(UnitShape.DescriptorSlot(2), readDescriptorSlot);
+    }
+
+    [Fact]
+    public void SlotDiscoveryReadsDistinctOpenSurfacesInTraversalOrder()
+    {
+        var first = new Placeholder();
+        var second = new Placeholder();
+        var descriptor = UnitShape.DescriptorSlot(0);
+        var pattern = new Relation(new Relation(first, descriptor), new Relation(first, second));
+
+        var slots = StructuralPattern.ReadSlots(pattern);
+
+        Assert.Equal([first, descriptor, second], slots);
+    }
+
+    [Fact]
+    public void SlotBindingReadKeepsFirstBindingAndIgnoresClosedRelations()
+    {
+        var slot = new Placeholder();
+        var first = new Carrier();
+        var second = new Carrier();
+        var closed = new Relation(new Carrier(), new Carrier());
+
+        var bindings = StructuralPattern.ReadSlotBindings(
+            StructuralPattern.Bind(slot, first),
+            StructuralPattern.Bind(slot, second),
+            closed);
+
+        Assert.Equal([StructuralPattern.Bind(slot, first)], bindings);
+    }
+
+    [Fact]
     public void AdvanceMovesCurrentBindingThroughSlotToSlotTransition()
     {
         var a = new Placeholder();
@@ -191,6 +232,23 @@ public sealed class StructuralPatternTests
             StructuralPattern.Bind(a, UnitShape.DescriptorSlot(0)));
 
         Assert.Equal([StructuralPattern.Bind(a, descriptorValue)], next);
+    }
+
+    [Fact]
+    public void AdvanceCanWriteDescriptorSlotInNextFrame()
+    {
+        var a = new Placeholder();
+        var value = new Carrier();
+        var current = new[]
+        {
+            StructuralPattern.Bind(a, value)
+        };
+
+        var next = StructuralPattern.Advance(
+            current,
+            StructuralPattern.BindDescriptor(0, a));
+
+        Assert.Equal([StructuralPattern.BindDescriptor(0, value)], next);
     }
 
     [Fact]
