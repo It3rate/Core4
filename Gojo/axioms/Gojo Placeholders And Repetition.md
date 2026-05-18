@@ -139,3 +139,31 @@ read phase as 0..k..0
 
 That keeps the reflected value inspectable as a local read while we decide how
 much of the direction reversal should become executable relation structure.
+
+## Port And Operation Patterns
+
+Placeholders can stand for whole port, input, and output surfaces:
+
+```text
+operation pattern:
+  (XPort -> YPort) -> Output
+
+input pattern:
+  XInput -> YInput
+```
+
+Binding those placeholders produces ordinary relation structure before the
+existing projection, operation, and crystallization reads run. This lets a
+single operation pattern serve many repeated frames without introducing a
+parallel equation executor:
+
+```text
+XPort  -> P(x,1) -> P(Unknown,1)
+YPort  -> P(y,1) -> P(Unknown,1)
+Output -> P(result,1)
+XInput -> L(x,3)
+YInput -> L(y,4)
+```
+
+The helper layer is only an adapter. Once instantiated, Gojo sees normal port
+and operation relations.
