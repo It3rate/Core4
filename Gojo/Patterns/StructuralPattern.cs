@@ -55,6 +55,36 @@ public static class StructuralPattern
         return copies;
     }
 
+    /// <summary>
+    /// Computes the next binding frame by applying the current frame to
+    /// relation-shaped transition bindings.
+    /// </summary>
+    public static Relation[] Advance(IReadOnlyList<Relation> currentFrame, params Relation[] transitions) =>
+        Advance(currentFrame, (IReadOnlyList<Relation>)transitions);
+
+    /// <summary>
+    /// Computes the next binding frame by applying the current frame to
+    /// relation-shaped transition bindings.
+    /// </summary>
+    public static Relation[] Advance(
+        IReadOnlyList<Relation> currentFrame,
+        IReadOnlyList<Relation> transitions)
+    {
+        var current = ReadBindings(currentFrame);
+        var next = new List<Relation>();
+        var seen = new HashSet<Placeholder>();
+        foreach (var transition in transitions)
+        {
+            if (TryReadBinding(transition, out var placeholder, out var element) &&
+                seen.Add(placeholder))
+            {
+                next.Add(Bind(placeholder, Apply(element, current)));
+            }
+        }
+
+        return [.. next];
+    }
+
     /// <summary>Chains repeated copies into one relation-shaped surface.</summary>
     public static IElement Chain(IReadOnlyList<IElement> elements)
     {
@@ -75,13 +105,34 @@ public static class StructuralPattern
     private static IElement Apply(IElement element, IReadOnlyDictionary<Placeholder, IElement> bindings) =>
         element switch
         {
-            Placeholder placeholder when bindings.TryGetValue(placeholder, out var bound) => bound,
+            Placeholder placeholder when TryReadBoundPlaceholder(placeholder, bindings, out var bound) => bound,
             Relation relation => new Relation(
                 Apply(relation.Left, bindings),
                 Apply(relation.Right, bindings)),
             CarrierLocation location => new CarrierLocation(location.Carrier, location.Tick),
             _ => element
         };
+
+    private static bool TryReadBoundPlaceholder(
+        Placeholder placeholder,
+        IReadOnlyDictionary<Placeholder, IElement> bindings,
+        out IElement bound)
+    {
+        if (bindings.TryGetValue(placeholder, out bound!))
+        {
+            return true;
+        }
+
+        var dual = placeholder.Dual();
+        if (bindings.TryGetValue(dual, out var dualBound))
+        {
+            bound = dualBound.Dual();
+            return true;
+        }
+
+        bound = default!;
+        return false;
+    }
 
     private static Dictionary<Placeholder, IElement> ReadBindings(IReadOnlyList<Relation> bindings)
     {

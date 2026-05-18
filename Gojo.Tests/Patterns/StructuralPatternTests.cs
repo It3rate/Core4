@@ -84,4 +84,98 @@ public sealed class StructuralPatternTests
 
         Assert.Equal(new Relation(new Relation(value, value), value), chain);
     }
+
+    [Fact]
+    public void BindingPositivePlaceholderAlsoBindsDualFace()
+    {
+        var slot = new Placeholder();
+        var carrier = new Carrier();
+        var pattern = slot.Dual();
+
+        var bound = StructuralPattern.Apply(pattern, StructuralPattern.Bind(slot, carrier));
+
+        Assert.Same(carrier.Inverse(), bound);
+    }
+
+    [Fact]
+    public void AdvanceMovesCurrentBindingThroughSlotToSlotTransition()
+    {
+        var a = new Placeholder();
+        var b = new Placeholder();
+        var first = new Carrier();
+        var second = new Carrier();
+        var current = new[]
+        {
+            StructuralPattern.Bind(a, first),
+            StructuralPattern.Bind(b, second)
+        };
+
+        var next = StructuralPattern.Advance(
+            current,
+            StructuralPattern.Bind(a, b),
+            StructuralPattern.Bind(b, a));
+
+        Assert.Equal(
+            [
+                StructuralPattern.Bind(a, second),
+                StructuralPattern.Bind(b, first)
+            ],
+            next);
+    }
+
+    [Fact]
+    public void AdvanceCanBindNextSlotToCurrentStructuralExpression()
+    {
+        var a = new Placeholder();
+        var b = new Placeholder();
+        var first = new Carrier();
+        var second = new Carrier();
+        var current = new[]
+        {
+            StructuralPattern.Bind(a, first),
+            StructuralPattern.Bind(b, second)
+        };
+        var pairExpression = new Relation(a, b);
+
+        var next = StructuralPattern.Advance(
+            current,
+            StructuralPattern.Bind(a, b),
+            StructuralPattern.Bind(b, pairExpression));
+
+        Assert.Equal(
+            [
+                StructuralPattern.Bind(a, second),
+                StructuralPattern.Bind(b, new Relation(first, second))
+            ],
+            next);
+    }
+
+    [Fact]
+    public void RepeatedAdvanceCanGrowFibonacciLikeStateStructure()
+    {
+        var a = new Placeholder();
+        var b = new Placeholder();
+        var first = new Carrier();
+        var second = new Carrier();
+        var transitions = new[]
+        {
+            StructuralPattern.Bind(a, b),
+            StructuralPattern.Bind(b, new Relation(a, b))
+        };
+        var frame = new[]
+        {
+            StructuralPattern.Bind(a, first),
+            StructuralPattern.Bind(b, second)
+        };
+
+        frame = StructuralPattern.Advance(frame, transitions);
+        frame = StructuralPattern.Advance(frame, transitions);
+
+        Assert.Equal(
+            [
+                StructuralPattern.Bind(a, new Relation(first, second)),
+                StructuralPattern.Bind(b, new Relation(second, new Relation(first, second)))
+            ],
+            frame);
+    }
 }

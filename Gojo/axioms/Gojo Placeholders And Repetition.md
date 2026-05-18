@@ -70,6 +70,35 @@ This is intentionally mundane. A power-like repeat is the same mechanism with
 the same placeholder bound repeatedly. A recurrence can later use slot-to-slot
 bindings between frames, such as `A_next -> B_current`.
 
+## Frame Continuation
+
+A transition is also relation-shaped binding, but its right side may contain
+placeholders from the current frame:
+
+```text
+A -> B
+B -> A -> B
+```
+
+Applying the current frame to these transition bindings creates the next frame:
+
+```text
+current:
+  A -> first
+  B -> second
+
+next:
+  A -> second
+  B -> first -> second
+```
+
+This is the first foothold for recurrence-like structure. It can describe a
+Fibonacci-style state shift, a repeated manufacturing step, a commute episode
+that carries forward yesterday's residue, or a power machine that reuses the
+same operand several times. The transition does not mutate an equation during
+ordinary tension flow. It produces the next set of bindings at a frame
+boundary.
+
 ## Step Boundary
 
 Live placeholder rebinding should happen at frame boundaries:
