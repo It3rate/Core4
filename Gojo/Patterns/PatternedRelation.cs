@@ -9,6 +9,14 @@ namespace Gojo.Patterns;
 /// </summary>
 public static class PatternedRelation
 {
+    /// <summary>Reads unresolved slots from a relation pattern against a binding frame.</summary>
+    public static IElement[] ReadUnboundSlots(Relation pattern, IReadOnlyList<Relation> bindings) =>
+        StructuralPattern.ReadUnboundSlots(pattern, bindings);
+
+    /// <summary>Reads unresolved slots from a relation pattern against a binding frame.</summary>
+    public static IElement[] ReadUnboundSlots(Relation pattern, params Relation[] bindings) =>
+        StructuralPattern.ReadUnboundSlots(pattern, bindings);
+
     /// <summary>Applies bindings and returns the instantiated relation when the root remains a relation.</summary>
     public static bool TryInstantiate(
         Relation pattern,
@@ -24,6 +32,32 @@ public static class PatternedRelation
         relation = null!;
         return false;
     }
+
+    /// <summary>Applies bindings and reports unbound slots without treating them as invalid structure.</summary>
+    public static bool TryInstantiateComplete(
+        Relation pattern,
+        IReadOnlyList<Relation> bindings,
+        out Relation relation,
+        out IElement[] unboundSlots)
+    {
+        var complete = StructuralPattern.TryApplyComplete(pattern, bindings, out var applied, out unboundSlots);
+        if (applied is Relation instantiated)
+        {
+            relation = instantiated;
+            return complete;
+        }
+
+        relation = null!;
+        return false;
+    }
+
+    /// <summary>Applies bindings and reports unbound slots without treating them as invalid structure.</summary>
+    public static bool TryInstantiateComplete(
+        Relation pattern,
+        out Relation relation,
+        out IElement[] unboundSlots,
+        params Relation[] bindings) =>
+        TryInstantiateComplete(pattern, bindings, out relation, out unboundSlots);
 
     /// <summary>Applies bindings and returns the instantiated relation when the root remains a relation.</summary>
     public static bool TryInstantiate(

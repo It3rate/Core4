@@ -50,6 +50,25 @@ public sealed class PatternedRelationTests
     }
 
     [Fact]
+    public void PatternedRelationReportsUnboundSlotsWithoutRejectingPartialRelation()
+    {
+        var firstSlot = new Placeholder();
+        var secondSlot = UnitShape.DescriptorSlot(0);
+        var source = new Carrier();
+        var relationPattern = new Relation(firstSlot, secondSlot);
+
+        var complete = PatternedRelation.TryInstantiateComplete(
+            relationPattern,
+            out var relation,
+            out var unbound,
+            StructuralPattern.Bind(firstSlot, source));
+
+        Assert.False(complete);
+        Assert.Equal(new Relation(source, secondSlot), relation);
+        Assert.Equal([secondSlot], unbound);
+    }
+
+    [Fact]
     public void PlaceholderOperationPatternReadsBoundAddition()
     {
         var xPort = new Placeholder();

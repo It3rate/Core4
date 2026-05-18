@@ -106,6 +106,59 @@ public static class StructuralPattern
         return [.. slotBindings];
     }
 
+    /// <summary>Reads one bound value for a slot from relation-shaped bindings.</summary>
+    public static bool TryReadBoundSlot(
+        IElement slot,
+        IReadOnlyList<Relation> bindings,
+        out IElement bound)
+    {
+        var slotBindings = ReadSlotBindings(bindings);
+        return TryReadBoundSlotCore(slot, slotBindings, out bound);
+    }
+
+    /// <summary>Reads the pattern slots that are not supplied by a binding frame.</summary>
+    public static IElement[] ReadUnboundSlots(IElement pattern, params Relation[] bindings) =>
+        ReadUnboundSlots(pattern, (IReadOnlyList<Relation>)bindings);
+
+    /// <summary>Reads the pattern slots that are not supplied by a binding frame.</summary>
+    public static IElement[] ReadUnboundSlots(IElement pattern, IReadOnlyList<Relation> bindings)
+    {
+        var slotBindings = ReadSlotBindings(bindings);
+        return
+        [
+            .. ReadSlots(pattern)
+                .Where(slot => !TryReadBoundSlotCore(slot, slotBindings, out _))
+        ];
+    }
+
+    /// <summary>Returns true when every slot surface in the pattern has a binding.</summary>
+    public static bool IsComplete(IElement pattern, params Relation[] bindings) =>
+        IsComplete(pattern, (IReadOnlyList<Relation>)bindings);
+
+    /// <summary>Returns true when every slot surface in the pattern has a binding.</summary>
+    public static bool IsComplete(IElement pattern, IReadOnlyList<Relation> bindings) =>
+        ReadUnboundSlots(pattern, bindings).Length == 0;
+
+    /// <summary>Applies a frame and reports unresolved slot surfaces without rejecting the structure.</summary>
+    public static bool TryApplyComplete(
+        IElement pattern,
+        IReadOnlyList<Relation> bindings,
+        out IElement applied,
+        out IElement[] unboundSlots)
+    {
+        applied = Apply(pattern, bindings);
+        unboundSlots = ReadUnboundSlots(pattern, bindings);
+        return unboundSlots.Length == 0;
+    }
+
+    /// <summary>Applies a frame and reports unresolved slot surfaces without rejecting the structure.</summary>
+    public static bool TryApplyComplete(
+        IElement pattern,
+        out IElement applied,
+        out IElement[] unboundSlots,
+        params Relation[] bindings) =>
+        TryApplyComplete(pattern, bindings, out applied, out unboundSlots);
+
     /// <summary>Applies bindings to every matching placeholder or descriptor slot inside a pattern.</summary>
     public static IElement Apply(IElement pattern, params Relation[] bindings) =>
         Apply(pattern, (IReadOnlyList<Relation>)bindings);
@@ -203,7 +256,7 @@ public static class StructuralPattern
     private static IElement ApplyCore(IElement element, IReadOnlyList<Relation> bindings)
     {
         if (TryReadSlot(element, out var slot) &&
-            TryReadBoundSlot(slot, bindings, out var slotBound))
+            TryReadBoundSlotCore(slot, bindings, out var slotBound))
         {
             return slotBound;
         }
@@ -218,7 +271,7 @@ public static class StructuralPattern
         };
     }
 
-    private static bool TryReadBoundSlot(
+    private static bool TryReadBoundSlotCore(
         IElement slot,
         IReadOnlyList<Relation> bindings,
         out IElement bound)

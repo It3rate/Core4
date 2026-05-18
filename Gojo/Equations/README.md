@@ -40,6 +40,38 @@ input sample -> predicted output + source residue
 The data does not become part of the equation. It is admitted through the input
 surface and read into the requested output carrier.
 
+## Patterned Equations
+
+An equation surface and an input surface can both contain structural slots:
+
+```text
+equation pattern:
+  (XPort -> YPort) -> Output
+
+input pattern:
+  XValue -> YValue
+```
+
+`EquationPattern` binds those slots through ordinary relation-shaped bindings
+and then runs the same local equation read. If some slots are missing, the read
+still returns a prediction/residue structure and reports the unresolved slot
+surfaces:
+
+```text
+bindings:
+  XPort  -> concrete x port
+  Output -> concrete output
+
+unbound:
+  YPort
+  XValue
+  YValue
+```
+
+This keeps incomplete data frames inspectable. A missing value is not a thrown
+validation failure; it remains visible as an open slot in the residue or
+instantiated structure.
+
 ## Sum And Product Surfaces
 
 Weighted sums and products use existing Gojo operation surfaces. The ports are

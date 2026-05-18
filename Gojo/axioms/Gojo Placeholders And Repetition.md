@@ -67,6 +67,21 @@ without storing a separate list of ports. Descriptor slots are treated as whole
 surfaces during this read; the helper does not descend into their marker
 relation.
 
+Partial binding is valid structure. If a frame does not supply every open
+slot, application leaves the unbound slot surfaces in place:
+
+```text
+pattern:      A -> B
+binding:      A -> concrete
+application:  concrete -> B
+unbound:      B
+```
+
+Completeness is therefore a read, not a precondition. This is important for
+equation search, workspace experiments, and sensory data frames where missing
+or low-resolution values should remain inspectable instead of rejecting the
+whole structure.
+
 ## Repeat
 
 The first executable repeat helper does not create a durable repeat object.

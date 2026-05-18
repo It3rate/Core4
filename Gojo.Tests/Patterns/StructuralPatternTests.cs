@@ -165,6 +165,46 @@ public sealed class StructuralPatternTests
     }
 
     [Fact]
+    public void PartialApplicationLeavesUnboundSlotsInspectable()
+    {
+        var boundSlot = new Placeholder();
+        var openSlot = new Placeholder();
+        var descriptorSlot = UnitShape.DescriptorSlot(0);
+        var boundValue = new Carrier();
+        var pattern = new Relation(new Relation(boundSlot, openSlot), descriptorSlot);
+
+        var complete = StructuralPattern.TryApplyComplete(
+            pattern,
+            out var applied,
+            out var unbound,
+            StructuralPattern.Bind(boundSlot, boundValue));
+
+        Assert.False(complete);
+        Assert.Equal(new Relation(new Relation(boundValue, openSlot), descriptorSlot), applied);
+        Assert.Equal([openSlot, descriptorSlot], unbound);
+    }
+
+    [Fact]
+    public void CompleteFrameReportsNoUnboundSlots()
+    {
+        var firstSlot = new Placeholder();
+        var secondSlot = UnitShape.DescriptorSlot(0);
+        var firstValue = new Carrier();
+        var secondValue = new Carrier();
+        var pattern = new Relation(firstSlot, secondSlot);
+        var bindings = new[]
+        {
+            StructuralPattern.Bind(firstSlot, firstValue),
+            StructuralPattern.BindDescriptor(0, secondValue)
+        };
+
+        Assert.True(StructuralPattern.IsComplete(pattern, bindings));
+        Assert.True(StructuralPattern.TryApplyComplete(pattern, bindings, out var applied, out var unbound));
+        Assert.Equal(new Relation(firstValue, secondValue), applied);
+        Assert.Empty(unbound);
+    }
+
+    [Fact]
     public void AdvanceMovesCurrentBindingThroughSlotToSlotTransition()
     {
         var a = new Placeholder();
