@@ -113,3 +113,29 @@ advance bindings for the next frame
 Flow-time rebinding is intentionally avoided for now. If a structure appears to
 need it, that is probably a sign that the model needs a finer time step or
 should expose unresolved tension.
+
+## Controller Surfaces
+
+The first repeat controller helpers create ordinary phase carriers and
+relations:
+
+```text
+wrap        P(phase,k) -> P(phase,0)
+clamp       P(phase,k) -> P(phase,k)
+cycle count P(phase,k) -> P(cycles,0)
+```
+
+These are not symbolic loop modes. They are the same carrier settlement shapes
+used elsewhere in Gojo. A wrapped phase can select one repeated frame by its
+current residue. A cycle counter can absorb crossed wraps. A clamp exposes
+rejected continuation as tension.
+
+Ping-pong is currently only a read over a doubled wrap period:
+
+```text
+P(phase,2k) -> P(phase,0)
+read phase as 0..k..0
+```
+
+That keeps the reflected value inspectable as a local read while we decide how
+much of the direction reversal should become executable relation structure.
