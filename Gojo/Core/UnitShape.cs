@@ -482,7 +482,7 @@ public sealed class UnitShape : IEquatable<UnitShape>
     }
 
     /// <summary>Reads an algebraic descriptor-slot placeholder.</summary>
-    private static bool TryReadDescriptorSlot(IElement element, out int descriptorIndex)
+    public static bool TryReadDescriptorSlot(IElement element, out int descriptorIndex)
     {
         if (element is Relation relation &&
             relation.Left is Relation marker &&

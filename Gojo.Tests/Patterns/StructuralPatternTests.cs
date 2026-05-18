@@ -98,6 +98,32 @@ public sealed class StructuralPatternTests
     }
 
     [Fact]
+    public void DescriptorBindingReplacesUnitShapeDescriptorSlotSurface()
+    {
+        var carrier = new Carrier();
+        var slot = UnitShape.DescriptorSlot(0);
+        var pattern = new Relation(slot, slot);
+
+        var bound = StructuralPattern.Apply(pattern, StructuralPattern.BindDescriptor(0, carrier));
+
+        Assert.Equal(new Relation(carrier, carrier), bound);
+    }
+
+    [Fact]
+    public void DescriptorBindingCanGroundBareUnitShapeAlgebraSurface()
+    {
+        var descriptor = new Carrier();
+        var replacement = new Carrier();
+        var bare = UnitShape.DescribedAtom(descriptor).Bare();
+
+        var bound = StructuralPattern.Apply(
+            bare.AlgebraSurface,
+            StructuralPattern.BindDescriptor(0, replacement));
+
+        Assert.Same(replacement, bound);
+    }
+
+    [Fact]
     public void AdvanceMovesCurrentBindingThroughSlotToSlotTransition()
     {
         var a = new Placeholder();
@@ -148,6 +174,23 @@ public sealed class StructuralPatternTests
                 StructuralPattern.Bind(b, new Relation(first, second))
             ],
             next);
+    }
+
+    [Fact]
+    public void AdvanceCanReadDescriptorSlotFromCurrentFrame()
+    {
+        var a = new Placeholder();
+        var descriptorValue = new Carrier();
+        var current = new[]
+        {
+            StructuralPattern.BindDescriptor(0, descriptorValue)
+        };
+
+        var next = StructuralPattern.Advance(
+            current,
+            StructuralPattern.Bind(a, UnitShape.DescriptorSlot(0)));
+
+        Assert.Equal([StructuralPattern.Bind(a, descriptorValue)], next);
     }
 
     [Fact]

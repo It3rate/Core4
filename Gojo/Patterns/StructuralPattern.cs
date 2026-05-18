@@ -13,6 +13,10 @@ public static class StructuralPattern
     public static Relation Bind(Placeholder placeholder, IElement element) =>
         new(placeholder, element);
 
+    /// <summary>Creates relation-shaped binding from a unit-shape descriptor slot to an element.</summary>
+    public static Relation BindDescriptor(int descriptorIndex, IElement element) =>
+        new(UnitShape.DescriptorSlot(descriptorIndex), element);
+
     /// <summary>Reads relation-shaped binding from a placeholder to an element.</summary>
     public static bool TryReadBinding(Relation relation, out Placeholder placeholder, out IElement element)
     {
@@ -28,15 +32,30 @@ public static class StructuralPattern
         return false;
     }
 
-    /// <summary>Applies bindings to every matching placeholder inside a pattern.</summary>
+    /// <summary>Reads relation-shaped binding from a unit-shape descriptor slot to an element.</summary>
+    public static bool TryReadDescriptorBinding(Relation relation, out int descriptorIndex, out IElement element)
+    {
+        if (UnitShape.TryReadDescriptorSlot(relation.Left, out descriptorIndex))
+        {
+            element = relation.Right;
+            return true;
+        }
+
+        descriptorIndex = 0;
+        element = default!;
+        return false;
+    }
+
+    /// <summary>Applies bindings to every matching placeholder or descriptor slot inside a pattern.</summary>
     public static IElement Apply(IElement pattern, params Relation[] bindings) =>
         Apply(pattern, (IReadOnlyList<Relation>)bindings);
 
-    /// <summary>Applies bindings to every matching placeholder inside a pattern.</summary>
+    /// <summary>Applies bindings to every matching placeholder or descriptor slot inside a pattern.</summary>
     public static IElement Apply(IElement pattern, IReadOnlyList<Relation> bindings)
     {
         var map = ReadBindings(bindings);
-        return Apply(pattern, map);
+        var descriptors = ReadDescriptorBindings(bindings);
+        return Apply(pattern, map, descriptors);
     }
 
     /// <summary>Instantiates one pattern once per binding frame.</summary>
@@ -71,6 +90,7 @@ public static class StructuralPattern
         IReadOnlyList<Relation> transitions)
     {
         var current = ReadBindings(currentFrame);
+        var descriptors = ReadDescriptorBindings(currentFrame);
         var next = new List<Relation>();
         var seen = new HashSet<Placeholder>();
         foreach (var transition in transitions)
@@ -78,7 +98,7 @@ public static class StructuralPattern
             if (TryReadBinding(transition, out var placeholder, out var element) &&
                 seen.Add(placeholder))
             {
-                next.Add(Bind(placeholder, Apply(element, current)));
+                next.Add(Bind(placeholder, Apply(element, current, descriptors)));
             }
         }
 
@@ -102,16 +122,27 @@ public static class StructuralPattern
         return surface;
     }
 
-    private static IElement Apply(IElement element, IReadOnlyDictionary<Placeholder, IElement> bindings) =>
-        element switch
+    private static IElement Apply(
+        IElement element,
+        IReadOnlyDictionary<Placeholder, IElement> bindings,
+        IReadOnlyDictionary<int, IElement> descriptorBindings)
+    {
+        if (UnitShape.TryReadDescriptorSlot(element, out var descriptorIndex) &&
+            descriptorBindings.TryGetValue(descriptorIndex, out var descriptorBound))
+        {
+            return descriptorBound;
+        }
+
+        return element switch
         {
             Placeholder placeholder when TryReadBoundPlaceholder(placeholder, bindings, out var bound) => bound,
             Relation relation => new Relation(
-                Apply(relation.Left, bindings),
-                Apply(relation.Right, bindings)),
+                Apply(relation.Left, bindings, descriptorBindings),
+                Apply(relation.Right, bindings, descriptorBindings)),
             CarrierLocation location => new CarrierLocation(location.Carrier, location.Tick),
             _ => element
         };
+    }
 
     private static bool TryReadBoundPlaceholder(
         Placeholder placeholder,
@@ -143,6 +174,21 @@ public static class StructuralPattern
                 !map.ContainsKey(placeholder))
             {
                 map.Add(placeholder, element);
+            }
+        }
+
+        return map;
+    }
+
+    private static Dictionary<int, IElement> ReadDescriptorBindings(IReadOnlyList<Relation> bindings)
+    {
+        var map = new Dictionary<int, IElement>();
+        foreach (var binding in bindings)
+        {
+            if (TryReadDescriptorBinding(binding, out var descriptorIndex, out var element) &&
+                !map.ContainsKey(descriptorIndex))
+            {
+                map.Add(descriptorIndex, element);
             }
         }
 

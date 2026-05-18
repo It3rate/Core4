@@ -32,6 +32,19 @@ point surface, a segment, a port, a whole relation pattern, or another
 placeholder. Binding is not assignment in hidden code. It is a relation that a
 local pattern helper can read to instantiate a frame.
 
+Unit-shape descriptor slots are also relation-shaped slots:
+
+```text
+DescriptorSlot(0) -> concrete descriptor or element
+```
+
+They remain the existing unit-shape algebra surface, not a new metadata table.
+The pattern helper can now bind them the same way it binds identity
+placeholders, so a bare unit-shape formula can be rebound to a concrete
+provenance or value surface without changing the crystallized unit-shape
+encoding. This is a bridge between "slot" as a repeat placeholder and "slot" as
+an algebraic unit-shape descriptor.
+
 ## Repeat
 
 The first executable repeat helper does not create a durable repeat object.
