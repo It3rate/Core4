@@ -332,6 +332,7 @@ Most important current files:
 - `Gojo Potential Shape Fact Sheet.md`
 - `Gojo Groups Attributes And Lenses.md`
 - `Gojo Operation Shape Catalog.md`
+- `Gojo Placeholders And Repetition.md`
 - `Gojo Structure Through Tension.md`
 - `Gojo Carrier Settlement Algorithm.md`
 - `Gojo Duality And Relation Settlement Table.md`
@@ -345,6 +346,7 @@ Gojo docs should win when there is a conflict.
 Gojo/
   Core/             carrier, location, relation, tick reference, unit shape
   Equations/        relation-shaped equation surfaces, maps, comparisons
+  Patterns/         placeholder binding and repeated structure helpers
   Reads/            read helpers and legacy read footholds
   Diagnostics/      diagnostics for traversal-oriented inspection
   Interpretation/   boolean-style read experiments
