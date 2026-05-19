@@ -217,3 +217,97 @@ YInput -> L(y,4)
 
 The helper layer is only an adapter. Once instantiated, Gojo sees normal port
 and operation relations.
+
+## First-Class Repeat Surface
+
+The broader repeat model should not collapse to a hidden code loop. Repetition
+is one of the primary Gojo phenomena, alongside carriers, partitions, relations,
+and unit-shape structure. A repeat can copy a pattern, advance a phase, carry
+overflow, settle tension, compose equations, perturb a shape, select a frame, or
+feed an output back into a later input.
+
+The repeat surface therefore starts as connected structure:
+
+```text
+repeat root
+  selected structure
+  controller axis / count / phase / equation
+  transition surface
+  feedback frame
+  residue or stop frame
+  witnessed timeline
+```
+
+The selected structure is the thing being repeated. It may be a carrier
+location, relation, equation surface, pattern, claim, carry route, or whole
+nested repeat. The controller is not restricted to a literal count. It may be:
+
+```text
+P(repeat,0) -> P(repeat,n)        literal count/span
+P(phase,k)  -> P(phase,0)        wrap controller
+P(phase,k)  -> P(cycles,0)       overflow/cycle controller
+parameter surface -> count site  count derived from another equation
+unresolved slot                      count not known yet
+```
+
+This keeps `eqn(params, feedback, residue)^3` physically interpretable without
+making `^3` a metadata tag. The exponent-like part is a controller relation on a
+repeat axis; the equation remains ordinary selected structure.
+
+The transition is the local motion from one repeat state to the next. It may be
+an equation composition step, a product participation, a structural
+perturbation, a carry relation, or a claim/residue route. Feedback is just
+ordinary structure that says which outputs, residues, or changed sites are fed
+into a later frame. Residue is not failure; it is the visible reason repetition
+may continue, stop, branch, or remain unresolved.
+
+The witnessed timeline uses the same shape as other step processes:
+
+```text
+time or repeat span
+before evidence
+transition evidence
+after evidence
+residue evidence
+```
+
+A repeat surface can exist before it has a timeline. That represents a repeat
+intention or repeat-shaped surface. A timeline represents one traversal or one
+inspection of that surface. Different traversals can share the same selected
+structure and controller but produce different residue, resolution, or feedback
+evidence.
+
+This lets several existing mechanisms be seen as one family:
+
+```text
+StructuralPattern.Repeat  selected pattern + binding frames
+RepeatController          phase controller + selected frame
+ResolutionLadder          repeated carry/ratio transition across levels
+EquationSequence          selected equations + output-as-next-input
+OperationFollow.Settle    equality claim + residual feedback
+Extrema/Proximity         repeated pairwise choice over candidate fields
+Carrier settlement        repeat-until-quiet over attached relations
+UnitShape.Product         repeated product participation
+```
+
+The current implementation foothold is `RepeatSurface`: it builds and reads the
+surface above, but it does not execute the repeat. Execution belongs to local
+interpreters that already know how to read the selected transition, such as
+equation prediction, carrier settlement, structural pattern application, or
+claim-based follow. The repeat surface gives them a common knowable skeleton.
+
+Longer-term hopes:
+
+- A general repeat/power machine where `x^n` is repeated product participation
+  over a controller axis, with missing or equation-derived `n` left visible.
+- Solver loops where claim residue drives continuation and the timeline records
+  every relaxation or narrowing pass.
+- Structural perturbation families where each frame scales, shifts, rotates, or
+  otherwise changes the selected relation before the next frame.
+- Algorithmic loops represented as selected structure plus transition and
+  feedback ports, not as opaque executable code.
+- Repeat controllers that can be literal, phase-based, overflow-based,
+  tension-based, or produced by another equation surface.
+- Shared inspection over repeated processes so a caller can ask "what repeated,
+  what changed, what fed back, and what residue remains?" without knowing the
+  concrete repeat species.
