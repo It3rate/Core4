@@ -105,6 +105,34 @@ public static class ProximityTournament
         return false;
     }
 
+    /// <summary>Reads the generic time-step timeline from the underlying choice tournament.</summary>
+    public static bool TryReadTimeline(Relation proximity, out Relation timeline)
+    {
+        if (TryReadTournament(proximity, out var tournament) &&
+            ExtremaTournament.TryReadTimeline(tournament, out var tournamentTimeline))
+        {
+            timeline = tournamentTimeline;
+            return true;
+        }
+
+        timeline = null!;
+        return false;
+    }
+
+    /// <summary>Reads timed pairwise choice rounds from the underlying tournament.</summary>
+    public static bool TryReadRounds(Relation proximity, out Relation[] rounds)
+    {
+        if (TryReadTournament(proximity, out var tournament) &&
+            ExtremaTournament.TryReadRounds(tournament, out var tournamentRounds))
+        {
+            rounds = tournamentRounds;
+            return true;
+        }
+
+        rounds = [];
+        return false;
+    }
+
     /// <summary>Reads candidate choices from a proximity tournament.</summary>
     public static bool TryReadChoices(Relation proximity, out Relation[] choices)
     {

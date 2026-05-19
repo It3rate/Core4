@@ -30,6 +30,30 @@ public sealed class ProximityTournamentTests
         Assert.True(ProximityTournament.TryReadChoices(proximity, out var readChoices));
         Assert.Equal(choices, readChoices);
         Assert.Equal(2, rounds.Length);
+        Assert.True(ProximityTournament.TryReadTimeline(proximity, out var timeline));
+        Assert.True(TimeStepSequence.TryRead(timeline, out var origin, out var initial, out var timedRounds));
+        Assert.Equal(rounds, timedRounds);
+        Assert.Equal(0, origin.Ticks);
+        Assert.Equal(choices, ChoiceValues(Assert.IsType<Relation>(initial)));
+        Assert.True(ProximityTournament.TryReadRounds(proximity, out var readRounds));
+        Assert.Equal(rounds, readRounds);
+        Assert.True(TimeStepSequence.TryReadStep(
+            rounds[0],
+            out _,
+            out var firstStart,
+            out var firstEnd,
+            out var before,
+            out var transition,
+            out var after,
+            out var residue));
+        Assert.Equal(new CarrierLocation(origin.Carrier, 0), firstStart);
+        Assert.Equal(new CarrierLocation(origin.Carrier, 1), firstEnd);
+        Assert.Equal(choices, ChoiceValues(Assert.IsType<Relation>(before)));
+        Assert.Equal(new IElement[] { choices[1], choices[2] }, ChoiceValues(Assert.IsType<Relation>(after)));
+        Assert.Equal(new IElement[] { choices[0] }, ChoiceValues(Assert.IsType<Relation>(residue)));
+        Assert.True(ExtremaTournament.TryReadRound(Assert.IsType<Relation>(transition), out var roundIndex, out var bouts));
+        Assert.Equal(0, roundIndex.Ticks);
+        Assert.Single(bouts);
         Assert.True(ProximityTournament.TryReadWinner(proximity, out var winner));
         Assert.True(ProximityTournament.TryReadChoice(
             winner,
@@ -262,5 +286,22 @@ public sealed class ProximityTournamentTests
             out _));
         Assert.Equal(new CarrierLocation(residual, 2), upperViolation);
         Assert.Equal(new CarrierLocation(residual, 2), totalViolation);
+    }
+
+    private static IElement[] OrderedElements(Relation structure)
+    {
+        var holder = Assert.IsType<Carrier>(structure.Right);
+        Assert.True(structure.TryReadOrderedElementsOn(holder, out var elements));
+        return elements;
+    }
+
+    private static IElement[] ChoiceValues(Relation entryGroup)
+    {
+        return [.. OrderedElements(entryGroup).Select(entry =>
+        {
+            var relation = Assert.IsType<Relation>(entry);
+            Assert.True(ExtremaTournament.TryReadEntry(relation, out var value, out _));
+            return value;
+        })];
     }
 }
