@@ -26,9 +26,33 @@ public sealed class ExtremaTournamentTests
         Assert.Equal(second, value);
         Assert.Equal(new CarrierLocation(measure, 3), winnerMeasure);
         Assert.Equal(2, rounds.Length);
+        Assert.True(ExtremaTournament.TryReadTimeline(tournament, out var timeline));
+        Assert.True(TimeStepSequence.TryRead(timeline, out var origin, out var initial, out var timedRounds));
+        Assert.Equal(rounds, timedRounds);
+        Assert.Equal(0, origin.Ticks);
+        var initialEntries = OrderedElements(Assert.IsType<Relation>(initial));
+        Assert.Equal(new IElement[] { entries[0], entries[1], entries[2] }, initialEntries);
+        Assert.True(TimeStepSequence.TryReadStep(
+            rounds[0],
+            out _,
+            out var timeStart,
+            out var timeEnd,
+            out var before,
+            out var transition,
+            out var after,
+            out var residue));
+        Assert.True(origin.Carrier.SameIdentityAs(timeStart.Carrier));
+        Assert.Equal(new CarrierLocation(origin.Carrier, 0), timeStart);
+        Assert.Equal(new CarrierLocation(origin.Carrier, 1), timeEnd);
+        Assert.Equal(new IElement[] { entries[0], entries[1], entries[2] }, OrderedElements(Assert.IsType<Relation>(before)));
+        Assert.Equal(new IElement[] { entries[1], entries[2] }, OrderedElements(Assert.IsType<Relation>(after)));
+        Assert.Equal(new IElement[] { entries[0] }, OrderedElements(Assert.IsType<Relation>(residue)));
 
         Assert.True(ExtremaTournament.TryReadRound(rounds[0], out var firstRoundIndex, out var firstRoundBouts));
-        Assert.Equal(0, firstRoundIndex.Ticks);
+        Assert.Equal(timeStart, firstRoundIndex);
+        Assert.True(ExtremaTournament.TryReadRound(Assert.IsType<Relation>(transition), out var evidenceRoundIndex, out var evidenceBouts));
+        Assert.Equal(0, evidenceRoundIndex.Ticks);
+        Assert.Equal(evidenceBouts, firstRoundBouts);
         Assert.Single(firstRoundBouts);
         Assert.True(ExtremaTournament.TryReadBout(
             firstRoundBouts[0],
@@ -107,5 +131,12 @@ public sealed class ExtremaTournamentTests
         Assert.True(ExtremaTournament.TryReadBoutClaim(bouts[0], out var claim));
         Assert.True(OperationClaim.TryRead(claim, out _, out _, out _, out _, out var violationMagnitude, out _));
         Assert.Equal(new CarrierLocation(measure, 0), violationMagnitude);
+    }
+
+    private static IElement[] OrderedElements(Relation structure)
+    {
+        var holder = Assert.IsType<Carrier>(structure.Right);
+        Assert.True(structure.TryReadOrderedElementsOn(holder, out var elements));
+        return elements;
     }
 }

@@ -44,6 +44,13 @@ public static class ExtremaTournament
     /// <summary>Reads tournament rounds.</summary>
     public static bool TryReadRounds(Relation tournament, out Relation[] rounds)
     {
+        if (TryReadTimeline(tournament, out var timeline) &&
+            TimeStepSequence.TryRead(timeline, out _, out _, out var timedRounds))
+        {
+            rounds = timedRounds;
+            return true;
+        }
+
         if (TryReadRootElements(tournament, out var elements) && elements.Length >= 1)
         {
             rounds = [.. elements.Skip(1).OfType<Relation>()];
@@ -54,14 +61,44 @@ public static class ExtremaTournament
         return false;
     }
 
+    /// <summary>Reads the generic time-step timeline for tournament rounds.</summary>
+    public static bool TryReadTimeline(Relation tournament, out Relation timeline)
+    {
+        if (TryReadRootElements(tournament, out var elements) &&
+            elements.Length >= 2 &&
+            elements[1] is Relation candidateTimeline &&
+            TimeStepSequence.TryRead(candidateTimeline, out _, out _, out _))
+        {
+            timeline = candidateTimeline;
+            return true;
+        }
+
+        timeline = null!;
+        return false;
+    }
+
     /// <summary>Reads one tournament round and its pairwise bouts.</summary>
     public static bool TryReadRound(Relation round, out CarrierLocation roundIndex, out Relation[] bouts)
     {
-        if (TryReadRootElements(round, out var elements) &&
-            elements.Length >= 1 &&
-            TryReadPoint(elements[0], out roundIndex))
+        if (TimeStepSequence.TryReadStep(
+                round,
+                out _,
+                out var timeStart,
+                out _,
+                out _,
+                out var transition,
+                out _,
+                out _) &&
+            transition is Relation roundEvidence &&
+            TryReadRoundEvidence(roundEvidence, out _, out var timedBouts))
         {
-            bouts = [.. elements.Skip(1).OfType<Relation>()];
+            roundIndex = timeStart;
+            bouts = timedBouts;
+            return true;
+        }
+
+        if (TryReadRoundEvidence(round, out roundIndex, out bouts))
+        {
             return true;
         }
 
@@ -140,19 +177,28 @@ public static class ExtremaTournament
         out Relation[] rounds)
     {
         var current = NormalizeEntries(entries);
+        var roundIndex = new Carrier();
         if (current.Length == 0)
         {
             rounds = [];
-            return Relation.OrderedGroup(RootOrNew(root), Entry(Relation.Point(Carrier.Unknown, 0), new CarrierLocation(Carrier.Unknown, 0)));
+            var fallback = Entry(Relation.Point(Carrier.Unknown, 0), new CarrierLocation(Carrier.Unknown, 0));
+            var timeline = TimeStepSequence.Create(
+                new Carrier(),
+                roundIndex,
+                Relation.OrderedGroup(new Carrier()),
+                rounds);
+            return Relation.OrderedGroup(RootOrNew(root), fallback, timeline);
         }
 
         var builtRounds = new List<Relation>();
-        var roundIndex = new Carrier();
         var boutIndex = new Carrier();
+        var initialField = EntryGroup(current);
         for (var round = 0; current.Length > 1; round++)
         {
             var next = new List<Relation>();
             var bouts = new List<IElement>();
+            var remainders = new List<IElement>();
+            var beforeField = EntryGroup(current);
             for (var index = 0; index < current.Length; index += 2)
             {
                 if (index + 1 >= current.Length)
@@ -161,19 +207,37 @@ public static class ExtremaTournament
                     continue;
                 }
 
-                var bout = Bout(boutIndex, bouts.Count, current[index], current[index + 1], lowerWins, out var winner);
+                var bout = Bout(
+                    boutIndex,
+                    bouts.Count,
+                    current[index],
+                    current[index + 1],
+                    lowerWins,
+                    out var winner,
+                    out var remainder);
                 bouts.Add(bout);
                 next.Add(winner);
+                remainders.Add(remainder);
             }
 
-            builtRounds.Add(Relation.OrderedGroup(
+            var roundEvidence = Relation.OrderedGroup(
                 new Carrier(),
-                [Relation.Point(roundIndex, round), .. bouts]));
+                [Relation.Point(roundIndex, round), .. bouts]);
+            builtRounds.Add(TimeStepSequence.Step(
+                new Carrier(),
+                roundIndex,
+                round,
+                round + 1,
+                beforeField,
+                roundEvidence,
+                EntryGroup(next),
+                Relation.OrderedGroup(new Carrier(), [.. remainders])));
             current = [.. next];
         }
 
         rounds = [.. builtRounds];
-        return Relation.OrderedGroup(RootOrNew(root), [current[0], .. rounds]);
+        var roundTimeline = TimeStepSequence.Create(new Carrier(), roundIndex, initialField, rounds);
+        return Relation.OrderedGroup(RootOrNew(root), current[0], roundTimeline);
     }
 
     private static Relation Bout(
@@ -182,7 +246,8 @@ public static class ExtremaTournament
         Relation left,
         Relation right,
         bool lowerWins,
-        out Relation winner)
+        out Relation winner,
+        out Relation remainder)
     {
         var hasLeftMeasure = TryReadEntry(left, out _, out var leftMeasure);
         var hasRightMeasure = TryReadEntry(right, out _, out var rightMeasure);
@@ -197,6 +262,7 @@ public static class ExtremaTournament
                 ? OperationClaim.AtLeast(new Carrier(), safeRightMeasure, safeLeftMeasure, fallbackCarrier)
                 : OperationClaim.AtMost(new Carrier(), safeRightMeasure, safeLeftMeasure, fallbackCarrier);
             winner = left;
+            remainder = right;
             return Relation.OrderedGroup(
                 new Carrier(),
                 Relation.Point(boutIndex, index),
@@ -222,7 +288,7 @@ public static class ExtremaTournament
             out _);
         var rightViolatesCurrent = violation.Ticks > 0;
         winner = rightViolatesCurrent ? right : left;
-        var remainder = rightViolatesCurrent ? left : right;
+        remainder = rightViolatesCurrent ? left : right;
 
         return Relation.OrderedGroup(
             new Carrier(),
@@ -235,6 +301,24 @@ public static class ExtremaTournament
 
     private static Relation[] NormalizeEntries(IReadOnlyList<Relation> entries) =>
         entries is null ? [] : [.. entries.Where(entry => TryReadEntry(entry, out _, out _))];
+
+    private static Relation EntryGroup(IReadOnlyList<Relation> entries) =>
+        Relation.OrderedGroup(new Carrier(), [.. entries.Cast<IElement>()]);
+
+    private static bool TryReadRoundEvidence(Relation round, out CarrierLocation roundIndex, out Relation[] bouts)
+    {
+        if (TryReadRootElements(round, out var elements) &&
+            elements.Length >= 1 &&
+            TryReadPoint(elements[0], out roundIndex))
+        {
+            bouts = [.. elements.Skip(1).OfType<Relation>()];
+            return true;
+        }
+
+        roundIndex = default;
+        bouts = [];
+        return false;
+    }
 
     private static bool TryReadRootElements(Relation structure, out IElement[] elements)
     {
