@@ -189,4 +189,78 @@ public sealed class ProximityTournamentTests
         Assert.Equal(new CarrierLocation(residual, 2), boundaryViolation);
         Assert.Equal(new CarrierLocation(measure, 12), selectionMeasure);
     }
+
+    [Fact]
+    public void NearestWithinSelectsClosestCandidateInsideInterval()
+    {
+        var value = new Carrier();
+        var residual = new Carrier(value.UnitShape);
+        var measure = new Carrier(value.UnitShape);
+        IElement[] candidates =
+        [
+            new CarrierLocation(value, 2),
+            new CarrierLocation(value, 6),
+            new CarrierLocation(value, 8)
+        ];
+
+        var proximity = ProximityTournament.NearestWithin(
+            new Carrier(),
+            candidates,
+            new CarrierLocation(value, 7),
+            new CarrierLocation(value, 3),
+            new CarrierLocation(value, 6),
+            residual,
+            measure,
+            out var choices,
+            out _);
+
+        Assert.True(ProximityTournament.TryReadWinner(proximity, out var winner));
+        Assert.True(ProximityTournament.TryReadChoice(
+            winner,
+            out var winnerValue,
+            out _,
+            out _,
+            out var winnerBoundary,
+            out var winnerDistance,
+            out var winnerBoundaryViolation,
+            out var winnerSelection));
+        Assert.Equal(new CarrierLocation(value, 6), Assert.IsType<CarrierLocation>(winnerValue));
+        Assert.Equal(new CarrierLocation(residual, 1), winnerDistance);
+        Assert.Equal(new CarrierLocation(residual, 0), winnerBoundaryViolation);
+        Assert.Equal(new CarrierLocation(measure, 1), winnerSelection);
+        Assert.True(OperationClaim.TryReadBetween(
+            Assert.IsType<Relation>(winnerBoundary),
+            out _,
+            out _,
+            out _,
+            out _,
+            out _,
+            out var winnerTotalViolation,
+            out _));
+        Assert.Equal(new CarrierLocation(residual, 0), winnerTotalViolation);
+
+        Assert.True(ProximityTournament.TryReadChoice(
+            choices[2],
+            out _,
+            out _,
+            out _,
+            out var outsideBoundary,
+            out var outsideDistance,
+            out var outsideBoundaryViolation,
+            out var outsideSelection));
+        Assert.Equal(new CarrierLocation(residual, 1), outsideDistance);
+        Assert.Equal(new CarrierLocation(residual, 2), outsideBoundaryViolation);
+        Assert.Equal(13, outsideSelection.Ticks);
+        Assert.True(OperationClaim.TryReadBetween(
+            Assert.IsType<Relation>(outsideBoundary),
+            out _,
+            out _,
+            out _,
+            out _,
+            out var upperViolation,
+            out var totalViolation,
+            out _));
+        Assert.Equal(new CarrierLocation(residual, 2), upperViolation);
+        Assert.Equal(new CarrierLocation(residual, 2), totalViolation);
+    }
 }

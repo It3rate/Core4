@@ -21,6 +21,35 @@ public static class OperationClaim
     public static Relation AtLeast(Carrier root, IElement value, IElement floor, Carrier residual) =>
         Build(root, value, floor, residual, AtLeastViolation, preserveOpposedViolation: false);
 
+    /// <summary>Claims that a value remains inside a lower/upper interval.</summary>
+    public static Relation Between(Carrier root, IElement value, IElement lower, IElement upper, Carrier residual)
+    {
+        var holder = root ?? new Carrier();
+        var residualCarrier = residual ?? Carrier.Unknown;
+        var valueElement = value ?? Relation.Point(Carrier.Unknown, 0);
+        var lowerElement = lower ?? Relation.Point(Carrier.Unknown, 0);
+        var upperElement = upper ?? Relation.Point(Carrier.Unknown, 0);
+        var surface = Relation.OrderedGroup(new Carrier(), valueElement, lowerElement, upperElement);
+        var lowerClaim = AtLeast(new Carrier(), valueElement, lowerElement, residualCarrier);
+        var upperClaim = AtMost(new Carrier(), valueElement, upperElement, residualCarrier);
+
+        TryRead(lowerClaim, out _, out _, out _, out _, out var lowerViolation, out _);
+        TryRead(upperClaim, out _, out _, out _, out _, out var upperViolation, out _);
+        var totalViolation = new CarrierLocation(
+            residualCarrier,
+            SaturatingAdd(lowerViolation.Ticks, upperViolation.Ticks));
+
+        return Relation.OrderedGroup(
+            holder,
+            surface,
+            lowerClaim,
+            upperClaim,
+            lowerViolation,
+            upperViolation,
+            totalViolation,
+            Relation.OrderedGroup(new Carrier(), lowerClaim, upperClaim));
+    }
+
     /// <summary>Reads the surface, residuals, magnitudes, and residue from a claim group.</summary>
     public static bool TryRead(
         Relation claim,
@@ -51,6 +80,48 @@ public static class OperationClaim
         violation = default!;
         residualMagnitude = default;
         violationMagnitude = default;
+        residue = default!;
+        return false;
+    }
+
+    /// <summary>Reads a paired lower/upper interval claim.</summary>
+    public static bool TryReadBetween(
+        Relation claim,
+        out Relation surface,
+        out Relation lowerClaim,
+        out Relation upperClaim,
+        out CarrierLocation lowerViolationMagnitude,
+        out CarrierLocation upperViolationMagnitude,
+        out CarrierLocation totalViolationMagnitude,
+        out IElement residue)
+    {
+        if (TryReadRootElements(claim, out var elements) &&
+            elements.Length >= 7 &&
+            elements[0] is Relation intervalSurface &&
+            elements[1] is Relation lower &&
+            elements[2] is Relation upper &&
+            elements[3] is CarrierLocation lowerViolation &&
+            elements[4] is CarrierLocation upperViolation &&
+            elements[5] is CarrierLocation totalViolation &&
+            TryRead(lower, out _, out _, out _, out _, out _, out _) &&
+            TryRead(upper, out _, out _, out _, out _, out _, out _))
+        {
+            surface = intervalSurface;
+            lowerClaim = lower;
+            upperClaim = upper;
+            lowerViolationMagnitude = lowerViolation;
+            upperViolationMagnitude = upperViolation;
+            totalViolationMagnitude = totalViolation;
+            residue = elements[6];
+            return true;
+        }
+
+        surface = null!;
+        lowerClaim = null!;
+        upperClaim = null!;
+        lowerViolationMagnitude = default;
+        upperViolationMagnitude = default;
+        totalViolationMagnitude = default;
         residue = default!;
         return false;
     }
@@ -227,10 +298,26 @@ public static class OperationClaim
 
     private static long PositivePart(long ticks) => ticks > 0 ? ticks : 0;
 
+    private static long SaturatingAdd(long left, long right)
+    {
+        var sum = (Int128)left + right;
+        return ClampToLong(sum);
+    }
+
     private static long MagnitudeOf(long ticks)
     {
         var magnitude = ticks < 0 ? -(Int128)ticks : (Int128)ticks;
         return magnitude > long.MaxValue ? long.MaxValue : (long)magnitude;
+    }
+
+    private static long ClampToLong(Int128 value)
+    {
+        if (value > long.MaxValue)
+        {
+            return long.MaxValue;
+        }
+
+        return value < long.MinValue ? long.MinValue : (long)value;
     }
 
     private static long SupportMagnitude(long left, long right)

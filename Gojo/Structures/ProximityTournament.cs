@@ -42,6 +42,36 @@ public static class ProximityTournament
         out Relation[] rounds) =>
         Create(root, values, target, residual, measure, OperationClaim.AtMost, out choices, out rounds);
 
+    /// <summary>Chooses the nearest candidate that satisfies lower &lt;= value &lt;= upper when possible.</summary>
+    public static Relation NearestWithin(
+        Carrier root,
+        IReadOnlyList<IElement> values,
+        IElement target,
+        IElement lower,
+        IElement upper,
+        Carrier residual,
+        Carrier measure,
+        out Relation[] choices,
+        out Relation[] rounds)
+    {
+        var lowerElement = lower ?? Relation.Point(Carrier.Unknown, 0);
+        var upperElement = upper ?? Relation.Point(Carrier.Unknown, 0);
+        return Create(
+            root,
+            values,
+            target,
+            residual,
+            measure,
+            (claimRoot, value, _, claimResidual) => OperationClaim.Between(
+                claimRoot,
+                value,
+                lowerElement,
+                upperElement,
+                claimResidual),
+            out choices,
+            out rounds);
+    }
+
     /// <summary>Reads the winning choice from a proximity tournament.</summary>
     public static bool TryReadWinner(Relation proximity, out Relation choice)
     {
@@ -216,8 +246,22 @@ public static class ProximityTournament
     private static CarrierLocation ReadBoundaryViolation(IElement boundary, Carrier residual)
     {
         if (boundary is Relation boundaryRelation &&
-            OperationClaim.TryRead(
+            OperationClaim.TryReadBetween(
                 boundaryRelation,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _,
+                out var totalViolation,
+                out _))
+        {
+            return totalViolation;
+        }
+
+        if (boundary is Relation singleClaim &&
+            OperationClaim.TryRead(
+                singleClaim,
                 out _,
                 out _,
                 out _,

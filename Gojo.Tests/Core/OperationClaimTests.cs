@@ -147,4 +147,55 @@ public sealed class OperationClaimTests
         Assert.Equal(new CarrierLocation(residualCarrier, 0), Assert.IsType<CarrierLocation>(violation));
         Assert.Equal(new CarrierLocation(residualCarrier, 0), violationMagnitude);
     }
+
+    [Fact]
+    public void BetweenClaimPairsLowerAndUpperOneSidedClaims()
+    {
+        var value = new Carrier();
+        var residualCarrier = new Carrier(value.UnitShape);
+
+        var inside = OperationClaim.Between(
+            new Carrier(),
+            new CarrierLocation(value, 4),
+            new CarrierLocation(value, 2),
+            new CarrierLocation(value, 6),
+            residualCarrier);
+        var above = OperationClaim.Between(
+            new Carrier(),
+            new CarrierLocation(value, 8),
+            new CarrierLocation(value, 2),
+            new CarrierLocation(value, 6),
+            residualCarrier);
+
+        Assert.True(OperationClaim.TryReadBetween(
+            inside,
+            out var surface,
+            out var lowerClaim,
+            out var upperClaim,
+            out var lowerViolation,
+            out var upperViolation,
+            out var totalViolation,
+            out var residue));
+        Assert.True(surface.TryReadOrderedElementsOn(Assert.IsType<Carrier>(surface.Right), out var surfaceElements));
+        Assert.Equal(3, surfaceElements.Length);
+        Assert.True(OperationClaim.TryRead(lowerClaim, out _, out _, out _, out _, out _, out _));
+        Assert.True(OperationClaim.TryRead(upperClaim, out _, out _, out _, out _, out _, out _));
+        Assert.Equal(new CarrierLocation(residualCarrier, 0), lowerViolation);
+        Assert.Equal(new CarrierLocation(residualCarrier, 0), upperViolation);
+        Assert.Equal(new CarrierLocation(residualCarrier, 0), totalViolation);
+        Assert.IsType<Relation>(residue);
+
+        Assert.True(OperationClaim.TryReadBetween(
+            above,
+            out _,
+            out _,
+            out _,
+            out var aboveLowerViolation,
+            out var aboveUpperViolation,
+            out var aboveTotalViolation,
+            out _));
+        Assert.Equal(new CarrierLocation(residualCarrier, 0), aboveLowerViolation);
+        Assert.Equal(new CarrierLocation(residualCarrier, 2), aboveUpperViolation);
+        Assert.Equal(new CarrierLocation(residualCarrier, 2), aboveTotalViolation);
+    }
 }
