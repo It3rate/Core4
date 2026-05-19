@@ -1,5 +1,6 @@
 using Gojo.Core;
 using Gojo.Equations;
+using Gojo.Structures;
 
 namespace Gojo.Tests.Equations;
 
@@ -89,6 +90,17 @@ public sealed class EquationHelperTests
         Assert.Equal(new CarrierLocation(error, 2), firstError);
         Assert.Equal(1, secondIndex.Ticks);
         Assert.Equal(new CarrierLocation(error, -5), secondError);
+        Assert.True(EquationInspection.TryReadComparisonClaim(samples[1], out var secondClaim));
+        Assert.True(OperationClaim.TryRead(
+            secondClaim,
+            out _,
+            out var secondResidual,
+            out _,
+            out var secondResidualMagnitude,
+            out _,
+            out _));
+        Assert.Equal(secondError, Assert.IsType<CarrierLocation>(secondResidual));
+        Assert.Equal(new CarrierLocation(error, 5), secondResidualMagnitude);
     }
 
     [Fact]

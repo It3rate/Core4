@@ -63,7 +63,7 @@ public sealed class EquationResolutionSearchTests
     }
 
     [Fact]
-    public void SearchRecordsDirectedResidualFaces()
+    public void SearchRecordsClaimResidualWithoutConflatingNegativeValueWithInverseFlow()
     {
         var x = new Carrier();
         var output = new Carrier();
@@ -95,15 +95,26 @@ public sealed class EquationResolutionSearchTests
             out var leftInput,
             out var leftPrediction,
             out var leftSignedResidual,
-            out var leftDirectedResidual,
+            out var leftReadableResidual,
             out var leftMagnitude,
             out _));
         Assert.Equal(new CarrierLocation(x, -3), leftInput);
         Assert.Equal(new CarrierLocation(output, 5), leftPrediction);
         Assert.Equal(-5, leftSignedResidual.Ticks);
-        Assert.True(leftDirectedResidual.Carrier.IsInverse);
-        Assert.Equal(5, leftDirectedResidual.Ticks);
+        Assert.False(leftReadableResidual.Carrier.IsInverse);
+        Assert.Equal(-5, leftReadableResidual.Ticks);
         Assert.Equal(5, leftMagnitude.Ticks);
+        Assert.True(EquationResolutionSearch.TryReadCandidateClaim(samples[0], out var leftClaim));
+        Assert.True(OperationClaim.TryRead(
+            leftClaim,
+            out _,
+            out var leftClaimResidual,
+            out _,
+            out var leftClaimMagnitude,
+            out _,
+            out _));
+        Assert.Equal(leftSignedResidual, Assert.IsType<CarrierLocation>(leftClaimResidual));
+        Assert.Equal(leftMagnitude.Ticks, leftClaimMagnitude.Ticks);
 
         Assert.True(EquationResolutionSearch.TryReadCandidateSample(
             samples[2],
@@ -111,14 +122,14 @@ public sealed class EquationResolutionSearchTests
             out var rightInput,
             out var rightPrediction,
             out var rightSignedResidual,
-            out var rightDirectedResidual,
+            out var rightReadableResidual,
             out var rightMagnitude,
             out _));
         Assert.Equal(new CarrierLocation(x, -1), rightInput);
         Assert.Equal(new CarrierLocation(output, -3), rightPrediction);
         Assert.Equal(3, rightSignedResidual.Ticks);
-        Assert.False(rightDirectedResidual.Carrier.IsInverse);
-        Assert.Equal(3, rightDirectedResidual.Ticks);
+        Assert.False(rightReadableResidual.Carrier.IsInverse);
+        Assert.Equal(3, rightReadableResidual.Ticks);
         Assert.Equal(3, rightMagnitude.Ticks);
     }
 

@@ -41,6 +41,18 @@ public sealed class ExtremaTournamentTests
         Assert.Equal(second, firstWinnerValue);
         Assert.Equal(first, firstRemainderValue);
         Assert.Equal(new CarrierLocation(measure, 4), firstMargin);
+        Assert.True(ExtremaTournament.TryReadBoutClaim(firstRoundBouts[0], out var firstClaim));
+        Assert.True(OperationClaim.TryRead(
+            firstClaim,
+            out _,
+            out var firstResidual,
+            out var firstViolation,
+            out _,
+            out var firstViolationMagnitude,
+            out _));
+        Assert.Equal(new CarrierLocation(measure, 4), Assert.IsType<CarrierLocation>(firstResidual));
+        Assert.Equal(new CarrierLocation(measure, 4), Assert.IsType<CarrierLocation>(firstViolation));
+        Assert.Equal(new CarrierLocation(measure, 4), firstViolationMagnitude);
     }
 
     [Fact]
@@ -65,6 +77,9 @@ public sealed class ExtremaTournamentTests
         Assert.True(ExtremaTournament.TryReadRound(rounds[0], out _, out var bouts));
         Assert.True(ExtremaTournament.TryReadBout(bouts[0], out _, out _, out _, out var margin));
         Assert.Equal(new CarrierLocation(measure, 7), margin);
+        Assert.True(ExtremaTournament.TryReadBoutClaim(bouts[0], out var claim));
+        Assert.True(OperationClaim.TryRead(claim, out _, out _, out _, out _, out var violationMagnitude, out _));
+        Assert.Equal(new CarrierLocation(measure, 7), violationMagnitude);
     }
 
     [Fact]
@@ -89,5 +104,8 @@ public sealed class ExtremaTournamentTests
         Assert.True(ExtremaTournament.TryReadEntry(remainder, out var remainderValue, out _));
         Assert.Equal(second, remainderValue);
         Assert.Equal(new CarrierLocation(measure, 0), margin);
+        Assert.True(ExtremaTournament.TryReadBoutClaim(bouts[0], out var claim));
+        Assert.True(OperationClaim.TryRead(claim, out _, out _, out _, out _, out var violationMagnitude, out _));
+        Assert.Equal(new CarrierLocation(measure, 0), violationMagnitude);
     }
 }

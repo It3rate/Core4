@@ -5,8 +5,8 @@ namespace Gojo.Equations;
 
 /// <summary>
 /// Coarse-to-fine parameter search over ordinary equation surfaces. The helper
-/// records candidate inputs, predictions, signed residuals, directed residual
-/// faces, magnitudes, and read residue as Gojo relation structure.
+/// records candidate inputs, predictions, claim residuals, residual magnitudes,
+/// and read residue as Gojo relation structure.
 /// </summary>
 public static class EquationResolutionSearch
 {
@@ -161,23 +161,23 @@ public static class EquationResolutionSearch
         out CarrierLocation input,
         out CarrierLocation predicted,
         out CarrierLocation signedResidual,
-        out CarrierLocation directedResidual,
+        out CarrierLocation readableResidual,
         out CarrierLocation magnitude,
         out IElement residue)
     {
         if (TryReadRootElements(sample, out var elements) &&
-            elements.Length == 7 &&
+            elements.Length >= 7 &&
             TryReadPoint(elements[0], out index) &&
             elements[1] is CarrierLocation inputLocation &&
             elements[2] is CarrierLocation predictedLocation &&
             elements[3] is CarrierLocation signedResidualLocation &&
-            elements[4] is CarrierLocation directedResidualLocation &&
+            elements[4] is CarrierLocation readableResidualLocation &&
             elements[5] is CarrierLocation magnitudeLocation)
         {
             input = inputLocation;
             predicted = predictedLocation;
             signedResidual = signedResidualLocation;
-            directedResidual = directedResidualLocation;
+            readableResidual = readableResidualLocation;
             magnitude = magnitudeLocation;
             residue = elements[6];
             return true;
@@ -187,9 +187,25 @@ public static class EquationResolutionSearch
         input = default;
         predicted = default;
         signedResidual = default;
-        directedResidual = default;
+        readableResidual = default;
         magnitude = default;
         residue = default!;
+        return false;
+    }
+
+    /// <summary>Reads the equality claim tested by one candidate sample.</summary>
+    public static bool TryReadCandidateClaim(Relation sample, out Relation claim)
+    {
+        if (TryReadRootElements(sample, out var elements) &&
+            elements.Length >= 8 &&
+            elements[7] is Relation sampleClaim &&
+            OperationClaim.TryRead(sampleClaim, out _, out _, out _, out _, out _, out _))
+        {
+            claim = sampleClaim;
+            return true;
+        }
+
+        claim = null!;
         return false;
     }
 
@@ -226,20 +242,29 @@ public static class EquationResolutionSearch
             var predicted = Equation.TryReadPrediction(prediction, out var predictedLocation, out var residue)
                 ? predictedLocation
                 : new CarrierLocation(output, 0);
-            var residualTicks = target.Carrier.SameIdentityAs(predicted.Carrier)
-                ? checked(target.Ticks - predicted.Ticks)
-                : 0;
-            var residualMagnitude = MagnitudeOf(residualTicks);
-            var magnitudeLocation = new CarrierLocation(magnitude, residualMagnitude);
+            var claim = OperationClaim.Equality(new Carrier(), predicted, target, error);
+            OperationClaim.TryRead(
+                claim,
+                out _,
+                out var residual,
+                out _,
+                out var residualMagnitude,
+                out _,
+                out _);
+            var signedResidual = residual is CarrierLocation residualLocation
+                ? residualLocation
+                : new CarrierLocation(error, 0);
+            var magnitudeLocation = new CarrierLocation(magnitude, residualMagnitude.Ticks);
             samples[index] = CandidateSample(
                 sampleIndex,
                 index,
                 candidate,
                 predicted,
-                new CarrierLocation(error, residualTicks),
-                DirectedResidual(error, residualTicks),
+                signedResidual,
+                signedResidual,
                 magnitudeLocation,
-                residue ?? prediction);
+                residue ?? prediction,
+                claim);
             entries[index] = ExtremaTournament.Entry(samples[index], magnitudeLocation);
         }
 
@@ -286,23 +311,20 @@ public static class EquationResolutionSearch
         CarrierLocation input,
         CarrierLocation predicted,
         CarrierLocation signedResidual,
-        CarrierLocation directedResidual,
+        CarrierLocation readableResidual,
         CarrierLocation magnitude,
-        IElement residue) =>
+        IElement residue,
+        Relation claim) =>
         Relation.OrderedGroup(
             new Carrier(),
             Relation.Point(sampleIndex, index),
             input,
             predicted,
             signedResidual,
-            directedResidual,
+            readableResidual,
             magnitude,
-            residue);
-
-    private static CarrierLocation DirectedResidual(Carrier error, long residualTicks) =>
-        residualTicks < 0
-            ? new CarrierLocation(error.Inverse(), MagnitudeOf(residualTicks))
-            : new CarrierLocation(error, residualTicks);
+            residue,
+            claim);
 
     private static long CandidateTicks(long startTicks, long span, int sampleCount, int index) =>
         sampleCount <= 1

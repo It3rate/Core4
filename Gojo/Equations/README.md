@@ -227,11 +227,26 @@ ComparisonSampleN
   + predicted output
   + observed output
   + error
+  + equality claim surface
 ```
 
-For the first pass, error is `observed - predicted` on a supplied error
-carrier. Later this should become richer tension/residue structure that can
-drive parameter fitting and equation selection.
+The comparison helper now builds a small equality claim:
+
+```text
+predicted -> observed
+  + readable residual
+  + one-sided/equality violation
+  + residual magnitude
+  + violation magnitude
+  + residue
+```
+
+For same-face scalar samples the readable residual is still `observed -
+predicted` on the supplied error carrier. Negative residuals remain negative
+locations on that carrier; they are not converted into inverse-flow
+participation. If the compared samples use opposed carrier faces, the claim
+keeps a fused residual so a later surface can decide whether to fold, route, or
+settle that opposed participation.
 
 ## Difference And Fit
 
@@ -264,11 +279,10 @@ FitSampleN
   + error magnitude
 ```
 
-The magnitude value is a first executable foothold for comparing candidate
-equations. It is still a code-side read of absolute value; a later pass should
-express absolute value, thresholds, and "close enough" as Gojo relation
-structure so fit can drive local selection and settlement without hidden
-classifier logic.
+The magnitude value is now read from the equality claim. It is still a small
+inspection foothold, but the mismatch that produced it remains attached as
+claim/residual structure so later fit, thresholds, and "close enough" reads can
+settle from the same surface rather than from a hidden classifier.
 
 ## Next Targets
 

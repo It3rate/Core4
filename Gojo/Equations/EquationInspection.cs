@@ -1,4 +1,5 @@
 using Gojo.Core;
+using Gojo.Structures;
 
 namespace Gojo.Equations;
 
@@ -82,12 +83,29 @@ public static class EquationInspection
 
         for (var sampleIndex = 0; sampleIndex < count; sampleIndex++)
         {
+            var claim = OperationClaim.Equality(
+                new Carrier(),
+                predictions[sampleIndex],
+                observations[sampleIndex],
+                errorCarrier);
+            OperationClaim.TryRead(
+                claim,
+                out _,
+                out var residual,
+                out _,
+                out _,
+                out _,
+                out _);
+            var errorLocation = residual is CarrierLocation residualLocation
+                ? residualLocation
+                : new CarrierLocation(errorCarrier, 0);
             samples[sampleIndex] = ComparisonSample(
                 index,
                 sampleIndex,
                 predictions[sampleIndex],
                 observations[sampleIndex],
-                new CarrierLocation(errorCarrier, SaturatingSubtract(observations[sampleIndex].Ticks, predictions[sampleIndex].Ticks)));
+                errorLocation,
+                claim);
         }
 
         return Relation.OrderedGroup(holder, [Relation.Segment(index, 0, count), .. samples]);
@@ -243,12 +261,18 @@ public static class EquationInspection
         out CarrierLocation observed,
         out CarrierLocation error)
     {
-        if (TryReadSampleLocations(sample, expectedLocations: 4, out var locations))
+        if (TryReadRootElements(sample, out var elements) &&
+            elements.Length >= 4 &&
+            elements[0] is Relation indexPoint &&
+            indexPoint.Left is CarrierLocation indexLocation &&
+            elements[1] is CarrierLocation predictedLocation &&
+            elements[2] is CarrierLocation observedLocation &&
+            elements[3] is CarrierLocation errorLocation)
         {
-            index = locations[0];
-            predicted = locations[1];
-            observed = locations[2];
-            error = locations[3];
+            index = indexLocation;
+            predicted = predictedLocation;
+            observed = observedLocation;
+            error = errorLocation;
             return true;
         }
 
@@ -256,6 +280,22 @@ public static class EquationInspection
         predicted = default;
         observed = default;
         error = default;
+        return false;
+    }
+
+    /// <summary>Reads the equality claim tested by one comparison sample.</summary>
+    public static bool TryReadComparisonClaim(Relation sample, out Relation claim)
+    {
+        if (TryReadRootElements(sample, out var elements) &&
+            elements.Length >= 5 &&
+            elements[4] is Relation comparisonClaim &&
+            OperationClaim.TryRead(comparisonClaim, out _, out _, out _, out _, out _, out _))
+        {
+            claim = comparisonClaim;
+            return true;
+        }
+
+        claim = null!;
         return false;
     }
 
@@ -311,13 +351,15 @@ public static class EquationInspection
         int sampleIndex,
         CarrierLocation predicted,
         CarrierLocation observed,
-        CarrierLocation error) =>
+        CarrierLocation error,
+        Relation claim) =>
         Relation.OrderedGroup(
             new Carrier(),
             Relation.Point(index, sampleIndex),
             predicted,
             observed,
-            error);
+            error,
+            claim);
 
     private static Relation FitSample(
         Carrier index,
@@ -379,17 +421,6 @@ public static class EquationInspection
         }
 
         return sum < long.MinValue ? long.MinValue : (long)sum;
-    }
-
-    private static long SaturatingSubtract(long left, long right)
-    {
-        var difference = (Int128)left - right;
-        if (difference > long.MaxValue)
-        {
-            return long.MaxValue;
-        }
-
-        return difference < long.MinValue ? long.MinValue : (long)difference;
     }
 
     private static long MagnitudeOf(long ticks)

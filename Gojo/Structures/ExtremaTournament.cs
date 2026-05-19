@@ -4,8 +4,9 @@ namespace Gojo.Structures;
 
 /// <summary>
 /// Pairwise min/max tournament helpers over relation-shaped entries. Each entry
-/// carries a value element and a measure location; each bout preserves winner,
-/// remainder, and margin as ordinary Gojo structure.
+/// carries a value element and a measure location; each bout preserves the
+/// tested one-sided claim, winner, remainder, and margin as ordinary Gojo
+/// structure.
 /// </summary>
 public static class ExtremaTournament
 {
@@ -78,7 +79,7 @@ public static class ExtremaTournament
         out CarrierLocation margin)
     {
         if (TryReadRootElements(bout, out var elements) &&
-            elements.Length == 4 &&
+            elements.Length >= 4 &&
             TryReadPoint(elements[0], out boutIndex) &&
             elements[1] is Relation winnerEntry &&
             elements[2] is Relation remainderEntry &&
@@ -96,6 +97,22 @@ public static class ExtremaTournament
         winner = null!;
         remainder = null!;
         margin = default;
+        return false;
+    }
+
+    /// <summary>Reads the one-sided claim tested by a pairwise bout.</summary>
+    public static bool TryReadBoutClaim(Relation bout, out Relation claim)
+    {
+        if (TryReadRootElements(bout, out var elements) &&
+            elements.Length >= 5 &&
+            elements[4] is Relation boutClaim &&
+            OperationClaim.TryRead(boutClaim, out _, out _, out _, out _, out _, out _))
+        {
+            claim = boutClaim;
+            return true;
+        }
+
+        claim = null!;
         return false;
     }
 
@@ -167,35 +184,53 @@ public static class ExtremaTournament
         bool lowerWins,
         out Relation winner)
     {
-        if (!TryReadEntry(left, out _, out var leftMeasure) ||
-            !TryReadEntry(right, out _, out var rightMeasure) ||
+        var hasLeftMeasure = TryReadEntry(left, out _, out var leftMeasure);
+        var hasRightMeasure = TryReadEntry(right, out _, out var rightMeasure);
+        if (!hasLeftMeasure ||
+            !hasRightMeasure ||
             !leftMeasure.Carrier.UnitShape.CompatibleWith(rightMeasure.Carrier.UnitShape))
         {
+            var fallbackCarrier = leftMeasure.Carrier ?? rightMeasure.Carrier ?? Carrier.Unknown;
+            var safeLeftMeasure = hasLeftMeasure ? leftMeasure : new CarrierLocation(fallbackCarrier, 0);
+            var safeRightMeasure = hasRightMeasure ? rightMeasure : new CarrierLocation(fallbackCarrier, 0);
+            var unresolvedClaim = lowerWins
+                ? OperationClaim.AtLeast(new Carrier(), safeRightMeasure, safeLeftMeasure, fallbackCarrier)
+                : OperationClaim.AtMost(new Carrier(), safeRightMeasure, safeLeftMeasure, fallbackCarrier);
             winner = left;
             return Relation.OrderedGroup(
                 new Carrier(),
                 Relation.Point(boutIndex, index),
                 left,
                 right,
-                new CarrierLocation(leftMeasure.Carrier ?? Carrier.Unknown, 0));
+                new CarrierLocation(fallbackCarrier, 0),
+                unresolvedClaim);
         }
 
-        var leftWins = lowerWins
-            ? leftMeasure.Ticks <= rightMeasure.Ticks
-            : leftMeasure.Ticks >= rightMeasure.Ticks;
-        winner = leftWins ? left : right;
-        var remainder = leftWins ? right : left;
-        var marginTicks = MagnitudeOf(checked(leftMeasure.Ticks - rightMeasure.Ticks));
         var marginCarrier = leftMeasure.Carrier.IsUnknown
             ? rightMeasure.Carrier
             : leftMeasure.Carrier;
+        var claim = lowerWins
+            ? OperationClaim.AtLeast(new Carrier(), rightMeasure, leftMeasure, marginCarrier)
+            : OperationClaim.AtMost(new Carrier(), rightMeasure, leftMeasure, marginCarrier);
+        OperationClaim.TryRead(
+            claim,
+            out _,
+            out _,
+            out _,
+            out var margin,
+            out var violation,
+            out _);
+        var rightViolatesCurrent = violation.Ticks > 0;
+        winner = rightViolatesCurrent ? right : left;
+        var remainder = rightViolatesCurrent ? left : right;
 
         return Relation.OrderedGroup(
             new Carrier(),
             Relation.Point(boutIndex, index),
             winner,
             remainder,
-            new CarrierLocation(marginCarrier, marginTicks));
+            margin,
+            claim);
     }
 
     private static Relation[] NormalizeEntries(IReadOnlyList<Relation> entries) =>
@@ -226,12 +261,6 @@ public static class ExtremaTournament
 
         location = default;
         return false;
-    }
-
-    private static long MagnitudeOf(long ticks)
-    {
-        var magnitude = ticks < 0 ? -(Int128)ticks : (Int128)ticks;
-        return magnitude > long.MaxValue ? long.MaxValue : (long)magnitude;
     }
 
     private static Carrier RootOrNew(Carrier carrier) =>
