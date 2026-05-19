@@ -1,4 +1,5 @@
 using Gojo.Core;
+using Gojo.Structures;
 
 namespace Gojo.Equations;
 
@@ -84,6 +85,50 @@ public static class EquationSequence
             : new Relation(new CarrierLocation(RootOrUnknown(output), 0), ReadResidueGroup(stepReads));
     }
 
+    /// <summary>
+    /// Reads one scalar input sample and records the read as a repeat surface.
+    /// The original prediction remains available separately.
+    /// </summary>
+    public static Relation PredictRepeat(
+        Relation sequence,
+        CarrierLocation input,
+        Carrier output,
+        Carrier repeatAxis,
+        out Relation prediction,
+        out Relation[] stepReads) =>
+        PredictRepeat(sequence, (IElement)input, output, repeatAxis, out prediction, out stepReads);
+
+    /// <summary>
+    /// Reads one scalar or relation-shaped input sample and records the read as
+    /// a repeat surface over the equation sequence's ordered steps.
+    /// </summary>
+    public static Relation PredictRepeat(
+        Relation sequence,
+        IElement input,
+        Carrier output,
+        Carrier repeatAxis,
+        out Relation prediction,
+        out Relation[] stepReads)
+    {
+        var supplied = input ?? Relation.Point(Carrier.Unknown, 0);
+        var axis = repeatAxis ?? new Carrier();
+        prediction = Predict(sequence, supplied, output, out stepReads);
+        TryReadSteps(sequence, out var steps);
+
+        return RepeatSurface.Create(
+            new Carrier(),
+            sequence ?? Relation.Point(Carrier.Unknown, 0),
+            RepeatSurface.Count(axis, stepReads.Length),
+            Relation.OrderedGroup(new Carrier(), [.. steps.Cast<IElement>()]),
+            FeedbackFrame(stepReads),
+            prediction.Right,
+            TimeStepSequence.Create(
+                new Carrier(),
+                axis,
+                supplied,
+                BuildTimelineSteps(axis, supplied, steps, stepReads)));
+    }
+
     private static IElement ReadResidueGroup(IReadOnlyList<Relation> stepReads)
     {
         var holder = new Carrier();
@@ -97,6 +142,53 @@ public static class EquationSequence
         }
 
         return Relation.OrderedGroup(holder, residues);
+    }
+
+    private static Relation[] BuildTimelineSteps(
+        Carrier axis,
+        IElement input,
+        IReadOnlyList<Relation> steps,
+        IReadOnlyList<Relation> stepReads)
+    {
+        var count = CountOf(stepReads);
+        if (count == 0)
+        {
+            return [];
+        }
+
+        var timelineSteps = new Relation[count];
+        var current = input ?? Relation.Point(Carrier.Unknown, 0);
+        for (var index = 0; index < count; index++)
+        {
+            var read = stepReads[index] ?? new Relation(Relation.Point(Carrier.Unknown, 0), Relation.Point(Carrier.Unknown, 0));
+            var transition = index < CountOf(steps) && steps[index] is { } step
+                ? step
+                : Relation.Point(Carrier.Unknown, 0);
+            timelineSteps[index] = TimeStepSequence.Step(
+                new Carrier(),
+                axis,
+                index,
+                index + 1,
+                current,
+                transition,
+                read.Left,
+                read.Right);
+            current = read.Left;
+        }
+
+        return timelineSteps;
+    }
+
+    private static Relation FeedbackFrame(IReadOnlyList<Relation> stepReads)
+    {
+        var count = CountOf(stepReads);
+        var outputs = new IElement[count];
+        for (var index = 0; index < count; index++)
+        {
+            outputs[index] = stepReads[index]?.Left ?? Relation.Point(Carrier.Unknown, 0);
+        }
+
+        return Relation.OrderedGroup(new Carrier(), outputs);
     }
 
     private static bool TryReadOutputCarrier(Relation equation, out Carrier carrier)
