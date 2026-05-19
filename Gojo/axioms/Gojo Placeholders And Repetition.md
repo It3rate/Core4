@@ -299,6 +299,24 @@ claim-based follow. The repeat surface gives them a common knowable skeleton.
 literal count controllers read as powers, while unresolved controllers remain
 ordinary repeat surfaces.
 
+Power controllers can now derive that count from several visible surfaces
+without becoming a controller enum:
+
+```text
+literal span                       S(repeat,0,n)
+visible count                      L(count,n) or P(count,n)
+equation read                      equation + supplied input + prediction + span
+resolution search                  selected sample input from the latest round
+claim tension                      readable violation or residual magnitude
+```
+
+The important property is that each controller still carries its evidence. An
+equation-derived count keeps the source equation, input, prediction, resolved
+span, and residue. A resolution-derived count keeps the search and selected
+sample. A claim-derived count keeps the claim surface and readable mismatch.
+If none of those shapes yields a nonnegative count, the repeat remains
+inspectable rather than pretending to execute.
+
 Longer-term hopes:
 
 - A general repeat/power machine where `x^n` is repeated product participation

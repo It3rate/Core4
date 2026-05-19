@@ -272,6 +272,12 @@ remain visible as repeat structure rather than being treated as a hidden
 exponent. Polynomial term fanout now uses this same surface for `1, x, x^2,
 x^3, ...`, so repeated product is no longer private polynomial machinery.
 
+The count controller may also be derived from another readable surface. Current
+power reads accept a visible count location, an equation read that produces a
+count, the selected input of a resolution search, or an operation-claim
+violation/residual magnitude. These are still structural counts: the source
+equation, search sample, or claim remains attached as evidence.
+
 ## Residue, Modulo, And Shift Shapes
 
 | Shape | Read |

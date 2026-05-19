@@ -97,6 +97,91 @@ public sealed class EquationPowerTests
     }
 
     [Fact]
+    public void EquationControllerDerivesExponentFromPrediction()
+    {
+        var x = new Carrier();
+        var output = new Carrier();
+        var countInput = new Carrier();
+        var countOutput = new Carrier();
+        var countEquation = Equation.Affine(countInput, 0, 1, countOutput, 0, 1);
+        var controller = EquationPower.CountFromEquation(
+            new Carrier(),
+            new Carrier(),
+            countEquation,
+            new CarrierLocation(countInput, 3),
+            countOutput);
+        var power = EquationPower.Create(new Carrier(), x, output, controller);
+
+        Assert.True(EquationPower.TryReadResolvedExponent(controller, out var exponent));
+        Assert.Equal(3, exponent);
+
+        var prediction = EquationPower.Predict(
+            power,
+            new CarrierLocation(x, 2),
+            output,
+            out var repeatRead);
+
+        Assert.True(Equation.TryReadPrediction(prediction, out var predicted, out _));
+        Assert.Equal(new CarrierLocation(output, 8), predicted);
+        Assert.True(EquationPower.TryRead(repeatRead, out _, out var readController, out _, out _, out _, out _));
+        Assert.Equal(controller, readController);
+    }
+
+    [Fact]
+    public void ResolutionSearchControllerUsesSelectedInputAsExponent()
+    {
+        var countInput = new Carrier();
+        var countOutput = new Carrier();
+        var identity = Equation.Affine(countInput, 0, 1, countOutput, 0, 1);
+        var search = EquationResolutionSearch.Search(
+            new Carrier(),
+            identity,
+            countInput,
+            countOutput,
+            targetTicks: 3,
+            startTicks: 0,
+            endTicks: 5,
+            candidateCount: 6,
+            roundCount: 1,
+            out _);
+        var controller = EquationPower.CountFromResolutionSearch(new Carrier(), new Carrier(), search);
+        var x = new Carrier();
+        var output = new Carrier();
+        var power = EquationPower.Create(new Carrier(), x, output, controller);
+
+        Assert.True(EquationPower.TryReadResolvedExponent(controller, out var exponent));
+        Assert.Equal(3, exponent);
+
+        var prediction = Equation.Predict(power, new CarrierLocation(x, 2), output);
+
+        Assert.True(Equation.TryReadPrediction(prediction, out var predicted, out _));
+        Assert.Equal(new CarrierLocation(output, 8), predicted);
+    }
+
+    [Fact]
+    public void ClaimControllerUsesReadableViolationMagnitudeAsExponent()
+    {
+        var residual = new Carrier();
+        var measured = new Carrier();
+        var claim = OperationClaim.AtMost(
+            new Carrier(),
+            new CarrierLocation(measured, 5),
+            new CarrierLocation(measured, 2),
+            residual);
+        var x = new Carrier();
+        var output = new Carrier();
+        var power = EquationPower.Create(new Carrier(), x, output, claim);
+
+        Assert.True(EquationPower.TryReadResolvedExponent(claim, out var exponent));
+        Assert.Equal(3, exponent);
+
+        var prediction = Equation.Predict(power, new CarrierLocation(x, 2), output);
+
+        Assert.True(Equation.TryReadPrediction(prediction, out var predicted, out _));
+        Assert.Equal(new CarrierLocation(output, 8), predicted);
+    }
+
+    [Fact]
     public void NonLiteralControllerStaysInspectableWithoutPretendingToPredict()
     {
         var x = new Carrier();

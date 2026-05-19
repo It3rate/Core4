@@ -28,7 +28,7 @@ public static class EquationPower
         var inputCarrier = RootOrUnknown(input);
         var outputCarrier = RootOrUnknown(output);
         var selected = Equation.UnitPort(inputCarrier);
-        var transition = ProductTransition(inputCarrier, outputCarrier, ReadLiteralExponent(controller));
+        var transition = ProductTransition(inputCarrier, outputCarrier, ReadResolvedExponent(controller));
         return RepeatSurface.Create(
             RootOrNew(root),
             selected,
@@ -61,7 +61,7 @@ public static class EquationPower
         }
 
         var outputCarrier = surfaceOutput.IsUnknown ? RootOrUnknown(output) : surfaceOutput;
-        if (!TryReadLiteralExponent(controller, out var exponent))
+        if (!TryReadResolvedExponent(controller, input, out var exponent, out _))
         {
             repeatRead = power;
             return new Relation(new CarrierLocation(outputCarrier, 0), input);
@@ -202,6 +202,63 @@ public static class EquationPower
         return false;
     }
 
+    /// <summary>
+    /// Builds a controller whose count is read from another equation surface.
+    /// The controller keeps the source equation, supplied input, prediction,
+    /// count span, and read residue visible as ordinary relation structure.
+    /// </summary>
+    public static Relation CountFromEquation(
+        Carrier root,
+        Carrier axis,
+        Relation equation,
+        IElement input,
+        Carrier countOutput)
+    {
+        var countAxis = RootOrNew(axis);
+        var countCarrier = RootOrUnknown(countOutput);
+        var supplied = input ?? Relation.Point(Carrier.Unknown, 0);
+        var countEquation = equation ?? Relation.Point(Carrier.Unknown, 0);
+        var prediction = Equation.Predict(countEquation, supplied, countCarrier);
+        var span = TryReadPredictionCount(prediction, out var ticks)
+            ? RepeatSurface.Count(countAxis, ticks)
+            : Relation.Point(Carrier.Unknown, 0);
+
+        return Relation.OrderedGroup(
+            RootOrNew(root),
+            Relation.Point(countAxis, 0),
+            countEquation,
+            supplied,
+            countCarrier,
+            prediction,
+            span);
+    }
+
+    /// <summary>
+    /// Builds a controller whose count is the selected input from a resolution
+    /// search. The selected sample remains visible inside the controller.
+    /// </summary>
+    public static Relation CountFromResolutionSearch(
+        Carrier root,
+        Carrier axis,
+        Relation search)
+    {
+        var countAxis = RootOrNew(axis);
+        var searchElement = search ?? Relation.Point(Carrier.Unknown, 0);
+        var selected = TryReadLastResolutionSample(searchElement, out var selectedSample)
+            ? selectedSample
+            : Relation.Point(Carrier.Unknown, 0);
+        var span = TryReadResolutionSampleCount(selected, out var ticks)
+            ? RepeatSurface.Count(countAxis, ticks)
+            : Relation.Point(Carrier.Unknown, 0);
+
+        return Relation.OrderedGroup(
+            RootOrNew(root),
+            Relation.Point(countAxis, 0),
+            searchElement,
+            selected,
+            span);
+    }
+
     /// <summary>Reads a literal exponent from a controller span.</summary>
     public static bool TryReadLiteralExponent(IElement controller, out int exponent)
     {
@@ -218,12 +275,41 @@ public static class EquationPower
         return false;
     }
 
-    private static int ReadLiteralExponent(IElement controller) =>
-        TryReadLiteralExponent(controller, out var exponent) ? exponent : 0;
+    /// <summary>Reads a nonnegative exponent from any currently supported controller shape.</summary>
+    public static bool TryReadResolvedExponent(IElement controller, out int exponent) =>
+        TryReadResolvedExponent(controller, suppliedInput: null, out exponent, out _);
+
+    private static bool TryReadResolvedExponent(
+        IElement controller,
+        IElement? suppliedInput,
+        out int exponent,
+        out IElement evidence)
+    {
+        if (TryReadLiteralExponent(controller, out exponent))
+        {
+            evidence = controller;
+            return true;
+        }
+
+        if (TryReadCountLocation(controller, out exponent, out evidence) ||
+            TryReadEquationController(controller, suppliedInput, out exponent, out evidence) ||
+            TryReadResolutionSearchController(controller, out exponent, out evidence) ||
+            TryReadClaimController(controller, out exponent, out evidence))
+        {
+            return true;
+        }
+
+        exponent = 0;
+        evidence = Relation.Point(Carrier.Unknown, 0);
+        return false;
+    }
+
+    private static int ReadResolvedExponent(IElement controller) =>
+        TryReadResolvedExponent(controller, out var exponent) ? exponent : 0;
 
     private static bool TryReadTransitionOutput(IElement transition, IElement controller, out Carrier output)
     {
-        if (TryReadLiteralExponent(controller, out var exponent))
+        if (TryReadResolvedExponent(controller, out var exponent))
         {
             return exponent <= 0
                 ? TryReadConstantOutput(transition, 1, out output)
@@ -346,6 +432,225 @@ public static class EquationPower
         }
 
         input = null!;
+        return false;
+    }
+
+    private static bool TryReadCountLocation(IElement controller, out int exponent, out IElement evidence)
+    {
+        if (controller is CarrierLocation location &&
+            TryTicksToExponent(location.Ticks, out exponent))
+        {
+            evidence = location;
+            return true;
+        }
+
+        if (TryReadPoint(controller, out var point) &&
+            TryTicksToExponent(point.Ticks, out exponent))
+        {
+            evidence = controller;
+            return true;
+        }
+
+        if (controller is Relation prediction &&
+            Equation.TryReadPrediction(prediction, out var predicted, out _) &&
+            TryTicksToExponent(predicted.Ticks, out exponent))
+        {
+            evidence = prediction;
+            return true;
+        }
+
+        exponent = 0;
+        evidence = Relation.Point(Carrier.Unknown, 0);
+        return false;
+    }
+
+    private static bool TryReadEquationController(
+        IElement controller,
+        IElement? suppliedInput,
+        out int exponent,
+        out IElement evidence)
+    {
+        if (controller is Relation structure &&
+            TryReadRootElements(structure, out var elements) &&
+            elements.Length >= 6 &&
+            TryReadPoint(elements[0], out _) &&
+            elements[1] is Relation equation &&
+            elements[3] is Carrier countOutput)
+        {
+            var controllerInput = IsUnknownPoint(elements[2]) && suppliedInput is not null
+                ? suppliedInput
+                : elements[2];
+            var prediction = Equation.Predict(equation, controllerInput, countOutput);
+            if (TryReadPredictionCount(prediction, out var ticks) &&
+                TryTicksToExponent(ticks, out exponent))
+            {
+                evidence = Relation.OrderedGroup(
+                    new Carrier(),
+                    controller,
+                    prediction,
+                    TryReadRootPointCarrier(elements[0], out var axis)
+                        ? RepeatSurface.Count(axis, ticks)
+                        : Relation.Point(Carrier.Unknown, 0));
+                return true;
+            }
+        }
+
+        exponent = 0;
+        evidence = Relation.Point(Carrier.Unknown, 0);
+        return false;
+    }
+
+    private static bool TryReadResolutionSearchController(IElement controller, out int exponent, out IElement evidence)
+    {
+        if (controller is Relation structure &&
+            TryReadRootElements(structure, out var elements) &&
+            elements.Length >= 4 &&
+            TryReadPoint(elements[0], out _) &&
+            elements[1] is Relation search &&
+            TryReadLastResolutionSample(search, out var selected) &&
+            TryReadResolutionSampleCount(selected, out var ticks) &&
+            TryTicksToExponent(ticks, out exponent))
+        {
+            evidence = selected;
+            return true;
+        }
+
+        if (controller is Relation rawSearch &&
+            TryReadLastResolutionSample(rawSearch, out var rawSelected) &&
+            TryReadResolutionSampleCount(rawSelected, out var rawTicks) &&
+            TryTicksToExponent(rawTicks, out exponent))
+        {
+            evidence = rawSelected;
+            return true;
+        }
+
+        exponent = 0;
+        evidence = Relation.Point(Carrier.Unknown, 0);
+        return false;
+    }
+
+    private static bool TryReadClaimController(IElement controller, out int exponent, out IElement evidence)
+    {
+        if (controller is Relation claim &&
+            OperationClaim.TryRead(
+                claim,
+                out _,
+                out _,
+                out _,
+                out var residualMagnitude,
+                out var violationMagnitude,
+                out _) &&
+            TryTicksToExponent(violationMagnitude.Ticks != 0 ? violationMagnitude.Ticks : residualMagnitude.Ticks, out exponent))
+        {
+            evidence = violationMagnitude.Ticks != 0 ? violationMagnitude : residualMagnitude;
+            return true;
+        }
+
+        exponent = 0;
+        evidence = Relation.Point(Carrier.Unknown, 0);
+        return false;
+    }
+
+    private static bool TryReadLastResolutionSample(Relation search, out Relation sample)
+    {
+        if (EquationResolutionSearch.TryReadRounds(search, out var rounds))
+        {
+            for (var index = rounds.Length - 1; index >= 0; index--)
+            {
+                if (EquationResolutionSearch.TryReadSelectedSample(rounds[index], out sample))
+                {
+                    return true;
+                }
+            }
+        }
+
+        sample = null!;
+        return false;
+    }
+
+    private static bool TryReadResolutionSampleCount(Relation sample, out long ticks)
+    {
+        if (EquationResolutionSearch.TryReadCandidateSample(
+                sample,
+                out _,
+                out var input,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _))
+        {
+            ticks = input.Ticks;
+            return true;
+        }
+
+        ticks = 0;
+        return false;
+    }
+
+    private static bool TryReadPredictionCount(Relation prediction, out long ticks)
+    {
+        if (Equation.TryReadPrediction(prediction, out var predicted, out _))
+        {
+            ticks = predicted.Ticks;
+            return true;
+        }
+
+        ticks = 0;
+        return false;
+    }
+
+    private static bool TryReadRootElements(Relation structure, out IElement[] elements)
+    {
+        if (structure?.Right is Carrier holder &&
+            structure.TryReadOrderedElementsOn(holder, out elements))
+        {
+            return true;
+        }
+
+        elements = [];
+        return false;
+    }
+
+    private static bool TryReadPoint(IElement element, out CarrierLocation location)
+    {
+        if (element is Relation point &&
+            point.Left is CarrierLocation pointLocation &&
+            point.Right is Carrier pointCarrier &&
+            pointLocation.Carrier.SameIdentityAs(pointCarrier))
+        {
+            location = pointLocation;
+            return true;
+        }
+
+        location = default;
+        return false;
+    }
+
+    private static bool TryReadRootPointCarrier(IElement element, out Carrier carrier)
+    {
+        if (TryReadPoint(element, out var location))
+        {
+            carrier = location.Carrier;
+            return true;
+        }
+
+        carrier = null!;
+        return false;
+    }
+
+    private static bool IsUnknownPoint(IElement element) =>
+        TryReadPoint(element, out var location) && location.Carrier.IsUnknown && location.Ticks == 0;
+
+    private static bool TryTicksToExponent(long ticks, out int exponent)
+    {
+        if (ticks >= 0 && ticks <= int.MaxValue)
+        {
+            exponent = checked((int)ticks);
+            return true;
+        }
+
+        exponent = 0;
         return false;
     }
 
