@@ -28,8 +28,48 @@ public sealed class EquationResolutionSearchTests
         Assert.True(EquationResolutionSearch.TryReadRounds(search, out var readRounds));
         Assert.Equal(rounds, readRounds);
         Assert.Equal(2, rounds.Length);
+        Assert.True(EquationResolutionSearch.TryReadTimeline(search, out var timeline));
+        Assert.True(TimeStepSequence.TryRead(timeline, out var origin, out var initial, out var timedRounds));
+        Assert.Equal(rounds, timedRounds);
+        Assert.Equal(0, origin.Ticks);
+        Assert.Equal(Relation.Segment(x, -10, 10), Assert.IsType<Relation>(initial));
+        Assert.True(TimeStepSequence.TryReadStep(
+            rounds[0],
+            out _,
+            out var coarseTimeStart,
+            out var coarseTimeEnd,
+            out var coarseBefore,
+            out var coarseTransition,
+            out var coarseAfter,
+            out var coarseResidue));
+        Assert.True(origin.Carrier.SameIdentityAs(coarseTimeStart.Carrier));
+        Assert.Equal(new CarrierLocation(coarseTimeStart.Carrier, 0), coarseTimeStart);
+        Assert.Equal(new CarrierLocation(coarseTimeStart.Carrier, 1), coarseTimeEnd);
+        Assert.Equal(Relation.Segment(x, -10, 10), Assert.IsType<Relation>(coarseBefore));
+        Assert.Equal(Relation.Segment(x, -5, 5), Assert.IsType<Relation>(coarseAfter));
+        Assert.True(EquationResolutionSearch.TryReadRound(
+            rounds[0],
+            out var coarseRoundIndex,
+            out var coarseSpan,
+            out var coarseStep,
+            out _,
+            out _));
+        Assert.Equal(new CarrierLocation(coarseTimeStart.Carrier, 0), coarseRoundIndex);
+        Assert.Equal(Relation.Segment(x, -10, 10), coarseSpan);
+        Assert.Equal(new CarrierLocation(coarseStep.Carrier, 5), coarseStep);
+        Assert.True(EquationResolutionSearch.TryReadRound(
+            Assert.IsType<Relation>(coarseTransition),
+            out var evidenceRoundIndex,
+            out var evidenceSpan,
+            out var evidenceStep,
+            out _,
+            out _));
+        Assert.Equal(0, evidenceRoundIndex.Ticks);
+        Assert.Equal(Relation.Segment(x, -10, 10), evidenceSpan);
+        Assert.Equal(coarseStep, evidenceStep);
 
         Assert.True(EquationResolutionSearch.TryReadSelectedSample(rounds[0], out var coarseSample));
+        Assert.Equal(coarseSample, Assert.IsType<Relation>(coarseResidue));
         Assert.True(EquationResolutionSearch.TryReadCandidateSample(
             coarseSample,
             out _,

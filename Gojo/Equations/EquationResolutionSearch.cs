@@ -38,11 +38,13 @@ public static class EquationResolutionSearch
         var count = Math.Max(0, roundCount);
         rounds = new Relation[count];
 
+        var initialSpan = Relation.Segment(inputCarrier, startTicks, endTicks);
         var spanStart = startTicks;
         var spanEnd = endTicks;
         for (var round = 0; round < count; round++)
         {
-            rounds[round] = SearchRound(
+            var beforeSpan = Relation.Segment(inputCarrier, spanStart, spanEnd);
+            var roundEvidence = SearchRound(
                 roundIndex,
                 stepCarrier,
                 selectedIndex,
@@ -60,25 +62,65 @@ public static class EquationResolutionSearch
                 out var step);
 
             var halfWidth = Math.Max(1, MagnitudeOf(step));
-            spanStart = SaturatingSubtract(bestInput.Ticks, halfWidth);
-            spanEnd = SaturatingAdd(bestInput.Ticks, halfWidth);
+            var nextSpanStart = SaturatingSubtract(bestInput.Ticks, halfWidth);
+            var nextSpanEnd = SaturatingAdd(bestInput.Ticks, halfWidth);
+            var afterSpan = Relation.Segment(inputCarrier, nextSpanStart, nextSpanEnd);
+            var selectedResidue = TryReadSelectedSample(roundEvidence, out var selectedSample)
+                ? selectedSample
+                : roundEvidence;
+            rounds[round] = TimeStepSequence.Step(
+                new Carrier(),
+                roundIndex,
+                round,
+                round + 1,
+                beforeSpan,
+                roundEvidence,
+                afterSpan,
+                selectedResidue);
+
+            spanStart = nextSpanStart;
+            spanEnd = nextSpanEnd;
         }
 
+        var timeline = TimeStepSequence.Create(new Carrier(), roundIndex, initialSpan, rounds);
         return Relation.OrderedGroup(
             holder,
             [
-                Relation.Segment(inputCarrier, startTicks, endTicks),
+                initialSpan,
                 equation ?? Relation.Point(Carrier.Unknown, 0),
                 target,
                 error,
                 magnitude,
-                .. rounds
+                timeline
             ]);
+    }
+
+    /// <summary>Reads the timeline of refinement rounds from a search structure.</summary>
+    public static bool TryReadTimeline(Relation search, out Relation timeline)
+    {
+        if (TryReadRootElements(search, out var elements) &&
+            elements.Length >= 6 &&
+            elements[5] is Relation candidateTimeline &&
+            TimeStepSequence.TryRead(candidateTimeline, out _, out _, out _))
+        {
+            timeline = candidateTimeline;
+            return true;
+        }
+
+        timeline = null!;
+        return false;
     }
 
     /// <summary>Reads search rounds from a structure returned by <see cref="Search"/>.</summary>
     public static bool TryReadRounds(Relation search, out Relation[] rounds)
     {
+        if (TryReadTimeline(search, out var timeline) &&
+            TimeStepSequence.TryRead(timeline, out _, out _, out var timedRounds))
+        {
+            rounds = timedRounds;
+            return true;
+        }
+
         if (TryReadRootElements(search, out var elements) && elements.Length >= 5)
         {
             rounds = [.. elements.Skip(5).OfType<Relation>()];
@@ -98,15 +140,43 @@ public static class EquationResolutionSearch
         out CarrierLocation selectedIndex,
         out Relation[] samples)
     {
-        if (TryReadRootElements(round, out var elements) &&
-            elements.Length >= 5 &&
-            TryReadPoint(elements[0], out roundIndex) &&
-            elements[1] is Relation spanRelation &&
-            TryReadPoint(elements[2], out step) &&
-            TryReadPoint(elements[3], out selectedIndex))
+        if (TimeStepSequence.TryReadStep(
+                round,
+                out _,
+                out var timeStart,
+                out _,
+                out var before,
+                out var transition,
+                out _,
+                out _) &&
+            before is Relation beforeSpan &&
+            transition is Relation roundEvidence &&
+            TryReadRoundEvidence(
+                roundEvidence,
+                out _,
+                out _,
+                out var timedStep,
+                out var timedSelectedIndex,
+                out _,
+                out var timedSamples))
         {
-            span = spanRelation;
-            samples = [.. elements.Skip(5).OfType<Relation>()];
+            roundIndex = timeStart;
+            span = beforeSpan;
+            step = timedStep;
+            selectedIndex = timedSelectedIndex;
+            samples = timedSamples;
+            return true;
+        }
+
+        if (TryReadRoundEvidence(
+                round,
+                out roundIndex,
+                out span,
+                out step,
+                out selectedIndex,
+                out _,
+                out samples))
+        {
             return true;
         }
 
@@ -121,10 +191,14 @@ public static class EquationResolutionSearch
     /// <summary>Reads the min-magnitude tournament recorded by one refinement round.</summary>
     public static bool TryReadRoundTournament(Relation round, out Relation tournament)
     {
-        if (TryReadRootElements(round, out var elements) &&
-            elements.Length >= 5 &&
-            elements[4] is Relation candidateTournament &&
-            ExtremaTournament.TryReadWinner(candidateTournament, out _))
+        if (TryReadTimedRoundEvidence(round, out var timedEvidence) &&
+            TryReadRoundEvidence(timedEvidence, out _, out _, out _, out _, out var timedTournament, out _))
+        {
+            tournament = timedTournament;
+            return true;
+        }
+
+        if (TryReadRoundEvidence(round, out _, out _, out _, out _, out var candidateTournament, out _))
         {
             tournament = candidateTournament;
             return true;
@@ -190,6 +264,60 @@ public static class EquationResolutionSearch
         readableResidual = default;
         magnitude = default;
         residue = default!;
+        return false;
+    }
+
+    private static bool TryReadTimedRoundEvidence(Relation round, out Relation evidence)
+    {
+        if (TimeStepSequence.TryReadStep(
+                round,
+                out _,
+                out _,
+                out _,
+                out _,
+                out var transition,
+                out _,
+                out _) &&
+            transition is Relation roundEvidence)
+        {
+            evidence = roundEvidence;
+            return true;
+        }
+
+        evidence = null!;
+        return false;
+    }
+
+    private static bool TryReadRoundEvidence(
+        Relation round,
+        out CarrierLocation roundIndex,
+        out Relation span,
+        out CarrierLocation step,
+        out CarrierLocation selectedIndex,
+        out Relation tournament,
+        out Relation[] samples)
+    {
+        if (TryReadRootElements(round, out var elements) &&
+            elements.Length >= 5 &&
+            TryReadPoint(elements[0], out roundIndex) &&
+            elements[1] is Relation spanRelation &&
+            TryReadPoint(elements[2], out step) &&
+            TryReadPoint(elements[3], out selectedIndex) &&
+            elements[4] is Relation candidateTournament &&
+            ExtremaTournament.TryReadWinner(candidateTournament, out _))
+        {
+            span = spanRelation;
+            tournament = candidateTournament;
+            samples = [.. elements.Skip(5).OfType<Relation>()];
+            return true;
+        }
+
+        roundIndex = default;
+        span = null!;
+        step = default;
+        selectedIndex = default;
+        tournament = null!;
+        samples = [];
         return false;
     }
 
