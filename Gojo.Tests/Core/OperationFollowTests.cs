@@ -131,4 +131,116 @@ public sealed class OperationFollowTests
         Assert.True(OperationClaim.TryRead(claim, out _, out var claimResidual, out _, out _, out _, out _));
         Assert.Equal(fusedRemaining, claimResidual);
     }
+
+    [Fact]
+    public void ApplyingFollowFeedsPositiveAdjustmentThroughCarrierTension()
+    {
+        var value = new Carrier();
+        var residual = new Carrier(value.UnitShape);
+        value.Set(10);
+        var follow = OperationFollow.Step(
+            new Carrier(),
+            value.ValueSlot,
+            new CarrierLocation(value, 18),
+            residual,
+            responseNumerator: 1,
+            responseDenominator: 2);
+
+        Assert.True(OperationFollow.TryApply(follow, out var application));
+
+        Assert.Equal(14UL, value.Value);
+        Assert.Equal(0, value.Tension);
+        Assert.True(OperationFollow.TryReadApplication(
+            application,
+            out var appliedFollow,
+            out var before,
+            out var applied,
+            out var after));
+        Assert.Equal(follow, appliedFollow);
+        Assert.Equal(new CarrierLocation(value, 4), applied);
+        Assert.True(OperationFollow.TryReadCarrierState(before, out var beforeValue, out var beforeTension));
+        Assert.Equal(new CarrierLocation(value, 10), beforeValue);
+        Assert.Equal(new CarrierLocation(value, 0), beforeTension);
+        Assert.True(OperationFollow.TryReadCarrierState(after, out var afterValue, out var afterTension));
+        Assert.Equal(new CarrierLocation(value, 14), afterValue);
+        Assert.Equal(new CarrierLocation(value, 0), afterTension);
+    }
+
+    [Fact]
+    public void ApplyingFollowFeedsNegativeAdjustmentThroughSameCarrierFace()
+    {
+        var value = new Carrier();
+        var residual = new Carrier(value.UnitShape);
+        value.Set(10);
+
+        Assert.True(OperationFollow.TryStepAndApply(
+            new Carrier(),
+            value.ValueSlot,
+            new CarrierLocation(value, 4),
+            residual,
+            responseNumerator: 1,
+            responseDenominator: 2,
+            out var application));
+
+        Assert.Equal(7UL, value.Value);
+        Assert.Equal(0, value.Tension);
+        Assert.True(OperationFollow.TryReadApplication(application, out _, out _, out var applied, out _));
+        Assert.True(applied.Carrier.SameIdentityAs(value));
+        Assert.False(applied.Carrier.IsInverse);
+        Assert.Equal(-3, applied.Ticks);
+    }
+
+    [Fact]
+    public void ApplyingFollowCanLeaveUnderflowAsTension()
+    {
+        var value = new Carrier();
+        var residual = new Carrier(value.UnitShape);
+        value.Set(2);
+
+        Assert.True(OperationFollow.TryStepAndApply(
+            new Carrier(),
+            value.ValueSlot,
+            new CarrierLocation(value, -6),
+            residual,
+            responseNumerator: 1,
+            responseDenominator: 2,
+            out var application));
+
+        Assert.Equal(0UL, value.Value);
+        Assert.Equal(-2, value.Tension);
+        Assert.True(OperationFollow.TryReadApplication(application, out _, out _, out var applied, out var after));
+        Assert.Equal(new CarrierLocation(value, -4), applied);
+        Assert.True(OperationFollow.TryReadCarrierState(after, out var afterValue, out var afterTension));
+        Assert.Equal(new CarrierLocation(value, 0), afterValue);
+        Assert.Equal(new CarrierLocation(value, -2), afterTension);
+    }
+
+    [Fact]
+    public void ApplyingUnfoldedOpposedResidualDoesNotMutatePositiveCarrier()
+    {
+        var value = new Carrier();
+        var inverse = value.Inverse();
+        var residual = new Carrier(value.UnitShape);
+        value.Set(5);
+        inverse.Set(3);
+        var follow = OperationFollow.Step(
+            new Carrier(),
+            inverse.ValueSlot,
+            value.ValueSlot,
+            residual,
+            responseNumerator: 1,
+            responseDenominator: 2);
+
+        Assert.True(OperationFollow.TryApply(follow, out var application));
+
+        Assert.Equal(5UL, value.Value);
+        Assert.Equal(3UL, inverse.Value);
+        Assert.True(OperationFollow.TryReadApplication(application, out _, out var before, out var applied, out var after));
+        Assert.True(applied.Carrier.SameIdentityAs(inverse));
+        Assert.Equal(0, applied.Ticks);
+        Assert.True(OperationFollow.TryReadCarrierState(before, out var beforeValue, out _));
+        Assert.True(OperationFollow.TryReadCarrierState(after, out var afterValue, out _));
+        Assert.Equal(new CarrierLocation(inverse, 3), beforeValue);
+        Assert.Equal(new CarrierLocation(inverse, 3), afterValue);
+    }
 }

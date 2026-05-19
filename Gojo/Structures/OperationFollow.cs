@@ -87,6 +87,107 @@ public static class OperationFollow
         return false;
     }
 
+    /// <summary>
+    /// Applies the already-read follow adjustment through the follower carrier's
+    /// ordinary tension input and records before/after carrier state.
+    /// </summary>
+    public static bool TryApply(Relation follow, out Relation application)
+    {
+        if (!TryRead(
+                follow,
+                out _,
+                out _,
+                out var applied,
+                out _,
+                out _,
+                out _) ||
+            applied is not CarrierLocation appliedLocation ||
+            appliedLocation.Carrier.IsUnknown)
+        {
+            application = null!;
+            return false;
+        }
+
+        var before = CarrierState(appliedLocation.Carrier);
+        FeedTension(appliedLocation);
+        var after = CarrierState(appliedLocation.Carrier);
+
+        application = Relation.OrderedGroup(
+            new Carrier(),
+            follow,
+            before,
+            appliedLocation,
+            after);
+        return true;
+    }
+
+    /// <summary>Builds and applies one follow step.</summary>
+    public static bool TryStepAndApply(
+        Carrier root,
+        IElement current,
+        IElement target,
+        Carrier residual,
+        long responseNumerator,
+        long responseDenominator,
+        out Relation application)
+    {
+        var follow = Step(root, current, target, residual, responseNumerator, responseDenominator);
+        return TryApply(follow, out application);
+    }
+
+    /// <summary>Reads an application record returned by <see cref="TryApply"/>.</summary>
+    public static bool TryReadApplication(
+        Relation application,
+        out Relation follow,
+        out Relation before,
+        out CarrierLocation applied,
+        out Relation after)
+    {
+        if (TryReadRootElements(application, out var elements) &&
+            elements.Length >= 4 &&
+            elements[0] is Relation followStep &&
+            elements[1] is Relation beforeState &&
+            elements[2] is CarrierLocation appliedLocation &&
+            elements[3] is Relation afterState &&
+            TryRead(followStep, out _, out _, out _, out _, out _, out _) &&
+            TryReadCarrierState(beforeState, out _, out _) &&
+            TryReadCarrierState(afterState, out _, out _))
+        {
+            follow = followStep;
+            before = beforeState;
+            applied = appliedLocation;
+            after = afterState;
+            return true;
+        }
+
+        follow = null!;
+        before = null!;
+        applied = default;
+        after = null!;
+        return false;
+    }
+
+    /// <summary>Reads a carrier state snapshot as visible value and tension.</summary>
+    public static bool TryReadCarrierState(
+        Relation state,
+        out CarrierLocation value,
+        out CarrierLocation tension)
+    {
+        if (TryReadRootElements(state, out var elements) &&
+            elements.Length >= 2 &&
+            elements[0] is CarrierLocation valueLocation &&
+            elements[1] is CarrierLocation tensionLocation)
+        {
+            value = valueLocation;
+            tension = tensionLocation;
+            return true;
+        }
+
+        value = default;
+        tension = default;
+        return false;
+    }
+
     private static FollowRead ReadFollow(
         CarrierLocation current,
         IElement currentElement,
@@ -143,6 +244,35 @@ public static class OperationFollow
 
         location = default;
         return false;
+    }
+
+    private static Relation CarrierState(Carrier carrier) =>
+        Relation.OrderedGroup(
+            new Carrier(),
+            new CarrierLocation(carrier, checked((long)carrier.Value)),
+            carrier.TensionSlot);
+
+    private static void FeedTension(CarrierLocation adjustment)
+    {
+        if (adjustment.Ticks > 0)
+        {
+            adjustment.Carrier.Add(checked((ulong)adjustment.Ticks));
+            return;
+        }
+
+        if (adjustment.Ticks == 0)
+        {
+            return;
+        }
+
+        if (adjustment.Ticks == long.MinValue)
+        {
+            adjustment.Carrier.Remove((ulong)long.MaxValue);
+            adjustment.Carrier.Remove(1);
+            return;
+        }
+
+        adjustment.Carrier.Remove(checked((ulong)-adjustment.Ticks));
     }
 
     private static bool TryReadRootElements(Relation structure, out IElement[] elements)
