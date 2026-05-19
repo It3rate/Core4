@@ -135,6 +135,95 @@ public static class OperationFollow
         return TryApply(follow, out application);
     }
 
+    /// <summary>
+    /// Repeatedly follows a target through explicit time-step records. Each
+    /// timed step stores the carrier state before, the follow surface, the
+    /// carrier state after, and the readable applied/residual evidence.
+    /// </summary>
+    public static Relation Settle(
+        Carrier root,
+        Carrier time,
+        Carrier follower,
+        IElement target,
+        Carrier residual,
+        long responseNumerator,
+        long responseDenominator,
+        int stepLimit,
+        out Relation[] steps)
+    {
+        var holder = root ?? new Carrier();
+        var clock = time ?? new Carrier();
+        var followed = follower ?? Carrier.Unknown;
+        var initial = CarrierState(followed);
+        var builtSteps = new List<Relation>();
+        var count = Math.Max(0, stepLimit);
+
+        for (var index = 0; index < count; index++)
+        {
+            var follow = Step(
+                new Carrier(),
+                followed.ValueSlot,
+                target,
+                residual,
+                responseNumerator,
+                responseDenominator);
+            var before = CarrierState(followed);
+            var after = before;
+            var residueEvidence = (IElement)Relation.Point(Carrier.Unknown, 0);
+
+            if (!TryRead(follow, out _, out _, out var appliedElement, out _, out var remaining, out var routeResidue))
+            {
+                builtSteps.Add(TimeStepSequence.Step(
+                    new Carrier(),
+                    clock,
+                    index,
+                    index + 1,
+                    before,
+                    follow,
+                    after,
+                    residueEvidence));
+                break;
+            }
+
+            if (!TryApply(follow, out var application) ||
+                !TryReadApplication(application, out _, out var appliedBefore, out var applied, out var appliedAfter))
+            {
+                residueEvidence = FollowStepResidue(appliedElement, remaining, routeResidue);
+                builtSteps.Add(TimeStepSequence.Step(
+                    new Carrier(),
+                    clock,
+                    index,
+                    index + 1,
+                    before,
+                    follow,
+                    after,
+                    residueEvidence));
+                break;
+            }
+
+            before = appliedBefore;
+            after = appliedAfter;
+            residueEvidence = FollowStepResidue(applied, remaining, routeResidue);
+            builtSteps.Add(TimeStepSequence.Step(
+                new Carrier(),
+                clock,
+                index,
+                index + 1,
+                before,
+                follow,
+                after,
+                residueEvidence));
+
+            if (applied.Ticks == 0 || IsQuiet(remaining))
+            {
+                break;
+            }
+        }
+
+        steps = [.. builtSteps];
+        return TimeStepSequence.Create(holder, clock, initial, steps);
+    }
+
     /// <summary>Reads an application record returned by <see cref="TryApply"/>.</summary>
     public static bool TryReadApplication(
         Relation application,
@@ -251,6 +340,16 @@ public static class OperationFollow
             new Carrier(),
             new CarrierLocation(carrier, checked((long)carrier.Value)),
             carrier.TensionSlot);
+
+    private static Relation FollowStepResidue(IElement applied, IElement remaining, IElement routeResidue) =>
+        Relation.OrderedGroup(
+            new Carrier(),
+            applied ?? Relation.Point(Carrier.Unknown, 0),
+            remaining ?? Relation.Point(Carrier.Unknown, 0),
+            routeResidue ?? Relation.Point(Carrier.Unknown, 0));
+
+    private static bool IsQuiet(IElement remaining) =>
+        remaining is CarrierLocation remainingLocation && remainingLocation.Ticks == 0;
 
     private static void FeedTension(CarrierLocation adjustment)
     {

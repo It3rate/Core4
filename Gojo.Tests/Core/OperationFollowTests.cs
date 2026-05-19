@@ -243,4 +243,82 @@ public sealed class OperationFollowTests
         Assert.Equal(new CarrierLocation(inverse, 3), beforeValue);
         Assert.Equal(new CarrierLocation(inverse, 3), afterValue);
     }
+
+    [Fact]
+    public void SettleRecordsRepeatedFollowApplicationsAsTimeSteps()
+    {
+        var value = new Carrier();
+        var residual = new Carrier(value.UnitShape);
+        var timeBasis = new Carrier();
+        var clock = TimeStepSequence.CreateClock(timeBasis);
+        value.Set(0);
+
+        var sequence = OperationFollow.Settle(
+            new Carrier(),
+            clock,
+            value,
+            new CarrierLocation(value, 10),
+            residual,
+            responseNumerator: 1,
+            responseDenominator: 2,
+            stepLimit: 10,
+            out var steps);
+
+        Assert.Equal(9UL, value.Value);
+        Assert.Equal(0, value.Tension);
+        Assert.Equal(5, steps.Length);
+        Assert.True(TimeStepSequence.TryRead(sequence, out var origin, out var initial, out var readSteps));
+        Assert.Equal(new CarrierLocation(clock, 0), origin);
+        Assert.Equal(steps, readSteps);
+        Assert.True(OperationFollow.TryReadCarrierState((Relation)initial, out var initialValue, out var initialTension));
+        Assert.Equal(new CarrierLocation(value, 0), initialValue);
+        Assert.Equal(new CarrierLocation(value, 0), initialTension);
+
+        Assert.True(TimeStepSequence.TryReadStep(
+            steps[0],
+            out _,
+            out var firstStart,
+            out var firstEnd,
+            out var firstBefore,
+            out var firstFollow,
+            out var firstAfter,
+            out var firstResidue));
+        Assert.Equal(new CarrierLocation(clock, 0), firstStart);
+        Assert.Equal(new CarrierLocation(clock, 1), firstEnd);
+        Assert.True(OperationFollow.TryReadCarrierState((Relation)firstBefore, out var beforeValue, out _));
+        Assert.Equal(new CarrierLocation(value, 0), beforeValue);
+        Assert.True(OperationFollow.TryRead((Relation)firstFollow, out _, out _, out var firstApplied, out _, out var firstRemaining, out _));
+        Assert.Equal(new CarrierLocation(value, 5), Assert.IsType<CarrierLocation>(firstApplied));
+        Assert.Equal(new CarrierLocation(residual, 5), Assert.IsType<CarrierLocation>(firstRemaining));
+        Assert.True(OperationFollow.TryReadCarrierState((Relation)firstAfter, out var afterValue, out _));
+        Assert.Equal(new CarrierLocation(value, 5), afterValue);
+        var firstResidueElements = OrderedElements((Relation)firstResidue);
+        Assert.Equal(new CarrierLocation(value, 5), Assert.IsType<CarrierLocation>(firstResidueElements[0]));
+        Assert.Equal(new CarrierLocation(residual, 5), Assert.IsType<CarrierLocation>(firstResidueElements[1]));
+
+        Assert.True(TimeStepSequence.TryReadStep(
+            steps[^1],
+            out _,
+            out var lastStart,
+            out var lastEnd,
+            out _,
+            out _,
+            out var lastAfter,
+            out var lastResidue));
+        Assert.Equal(new CarrierLocation(clock, 4), lastStart);
+        Assert.Equal(new CarrierLocation(clock, 5), lastEnd);
+        Assert.True(OperationFollow.TryReadCarrierState((Relation)lastAfter, out var lastAfterValue, out _));
+        Assert.Equal(new CarrierLocation(value, 9), lastAfterValue);
+        var lastResidueElements = OrderedElements((Relation)lastResidue);
+        Assert.Equal(new CarrierLocation(value, 0), Assert.IsType<CarrierLocation>(lastResidueElements[0]));
+        Assert.Equal(new CarrierLocation(residual, 1), Assert.IsType<CarrierLocation>(lastResidueElements[1]));
+        Assert.Equal(new CarrierLocation(residual, 1), Assert.IsType<CarrierLocation>(lastResidueElements[2]));
+    }
+
+    private static IElement[] OrderedElements(Relation structure)
+    {
+        var holder = Assert.IsType<Carrier>(structure.Right);
+        Assert.True(structure.TryReadOrderedElementsOn(holder, out var elements));
+        return elements;
+    }
 }
