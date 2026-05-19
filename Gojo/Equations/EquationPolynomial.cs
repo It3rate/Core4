@@ -159,29 +159,7 @@ public static class EquationPolynomial
 
     private static Relation PowerTerm(Carrier input, Carrier term, int degree)
     {
-        if (degree <= 0)
-        {
-            return Equation.Constant(term, 1);
-        }
-
-        if (degree == 1)
-        {
-            return Equation.Affine(input, 0, 1, term, 0, 1);
-        }
-
-        var factors = CreateTermCarriers(degree);
-        var branches = new Relation[degree];
-        var ports = new Relation[degree];
-        for (var index = 0; index < degree; index++)
-        {
-            branches[index] = Equation.Affine(input, 0, 1, factors[index], 0, 1);
-            ports[index] = Equation.UnitPort(factors[index]);
-        }
-
-        return EquationSequence.Create(
-            new Carrier(),
-            EquationFanout.Create(new Carrier(), branches),
-            Equation.Product(term, ports));
+        return EquationPower.Create(new Carrier(), input, term, degree);
     }
 
     private static Carrier[] CreateTermCarriers(int count)

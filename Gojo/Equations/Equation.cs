@@ -78,6 +78,11 @@ public static class Equation
             return new Relation(new CarrierLocation(target, 0), supplied);
         }
 
+        if (EquationPower.TryPredict(equation, supplied, target, out var powerRead))
+        {
+            return powerRead;
+        }
+
         if (EquationSequence.TryReadSteps(equation, out var steps) && steps.Length != 0)
         {
             return EquationSequence.Predict(equation, supplied, target, out _);
@@ -120,6 +125,12 @@ public static class Equation
     {
         var supplied = input ?? Relation.Point(Carrier.Unknown, 0);
         var target = RootOrUnknown(output);
+        if (equation is not null &&
+            EquationPower.TryPredict(equation, supplied, target, out prediction))
+        {
+            return true;
+        }
+
         if (equation is not null &&
             EquationSequence.TryReadSteps(equation, out var steps) &&
             steps.Length != 0)

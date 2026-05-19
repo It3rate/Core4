@@ -295,6 +295,9 @@ surface above, but it does not execute the repeat. Execution belongs to local
 interpreters that already know how to read the selected transition, such as
 equation prediction, carrier settlement, structural pattern application, or
 claim-based follow. The repeat surface gives them a common knowable skeleton.
+`EquationPower` is the first repeated-product interpreter on that skeleton:
+literal count controllers read as powers, while unresolved controllers remain
+ordinary repeat surfaces.
 
 Longer-term hopes:
 

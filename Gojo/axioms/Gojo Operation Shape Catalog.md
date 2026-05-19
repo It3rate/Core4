@@ -254,8 +254,23 @@ The point-chain and segment-chain repeats are both repeated relation shapes,
 but they are not the same operation. Repeated point layers preserve count
 through carry/reset. Repeated segment-to-segment layers copy or scale by the
 explicit layer lengths and are tested against ordinary multiplication by those
-lengths. Power-like reads still need an explicit repeated basis-scaling shape;
-they should not fall out of hidden contribution bookkeeping.
+lengths.
+
+The current power foothold is an explicit repeat surface:
+
+```text
+selected:   S(input,0,1) -> S(Unknown,0,1)
+controller: S(repeat,0,n)
+transition: Product(output, repeated unit ports)
+feedback:   witnessed repeated factors
+residue:    product read residue
+timeline:   per-repeat partial products
+```
+
+Literal controller spans can be read as `x^n` today. Non-literal controllers
+remain visible as repeat structure rather than being treated as a hidden
+exponent. Polynomial term fanout now uses this same surface for `1, x, x^2,
+x^3, ...`, so repeated product is no longer private polynomial machinery.
 
 ## Residue, Modulo, And Shift Shapes
 

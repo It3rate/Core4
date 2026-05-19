@@ -27,6 +27,24 @@ public sealed class EquationPolynomialTests
         var polynomial = EquationPolynomial.Create(new Carrier(), x, output, 0, 0, 0, 0);
 
         Assert.True(EquationPolynomial.TryReadTermFanout(polynomial, out var termFanout));
+        Assert.True(EquationFanout.TryReadBranches(termFanout, out var branches));
+        Assert.Equal(4, branches.Length);
+        for (var degree = 0; degree < branches.Length; degree++)
+        {
+            Assert.True(EquationPower.TryReadPowerSurface(
+                branches[degree],
+                out _,
+                out var controller,
+                out _,
+                out _,
+                out _,
+                out _,
+                out var readInput,
+                out _));
+            Assert.Equal(x, readInput);
+            Assert.True(EquationPower.TryReadLiteralExponent(controller, out var exponent));
+            Assert.Equal(degree, exponent);
+        }
 
         var termPrediction = EquationFanout.Predict(termFanout, new CarrierLocation(x, 3), out var branchReads);
 
