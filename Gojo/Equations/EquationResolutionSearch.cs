@@ -1,4 +1,5 @@
 using Gojo.Core;
+using Gojo.Structures;
 
 namespace Gojo.Equations;
 
@@ -98,14 +99,14 @@ public static class EquationResolutionSearch
         out Relation[] samples)
     {
         if (TryReadRootElements(round, out var elements) &&
-            elements.Length >= 4 &&
+            elements.Length >= 5 &&
             TryReadPoint(elements[0], out roundIndex) &&
             elements[1] is Relation spanRelation &&
             TryReadPoint(elements[2], out step) &&
             TryReadPoint(elements[3], out selectedIndex))
         {
             span = spanRelation;
-            samples = [.. elements.Skip(4).OfType<Relation>()];
+            samples = [.. elements.Skip(5).OfType<Relation>()];
             return true;
         }
 
@@ -114,6 +115,22 @@ public static class EquationResolutionSearch
         step = default;
         selectedIndex = default;
         samples = [];
+        return false;
+    }
+
+    /// <summary>Reads the min-magnitude tournament recorded by one refinement round.</summary>
+    public static bool TryReadRoundTournament(Relation round, out Relation tournament)
+    {
+        if (TryReadRootElements(round, out var elements) &&
+            elements.Length >= 5 &&
+            elements[4] is Relation candidateTournament &&
+            ExtremaTournament.TryReadWinner(candidateTournament, out _))
+        {
+            tournament = candidateTournament;
+            return true;
+        }
+
+        tournament = null!;
         return false;
     }
 
@@ -196,10 +213,9 @@ public static class EquationResolutionSearch
         var sampleCount = Math.Max(1, candidateCount);
         var sampleIndex = new Carrier();
         var samples = new Relation[sampleCount];
+        var entries = new Relation[sampleCount];
         var span = checked(endTicks - startTicks);
         step = sampleCount <= 1 ? 0 : span / checked(sampleCount - 1);
-        var bestIndex = 0;
-        var bestMagnitude = long.MaxValue;
         bestInput = new CarrierLocation(input, startTicks);
 
         for (var index = 0; index < sampleCount; index++)
@@ -214,6 +230,7 @@ public static class EquationResolutionSearch
                 ? checked(target.Ticks - predicted.Ticks)
                 : 0;
             var residualMagnitude = MagnitudeOf(residualTicks);
+            var magnitudeLocation = new CarrierLocation(magnitude, residualMagnitude);
             samples[index] = CandidateSample(
                 sampleIndex,
                 index,
@@ -221,16 +238,13 @@ public static class EquationResolutionSearch
                 predicted,
                 new CarrierLocation(error, residualTicks),
                 DirectedResidual(error, residualTicks),
-                new CarrierLocation(magnitude, residualMagnitude),
+                magnitudeLocation,
                 residue ?? prediction);
-
-            if (residualMagnitude < bestMagnitude)
-            {
-                bestIndex = index;
-                bestMagnitude = residualMagnitude;
-                bestInput = candidate;
-            }
+            entries[index] = ExtremaTournament.Entry(samples[index], magnitudeLocation);
         }
+
+        var tournament = ExtremaTournament.Minimum(new Carrier(), entries, out _);
+        var bestIndex = ReadWinningCandidate(tournament, out bestInput);
 
         return Relation.OrderedGroup(
             new Carrier(),
@@ -239,8 +253,31 @@ public static class EquationResolutionSearch
                 Relation.Segment(input, startTicks, endTicks),
                 Relation.Point(stepCarrier, step),
                 Relation.Point(selectedIndexCarrier, bestIndex),
+                tournament,
                 .. samples
             ]);
+    }
+
+    private static int ReadWinningCandidate(Relation tournament, out CarrierLocation input)
+    {
+        if (ExtremaTournament.TryReadWinner(tournament, out var winner) &&
+            ExtremaTournament.TryReadEntry(winner, out var value, out _) &&
+            value is Relation sample &&
+            TryReadCandidateSample(
+                sample,
+                out var index,
+                out input,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _))
+        {
+            return checked((int)index.Ticks);
+        }
+
+        input = default;
+        return 0;
     }
 
     private static Relation CandidateSample(

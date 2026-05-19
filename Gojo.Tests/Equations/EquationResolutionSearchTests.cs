@@ -1,5 +1,6 @@
 using Gojo.Core;
 using Gojo.Equations;
+using Gojo.Structures;
 
 namespace Gojo.Tests.Equations;
 
@@ -40,6 +41,11 @@ public sealed class EquationResolutionSearchTests
             out _));
         Assert.Equal(new CarrierLocation(x, 0), coarseInput);
         Assert.Equal(9, coarseMagnitude.Ticks);
+        Assert.True(EquationResolutionSearch.TryReadRoundTournament(rounds[0], out var coarseTournament));
+        Assert.True(ExtremaTournament.TryReadWinner(coarseTournament, out var coarseWinner));
+        Assert.True(ExtremaTournament.TryReadEntry(coarseWinner, out var coarseWinnerSample, out var coarseWinnerMagnitude));
+        Assert.Equal(coarseSample, coarseWinnerSample);
+        Assert.Equal(coarseMagnitude, coarseWinnerMagnitude);
 
         Assert.True(EquationResolutionSearch.TryReadSelectedSample(rounds[1], out var refinedSample));
         Assert.True(EquationResolutionSearch.TryReadCandidateSample(
