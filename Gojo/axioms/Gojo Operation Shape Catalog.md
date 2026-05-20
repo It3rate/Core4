@@ -276,7 +276,11 @@ The count controller may also be derived from another readable surface. Current
 power reads accept a visible count location, an equation read that produces a
 count, the selected input of a resolution search, or an operation-claim
 violation/residual magnitude. These are still structural counts: the source
-equation, search sample, or claim remains attached as evidence.
+equation, search sample, or claim remains attached as evidence in the repeat
+timeline initial frame alongside the product identity.
+
+An open equation-derived controller can use the power input as its count input,
+which gives a structural whole-tick read for shapes like `x^x`.
 
 ## Residue, Modulo, And Shift Shapes
 

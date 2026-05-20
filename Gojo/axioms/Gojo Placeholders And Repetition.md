@@ -310,12 +310,29 @@ resolution search                  selected sample input from the latest round
 claim tension                      readable violation or residual magnitude
 ```
 
-The important property is that each controller still carries its evidence. An
-equation-derived count keeps the source equation, input, prediction, resolved
-span, and residue. A resolution-derived count keeps the search and selected
-sample. A claim-derived count keeps the claim surface and readable mismatch.
-If none of those shapes yields a nonnegative count, the repeat remains
-inspectable rather than pretending to execute.
+The important property is that each controller still carries its evidence. A
+power repeat read now puts controller evidence inside the timeline initial
+frame:
+
+```text
+product identity
+controller evidence:
+  original controller
+  resolved count location
+  resolved count span
+  reason surface
+  reason residue
+```
+
+An equation-derived count keeps the source equation, input, prediction,
+resolved span, and residue. A resolution-derived count keeps the search and
+selected sample. A claim-derived count keeps the claim surface and readable
+mismatch. If none of those shapes yields a nonnegative count, the repeat
+remains inspectable rather than pretending to execute.
+
+If the equation-derived controller leaves its count input open, a power read can
+supply the same input being powered. This gives `x^x` a first whole-tick
+foothold without adding a symbolic exponent operation.
 
 Longer-term hopes:
 

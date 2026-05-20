@@ -49,7 +49,7 @@ public static class EquationPower
                 power,
                 out var selected,
                 out var controller,
-                out var transition,
+                out _,
                 out _,
                 out _,
                 out _,
@@ -61,13 +61,14 @@ public static class EquationPower
         }
 
         var outputCarrier = surfaceOutput.IsUnknown ? RootOrUnknown(output) : surfaceOutput;
-        if (!TryReadResolvedExponent(controller, input, out var exponent, out _))
+        if (!TryReadResolvedExponent(controller, input, out var exponent, out var controllerEvidence))
         {
             repeatRead = power;
             return new Relation(new CarrierLocation(outputCarrier, 0), input);
         }
 
         var inputCarrier = input.Carrier;
+        var readTransition = ProductTransition(inputCarrier, outputCarrier, exponent);
         var factorCarriers = CreateFactorCarriers(inputCarrier.UnitShape, exponent);
         var factorBranches = new Relation[exponent];
         var productPorts = new Relation[exponent];
@@ -103,14 +104,14 @@ public static class EquationPower
         var timeline = TimeStepSequence.Create(
             new Carrier(),
             inputCarrier,
-            Relation.Point(outputCarrier, 1),
+            PowerTimelineInitial(outputCarrier, controllerEvidence),
             timelineSteps);
 
         repeatRead = RepeatSurface.Create(
             new Carrier(),
             selected,
             controller,
-            transition,
+            readTransition,
             feedback,
             prediction.Right,
             timeline);
@@ -172,6 +173,97 @@ public static class EquationPower
         out IElement timeline) =>
         RepeatSurface.TryRead(power, out selected, out controller, out transition, out feedback, out residue, out timeline);
 
+    /// <summary>Reads the resolved controller evidence attached to a power repeat read.</summary>
+    public static bool TryReadControllerEvidence(Relation powerRead, out Relation evidence)
+    {
+        if (TryRead(powerRead, out _, out _, out _, out _, out _, out var timeline) &&
+            timeline is Relation timelineRelation &&
+            TimeStepSequence.TryRead(timelineRelation, out _, out var initial, out _) &&
+            TryReadPowerTimelineInitial(initial, out _, out var controllerEvidence))
+        {
+            evidence = controllerEvidence;
+            return true;
+        }
+
+        evidence = null!;
+        return false;
+    }
+
+    /// <summary>Reads the resolved controller evidence fields from a power repeat read.</summary>
+    public static bool TryReadControllerEvidence(
+        Relation powerRead,
+        out IElement controller,
+        out CarrierLocation count,
+        out Relation span,
+        out IElement reason,
+        out IElement residue)
+    {
+        if (TryReadControllerEvidence(powerRead, out var evidence) &&
+            TryReadControllerEvidenceFields(evidence, out controller, out count, out span, out reason, out residue))
+        {
+            return true;
+        }
+
+        controller = default!;
+        count = default;
+        span = null!;
+        reason = default!;
+        residue = default!;
+        return false;
+    }
+
+    /// <summary>Reads the product identity and controller evidence from a power timeline initial frame.</summary>
+    public static bool TryReadPowerTimelineInitial(
+        IElement initial,
+        out IElement productIdentity,
+        out Relation controllerEvidence)
+    {
+        if (initial is Relation structure &&
+            TryReadRootElements(structure, out var elements) &&
+            elements.Length >= 2 &&
+            elements[1] is Relation evidence &&
+            TryReadControllerEvidenceFields(evidence, out _, out _, out _, out _, out _))
+        {
+            productIdentity = elements[0];
+            controllerEvidence = evidence;
+            return true;
+        }
+
+        productIdentity = default!;
+        controllerEvidence = null!;
+        return false;
+    }
+
+    /// <summary>Reads controller evidence as controller, resolved count, resolved span, evidence, and residue.</summary>
+    public static bool TryReadControllerEvidenceFields(
+        Relation evidence,
+        out IElement controller,
+        out CarrierLocation count,
+        out Relation span,
+        out IElement reason,
+        out IElement residue)
+    {
+        if (TryReadRootElements(evidence, out var elements) &&
+            elements.Length >= 5 &&
+            elements[1] is CarrierLocation countLocation &&
+            elements[2] is Relation spanRelation)
+        {
+            controller = elements[0];
+            count = countLocation;
+            span = spanRelation;
+            reason = elements[3];
+            residue = elements[4];
+            return true;
+        }
+
+        controller = default!;
+        count = default;
+        span = null!;
+        reason = default!;
+        residue = default!;
+        return false;
+    }
+
     /// <summary>Reads a repeat surface only when its structure is power-like.</summary>
     public static bool TryReadPowerSurface(
         Relation power,
@@ -218,8 +310,10 @@ public static class EquationPower
         var countCarrier = RootOrUnknown(countOutput);
         var supplied = input ?? Relation.Point(Carrier.Unknown, 0);
         var countEquation = equation ?? Relation.Point(Carrier.Unknown, 0);
-        var prediction = Equation.Predict(countEquation, supplied, countCarrier);
-        var span = TryReadPredictionCount(prediction, out var ticks)
+        var prediction = IsUnknownPoint(supplied)
+            ? Relation.Point(Carrier.Unknown, 0)
+            : Equation.Predict(countEquation, supplied, countCarrier);
+        var span = !IsUnknownPoint(supplied) && TryReadPredictionCount(prediction, out var ticks)
             ? RepeatSurface.Count(countAxis, ticks)
             : Relation.Point(Carrier.Unknown, 0);
 
@@ -232,6 +326,14 @@ public static class EquationPower
             prediction,
             span);
     }
+
+    /// <summary>Builds an equation-derived controller whose input is supplied by the eventual power read.</summary>
+    public static Relation CountFromEquation(
+        Carrier root,
+        Carrier axis,
+        Relation equation,
+        Carrier countOutput) =>
+        CountFromEquation(root, axis, equation, Relation.Point(Carrier.Unknown, 0), countOutput);
 
     /// <summary>
     /// Builds a controller whose count is the selected input from a resolution
@@ -283,24 +385,25 @@ public static class EquationPower
         IElement controller,
         IElement? suppliedInput,
         out int exponent,
-        out IElement evidence)
+        out Relation evidence)
     {
         if (TryReadLiteralExponent(controller, out exponent))
         {
-            evidence = controller;
+            evidence = BuildControllerEvidence(controller, controller, exponent);
             return true;
         }
 
-        if (TryReadCountLocation(controller, out exponent, out evidence) ||
-            TryReadEquationController(controller, suppliedInput, out exponent, out evidence) ||
-            TryReadResolutionSearchController(controller, out exponent, out evidence) ||
-            TryReadClaimController(controller, out exponent, out evidence))
+        if (TryReadCountLocation(controller, out exponent, out var rawEvidence) ||
+            TryReadEquationController(controller, suppliedInput, out exponent, out rawEvidence) ||
+            TryReadResolutionSearchController(controller, out exponent, out rawEvidence) ||
+            TryReadClaimController(controller, out exponent, out rawEvidence))
         {
+            evidence = BuildControllerEvidence(controller, rawEvidence, exponent);
             return true;
         }
 
         exponent = 0;
-        evidence = Relation.Point(Carrier.Unknown, 0);
+        evidence = null!;
         return false;
     }
 
@@ -477,8 +580,16 @@ public static class EquationPower
             elements[1] is Relation equation &&
             elements[3] is Carrier countOutput)
         {
-            var controllerInput = IsUnknownPoint(elements[2]) && suppliedInput is not null
-                ? suppliedInput
+            var hasOpenInput = IsUnknownPoint(elements[2]);
+            if (hasOpenInput && suppliedInput is null)
+            {
+                exponent = 0;
+                evidence = Relation.Point(Carrier.Unknown, 0);
+                return false;
+            }
+
+            IElement controllerInput = hasOpenInput
+                ? suppliedInput!
                 : elements[2];
             var prediction = Equation.Predict(equation, controllerInput, countOutput);
             if (TryReadPredictionCount(prediction, out var ticks) &&
@@ -487,6 +598,7 @@ public static class EquationPower
                 evidence = Relation.OrderedGroup(
                     new Carrier(),
                     controller,
+                    controllerInput,
                     prediction,
                     TryReadRootPointCarrier(elements[0], out var axis)
                         ? RepeatSurface.Count(axis, ticks)
@@ -542,7 +654,7 @@ public static class EquationPower
                 out _) &&
             TryTicksToExponent(violationMagnitude.Ticks != 0 ? violationMagnitude.Ticks : residualMagnitude.Ticks, out exponent))
         {
-            evidence = violationMagnitude.Ticks != 0 ? violationMagnitude : residualMagnitude;
+            evidence = claim;
             return true;
         }
 
@@ -653,6 +765,208 @@ public static class EquationPower
         exponent = 0;
         return false;
     }
+
+    private static Relation PowerTimelineInitial(Carrier output, Relation controllerEvidence) =>
+        Relation.OrderedGroup(
+            new Carrier(),
+            Relation.Point(output, 1),
+            controllerEvidence ?? BuildControllerEvidence(
+                Relation.Point(Carrier.Unknown, 0),
+                Relation.Point(Carrier.Unknown, 0),
+                0));
+
+    private static Relation BuildControllerEvidence(IElement controller, IElement reason, int exponent)
+    {
+        var safeReason = reason ?? Relation.Point(Carrier.Unknown, 0);
+        var countCarrier = TryReadControllerEvidenceCarrier(controller, safeReason, out var carrier)
+            ? carrier
+            : new Carrier();
+        var count = new CarrierLocation(countCarrier, exponent);
+        var span = TryReadControllerSpan(controller, exponent, out var controllerSpan)
+            ? controllerSpan
+            : RepeatSurface.Count(countCarrier, exponent);
+
+        return Relation.OrderedGroup(
+            new Carrier(),
+            controller ?? Relation.Point(Carrier.Unknown, 0),
+            count,
+            span,
+            safeReason,
+            EvidenceResidue(safeReason));
+    }
+
+    private static bool TryReadControllerSpan(IElement controller, int exponent, out Relation span)
+    {
+        if (controller is Relation relation &&
+            RepeatSurface.TryReadSpan(relation, out var start, out var end) &&
+            start.Ticks == 0 &&
+            end.Ticks == exponent)
+        {
+            span = relation;
+            return true;
+        }
+
+        if (controller is Relation structure &&
+            TryReadRootElements(structure, out var elements))
+        {
+            foreach (var candidate in elements.OfType<Relation>())
+            {
+                if (RepeatSurface.TryReadSpan(candidate, out var candidateStart, out var candidateEnd) &&
+                    candidateStart.Ticks == 0 &&
+                    candidateEnd.Ticks == exponent)
+                {
+                    span = candidate;
+                    return true;
+                }
+            }
+        }
+
+        span = null!;
+        return false;
+    }
+
+    private static bool TryReadControllerEvidenceCarrier(IElement controller, IElement reason, out Carrier carrier)
+    {
+        if (controller is CarrierLocation location)
+        {
+            carrier = location.Carrier;
+            return true;
+        }
+
+        if (TryReadPoint(controller, out var point))
+        {
+            carrier = point.Carrier;
+            return true;
+        }
+
+        if (controller is Relation span &&
+            RepeatSurface.TryReadSpan(span, out _, out var end))
+        {
+            carrier = end.Carrier;
+            return true;
+        }
+
+        if (TryReadEvidenceLocation(reason, out var evidenceLocation))
+        {
+            carrier = evidenceLocation.Carrier;
+            return true;
+        }
+
+        carrier = null!;
+        return false;
+    }
+
+    private static IElement EvidenceResidue(IElement reason)
+    {
+        if (reason is Relation relation)
+        {
+            if (Equation.TryReadPrediction(relation, out _, out var predictionResidue))
+            {
+                return predictionResidue;
+            }
+
+            if (OperationClaim.TryRead(relation, out _, out _, out _, out _, out _, out var claimResidue))
+            {
+                return claimResidue;
+            }
+
+            if (EquationResolutionSearch.TryReadCandidateSample(
+                    relation,
+                    out _,
+                    out _,
+                    out _,
+                    out _,
+                    out _,
+                    out _,
+                    out var sampleResidue))
+            {
+                return sampleResidue;
+            }
+
+            if (TryReadRootElements(relation, out var elements))
+            {
+                foreach (var element in elements)
+                {
+                    var residue = EvidenceResidue(element);
+                    if (!IsZeroUnknownLocation(residue))
+                    {
+                        return residue;
+                    }
+                }
+            }
+        }
+
+        return Relation.Point(Carrier.Unknown, 0);
+    }
+
+    private static bool TryReadEvidenceLocation(IElement reason, out CarrierLocation location)
+    {
+        if (reason is CarrierLocation direct)
+        {
+            location = direct;
+            return true;
+        }
+
+        if (TryReadPoint(reason, out var point))
+        {
+            location = point;
+            return true;
+        }
+
+        if (reason is Relation relation)
+        {
+            if (Equation.TryReadPrediction(relation, out var predicted, out _))
+            {
+                location = predicted;
+                return true;
+            }
+
+            if (EquationResolutionSearch.TryReadCandidateSample(
+                    relation,
+                    out _,
+                    out var input,
+                    out _,
+                    out _,
+                    out _,
+                    out _,
+                    out _))
+            {
+                location = input;
+                return true;
+            }
+
+            if (OperationClaim.TryRead(
+                    relation,
+                    out _,
+                    out _,
+                    out _,
+                    out var residualMagnitude,
+                    out var violationMagnitude,
+                    out _))
+            {
+                location = violationMagnitude.Ticks != 0 ? violationMagnitude : residualMagnitude;
+                return true;
+            }
+
+            if (TryReadRootElements(relation, out var elements))
+            {
+                foreach (var element in elements)
+                {
+                    if (TryReadEvidenceLocation(element, out location))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        location = default;
+        return false;
+    }
+
+    private static bool IsZeroUnknownLocation(IElement element) =>
+        element is CarrierLocation { Carrier.IsUnknown: true, Ticks: 0 } ||
+        TryReadPoint(element, out var location) && location.Carrier.IsUnknown && location.Ticks == 0;
 
     private static Relation ProductTransition(Carrier input, Carrier output, int exponent)
     {

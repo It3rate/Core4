@@ -44,7 +44,22 @@ public sealed class EquationPowerTests
         var timelineRelation = Assert.IsType<Relation>(timeline);
         Assert.True(TimeStepSequence.TryRead(timelineRelation, out var origin, out var initial, out var steps));
         Assert.Equal(new CarrierLocation(x, 0), origin);
-        Assert.Equal(Relation.Point(output, 1), initial);
+        Assert.True(EquationPower.TryReadPowerTimelineInitial(
+            initial,
+            out var productIdentity,
+            out var controllerEvidence));
+        Assert.Equal(Relation.Point(output, 1), productIdentity);
+        Assert.True(EquationPower.TryReadControllerEvidenceFields(
+            controllerEvidence,
+            out var evidenceController,
+            out var count,
+            out var resolvedSpan,
+            out var reason,
+            out _));
+        Assert.Equal(controller, evidenceController);
+        Assert.Equal(3, count.Ticks);
+        Assert.Equal(controller, resolvedSpan);
+        Assert.Equal(controller, reason);
         Assert.Equal(3, steps.Length);
         Assert.True(TimeStepSequence.TryReadStep(
             steps[2],
@@ -125,6 +140,55 @@ public sealed class EquationPowerTests
         Assert.Equal(new CarrierLocation(output, 8), predicted);
         Assert.True(EquationPower.TryRead(repeatRead, out _, out var readController, out _, out _, out _, out _));
         Assert.Equal(controller, readController);
+        Assert.True(EquationPower.TryReadControllerEvidence(
+            repeatRead,
+            out var evidenceController,
+            out var count,
+            out var resolvedSpan,
+            out var reason,
+            out var residue));
+        Assert.Equal(controller, evidenceController);
+        Assert.Equal(3, count.Ticks);
+        Assert.True(RepeatSurface.TryReadSpan(resolvedSpan, out _, out var end));
+        Assert.Equal(3, end.Ticks);
+        Assert.IsType<Relation>(reason);
+        Assert.NotNull(residue);
+    }
+
+    [Fact]
+    public void EquationControllerCanUsePowerInputAsOpenCountInput()
+    {
+        var x = new Carrier();
+        var output = new Carrier();
+        var countOutput = new Carrier();
+        var countEquation = Equation.Affine(x, 0, 1, countOutput, 0, 1);
+        var controller = EquationPower.CountFromEquation(
+            new Carrier(),
+            new Carrier(),
+            countEquation,
+            countOutput);
+        var power = EquationPower.Create(new Carrier(), x, output, controller);
+
+        Assert.False(EquationPower.TryReadResolvedExponent(controller, out _));
+
+        var prediction = EquationPower.Predict(
+            power,
+            new CarrierLocation(x, 3),
+            output,
+            out var repeatRead);
+
+        Assert.True(Equation.TryReadPrediction(prediction, out var predicted, out _));
+        Assert.Equal(new CarrierLocation(output, 27), predicted);
+        Assert.True(EquationPower.TryReadControllerEvidence(
+            repeatRead,
+            out _,
+            out var count,
+            out _,
+            out var reason,
+            out _));
+        Assert.Equal(3, count.Ticks);
+        var reasonElements = OrderedElements(Assert.IsType<Relation>(reason));
+        Assert.Equal(new CarrierLocation(x, 3), reasonElements[1]);
     }
 
     [Fact]
@@ -152,10 +216,32 @@ public sealed class EquationPowerTests
         Assert.True(EquationPower.TryReadResolvedExponent(controller, out var exponent));
         Assert.Equal(3, exponent);
 
-        var prediction = Equation.Predict(power, new CarrierLocation(x, 2), output);
+        var prediction = EquationPower.Predict(
+            power,
+            new CarrierLocation(x, 2),
+            output,
+            out var repeatRead);
 
         Assert.True(Equation.TryReadPrediction(prediction, out var predicted, out _));
         Assert.Equal(new CarrierLocation(output, 8), predicted);
+        Assert.True(EquationPower.TryReadControllerEvidence(
+            repeatRead,
+            out _,
+            out var count,
+            out _,
+            out var reason,
+            out _));
+        Assert.Equal(3, count.Ticks);
+        Assert.True(EquationResolutionSearch.TryReadCandidateSample(
+            Assert.IsType<Relation>(reason),
+            out _,
+            out var selectedInput,
+            out _,
+            out _,
+            out _,
+            out _,
+            out _));
+        Assert.Equal(new CarrierLocation(countInput, 3), selectedInput);
     }
 
     [Fact]
@@ -175,10 +261,25 @@ public sealed class EquationPowerTests
         Assert.True(EquationPower.TryReadResolvedExponent(claim, out var exponent));
         Assert.Equal(3, exponent);
 
-        var prediction = Equation.Predict(power, new CarrierLocation(x, 2), output);
+        var prediction = EquationPower.Predict(
+            power,
+            new CarrierLocation(x, 2),
+            output,
+            out var repeatRead);
 
         Assert.True(Equation.TryReadPrediction(prediction, out var predicted, out _));
         Assert.Equal(new CarrierLocation(output, 8), predicted);
+        Assert.True(EquationPower.TryReadControllerEvidence(
+            repeatRead,
+            out var evidenceController,
+            out var count,
+            out _,
+            out var reason,
+            out var residue));
+        Assert.Equal(claim, evidenceController);
+        Assert.Equal(3, count.Ticks);
+        Assert.Equal(claim, reason);
+        Assert.Equal(new CarrierLocation(Carrier.Unknown, 0), residue);
     }
 
     [Fact]
