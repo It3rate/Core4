@@ -139,20 +139,7 @@ from explicit structure that retards traversal, not from opaque concept labels.
 Focus selects the structural window being read. Many concept differences are
 focus+flow differences over similar topology.
 
-## Concept unit schema
-
-A `ConceptUnit` is represented by:
-
-- topology primitive set,
-- flow contract,
-- parameter policy,
-- settlement policy,
-- focus policy,
-- optional notes.
-
-This schema allows low-resolution concept storage and systematic refinement.
-
-## Example progression
+## Example topology patterns
 
 1. `Bridge`: bridge-neck + unspecified traversal + no parameters.
 2. `Conduit`: same topology + forward constrained flow.
@@ -341,3 +328,27 @@ windows (e.g., bridge vs choke vs funnel-like read).
 - Parameters: tunable engagement depth or threshold
 - Settlement: `Retain` or `Latch`
 - Focus: join/neck near target boundary
+
+### T-intersection (topology example)
+
+A T-intersection is represented as shared-join relation structure:
+
+- one stem segment,
+- one cross segment,
+- a single shared join point (often an origin/end-point site),
+- optional directional reads on each segment for split vs merge behavior.
+
+This stays purely structural. "T" is a human label for an inspectable relation
+pattern.
+
+### Funnel (topology example)
+
+A funnel is represented as convergent structure into a neck:
+
+- an input area or contour-side branch set,
+- convergent routes collapsing toward a neck segment,
+- an outlet relation beyond the neck (aligned or orthogonal by context),
+- optional parameters only when refinement is needed (arc/radius/steepness).
+
+Low resolution funnel meaning does not require those parameters; they are added
+only when solving higher-resolution geometry.
