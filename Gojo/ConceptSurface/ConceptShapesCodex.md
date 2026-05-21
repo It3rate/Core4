@@ -1,6 +1,6 @@
 # Concept Shapes Codex
 
-This codex is a design note for building primitive mechanical and physical
+This is a design note for building primitive mechanical and physical
 concept structures out of existing Gojo primitives. It follows the same rule as
 the rest of Gojo:
 
