@@ -1,5 +1,9 @@
 # Gojo ConceptSurface
 
+**Design codex:** see [`ConceptShapesCodex.md`](ConceptShapesCodex.md) for the
+full primitive algebra, participation model, assembly rules, extension pipeline,
+and missing core structure proposals.
+
 `ConceptSurface` is a proposed Gojo-native foothold for low-resolution
 conceptual structures. It is meant to sit above `UnitShape` in scale, not above
 Gojo in meaning.
