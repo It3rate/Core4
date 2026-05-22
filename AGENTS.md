@@ -72,5 +72,6 @@ dotnet build Gojo.GearDemo.Browser\Gojo.GearDemo.Browser.csproj
 ## Axioms And Source Of Truth
 
 - Treat `Gojo/axioms` and the current Gojo code as the active source of truth.
+- Carrier sign law (`P`, `N`, `PN`, `S`) and flow law (`F`, `I`, `FI`, `Ø`) are defined in `Gojo/axioms/Gojo Carrier Sign And Flow Law.md` (implementation Phases 0–2).
 - Older axioms and historical projects are useful comparison material, but Gojo wins when there is conflict.
 - If the axioms are incomplete, unclear, or conflict with the code or the user's current direction, call that out so the model can be refined.
