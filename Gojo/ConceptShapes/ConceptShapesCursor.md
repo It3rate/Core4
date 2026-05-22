@@ -15,6 +15,7 @@ identity.
 - `Gojo/axioms/Gojo Unit Shape And Crystallization.md` — tick contracts
 - `Gojo/axioms/Gojo Resolution Ladders.md` — multi-level wholes and partial reads
 - `Gojo/axioms/Gojo Structural Transform Relations.md` — signed sites vs inverse faces
+- `Gojo/axioms/Gojo Carrier Sign And Flow Law.md` — **sign law (P/N/PN/S) and flow law (F/I/FI/Ø), 16 combinations, implementation plan**
 - `AGENTS.md` — project rules for Gojo work
 
 **Status:** design codex. Executable `ConceptShape` helpers are a proposed foothold;

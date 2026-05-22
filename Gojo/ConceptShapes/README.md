@@ -24,8 +24,16 @@ ConceptShape.TryRead(shape, out _, out var selected, out var topology, ...);
 var openSlots = ConceptShape.ReadOpenSlotBindings(parameterSurface);
 ```
 
+## Sign and flow laws
+
+Carrier **sign/boundary** and **flow** laws (four values each, dual + both + neither)
+are specified in `Gojo/axioms/Gojo Carrier Sign And Flow Law.md`. Implementation
+follows Phases 0–2 there. Concept shapes should attach law markers on holders, not
+store concept words as enums.
+
 ## Not implemented yet
 
+- Sign/flow law attachment in `ConceptPrimitives` (pending Phase 0 core)
 - `CoLocated` without exchange marker
 - `FillClaim` boundary vs interior
 - Material vs observation branch kinds
