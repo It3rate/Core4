@@ -203,6 +203,68 @@ into a net scalar. If both forward and inverse participation exist at once,
 Gojo should preserve opposed participation and tension until an explicit read
 cancels, projects, or settles it.
 
+The first implementation does not remove `Carrier.IsInverse`. Instead it adds
+two narrower hosts:
+
+```text
+CarrierBoundarySurface(root)
+  selected carrier
+  BoundarySurface(...)
+  optional partition / domain witness
+
+RelationFlowSurface(root)
+  selected relation / traversal surface
+  FlowSurface(...)
+  optional gate / capacity witness
+```
+
+This is the preferred placement for the current concept-surface layer:
+
+```text
+boundary/domain belongs with the carrier-like axis
+flow exposure belongs with the relation/traversal surface
+```
+
+`CarrierAxisSurface` remains as a bundled convenience for cases where a note or
+test wants to package both around one selected carrier:
+
+```text
+CarrierAxisSurface(root)
+  selected carrier
+  BoundarySurface(...)
+  FlowSurface(...)
+```
+
+These helpers make the distinction explicit:
+
+```text
+Carrier.IsInverse
+  which materialized face object this carrier is today
+
+CarrierBoundarySurface
+  what boundary/domain the carrier-like axis exposes: P, N, PN, or S
+
+RelationFlowSurface
+  which traversal/transfer faces this relation exposes: Ø, F, I, or FI
+```
+
+Inverting an axis surface swaps boundary sides and flow exposure:
+
+```text
+P:F   -> N:I
+N:I   -> P:F
+PN:F  -> PN:I
+S:Ø   -> S:Ø
+S:FI  -> S:FI
+```
+
+The selected carrier does not change during this read. This is deliberate for
+the first pass: inversion of the axis/domain or traversal promise is separate
+from materializing or selecting a different `Carrier` face with
+`carrier.Inverse()`. Later, if Gojo splits carrier axis from carrier face in
+core, `CarrierBoundarySurface` and `RelationFlowSurface` can become the
+migration path.
+
 Useful coordinate notation:
 
 ```text
@@ -214,6 +276,149 @@ Useful coordinate notation:
 
 The `i` notation is only a thinking aid. The graph should represent this by
 carrier face plus signed carrier location.
+
+## Legal Lane Basis And Occupied Values
+
+Boundary-flow exposure describes the legal lane basis for a carrier-like
+surface. It does not by itself choose where an individual value sits.
+
+```text
+carrier / axis surface:
+  says which lanes are legal
+
+value surface:
+  carries an unsigned magnitude
+  attaches one occupied lane marker
+```
+
+This is close to ordinary integer encoding:
+
+```text
+int-like carrier:
+  legal boundary sides = P and N
+
+value:
+  magnitude = 5
+  occupied side = N
+  read = -5
+```
+
+With flow included, the occupied lane also records the exposed flow face:
+
+```text
+magnitude 5 on P,F -> +5f
+magnitude 5 on N,F -> -5f
+magnitude 5 on P,I -> +5i
+magnitude 5 on N,I -> -5i
+```
+
+The `i` suffix is only a notation for inverse-flow lane occupancy. It is not a
+claim that inverse flow is the same thing as imaginary number structure,
+although they may rhyme structurally because both are opposed to an ordinary
+forward scalar read.
+
+The legal lanes are the cross product of the exposed boundary sides and the
+exposed flow faces:
+
+| Exposure | Legal occupied lanes |
+| --- | --- |
+| `P:None` | `P:None` |
+| `P:F` | `PF` |
+| `P:I` | `PI` |
+| `P:FI` | `PF`, `PI` |
+| `N:None` | `N:None` |
+| `N:F` | `NF` |
+| `N:I` | `NI` |
+| `N:FI` | `NF`, `NI` |
+| `PN:None` | `P:None`, `N:None` |
+| `PN:F` | `PF`, `NF` |
+| `PN:I` | `PI`, `NI` |
+| `PN:FI` | `PF`, `PI`, `NF`, `NI` |
+| `S:None` | `S:None` |
+| `S:F` | `SF` |
+| `S:I` | `SI` |
+| `S:FI` | `SF`, `SI` |
+
+So `N:FI`, `PN:F`, and `PN:I` are all ordinary carrier surfaces:
+
+```text
+N:FI
+  negative-only domain
+  forward and inverse flow faces
+  valid lanes: NF, NI
+
+PN:F
+  full signed domain
+  forward flow face only
+  valid lanes: PF, NF
+
+PN:I
+  full signed domain
+  inverse flow face only
+  valid lanes: PI, NI
+```
+
+The single-lane cases are also valid and important:
+
+```text
+P:F
+  valid lane: PF
+  a value can infer PF if no explicit value-lane marker is present
+
+N:I
+  valid lane: NI
+  a value can infer NI if no explicit value-lane marker is present
+```
+
+Only single-lane surfaces may infer a value lane. Multi-lane surfaces should
+not pretend the value has chosen a lane:
+
+```text
+PN:F
+  valid lanes: PF, NF
+  magnitude 5 alone is unresolved
+  magnitude 5 + lane NF reads as -5f
+
+PN:FI
+  valid lanes: PF, PI, NF, NI
+  magnitude 5 alone is even lower resolution
+```
+
+That is the Gojo-native version of sign. A negative value is not a negative
+`ulong`; it is an unsigned magnitude occupying the negative boundary side of a
+surface that admits that side. Likewise an inverse-flow value is not a second
+number stored inside the carrier; it is the same magnitude occupying an inverse
+flow lane.
+
+If a value chooses a lane not present in the carrier basis, the mismatch should
+remain visible as tension, residue, or failed settlement:
+
+```text
+surface:
+  P:F
+
+value:
+  magnitude 5
+  lane NI
+
+read:
+  magnitude is visible
+  occupied lane is visible
+  lane is not legal for this basis
+```
+
+This preserves the distinction between:
+
+```text
+carrier allows PN:FI
+  many possible occupied lanes
+
+value occupies NI
+  one selected lane
+
+read requests ordinary signed forward scalar
+  may project, reject, or leave residue depending on the visible lane
+```
 
 ## Boundary Plus Flow Matrix
 
@@ -371,7 +576,9 @@ S:Ø bounded whole
 
 ## Implementation Plan
 
-This section is a plan, not a code change.
+The first implementation pass lives in `Gojo.ConceptSurface` and keeps the
+source of meaning in relation structure. The compact helper values below are
+local reads over that structure.
 
 ### 1. Add Compact Value Types Or Helpers
 
@@ -398,17 +605,22 @@ Useful derived reads:
 
 ```csharp
 BoundaryExposure.Label  // PN, P, N, S
-FlowExposure.Label      // Ø, F, I, FI
+FlowExposure.Label      // None, F, I, FI
 ```
+
+The code uses `None` as the ASCII flow label for the no-flow state. The docs
+use `Ø` where the visual distinction is useful.
 
 ### 2. Add Relation Builders
 
-Add builders under `Gojo/ConceptSurface` first:
+The first builders are:
 
 ```csharp
-BoundarySurface.Create(root, leftBoundary, rightBoundary, wholeOrAxis)
-FlowSurface.Create(root, forwardFlow, inverseFlow, selected)
+BoundarySurface.Create(root, exposure, wholeOrAxis)
+FlowSurface.Create(root, exposure, selected)
 BoundaryFlowSurface.Create(root, boundarySurface, flowSurface)
+CarrierBoundarySurface.Create(root, carrier, boundary)
+RelationFlowSurface.Create(root, relation, flow)
 ```
 
 These should return ordinary `Relation` groups.
@@ -426,7 +638,64 @@ BoundaryFlowSurface.TryRead(surface, out BoundaryExposure boundary, out FlowExpo
 If the structure is absent, the reader can fail. If the structure explicitly
 stores `false,false`, the reader returns `PN` for boundary or `Ø` for flow.
 
-### 4. Keep Open Separate
+### 4. Add Lane Basis And Value Occupancy
+
+Boundary/flow exposure should expose legal lanes without requiring a separate
+word classifier:
+
+```csharp
+BoundaryFlowLaneBasis.LegalLanes(boundary, flow)
+BoundaryFlowLaneBasis.TryInferSingleLane(boundary, flow, out lane)
+```
+
+The legal-lane read is deterministic:
+
+```text
+Boundary lanes:
+  P  -> P
+  N  -> N
+  PN -> P, N
+  S  -> S
+
+Flow lanes:
+  None -> None
+  F    -> F
+  I    -> I
+  FI   -> F, I
+```
+
+Then use the cross product. A carrier with `PN:FI` admits four occupied lanes:
+
+```text
+PF, PI, NF, NI
+```
+
+Values should be represented as:
+
+```text
+unsigned magnitude point
+occupied lane marker
+lane basis / residue witness
+```
+
+In code, this is the role of:
+
+```csharp
+BoundaryFlowLaneSurface
+BoundaryFlowValueSurface
+```
+
+The helper can report whether the occupied lane is legal for a local basis, but
+it should not hide incompatibility:
+
+```text
+P:F value on NI
+  magnitude survives
+  lane marker survives
+  read says incompatible
+```
+
+### 5. Keep Open Separate
 
 Open/unresolved flow should not be encoded as a fifth flow bit. Use existing
 open structure:
@@ -449,13 +718,16 @@ open flow
   unresolved future flow site
 ```
 
-### 5. Preserve Carrier Compatibility
+### 6. Preserve Carrier Compatibility
 
 Do not immediately rewrite `Carrier.IsInverse`.
 
 First pass:
 
 - represent boundary/flow states in ConceptSurface helpers
+- use `CarrierBoundarySurface` to package carrier/domain boundary exposure
+- use `RelationFlowSurface` to package relation/traversal flow exposure
+- keep `CarrierAxisSurface` as a composed convenience for local notes/tests
 - continue to use current `Carrier` and `carrier.Inverse()`
 - treat `FI` as a surface containing both faces or both routes
 - treat `Ø` flow as no exposed flow relation
@@ -469,23 +741,32 @@ split carrier axis from carrier face
 Current `Carrier` can remain the default forward face until that deeper split
 is justified by tests.
 
-### 6. Add Tests Around Structural Reads
+### 7. Add Tests Around Structural Reads
 
-Tests should prove:
+The first tests prove:
 
 - `BoundaryExposure(false,false)` reads as `PN`
 - `BoundaryExposure(true,false)` reads as `P`
 - `BoundaryExposure(false,true)` reads as `N`
 - `BoundaryExposure(true,true)` reads as `S`
-- `FlowExposure(false,false)` reads as `Ø`
+- `FlowExposure(false,false)` reads as no-flow / `Ø`
 - `FlowExposure(true,false)` reads as `F`
 - `FlowExposure(false,true)` reads as `I`
 - `FlowExposure(true,true)` reads as `FI`
 - `S:Ø` can be partitioned as a bounded whole
 - `S:FI` contains explicit forward and inverse flow surfaces
+- carrier boundary/domain can be read without any flow exposure
+- relation flow can be read without any carrier boundary/domain exposure
 - football-field math is built as `S:Ø` plus two opposed reads and a controller
 
-### 7. Avoid Word Classification
+- `N:FI` yields `NF` and `NI`
+- `PN:F` yields `PF` and `NF`
+- `PN:I` yields `PI` and `NI`
+- single-lane `P:F` and `N:I` surfaces can infer an occupied value lane
+- a value can carry magnitude `5` while separately occupying `NI`
+- an incompatible value lane stays inspectable instead of being silently coerced
+
+### 8. Avoid Word Classification
 
 Do not implement:
 
