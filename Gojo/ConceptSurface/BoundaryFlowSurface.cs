@@ -1,4 +1,5 @@
 using Gojo.Core;
+using Gojo.Structures;
 
 namespace Gojo.ConceptSurface;
 
@@ -1155,6 +1156,184 @@ public readonly record struct BoundaryFlowTransferRead(
     public bool IsFullyBlocked =>
         !HasAccepted ||
         Accepted.Magnitude.Ticks == 0 && Blocked.Magnitude.Ticks > 0;
+}
+
+/// <summary>
+/// Applies an accepted transfer to an existing target value and records the
+/// transition as a time-step witness. This is still a concept-surface
+/// settlement prototype; it does not mutate carrier state.
+/// </summary>
+public static class BoundaryFlowTargetSettlement
+{
+    public static Relation Create(
+        Carrier root,
+        Relation targetBefore,
+        Relation transferSurface,
+        Relation targetAfter,
+        IElement residue,
+        Relation timeline)
+    {
+        return Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            targetBefore ?? ConceptSurface.UnknownPoint(),
+            transferSurface ?? ConceptSurface.UnknownPoint(),
+            targetAfter ?? ConceptSurface.UnknownPoint(),
+            residue ?? ConceptSurface.UnknownPoint(),
+            timeline ?? ConceptSurface.UnknownPoint());
+    }
+
+    public static bool TrySettle(
+        Relation targetBefore,
+        Relation transferSurface,
+        out Relation settlementSurface)
+    {
+        if (!BoundaryFlowValueSurface.TryRead(
+                targetBefore,
+                out _,
+                out _,
+                out _,
+                out var laneBasis,
+                out _) ||
+            laneBasis is not Relation targetBasis ||
+            !BoundaryFlowValueTransfer.TryReadSummary(transferSurface, out var transferRead))
+        {
+            settlementSurface = null!;
+            return false;
+        }
+
+        var residue = transferRead.Blocked.Magnitude.Ticks == 0
+            ? transferRead.Accepted.ResidueOrTension
+            : BlockedResidue(transferSurface);
+        var targetAfter = targetBefore;
+
+        if (transferRead.HasAccepted &&
+            transferRead.Accepted.Magnitude.Ticks != 0)
+        {
+            if (!CanApplyAcceptedToTarget(targetBefore, transferRead.Accepted, out var deltaTicks) ||
+                !BoundaryFlowValueSettlement.TryApplySignedDelta(
+                    targetBefore,
+                    targetBasis,
+                    deltaTicks,
+                    out targetAfter))
+            {
+                targetAfter = targetBefore;
+                residue = transferRead.Accepted.ResidueOrTension;
+            }
+        }
+
+        var time = new Carrier();
+        var step = TimeStepSequence.Step(
+            new Carrier(),
+            time,
+            0,
+            1,
+            targetBefore,
+            transferSurface,
+            targetAfter,
+            residue);
+        var timeline = TimeStepSequence.Create(new Carrier(), time, targetBefore, step);
+
+        settlementSurface = Create(
+            new Carrier(),
+            targetBefore,
+            transferSurface,
+            targetAfter,
+            residue,
+            timeline);
+        return true;
+    }
+
+    public static bool TryRead(
+        Relation settlementSurface,
+        out Relation targetBefore,
+        out Relation transferSurface,
+        out Relation targetAfter,
+        out IElement residue,
+        out Relation timeline)
+    {
+        if (ConceptSurfaceReader.TryReadRootElements(settlementSurface, out var elements) &&
+            elements.Length >= 5 &&
+            elements[0] is Relation before &&
+            elements[1] is Relation transfer &&
+            elements[2] is Relation after &&
+            elements[4] is Relation time)
+        {
+            targetBefore = before;
+            transferSurface = transfer;
+            targetAfter = after;
+            residue = elements[3];
+            timeline = time;
+            return true;
+        }
+
+        targetBefore = null!;
+        transferSurface = null!;
+        targetAfter = null!;
+        residue = default!;
+        timeline = null!;
+        return false;
+    }
+
+    public static bool TryReadAfter(
+        Relation settlementSurface,
+        out BoundaryFlowValueRead afterRead)
+    {
+        if (TryRead(settlementSurface, out _, out _, out var targetAfter, out _, out _))
+        {
+            return BoundaryFlowValueSurface.TryReadValue(targetAfter, out afterRead);
+        }
+
+        afterRead = default;
+        return false;
+    }
+
+    public static bool TryReadTimeline(Relation settlementSurface, out Relation timeline)
+    {
+        if (TryRead(settlementSurface, out _, out _, out _, out _, out var candidate) &&
+            TimeStepSequence.TryRead(candidate, out _, out _, out _))
+        {
+            timeline = candidate;
+            return true;
+        }
+
+        timeline = null!;
+        return false;
+    }
+
+    private static bool CanApplyAcceptedToTarget(
+        Relation targetBefore,
+        BoundaryFlowValueRead accepted,
+        out long deltaTicks)
+    {
+        if (!BoundaryFlowValueSurface.TryReadValue(targetBefore, out var before) ||
+            !before.IsLegal ||
+            !accepted.IsLegal ||
+            !before.IsSignedBoundary ||
+            !accepted.IsSignedBoundary ||
+            before.Lane.Flow != accepted.Lane.Flow)
+        {
+            deltaTicks = 0;
+            return false;
+        }
+
+        deltaTicks = accepted.SignedTicks;
+        return true;
+    }
+
+    private static IElement BlockedResidue(Relation transferSurface)
+    {
+        if (BoundaryFlowValueTransfer.TryRead(
+                transferSurface,
+                out _,
+                out _,
+                out var blocked,
+                out _))
+        {
+            return blocked;
+        }
+
+        return ConceptSurface.UnknownPoint();
+    }
 }
 
 /// <summary>

@@ -662,6 +662,99 @@ residue/tension
 That separation matches the larger Gojo rule: tension is information, not a
 hidden exception.
 
+## Target Settlement Step
+
+After transfer acceptance, the next surface records how the accepted value
+settles into an existing target value. This is still a concept-surface
+prototype. It does not mutate `Carrier.Value`.
+
+```text
+BoundaryFlowTargetSettlement
+  target before value
+  transfer transition
+  target after value
+  residue / blocked evidence
+  TimeStepSequence witness
+```
+
+The target settlement uses the target value's own lane basis. A legal accepted
+value can move the target across lanes only when the target basis admits the
+result:
+
+```text
+target before:
+  20PF
+
+accepted transfer:
+  50NF
+
+target basis:
+  PN:F
+
+target after:
+  30NF
+```
+
+Blocked transfer does not invent an accepted value or update the target:
+
+```text
+target before:
+  20PF
+
+blocked incoming:
+  5NI
+  illegal against PN:F
+
+target after:
+  20PF
+
+residue:
+  blocked 5NI
+```
+
+The settlement surface also writes a `TimeStepSequence` witness:
+
+```text
+initial:
+  target before
+
+step 0..1:
+  before     = target before
+  transition = transfer surface
+  after      = target after
+  residue    = blocked or unresolved evidence
+```
+
+This gives the current integration chain:
+
+```text
+BoundaryFlowValueSurface
+  occupied lane + magnitude
+
+BoundaryFlowValueRoute
+  projection into a target frame
+
+BoundaryFlowValueTransfer
+  accepted/blocked split
+
+BoundaryFlowTargetSettlement
+  target before/after + timeline
+```
+
+### Subsequent Steps
+
+The next steps should stay incremental:
+
+1. Build a small route-settlement prototype that chains several
+   `BoundaryFlowTargetSettlement` records and reads total accepted/blocked
+   participation from the resulting timeline.
+2. Add competing-route tests where two transfers try to enter the same target
+   capacity, preserving blocked residue per incoming lane.
+3. Explore whether `CarrierAxisSurface` should remain a concept-surface helper
+   or become a core-adjacent axis/face split.
+4. Only after those behaviors are stable, consider core changes to
+   `Carrier.Value`, `CarrierLocation`, or `Carrier.IsInverse`.
+
 ## Boundary Plus Flow Matrix
 
 The sixteen combinations are:

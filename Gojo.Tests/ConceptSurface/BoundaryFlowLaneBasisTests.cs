@@ -1,5 +1,6 @@
 using Gojo.ConceptSurface;
 using Gojo.Core;
+using Gojo.Structures;
 
 namespace Gojo.Tests.ConceptSurface;
 
@@ -456,6 +457,170 @@ public sealed class BoundaryFlowLaneBasisTests
         Assert.Equal("20f", read.Blocked.Notation);
         Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(read.Blocked.ResidueOrTension, out var residue));
         Assert.Equal(20, residue.Ticks);
+    }
+
+    [Fact]
+    public void TargetSettlementAccumulatesAcceptedTransferAndWritesTimeline()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        var sourceAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), source);
+        var targetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), target);
+        var sourceValue = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            source,
+            3,
+            BoundaryFlowLane.PositiveForward,
+            sourceAxis);
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            20,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+        var route = new Relation(
+            Relation.Segment(source, 0, 10),
+            Relation.Segment(target, 0, 100));
+
+        Assert.True(BoundaryFlowValueRoute.TryProject(
+            sourceValue,
+            route,
+            targetAxis,
+            target,
+            out var routeSurface));
+        Assert.True(BoundaryFlowValueTransfer.TryAccept(routeSurface, out var transfer));
+        Assert.True(BoundaryFlowTargetSettlement.TrySettle(
+            targetBefore,
+            transfer,
+            out var settlement));
+        Assert.True(BoundaryFlowTargetSettlement.TryRead(
+            settlement,
+            out var readBefore,
+            out var readTransfer,
+            out var readAfter,
+            out var residue,
+            out var timeline));
+        Assert.Equal(targetBefore, readBefore);
+        Assert.Equal(transfer, readTransfer);
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(readAfter, out var afterRead));
+        Assert.True(afterRead.IsLegal);
+        Assert.Equal(BoundaryFlowLane.PositiveForward, afterRead.Lane);
+        Assert.Equal(50, afterRead.Magnitude.Ticks);
+        Assert.Equal("50f", afterRead.Notation);
+        Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(residue, out var residuePoint));
+        Assert.Equal(0, residuePoint.Ticks);
+
+        Assert.True(TimeStepSequence.TryRead(timeline, out _, out var initial, out var steps));
+        Assert.Equal(targetBefore, initial);
+        Assert.Single(steps);
+        Assert.True(TimeStepSequence.TryReadStep(
+            steps[0],
+            out _,
+            out var start,
+            out var end,
+            out var stepBefore,
+            out var transition,
+            out var stepAfter,
+            out var stepResidue));
+        Assert.Equal(0, start.Ticks);
+        Assert.Equal(1, end.Ticks);
+        Assert.Equal(targetBefore, stepBefore);
+        Assert.Equal(transfer, transition);
+        Assert.Equal(readAfter, stepAfter);
+        Assert.Equal(residue, stepResidue);
+    }
+
+    [Fact]
+    public void TargetSettlementKeepsBeforeValueWhenTransferIsBlocked()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        var sourceAxis = CarrierAxisSurface.SignedBothFlows(new Carrier(), source);
+        var targetAxis = CarrierAxisSurface.SignedForward(new Carrier(), target);
+        var sourceValue = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            source,
+            5,
+            BoundaryFlowLane.NegativeInverse,
+            sourceAxis);
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            20,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+        var route = new Relation(
+            Relation.Segment(source, -10, 10),
+            Relation.Segment(target, -10, 10));
+
+        Assert.True(BoundaryFlowValueRoute.TryProject(
+            sourceValue,
+            route,
+            targetAxis,
+            target,
+            out var routeSurface));
+        Assert.True(BoundaryFlowValueTransfer.TryAccept(routeSurface, out var transfer));
+        Assert.True(BoundaryFlowTargetSettlement.TrySettle(
+            targetBefore,
+            transfer,
+            out var settlement));
+        Assert.True(BoundaryFlowTargetSettlement.TryRead(
+            settlement,
+            out _,
+            out _,
+            out var after,
+            out var residue,
+            out _));
+        Assert.Equal(targetBefore, after);
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(after, out var afterRead));
+        Assert.Equal(20, afterRead.Magnitude.Ticks);
+        Assert.Equal("20f", afterRead.Notation);
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(Assert.IsType<Relation>(residue), out var blockedRead));
+        Assert.False(blockedRead.IsLegal);
+        Assert.Equal(BoundaryFlowLane.NegativeInverse, blockedRead.Lane);
+        Assert.Equal(5, blockedRead.Magnitude.Ticks);
+    }
+
+    [Fact]
+    public void TargetSettlementCanCrossSignedLaneWhenAcceptedTransferOpposesBefore()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        var sourceAxis = CarrierAxisSurface.SignedForward(new Carrier(), source);
+        var targetAxis = CarrierAxisSurface.SignedForward(new Carrier(), target);
+        var sourceValue = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            source,
+            5,
+            BoundaryFlowLane.NegativeForward,
+            sourceAxis);
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            20,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+        var route = new Relation(
+            Relation.Segment(source, -10, 10),
+            Relation.Segment(target, -100, 100));
+
+        Assert.True(BoundaryFlowValueRoute.TryProject(
+            sourceValue,
+            route,
+            targetAxis,
+            target,
+            out var routeSurface));
+        Assert.True(BoundaryFlowValueTransfer.TryAccept(routeSurface, out var transfer));
+        Assert.True(BoundaryFlowTargetSettlement.TrySettle(
+            targetBefore,
+            transfer,
+            out var settlement));
+        Assert.True(BoundaryFlowTargetSettlement.TryReadAfter(settlement, out var afterRead));
+        Assert.True(afterRead.IsLegal);
+        Assert.Equal(BoundaryFlowLane.NegativeForward, afterRead.Lane);
+        Assert.Equal(30, afterRead.Magnitude.Ticks);
+        Assert.Equal(-30, afterRead.SignedTicks);
+        Assert.Equal("-30f", afterRead.Notation);
     }
 
     public static IEnumerable<object[]> SelectedLaneBasisStates()
