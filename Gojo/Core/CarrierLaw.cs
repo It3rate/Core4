@@ -1,105 +1,122 @@
 namespace Gojo.Core;
 
 /// <summary>
-/// Sign/boundary and flow law markers attached to carrier holders as relation
-/// structure. Missing attachments read as <see cref="SignLawKind.BothSigns"/> and
-/// <see cref="FlowLawKind.Forward"/> for compatibility with bare carriers.
+/// Sign/boundary and flow law as paired pole markers on a holder. Each axis uses
+/// a positive attachment (0 or 1) and a negative attachment (0 or -1); the four
+/// combinations are P, N, PN, and S (or F, I, FI, Ø for flow). Missing poles
+/// read as compatibility defaults: sign PN (1, -1), flow F (1, 0).
 /// </summary>
 public static class CarrierLaw
 {
-    /// <summary>Unknown-carrier tick marking a sign-law surface attachment.</summary>
-    public const long SignLawMarkerTicks = -3;
-
-    /// <summary>Unknown-carrier tick marking a flow-law surface attachment.</summary>
-    public const long FlowLawMarkerTicks = -4;
-
-    /// <summary>Creates the sign-law marker relation for a holder.</summary>
-    public static Relation SignLaw(Carrier holder, SignLawKind kind)
-    {
-        ArgumentNullException.ThrowIfNull(holder);
-        return LawSurface(holder, SignLawMarkerTicks, (long)kind);
-    }
-
-    /// <summary>Creates the flow-law marker relation for a holder.</summary>
-    public static Relation FlowLaw(Carrier holder, FlowLawKind kind)
-    {
-        ArgumentNullException.ThrowIfNull(holder);
-        return LawSurface(holder, FlowLawMarkerTicks, (long)kind);
-    }
-
-    /// <summary>Creates bounded-segment anchors for sign law <see cref="SignLawKind.Segment"/>.</summary>
-    public static Relation SegmentBounds(Carrier holder, long anchorA, long anchorB) =>
-        Relation.Segment(holder ?? throw new ArgumentNullException(nameof(holder)), anchorA, anchorB);
-
-    /// <summary>Attaches a sign-law marker and settles the holder world.</summary>
-    public static Relation AttachSignLaw(Carrier holder, SignLawKind kind) =>
-        holder.Attach(SignLaw(holder, kind));
-
-    /// <summary>Attaches a flow-law marker and settles the holder world.</summary>
-    public static Relation AttachFlowLaw(Carrier holder, FlowLawKind kind) =>
-        holder.Attach(FlowLaw(holder, kind));
-
-    /// <summary>Attaches segment bounds on the holder for segment sign law.</summary>
-    public static Relation AttachSegmentBounds(Carrier holder, long anchorA, long anchorB) =>
-        holder.Attach(SegmentBounds(holder, anchorA, anchorB));
-
-    /// <summary>Reads an explicitly attached sign law when present and valid.</summary>
-    public static bool TryReadSignLaw(Carrier holder, out SignLawKind kind)
-    {
-        ArgumentNullException.ThrowIfNull(holder);
-        if (!TryReadLawKind(holder, SignLawMarkerTicks, out var raw))
-        {
-            kind = default;
-            return false;
-        }
-
-        if (!TryMapSignLaw(raw, out kind))
-        {
-            kind = default;
-            return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>Reads an explicitly attached flow law when present and valid.</summary>
-    public static bool TryReadFlowLaw(Carrier holder, out FlowLawKind kind)
-    {
-        ArgumentNullException.ThrowIfNull(holder);
-        if (!TryReadLawKind(holder, FlowLawMarkerTicks, out var raw))
-        {
-            kind = default;
-            return false;
-        }
-
-        if (!TryMapFlowLaw(raw, out kind))
-        {
-            kind = default;
-            return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>Sign law used for reads: explicit attachment or <see cref="SignLawKind.BothSigns"/>.</summary>
-    public static SignLawKind ReadEffectiveSignLaw(Carrier holder) =>
-        TryReadSignLaw(holder, out var kind) ? kind : SignLawKind.BothSigns;
-
-    /// <summary>Flow law used for reads: explicit attachment or <see cref="FlowLawKind.Forward"/>.</summary>
-    public static FlowLawKind ReadEffectiveFlowLaw(Carrier holder) =>
-        TryReadFlowLaw(holder, out var kind) ? kind : FlowLawKind.Forward;
+    /// <summary>
+    /// Labels the unknown-carrier surface that attaches the sign-law positive pole
+    /// to a holder as <c>Point(holder, 0)</c> or <c>Point(holder, 1)</c>.
+    /// </summary>
+    public const long SignPositiveSurfaceTicks = -3;
 
     /// <summary>
-    /// Reads segment anchors on the holder when sign law is segment and a
-    /// same-carrier segment relation is attached.
+    /// Labels the unknown-carrier surface that attaches the sign-law negative pole
+    /// to a holder as <c>Point(holder, 0)</c> or <c>Point(holder, -1)</c>.
     /// </summary>
+    public const long SignNegativeSurfaceTicks = -4;
+
+    /// <summary>
+    /// Labels the unknown-carrier surface for the flow-law positive pole (0 or 1).
+    /// </summary>
+    public const long FlowPositiveSurfaceTicks = -5;
+
+    /// <summary>
+    /// Labels the unknown-carrier surface for the flow-law negative pole (0 or -1).
+    /// </summary>
+    public const long FlowNegativeSurfaceTicks = -6;
+
+    public const long DefaultSignPositivePole = 1;
+    public const long DefaultSignNegativePole = -1;
+    public const long DefaultFlowPositivePole = 1;
+    public const long DefaultFlowNegativePole = 0;
+
+    public static Relation SignPositivePole(Carrier holder, long value) =>
+        PoleSurface(holder ?? Carrier.Unknown, SignPositiveSurfaceTicks, value);
+
+    public static Relation SignNegativePole(Carrier holder, long value) =>
+        PoleSurface(holder ?? Carrier.Unknown, SignNegativeSurfaceTicks, value);
+
+    public static Relation FlowPositivePole(Carrier holder, long value) =>
+        PoleSurface(holder ?? Carrier.Unknown, FlowPositiveSurfaceTicks, value);
+
+    public static Relation FlowNegativePole(Carrier holder, long value) =>
+        PoleSurface(holder ?? Carrier.Unknown, FlowNegativeSurfaceTicks, value);
+
+    public static Relation SegmentBounds(Carrier holder, long anchorA, long anchorB) =>
+        Relation.Segment(holder ?? Carrier.Unknown, anchorA, anchorB);
+
+    public static Relation AttachSignPositivePole(Carrier holder, long value) =>
+        AttachPole(holder, SignPositivePole(holder, value));
+
+    public static Relation AttachSignNegativePole(Carrier holder, long value) =>
+        AttachPole(holder, SignNegativePole(holder, value));
+
+    public static Relation AttachFlowPositivePole(Carrier holder, long value) =>
+        AttachPole(holder, FlowPositivePole(holder, value));
+
+    public static Relation AttachFlowNegativePole(Carrier holder, long value) =>
+        AttachPole(holder, FlowNegativePole(holder, value));
+
+    public static Relation AttachSignPoles(Carrier holder, long positive, long negative)
+    {
+        AttachSignPositivePole(holder, positive);
+        return AttachSignNegativePole(holder, negative);
+    }
+
+    public static Relation AttachFlowPoles(Carrier holder, long positive, long negative)
+    {
+        AttachFlowPositivePole(holder, positive);
+        return AttachFlowNegativePole(holder, negative);
+    }
+
+    public static Relation AttachSegmentBounds(Carrier holder, long anchorA, long anchorB) =>
+        AttachPole(holder, SegmentBounds(holder, anchorA, anchorB));
+
+    public static bool TryReadSignPositivePole(Carrier holder, out long value) =>
+        TryReadPole(holder, SignPositiveSurfaceTicks, allowed: [0, 1], out value);
+
+    public static bool TryReadSignNegativePole(Carrier holder, out long value) =>
+        TryReadPole(holder, SignNegativeSurfaceTicks, allowed: [0, -1], out value);
+
+    public static bool TryReadFlowPositivePole(Carrier holder, out long value) =>
+        TryReadPole(holder, FlowPositiveSurfaceTicks, allowed: [0, 1], out value);
+
+    public static bool TryReadFlowNegativePole(Carrier holder, out long value) =>
+        TryReadPole(holder, FlowNegativeSurfaceTicks, allowed: [0, -1], out value);
+
+    /// <summary>Both sign poles explicitly attached with allowed values.</summary>
+    public static bool TryReadExplicitSignPoles(Carrier holder, out long positive, out long negative) =>
+        TryReadExplicitPoles(holder, SignPositiveSurfaceTicks, [0, 1], SignNegativeSurfaceTicks, [0, -1], out positive, out negative);
+
+    /// <summary>Both flow poles explicitly attached with allowed values.</summary>
+    public static bool TryReadExplicitFlowPoles(Carrier holder, out long positive, out long negative) =>
+        TryReadExplicitPoles(holder, FlowPositiveSurfaceTicks, [0, 1], FlowNegativeSurfaceTicks, [0, -1], out positive, out negative);
+
+    public static long ReadEffectiveSignPositive(Carrier holder) =>
+        TryReadSignPositivePole(holder, out var value) ? value : DefaultSignPositivePole;
+
+    public static long ReadEffectiveSignNegative(Carrier holder) =>
+        TryReadSignNegativePole(holder, out var value) ? value : DefaultSignNegativePole;
+
+    public static long ReadEffectiveFlowPositive(Carrier holder) =>
+        TryReadFlowPositivePole(holder, out var value) ? value : DefaultFlowPositivePole;
+
+    public static long ReadEffectiveFlowNegative(Carrier holder) =>
+        TryReadFlowNegativePole(holder, out var value) ? value : DefaultFlowNegativePole;
+
+    public static bool IsEffectiveSegmentSign(Carrier holder) =>
+        ReadEffectiveSignPositive(holder) == 0 && ReadEffectiveSignNegative(holder) == 0;
+
     public static bool TryReadSegmentBounds(Carrier holder, out long anchorA, out long anchorB)
     {
-        ArgumentNullException.ThrowIfNull(holder);
         anchorA = 0;
         anchorB = 0;
-
-        if (ReadEffectiveSignLaw(holder) != SignLawKind.Segment)
+        if (holder is null || holder.IsUnknown || !IsEffectiveSegmentSign(holder))
         {
             return false;
         }
@@ -119,48 +136,98 @@ public static class CarrierLaw
         return false;
     }
 
-    private static Relation LawSurface(Carrier holder, long markerTicks, long kindTicks) =>
-        new(
-            Relation.Point(Carrier.Unknown, markerTicks),
-            Relation.Point(holder, kindTicks));
-
-    private static bool TryReadLawKind(Carrier holder, long markerTicks, out long kindTicks)
+    private static Relation AttachPole(Carrier? holder, Relation pole)
     {
-        kindTicks = 0;
+        if (holder is null || holder.IsUnknown)
+        {
+            return pole;
+        }
+
+        return holder.Attach(pole);
+    }
+
+    private static Relation PoleSurface(Carrier holder, long surfaceTicks, long poleValue) =>
+        new(
+            Relation.Point(Carrier.Unknown, surfaceTicks),
+            Relation.Point(holder, poleValue));
+
+    private static bool TryReadExplicitPoles(
+        Carrier? holder,
+        long positiveSurface,
+        ReadOnlySpan<long> positiveAllowed,
+        long negativeSurface,
+        ReadOnlySpan<long> negativeAllowed,
+        out long positive,
+        out long negative)
+    {
+        positive = 0;
+        negative = 0;
+        if (holder is null || holder.IsUnknown)
+        {
+            return false;
+        }
+
+        var hasPositive = TryReadPole(holder, positiveSurface, positiveAllowed, out positive);
+        var hasNegative = TryReadPole(holder, negativeSurface, negativeAllowed, out negative);
+        return hasPositive && hasNegative;
+    }
+
+    private static bool TryReadPole(
+        Carrier? holder,
+        long surfaceTicks,
+        ReadOnlySpan<long> allowed,
+        out long value)
+    {
+        value = 0;
+        if (holder is null || holder.IsUnknown)
+        {
+            return false;
+        }
+
+        if (!TryReadPoleSurface(holder, surfaceTicks, out value) || !IsAllowed(value, allowed))
+        {
+            value = 0;
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryReadPoleSurface(Carrier holder, long surfaceTicks, out long poleValue)
+    {
+        poleValue = 0;
         foreach (var relation in holder.AttachedRelations)
         {
-            if (!TryReadLawSurface(relation, holder, markerTicks, out kindTicks))
+            if (TryReadPoleAttachment(relation, holder, surfaceTicks, out poleValue))
             {
-                continue;
+                return true;
             }
-
-            return true;
         }
 
         return false;
     }
 
-    private static bool TryReadLawSurface(
+    private static bool TryReadPoleAttachment(
         Relation relation,
         Carrier holder,
-        long markerTicks,
-        out long kindTicks)
+        long surfaceTicks,
+        out long poleValue)
     {
-        kindTicks = 0;
-        if (relation.Left is not Relation markerPoint ||
-            relation.Right is not Relation kindPoint)
+        poleValue = 0;
+        if (relation.Left is not Relation surfacePoint ||
+            relation.Right is not Relation polePoint)
         {
             return false;
         }
 
-        if (!IsPoint(markerPoint, Carrier.Unknown, markerTicks) ||
-            !IsPoint(kindPoint, out var kindLocation) ||
-            !kindLocation.Carrier.SameIdentityAs(holder))
+        if (!IsPoint(surfacePoint, Carrier.Unknown, surfaceTicks) ||
+            !IsPoint(polePoint, out var poleLocation) ||
+            !poleLocation.Carrier.SameIdentityAs(holder))
         {
             return false;
         }
 
-        kindTicks = kindLocation.Ticks;
+        poleValue = poleLocation.Ticks;
         return true;
     }
 
@@ -204,59 +271,39 @@ public static class CarrierLaw
         location.Carrier.SameIdentityAs(carrier) &&
         location.Ticks == ticks;
 
-    private static bool TryMapSignLaw(long raw, out SignLawKind kind)
+    private static bool IsAllowed(long value, ReadOnlySpan<long> allowed)
     {
-        if (raw is < 0 or > 3)
+        foreach (var candidate in allowed)
         {
-            kind = default;
-            return false;
+            if (value == candidate)
+            {
+                return true;
+            }
         }
 
-        kind = (SignLawKind)raw;
-        return true;
-    }
-
-    private static bool TryMapFlowLaw(long raw, out FlowLawKind kind)
-    {
-        if (raw is < 0 or > 3)
-        {
-            kind = default;
-            return false;
-        }
-
-        kind = (FlowLawKind)raw;
-        return true;
+        return false;
     }
 }
 
-/// <summary>Sign and boundary grammar for coordinates on a carrier holder.</summary>
-public enum SignLawKind
+/// <summary>Named sign-law pole pairs (positive, negative); not stored enums.</summary>
+public static class SignLawPoles
 {
-    /// <summary>Positive / uint ray toward one goal (P).</summary>
-    Positive = 0,
+    public const long Positive = 1;
+    public const long PositiveOff = 0;
+    public const long NegativeOff = 0;
+    public const long Negative = -1;
 
-    /// <summary>Negative / nint ray with against-goal ticks first-class (N).</summary>
-    Negative = 1,
-
-    /// <summary>Both signs / int line on the face (PN).</summary>
-    BothSigns = 2,
-
-    /// <summary>Bounded segment whole between two anchors (S).</summary>
-    Segment = 3,
+    public static (long Positive, long Negative) P => (1, 0);
+    public static (long Positive, long Negative) N => (0, -1);
+    public static (long Positive, long Negative) BothSigns => (1, -1);
+    public static (long Positive, long Negative) Segment => (0, 0);
 }
 
-/// <summary>Flow calibration grammar for settlement on carrier faces.</summary>
-public enum FlowLawKind
+/// <summary>Named flow-law pole pairs (positive, negative); not stored enums.</summary>
+public static class FlowLawPoles
 {
-    /// <summary>Forward face calibration (F).</summary>
-    Forward = 0,
-
-    /// <summary>Inverse face calibration (I).</summary>
-    Inverse = 1,
-
-    /// <summary>Both faces may calibrate when wired (FI).</summary>
-    BothFaces = 2,
-
-    /// <summary>No flowing calibration; layout and partitions only (Ø).</summary>
-    Neither = 3,
+    public static (long Positive, long Negative) Forward => (1, 0);
+    public static (long Positive, long Negative) Inverse => (0, -1);
+    public static (long Positive, long Negative) BothFaces => (1, -1);
+    public static (long Positive, long Negative) Neither => (0, 0);
 }
