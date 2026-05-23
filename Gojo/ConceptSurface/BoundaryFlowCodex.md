@@ -741,15 +741,91 @@ BoundaryFlowTargetSettlement
   target before/after + timeline
 ```
 
+## Settlement Runs
+
+A single target settlement step is useful, but routes usually arrive as a
+sequence of accepted or blocked transfers. The settlement-run surface chains
+those local steps without mutating core carrier state:
+
+```text
+BoundaryFlowTargetSettlementRun
+  initial target value
+  final target value
+  ordered transfer surfaces
+  ordered residue surfaces
+  combined TimeStepSequence
+```
+
+Each step in the combined timeline is still ordinary time-step structure:
+
+```text
+step n..n+1:
+  before     = target value before this transfer
+  transition = transfer surface
+  after      = target value after this transfer
+  residue    = blocked / unresolved evidence for this transfer
+```
+
+Example: two legal positive transfers into a positive target:
+
+```text
+initial target:
+  10PF
+
+transfer 1:
+  accepted 20PF
+
+transfer 2:
+  accepted 10PF
+
+final target:
+  40PF
+
+timeline:
+  step 0..1: 10PF -> 30PF
+  step 1..2: 30PF -> 40PF
+```
+
+The run helper can read totals from the timeline transitions:
+
+```text
+accepted magnitude = 30
+blocked magnitude  = 0
+step count         = 2
+```
+
+Mixed accepted and blocked transfers preserve per-step blocked residue:
+
+```text
+initial target:
+  10PF on PN:F
+
+transfer 1:
+  accepted 20PF
+
+transfer 2:
+  incoming 5NI
+  illegal against PN:F
+
+final target:
+  30PF
+
+timeline step 1 residue:
+  blocked 5NI
+```
+
+The important property is that the run does not summarize away tension. The
+final target is readable, but every transition and every blocked lane is still
+inspectable in the timeline.
+
 ### Subsequent Steps
 
 The next steps should stay incremental:
 
-1. Build a small route-settlement prototype that chains several
-   `BoundaryFlowTargetSettlement` records and reads total accepted/blocked
-   participation from the resulting timeline.
-2. Add competing-route tests where two transfers try to enter the same target
+1. Add competing-route tests where two transfers try to enter the same target
    capacity, preserving blocked residue per incoming lane.
+2. Decide whether capacity should be expressed as a target-local surface, a
+   transfer-local gate, or both, then keep the accepted/blocked split visible.
 3. Explore whether `CarrierAxisSurface` should remain a concept-surface helper
    or become a core-adjacent axis/face split.
 4. Only after those behaviors are stable, consider core changes to

@@ -623,6 +623,96 @@ public sealed class BoundaryFlowLaneBasisTests
         Assert.Equal("-30f", afterRead.Notation);
     }
 
+    [Fact]
+    public void SettlementRunChainsAcceptedTransfersIntoOneTimeline()
+    {
+        var target = new Carrier();
+        var targetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), target);
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            10,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+        var firstTransfer = PositiveTransferTo(target, targetAxis, sourceMagnitude: 2);
+        var secondTransfer = PositiveTransferTo(target, targetAxis, sourceMagnitude: 1);
+
+        Assert.True(BoundaryFlowTargetSettlementRun.TrySettle(
+            targetBefore,
+            [firstTransfer, secondTransfer],
+            out var run));
+        Assert.True(BoundaryFlowTargetSettlementRun.TryReadFinal(run, out var finalRead));
+        Assert.True(finalRead.IsLegal);
+        Assert.Equal(40, finalRead.Magnitude.Ticks);
+        Assert.Equal("40f", finalRead.Notation);
+        Assert.True(BoundaryFlowTargetSettlementRun.TryReadTimeline(run, out var timeline));
+        Assert.True(TimeStepSequence.TryRead(timeline, out _, out var initial, out var steps));
+        Assert.Equal(targetBefore, initial);
+        Assert.Equal(2, steps.Length);
+        Assert.True(BoundaryFlowTargetSettlementRun.TryReadTotals(run, out var totals));
+        Assert.Equal(30, totals.AcceptedMagnitude);
+        Assert.Equal(0, totals.BlockedMagnitude);
+        Assert.Equal(2, totals.StepCount);
+    }
+
+    [Fact]
+    public void SettlementRunPreservesBlockedResiduePerStep()
+    {
+        var target = new Carrier();
+        var targetAxis = CarrierAxisSurface.SignedForward(new Carrier(), target);
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            10,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+        var accepted = SignedForwardTransferTo(
+            target,
+            targetAxis,
+            sourceMagnitude: 2,
+            BoundaryFlowLane.PositiveForward);
+        var blocked = SignedBothFlowTransferTo(
+            target,
+            targetAxis,
+            sourceMagnitude: 5,
+            BoundaryFlowLane.NegativeInverse);
+
+        Assert.True(BoundaryFlowTargetSettlementRun.TrySettle(
+            targetBefore,
+            [accepted, blocked],
+            out var run));
+        Assert.True(BoundaryFlowTargetSettlementRun.TryReadFinal(run, out var finalRead));
+        Assert.Equal(30, finalRead.Magnitude.Ticks);
+        Assert.Equal("30f", finalRead.Notation);
+        Assert.True(BoundaryFlowTargetSettlementRun.TryReadTotals(run, out var totals));
+        Assert.Equal(20, totals.AcceptedMagnitude);
+        Assert.Equal(5, totals.BlockedMagnitude);
+        Assert.Equal(2, totals.StepCount);
+
+        Assert.True(BoundaryFlowTargetSettlementRun.TryReadTimeline(run, out var timeline));
+        Assert.True(TimeStepSequence.TryRead(timeline, out _, out _, out var steps));
+        Assert.Equal(2, steps.Length);
+        Assert.True(TimeStepSequence.TryReadStep(
+            steps[1],
+            out _,
+            out _,
+            out _,
+            out _,
+            out var transition,
+            out var after,
+            out var residue));
+        Assert.True(BoundaryFlowValueTransfer.TryReadSummary(
+            Assert.IsType<Relation>(transition),
+            out var transferRead));
+        Assert.True(transferRead.IsFullyBlocked);
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(Assert.IsType<Relation>(residue), out var blockedRead));
+        Assert.False(blockedRead.IsLegal);
+        Assert.Equal(BoundaryFlowLane.NegativeInverse, blockedRead.Lane);
+        Assert.Equal(5, blockedRead.Magnitude.Ticks);
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(Assert.IsType<Relation>(after), out var afterRead));
+        Assert.Equal(30, afterRead.Magnitude.Ticks);
+    }
+
     public static IEnumerable<object[]> SelectedLaneBasisStates()
     {
         yield return [BoundaryExposure.Positive, FlowExposure.Forward, "PF"];
@@ -633,6 +723,87 @@ public sealed class BoundaryFlowLaneBasisTests
         yield return [BoundaryExposure.FullSigned, FlowExposure.Both, "PF|PI|NF|NI"];
         yield return [BoundaryExposure.BoundedWhole, FlowExposure.None, "S:None"];
         yield return [BoundaryExposure.BoundedWhole, FlowExposure.Both, "SF|SI"];
+    }
+
+    private static Relation PositiveTransferTo(Carrier target, Relation targetAxis, long sourceMagnitude)
+    {
+        var source = new Carrier();
+        var sourceAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), source);
+        return ProjectedTransferTo(
+            source,
+            target,
+            sourceAxis,
+            targetAxis,
+            sourceMagnitude,
+            BoundaryFlowLane.PositiveForward,
+            Relation.Segment(source, 0, 10),
+            Relation.Segment(target, 0, 100));
+    }
+
+    private static Relation SignedForwardTransferTo(
+        Carrier target,
+        Relation targetAxis,
+        long sourceMagnitude,
+        BoundaryFlowLane sourceLane)
+    {
+        var source = new Carrier();
+        var sourceAxis = CarrierAxisSurface.SignedForward(new Carrier(), source);
+        return ProjectedTransferTo(
+            source,
+            target,
+            sourceAxis,
+            targetAxis,
+            sourceMagnitude,
+            sourceLane,
+            Relation.Segment(source, -10, 10),
+            Relation.Segment(target, -100, 100));
+    }
+
+    private static Relation SignedBothFlowTransferTo(
+        Carrier target,
+        Relation targetAxis,
+        long sourceMagnitude,
+        BoundaryFlowLane sourceLane)
+    {
+        var source = new Carrier();
+        var sourceAxis = CarrierAxisSurface.SignedBothFlows(new Carrier(), source);
+        return ProjectedTransferTo(
+            source,
+            target,
+            sourceAxis,
+            targetAxis,
+            sourceMagnitude,
+            sourceLane,
+            Relation.Segment(source, -10, 10),
+            Relation.Segment(target, -10, 10));
+    }
+
+    private static Relation ProjectedTransferTo(
+        Carrier source,
+        Carrier target,
+        Relation sourceAxis,
+        Relation targetAxis,
+        long sourceMagnitude,
+        BoundaryFlowLane sourceLane,
+        Relation sourceFrame,
+        Relation targetFrame)
+    {
+        var sourceValue = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            source,
+            checked((ulong)sourceMagnitude),
+            sourceLane,
+            sourceAxis);
+        var route = new Relation(sourceFrame, targetFrame);
+
+        Assert.True(BoundaryFlowValueRoute.TryProject(
+            sourceValue,
+            route,
+            targetAxis,
+            target,
+            out var routeSurface));
+        Assert.True(BoundaryFlowValueTransfer.TryAccept(routeSurface, out var transfer));
+        return transfer;
     }
 }
 

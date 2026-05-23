@@ -1337,6 +1337,209 @@ public static class BoundaryFlowTargetSettlement
 }
 
 /// <summary>
+/// Chains several target settlements into one visible run. The helper builds a
+/// fresh combined timeline from the same before/transfer/after/residue evidence
+/// already present in each local settlement step.
+/// </summary>
+public static class BoundaryFlowTargetSettlementRun
+{
+    public static Relation Create(
+        Carrier root,
+        Relation initialTarget,
+        Relation finalTarget,
+        Relation transfers,
+        Relation residues,
+        Relation timeline)
+    {
+        return Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            initialTarget ?? ConceptSurface.UnknownPoint(),
+            finalTarget ?? ConceptSurface.UnknownPoint(),
+            transfers ?? ConceptSurface.UnknownPoint(),
+            residues ?? ConceptSurface.UnknownPoint(),
+            timeline ?? ConceptSurface.UnknownPoint());
+    }
+
+    public static bool TrySettle(
+        Relation initialTarget,
+        IReadOnlyList<Relation> transferSurfaces,
+        out Relation runSurface)
+    {
+        if (initialTarget is null)
+        {
+            runSurface = null!;
+            return false;
+        }
+
+        var transfers = CleanRelations(transferSurfaces);
+        var current = initialTarget;
+        var time = new Carrier();
+        var steps = new List<Relation>();
+        var residues = new List<IElement>();
+
+        for (var index = 0; index < transfers.Length; index++)
+        {
+            if (!BoundaryFlowTargetSettlement.TrySettle(current, transfers[index], out var settlement) ||
+                !BoundaryFlowTargetSettlement.TryRead(
+                    settlement,
+                    out var before,
+                    out var transition,
+                    out var after,
+                    out var residue,
+                    out _))
+            {
+                runSurface = null!;
+                return false;
+            }
+
+            steps.Add(TimeStepSequence.Step(
+                new Carrier(),
+                time,
+                index,
+                index + 1,
+                before,
+                transition,
+                after,
+                residue));
+            residues.Add(residue);
+            current = after;
+        }
+
+        var timeline = TimeStepSequence.Create(new Carrier(), time, initialTarget, [.. steps]);
+        runSurface = Create(
+            new Carrier(),
+            initialTarget,
+            current,
+            Relation.OrderedGroup(new Carrier(), transfers),
+            Relation.OrderedGroup(new Carrier(), [.. residues]),
+            timeline);
+        return true;
+    }
+
+    public static bool TrySettle(
+        Relation initialTarget,
+        out Relation runSurface,
+        params Relation[] transferSurfaces) =>
+        TrySettle(initialTarget, transferSurfaces, out runSurface);
+
+    public static bool TryRead(
+        Relation runSurface,
+        out Relation initialTarget,
+        out Relation finalTarget,
+        out Relation transfers,
+        out Relation residues,
+        out Relation timeline)
+    {
+        if (ConceptSurfaceReader.TryReadRootElements(runSurface, out var elements) &&
+            elements.Length >= 5 &&
+            elements[0] is Relation initial &&
+            elements[1] is Relation final &&
+            elements[2] is Relation transferGroup &&
+            elements[3] is Relation residueGroup &&
+            elements[4] is Relation time)
+        {
+            initialTarget = initial;
+            finalTarget = final;
+            transfers = transferGroup;
+            residues = residueGroup;
+            timeline = time;
+            return true;
+        }
+
+        initialTarget = null!;
+        finalTarget = null!;
+        transfers = null!;
+        residues = null!;
+        timeline = null!;
+        return false;
+    }
+
+    public static bool TryReadFinal(
+        Relation runSurface,
+        out BoundaryFlowValueRead finalRead)
+    {
+        if (TryRead(runSurface, out _, out var final, out _, out _, out _))
+        {
+            return BoundaryFlowValueSurface.TryReadValue(final, out finalRead);
+        }
+
+        finalRead = default;
+        return false;
+    }
+
+    public static bool TryReadTimeline(Relation runSurface, out Relation timeline)
+    {
+        if (TryRead(runSurface, out _, out _, out _, out _, out var candidate) &&
+            TimeStepSequence.TryRead(candidate, out _, out _, out _))
+        {
+            timeline = candidate;
+            return true;
+        }
+
+        timeline = null!;
+        return false;
+    }
+
+    public static bool TryReadTotals(
+        Relation runSurface,
+        out BoundaryFlowSettlementRunTotals totals)
+    {
+        if (!TryReadTimeline(runSurface, out var timeline) ||
+            !TimeStepSequence.TryRead(timeline, out _, out _, out var steps))
+        {
+            totals = default;
+            return false;
+        }
+
+        var accepted = 0L;
+        var blocked = 0L;
+        foreach (var step in steps)
+        {
+            if (!TimeStepSequence.TryReadStep(
+                    step,
+                    out _,
+                    out _,
+                    out _,
+                    out _,
+                    out var transition,
+                    out _,
+                    out _) ||
+                transition is not Relation transfer ||
+                !BoundaryFlowValueTransfer.TryReadSummary(transfer, out var transferRead))
+            {
+                totals = default;
+                return false;
+            }
+
+            if (transferRead.HasAccepted)
+            {
+                accepted = checked(accepted + transferRead.Accepted.Magnitude.Ticks);
+            }
+
+            blocked = checked(blocked + transferRead.Blocked.Magnitude.Ticks);
+        }
+
+        totals = new BoundaryFlowSettlementRunTotals(accepted, blocked, steps.Length);
+        return true;
+    }
+
+    private static Relation[] CleanRelations(IReadOnlyList<Relation> relations)
+    {
+        if (relations is null || relations.Count == 0)
+        {
+            return [];
+        }
+
+        return [.. relations.Where(relation => relation is not null)];
+    }
+}
+
+public readonly record struct BoundaryFlowSettlementRunTotals(
+    long AcceptedMagnitude,
+    long BlockedMagnitude,
+    int StepCount);
+
+/// <summary>
 /// Builds and reads boundary/domain exposure surfaces. A boundary surface
 /// records whether left and right boundary sides are present, plus the
 /// selected whole/axis being described.
