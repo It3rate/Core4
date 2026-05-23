@@ -140,6 +140,109 @@ public sealed class BoundaryFlowLaneBasisTests
         Assert.False(isLegal);
     }
 
+    [Fact]
+    public void ValueReadProjectsLaneIntoSignedFlowNotation()
+    {
+        var carrier = new Carrier();
+        var axis = CarrierAxisSurface.SignedBothFlows(new Carrier(), carrier);
+        var value = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            carrier,
+            5,
+            BoundaryFlowLane.NegativeInverse,
+            axis);
+
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(value, out var read));
+        Assert.True(read.IsLegal);
+        Assert.True(read.IsInverseFlow);
+        Assert.False(read.IsForwardFlow);
+        Assert.Equal(-5, read.SignedTicks);
+        Assert.Equal("-5i", read.Notation);
+    }
+
+    [Fact]
+    public void SingleLaneBasisCanCreateInferredValueSurface()
+    {
+        var carrier = new Carrier();
+        var axis = CarrierAxisSurface.PositiveUnit(new Carrier(), carrier);
+        var magnitude = Relation.Point(carrier, 7);
+
+        Assert.True(BoundaryFlowValueSurface.TryCreateInferred(
+            new Carrier(),
+            magnitude,
+            axis,
+            out var value));
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(value, out var read));
+        Assert.Equal(BoundaryFlowLane.PositiveForward, read.Lane);
+        Assert.Equal("7f", read.Notation);
+    }
+
+    [Fact]
+    public void MultiLaneBasisDoesNotInferValueLane()
+    {
+        var carrier = new Carrier();
+        var axis = CarrierAxisSurface.SignedForward(new Carrier(), carrier);
+        var magnitude = Relation.Point(carrier, 7);
+
+        Assert.False(BoundaryFlowValueSurface.TryCreateInferred(
+            new Carrier(),
+            magnitude,
+            axis,
+            out _));
+    }
+
+    [Fact]
+    public void SignedForwardSurfaceCanSettleAcrossPositiveAndNegativeLanes()
+    {
+        var carrier = new Carrier();
+        var axis = CarrierAxisSurface.SignedForward(new Carrier(), carrier);
+        var value = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            carrier,
+            5,
+            BoundaryFlowLane.PositiveForward,
+            axis);
+
+        Assert.True(BoundaryFlowValueSettlement.TryApplySignedDelta(
+            value,
+            axis,
+            -8,
+            out var settled));
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(settled, out var read));
+        Assert.True(read.IsLegal);
+        Assert.Equal(BoundaryFlowLane.NegativeForward, read.Lane);
+        Assert.Equal(3, read.Magnitude.Ticks);
+        Assert.Equal(-3, read.SignedTicks);
+        Assert.Equal("-3f", read.Notation);
+        Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(read.ResidueOrTension, out var residue));
+        Assert.Equal(0, residue.Ticks);
+    }
+
+    [Fact]
+    public void PositiveForwardSurfaceLeavesResidueWhenDeltaWouldNeedNegativeLane()
+    {
+        var carrier = new Carrier();
+        var axis = CarrierAxisSurface.PositiveUnit(new Carrier(), carrier);
+        var value = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            carrier,
+            5,
+            BoundaryFlowLane.PositiveForward,
+            axis);
+
+        Assert.True(BoundaryFlowValueSettlement.TryApplySignedDelta(
+            value,
+            axis,
+            -8,
+            out var settled));
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(settled, out var read));
+        Assert.True(read.IsLegal);
+        Assert.Equal(BoundaryFlowLane.PositiveForward, read.Lane);
+        Assert.Equal(0, read.Magnitude.Ticks);
+        Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(read.ResidueOrTension, out var residue));
+        Assert.Equal(-3, residue.Ticks);
+    }
+
     public static IEnumerable<object[]> SelectedLaneBasisStates()
     {
         yield return [BoundaryExposure.Positive, FlowExposure.Forward, "PF"];
@@ -150,5 +253,23 @@ public sealed class BoundaryFlowLaneBasisTests
         yield return [BoundaryExposure.FullSigned, FlowExposure.Both, "PF|PI|NF|NI"];
         yield return [BoundaryExposure.BoundedWhole, FlowExposure.None, "S:None"];
         yield return [BoundaryExposure.BoundedWhole, FlowExposure.Both, "SF|SI"];
+    }
+}
+
+internal static class ConceptSurfaceReaderForTests
+{
+    public static bool TryReadPoint(IElement element, out CarrierLocation location)
+    {
+        if (element is Relation point &&
+            point.Left is CarrierLocation pointLocation &&
+            point.Right is Carrier pointCarrier &&
+            pointLocation.Carrier.SameIdentityAs(pointCarrier))
+        {
+            location = pointLocation;
+            return true;
+        }
+
+        location = default;
+        return false;
     }
 }

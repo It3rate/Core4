@@ -623,6 +623,174 @@ public static class BoundaryFlowValueSurface
         isLegal = BoundaryFlowLaneBasis.Allows(exposure, lane);
         return true;
     }
+
+    public static bool TryReadValue(
+        Relation valueSurface,
+        out BoundaryFlowValueRead read)
+    {
+        if (!TryRead(valueSurface, out var magnitude, out var lane, out _, out var laneBasis, out var residueOrTension) ||
+            laneBasis is not Relation basisRelation ||
+            !BoundaryFlowLaneBasis.TryReadExposure(basisRelation, out var exposure))
+        {
+            read = default;
+            return false;
+        }
+
+        read = new BoundaryFlowValueRead(
+            magnitude,
+            lane,
+            exposure,
+            BoundaryFlowLaneBasis.Allows(exposure, lane),
+            residueOrTension);
+        return true;
+    }
+
+    public static bool TryReadValue(
+        Relation valueSurface,
+        Relation laneBasis,
+        out BoundaryFlowValueRead read)
+    {
+        if (!TryRead(valueSurface, out var magnitude, out var lane, out _, out _, out var residueOrTension) ||
+            !BoundaryFlowLaneBasis.TryReadExposure(laneBasis, out var exposure))
+        {
+            read = default;
+            return false;
+        }
+
+        read = new BoundaryFlowValueRead(
+            magnitude,
+            lane,
+            exposure,
+            BoundaryFlowLaneBasis.Allows(exposure, lane),
+            residueOrTension);
+        return true;
+    }
+
+    public static bool TryCreateInferred(
+        Carrier root,
+        Relation magnitudePoint,
+        Relation laneBasis,
+        out Relation valueSurface)
+    {
+        if (!ConceptSurfaceReader.TryReadPoint(magnitudePoint, out _) ||
+            !BoundaryFlowLaneBasis.TryReadExposure(laneBasis, out var exposure) ||
+            !BoundaryFlowLaneBasis.TryInferSingleLane(exposure.Boundary, exposure.Flow, out var lane))
+        {
+            valueSurface = null!;
+            return false;
+        }
+
+        valueSurface = Create(
+            ConceptSurface.RootOrNew(root),
+            magnitudePoint,
+            lane,
+            laneBasis,
+            ConceptSurface.UnknownPoint());
+        return true;
+    }
+}
+
+/// <summary>
+/// Compact read of a value surface through a lane basis. The raw magnitude and
+/// occupied lane remain visible in the source structure.
+/// </summary>
+public readonly record struct BoundaryFlowValueRead(
+    CarrierLocation Magnitude,
+    BoundaryFlowLane Lane,
+    BoundaryFlowExposure Basis,
+    bool IsLegal,
+    IElement ResidueOrTension)
+{
+    public bool IsUnsignedMagnitude => Magnitude.Ticks >= 0;
+
+    public bool IsSignedBoundary => Lane.Boundary.IsPositive || Lane.Boundary.IsNegative;
+
+    public bool IsWholeBoundary => Lane.Boundary.IsWhole;
+
+    public bool IsNoFlow => Lane.Flow.IsNone;
+
+    public bool IsForwardFlow => Lane.Flow.IsForward;
+
+    public bool IsInverseFlow => Lane.Flow.IsInverse;
+
+    public long SignedTicks => Lane.Boundary.IsNegative
+        ? checked(-Magnitude.Ticks)
+        : Magnitude.Ticks;
+
+    public string Notation
+    {
+        get
+        {
+            var sign = Lane.Boundary.IsNegative ? "-" : string.Empty;
+            var suffix = Lane.Flow.IsInverse
+                ? "i"
+                : Lane.Flow.IsForward
+                    ? "f"
+                    : Lane.Boundary.IsWhole
+                        ? "s"
+                        : string.Empty;
+
+            return $"{sign}{Magnitude.Ticks}{suffix}";
+        }
+    }
+}
+
+/// <summary>
+/// Small lane-settlement experiment. It applies a signed delta to the visible
+/// value read without changing core carrier settlement.
+/// </summary>
+public static class BoundaryFlowValueSettlement
+{
+    public static bool TryApplySignedDelta(
+        Relation valueSurface,
+        Relation laneBasis,
+        long deltaTicks,
+        out Relation settledValue)
+    {
+        if (!BoundaryFlowValueSurface.TryReadValue(valueSurface, laneBasis, out var read) ||
+            !read.IsUnsignedMagnitude ||
+            !read.IsSignedBoundary)
+        {
+            settledValue = null!;
+            return false;
+        }
+
+        var target = checked(read.SignedTicks + deltaTicks);
+        var targetLane = new BoundaryFlowLane(
+            target < 0 ? BoundaryLane.Negative : BoundaryLane.Positive,
+            read.Lane.Flow);
+        var targetMagnitude = AbsAsLong(target);
+
+        if (BoundaryFlowLaneBasis.Allows(read.Basis, targetLane))
+        {
+            settledValue = BoundaryFlowValueSurface.Create(
+                new Carrier(),
+                Relation.Point(read.Magnitude.Carrier, targetMagnitude),
+                targetLane,
+                laneBasis,
+                Relation.Point(read.Magnitude.Carrier, 0));
+            return true;
+        }
+
+        var heldLane = new BoundaryFlowLane(read.Lane.Boundary, read.Lane.Flow);
+        settledValue = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            Relation.Point(read.Magnitude.Carrier, 0),
+            heldLane,
+            laneBasis,
+            Relation.Point(read.Magnitude.Carrier, target));
+        return true;
+    }
+
+    private static long AbsAsLong(long value)
+    {
+        if (value == long.MinValue)
+        {
+            return long.MaxValue;
+        }
+
+        return Math.Abs(value);
+    }
 }
 
 /// <summary>

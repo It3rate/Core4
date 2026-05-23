@@ -420,6 +420,79 @@ read requests ordinary signed forward scalar
   may project, reject, or leave residue depending on the visible lane
 ```
 
+## Lane-Aware Reads And First Settlement Experiment
+
+The first integration step should not rewrite `Carrier.Value`. Current carrier
+state can remain an unsigned magnitude holder while concept-surface structure
+adds the lane evidence needed to read that magnitude.
+
+The executable shape is:
+
+```text
+BoundaryFlowValueSurface
+  magnitude point
+  occupied lane marker
+  lane basis
+  residue / tension witness
+```
+
+A local read can project that structure into ordinary notation without owning
+the meaning:
+
+```text
+magnitude 5 + lane PF ->  5f
+magnitude 5 + lane NF -> -5f
+magnitude 5 + lane PI ->  5i
+magnitude 5 + lane NI -> -5i
+```
+
+The notation is only a read. The source remains the unsigned magnitude plus the
+visible lane marker.
+
+Single-lane bases can infer a missing value lane:
+
+```text
+P:F
+  legal lanes: PF
+  magnitude 7 can infer PF
+
+N:I
+  legal lanes: NI
+  magnitude 7 can infer NI
+```
+
+Multi-lane bases cannot infer a chosen value lane:
+
+```text
+PN:F
+  legal lanes: PF, NF
+  magnitude 7 alone is unresolved
+```
+
+The first lane-settlement experiment applies a signed delta as a local read
+over this structure. It is not core carrier settlement yet.
+
+```text
+PN:F value 5PF, delta -8
+  target read = -3f
+  NF is legal
+  settled value = 3NF
+  residue = 0
+
+P:F value 5PF, delta -8
+  target read = -3f
+  NF is not legal
+  settled value = 0PF
+  residue = -3
+```
+
+This is the behavior we want before touching core:
+
+```text
+surfaces with the right lane basis can cross sides
+surfaces without that lane keep visible residue/tension
+```
+
 ## Boundary Plus Flow Matrix
 
 The sixteen combinations are:
