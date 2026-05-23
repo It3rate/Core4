@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="ConceptShapes\**" />
+    <EmbeddedResource Remove="ConceptShapes\**" />
+    <None Remove="ConceptShapes\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="ConceptUnits\" />
   </ItemGroup>
 </Project>
