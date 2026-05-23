@@ -493,6 +493,98 @@ surfaces with the right lane basis can cross sides
 surfaces without that lane keep visible residue/tension
 ```
 
+## Lane-Aware Route Projection
+
+The next integration slice treats a lane value as something that can move
+through an ordinary projection relation. This is still not core carrier
+settlement. It is a visible route-adjacent surface:
+
+```text
+BoundaryFlowValueRoute
+  source value surface
+  projection relation
+  target lane basis
+  target value surface
+  residue / tension witness
+```
+
+The projection relation handles the coordinate read:
+
+```text
+source frame -> target frame
+```
+
+The lane basis handles admissibility:
+
+```text
+target basis allows projected lane?
+```
+
+Example: a signed-forward value can scale across two carriers:
+
+```text
+source basis:
+  PN:F
+
+source value:
+  5NF
+  read as -5f
+
+route:
+  source -10..10 -> target -100..100
+
+target basis:
+  PN:F
+
+target value:
+  50NF
+  read as -50f
+  residue 0
+```
+
+If the route projects a value into a lane the target does not expose, the
+rejected lane stays visible:
+
+```text
+source basis:
+  PN:FI
+
+source value:
+  5NI
+  read as -5i
+
+target basis:
+  PN:F
+
+target value:
+  5NI
+  illegal against target basis
+  residue / tension = -5 on target
+```
+
+This matters because it keeps these separate:
+
+```text
+projection relation
+  can move a coordinate from one frame to another
+
+target lane basis
+  decides which boundary/flow lanes can actually receive it
+
+residue/tension
+  records the projected participation that had no legal lane
+```
+
+The route helper therefore does not act like a global classifier. It assembles
+an inspectable route surface and reads local structure:
+
+```text
+value structure says the occupied lane
+route structure says how coordinate magnitude maps
+target basis says what can be received
+residue says what could not settle
+```
+
 ## Boundary Plus Flow Matrix
 
 The sixteen combinations are:

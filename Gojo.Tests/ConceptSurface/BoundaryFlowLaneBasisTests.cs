@@ -243,6 +243,112 @@ public sealed class BoundaryFlowLaneBasisTests
         Assert.Equal(-3, residue.Ticks);
     }
 
+    [Fact]
+    public void RouteProjectsSignedForwardValueAcrossCarrierBases()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        var sourceAxis = CarrierAxisSurface.SignedForward(new Carrier(), source);
+        var targetAxis = CarrierAxisSurface.SignedForward(new Carrier(), target);
+        var sourceValue = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            source,
+            5,
+            BoundaryFlowLane.NegativeForward,
+            sourceAxis);
+        var route = new Relation(
+            Relation.Segment(source, -10, 10),
+            Relation.Segment(target, -100, 100));
+
+        Assert.True(BoundaryFlowValueRoute.TryProject(
+            sourceValue,
+            route,
+            targetAxis,
+            target,
+            out var routeSurface));
+        Assert.True(BoundaryFlowValueRoute.TryRead(
+            routeSurface,
+            out var readSourceValue,
+            out var readRoute,
+            out var readTargetAxis,
+            out var targetValue,
+            out var routeResidue));
+        Assert.Equal(sourceValue, readSourceValue);
+        Assert.Equal(route, readRoute);
+        Assert.Equal(targetAxis, readTargetAxis);
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(targetValue, out var targetRead));
+        Assert.True(targetRead.IsLegal);
+        Assert.Equal(BoundaryFlowLane.NegativeForward, targetRead.Lane);
+        Assert.Equal(50, targetRead.Magnitude.Ticks);
+        Assert.Equal(-50, targetRead.SignedTicks);
+        Assert.Equal("-50f", targetRead.Notation);
+        Assert.Equal(targetRead.ResidueOrTension, routeResidue);
+        Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(routeResidue, out var residue));
+        Assert.Equal(0, residue.Ticks);
+    }
+
+    [Fact]
+    public void RouteKeepsRejectedInverseFlowVisibleOnForwardOnlyTarget()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        var sourceAxis = CarrierAxisSurface.SignedBothFlows(new Carrier(), source);
+        var targetAxis = CarrierAxisSurface.SignedForward(new Carrier(), target);
+        var sourceValue = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            source,
+            5,
+            BoundaryFlowLane.NegativeInverse,
+            sourceAxis);
+        var route = new Relation(
+            Relation.Segment(source, -10, 10),
+            Relation.Segment(target, -10, 10));
+
+        Assert.True(BoundaryFlowValueRoute.TryProject(
+            sourceValue,
+            route,
+            targetAxis,
+            target,
+            out var routeSurface));
+        Assert.True(BoundaryFlowValueRoute.TryReadTargetValue(routeSurface, out var targetRead));
+        Assert.False(targetRead.IsLegal);
+        Assert.Equal(BoundaryFlowLane.NegativeInverse, targetRead.Lane);
+        Assert.Equal(5, targetRead.Magnitude.Ticks);
+        Assert.Equal("-5i", targetRead.Notation);
+        Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(targetRead.ResidueOrTension, out var residue));
+        Assert.Equal(-5, residue.Ticks);
+    }
+
+    [Fact]
+    public void RouteScalesPositiveForwardValueIntoPositiveForwardTarget()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        var sourceAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), source);
+        var targetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), target);
+        var sourceValue = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            source,
+            5,
+            BoundaryFlowLane.PositiveForward,
+            sourceAxis);
+        var route = new Relation(
+            Relation.Segment(source, 0, 10),
+            Relation.Segment(target, 0, 100));
+
+        Assert.True(BoundaryFlowValueRoute.TryProject(
+            sourceValue,
+            route,
+            targetAxis,
+            target,
+            out var routeSurface));
+        Assert.True(BoundaryFlowValueRoute.TryReadTargetValue(routeSurface, out var targetRead));
+        Assert.True(targetRead.IsLegal);
+        Assert.Equal(BoundaryFlowLane.PositiveForward, targetRead.Lane);
+        Assert.Equal(50, targetRead.Magnitude.Ticks);
+        Assert.Equal("50f", targetRead.Notation);
+    }
+
     public static IEnumerable<object[]> SelectedLaneBasisStates()
     {
         yield return [BoundaryExposure.Positive, FlowExposure.Forward, "PF"];

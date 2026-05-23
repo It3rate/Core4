@@ -794,6 +794,171 @@ public static class BoundaryFlowValueSettlement
 }
 
 /// <summary>
+/// Lane-aware route projection between value surfaces. This is a route-adjacent
+/// experiment: the projection relation moves the signed/whole location, while
+/// the target lane basis decides whether the resulting occupied lane is legal.
+/// </summary>
+public static class BoundaryFlowValueRoute
+{
+    public static Relation Create(
+        Carrier root,
+        Relation sourceValue,
+        Relation projectionRoute,
+        Relation targetBasis,
+        Relation targetValue,
+        IElement residueOrTension)
+    {
+        return Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            sourceValue ?? ConceptSurface.UnknownPoint(),
+            projectionRoute ?? ConceptSurface.UnknownPoint(),
+            targetBasis ?? ConceptSurface.UnknownPoint(),
+            targetValue ?? ConceptSurface.UnknownPoint(),
+            residueOrTension ?? ConceptSurface.UnknownPoint());
+    }
+
+    public static bool TryProject(
+        Relation sourceValue,
+        Relation projectionRoute,
+        Relation targetBasis,
+        Carrier targetCarrier,
+        out Relation routeSurface)
+    {
+        if (!BoundaryFlowValueSurface.TryReadValue(sourceValue, out var sourceRead) ||
+            !sourceRead.IsLegal ||
+            projectionRoute is null ||
+            targetBasis is null ||
+            targetCarrier is null ||
+            targetCarrier.IsUnknown ||
+            !projectionRoute.TryProject(ProjectedSourceLocation(sourceRead), targetCarrier, out var projected) ||
+            !projected.TryGetCarrierLocations(out var targetLocation, out var projectionResidue))
+        {
+            routeSurface = null!;
+            return false;
+        }
+
+        var targetLane = ProjectedTargetLane(sourceRead, targetLocation, targetBasis);
+        var isAllowed = BoundaryFlowLaneBasis.TryReadExposure(targetBasis, out var targetExposure) &&
+            BoundaryFlowLaneBasis.Allows(targetExposure, targetLane);
+        var residueOrTension = isAllowed
+            ? Relation.Point(projectionResidue.Carrier, projectionResidue.Ticks)
+            : Relation.Point(targetLocation.Carrier, targetLocation.Ticks);
+        var targetValue = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            Relation.Point(targetLocation.Carrier, AbsAsLong(targetLocation.Ticks)),
+            targetLane,
+            targetBasis,
+            residueOrTension);
+
+        routeSurface = Create(
+            new Carrier(),
+            sourceValue,
+            projectionRoute,
+            targetBasis,
+            targetValue,
+            residueOrTension);
+        return true;
+    }
+
+    public static bool TryRead(
+        Relation routeSurface,
+        out Relation sourceValue,
+        out Relation projectionRoute,
+        out Relation targetBasis,
+        out Relation targetValue,
+        out IElement residueOrTension)
+    {
+        if (ConceptSurfaceReader.TryReadRootElements(routeSurface, out var elements) &&
+            elements.Length >= 5 &&
+            elements[0] is Relation source &&
+            elements[1] is Relation projection &&
+            elements[2] is Relation basis &&
+            elements[3] is Relation target)
+        {
+            sourceValue = source;
+            projectionRoute = projection;
+            targetBasis = basis;
+            targetValue = target;
+            residueOrTension = elements[4];
+            return true;
+        }
+
+        sourceValue = null!;
+        projectionRoute = null!;
+        targetBasis = null!;
+        targetValue = null!;
+        residueOrTension = default!;
+        return false;
+    }
+
+    public static bool TryReadTargetValue(
+        Relation routeSurface,
+        out BoundaryFlowValueRead targetRead)
+    {
+        if (TryRead(
+                routeSurface,
+                out _,
+                out _,
+                out var targetBasis,
+                out var targetValue,
+                out _))
+        {
+            return BoundaryFlowValueSurface.TryReadValue(targetValue, targetBasis, out targetRead);
+        }
+
+        targetRead = default;
+        return false;
+    }
+
+    private static CarrierLocation ProjectedSourceLocation(BoundaryFlowValueRead sourceRead) =>
+        sourceRead.IsWholeBoundary
+            ? sourceRead.Magnitude
+            : new CarrierLocation(sourceRead.Magnitude.Carrier, sourceRead.SignedTicks);
+
+    private static BoundaryFlowLane ProjectedTargetLane(
+        BoundaryFlowValueRead sourceRead,
+        CarrierLocation targetLocation,
+        Relation targetBasis)
+    {
+        var boundary = sourceRead.IsWholeBoundary
+            ? BoundaryLane.Whole
+            : targetLocation.Ticks < 0
+                ? BoundaryLane.Negative
+                : targetLocation.Ticks > 0
+                    ? BoundaryLane.Positive
+                    : ZeroBoundaryLane(sourceRead.Lane.Boundary, targetBasis);
+        return new BoundaryFlowLane(boundary, sourceRead.Lane.Flow);
+    }
+
+    private static BoundaryLane ZeroBoundaryLane(BoundaryLane sourceBoundary, Relation targetBasis)
+    {
+        if (BoundaryFlowLaneBasis.TryReadExposure(targetBasis, out var exposure) &&
+            BoundaryFlowLaneBasis.BoundaryLanes(exposure.Boundary).Contains(sourceBoundary))
+        {
+            return sourceBoundary;
+        }
+
+        if (BoundaryFlowLaneBasis.TryReadExposure(targetBasis, out exposure) &&
+            BoundaryFlowLaneBasis.BoundaryLanes(exposure.Boundary) is [var only])
+        {
+            return only;
+        }
+
+        return BoundaryLane.Positive;
+    }
+
+    private static long AbsAsLong(long value)
+    {
+        if (value == long.MinValue)
+        {
+            return long.MaxValue;
+        }
+
+        return Math.Abs(value);
+    }
+}
+
+/// <summary>
 /// Builds and reads boundary/domain exposure surfaces. A boundary surface
 /// records whether left and right boundary sides are present, plus the
 /// selected whole/axis being described.
