@@ -959,6 +959,205 @@ public static class BoundaryFlowValueRoute
 }
 
 /// <summary>
+/// Accepts or blocks a lane-aware projected route value. The source route
+/// remains visible; this surface adds accepted value, blocked value, and the
+/// capacity or gate witness used by the local read.
+/// </summary>
+public static class BoundaryFlowValueTransfer
+{
+    public static Relation Create(
+        Carrier root,
+        Relation routeSurface,
+        IElement acceptedValue,
+        IElement blockedValue,
+        IElement capacityOrGate)
+    {
+        return Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            routeSurface ?? ConceptSurface.UnknownPoint(),
+            acceptedValue ?? ConceptSurface.UnknownPoint(),
+            blockedValue ?? ConceptSurface.UnknownPoint(),
+            capacityOrGate ?? ConceptSurface.UnknownPoint());
+    }
+
+    public static bool TryAccept(
+        Relation routeSurface,
+        out Relation transferSurface) =>
+        TryAccept(routeSurface, null, out transferSurface);
+
+    public static bool TryAccept(
+        Relation routeSurface,
+        Relation? capacity,
+        out Relation transferSurface)
+    {
+        if (!BoundaryFlowValueRoute.TryRead(
+                routeSurface,
+                out _,
+                out _,
+                out var targetBasis,
+                out var projectedValue,
+                out _) ||
+            !BoundaryFlowValueSurface.TryReadValue(projectedValue, targetBasis, out var projectedRead) ||
+            !projectedRead.IsUnsignedMagnitude)
+        {
+            transferSurface = null!;
+            return false;
+        }
+
+        var capacityTicks = ReadCapacity(capacity, projectedRead.Magnitude.Ticks);
+        if (!projectedRead.IsLegal)
+        {
+            var blocked = CreateTransferValue(
+                projectedRead,
+                projectedRead.Magnitude.Ticks,
+                SignedResidueTicks(projectedRead.Lane, projectedRead.Magnitude.Ticks),
+                targetBasis);
+            transferSurface = Create(
+                new Carrier(),
+                routeSurface,
+                ConceptSurface.UnknownPoint(),
+                blocked,
+                capacity ?? ConceptSurface.UnknownPoint());
+            return true;
+        }
+
+        var acceptedTicks = Math.Min(projectedRead.Magnitude.Ticks, capacityTicks);
+        var blockedTicks = checked(projectedRead.Magnitude.Ticks - acceptedTicks);
+        var accepted = CreateTransferValue(projectedRead, acceptedTicks, 0, targetBasis);
+        var blockedValue = CreateTransferValue(
+            projectedRead,
+            blockedTicks,
+            SignedResidueTicks(projectedRead.Lane, blockedTicks),
+            targetBasis);
+
+        transferSurface = Create(
+            new Carrier(),
+            routeSurface,
+            accepted,
+            blockedValue,
+            capacity ?? ConceptSurface.UnknownPoint());
+        return true;
+    }
+
+    public static bool TryRead(
+        Relation transferSurface,
+        out Relation routeSurface,
+        out IElement acceptedValue,
+        out IElement blockedValue,
+        out IElement capacityOrGate)
+    {
+        if (ConceptSurfaceReader.TryReadRootElements(transferSurface, out var elements) &&
+            elements.Length >= 4 &&
+            elements[0] is Relation route)
+        {
+            routeSurface = route;
+            acceptedValue = elements[1];
+            blockedValue = elements[2];
+            capacityOrGate = elements[3];
+            return true;
+        }
+
+        routeSurface = null!;
+        acceptedValue = default!;
+        blockedValue = default!;
+        capacityOrGate = default!;
+        return false;
+    }
+
+    public static bool TryReadAcceptedValue(
+        Relation transferSurface,
+        out BoundaryFlowValueRead acceptedRead)
+    {
+        if (TryRead(transferSurface, out _, out var accepted, out _, out _) &&
+            accepted is Relation acceptedRelation)
+        {
+            return BoundaryFlowValueSurface.TryReadValue(acceptedRelation, out acceptedRead);
+        }
+
+        acceptedRead = default;
+        return false;
+    }
+
+    public static bool TryReadBlockedValue(
+        Relation transferSurface,
+        out BoundaryFlowValueRead blockedRead)
+    {
+        if (TryRead(transferSurface, out _, out _, out var blocked, out _) &&
+            blocked is Relation blockedRelation)
+        {
+            return BoundaryFlowValueSurface.TryReadValue(blockedRelation, out blockedRead);
+        }
+
+        blockedRead = default;
+        return false;
+    }
+
+    public static bool TryReadSummary(
+        Relation transferSurface,
+        out BoundaryFlowTransferRead read)
+    {
+        var hasAccepted = TryReadAcceptedValue(transferSurface, out var accepted);
+        if (!TryReadBlockedValue(transferSurface, out var blocked))
+        {
+            read = default;
+            return false;
+        }
+
+        read = new BoundaryFlowTransferRead(
+            hasAccepted ? accepted : default,
+            blocked,
+            hasAccepted);
+        return true;
+    }
+
+    private static Relation CreateTransferValue(
+        BoundaryFlowValueRead projectedRead,
+        long magnitudeTicks,
+        long residueTicks,
+        Relation targetBasis) =>
+        BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            Relation.Point(projectedRead.Magnitude.Carrier, magnitudeTicks),
+            projectedRead.Lane,
+            targetBasis,
+            Relation.Point(projectedRead.Magnitude.Carrier, residueTicks));
+
+    private static long ReadCapacity(Relation? capacity, long fallback)
+    {
+        if (capacity is null ||
+            !ConceptSurfaceReader.TryReadPoint(capacity, out var capacityLocation))
+        {
+            return fallback;
+        }
+
+        return Math.Max(0, capacityLocation.Ticks);
+    }
+
+    private static long SignedResidueTicks(BoundaryFlowLane lane, long magnitudeTicks) =>
+        lane.Boundary.IsNegative ? checked(-magnitudeTicks) : magnitudeTicks;
+}
+
+public readonly record struct BoundaryFlowTransferRead(
+    BoundaryFlowValueRead Accepted,
+    BoundaryFlowValueRead Blocked,
+    bool HasAccepted)
+{
+    public bool IsFullyAccepted =>
+        HasAccepted &&
+        Accepted.IsLegal &&
+        Blocked.Magnitude.Ticks == 0;
+
+    public bool IsPartiallyAccepted =>
+        HasAccepted &&
+        Accepted.Magnitude.Ticks > 0 &&
+        Blocked.Magnitude.Ticks > 0;
+
+    public bool IsFullyBlocked =>
+        !HasAccepted ||
+        Accepted.Magnitude.Ticks == 0 && Blocked.Magnitude.Ticks > 0;
+}
+
+/// <summary>
 /// Builds and reads boundary/domain exposure surfaces. A boundary surface
 /// records whether left and right boundary sides are present, plus the
 /// selected whole/axis being described.

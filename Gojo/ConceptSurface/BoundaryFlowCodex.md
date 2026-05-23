@@ -585,6 +585,83 @@ target basis says what can be received
 residue says what could not settle
 ```
 
+## Lane-Aware Transfer Acceptance
+
+Projection is still not the same as accepted transfer. A projected route can
+produce a candidate target value that the target basis cannot receive, or can
+produce more than a finite target capacity allows.
+
+The transfer surface separates those reads:
+
+```text
+BoundaryFlowValueTransfer
+  route surface
+  accepted target value
+  blocked target value
+  capacity / gate witness
+```
+
+Full acceptance:
+
+```text
+route target:
+  50NF
+  legal against PN:F
+
+transfer:
+  accepted = 50NF
+  blocked  = 0NF
+```
+
+Illegal lane blocking:
+
+```text
+route target:
+  5NI
+  illegal against PN:F
+
+transfer:
+  accepted = absent
+  blocked  = 5NI
+  residue  = -5 on target
+```
+
+The transfer does not invent a legal accepted lane when the projected lane is
+illegal. This is important: a target may expose `PF` and `NF`, but an incoming
+`NI` is not silently turned into `NF`. The lane mismatch remains visible.
+
+Capacity-limited partial acceptance:
+
+```text
+route target:
+  50PF
+  legal against P:F
+
+capacity witness:
+  30 on target
+
+transfer:
+  accepted = 30PF
+  blocked  = 20PF
+  residue  = 20 on target
+```
+
+This gives Gojo three distinct route-adjacent surfaces:
+
+```text
+projection
+  where the source reads on the target frame
+
+acceptance
+  what the target can receive locally
+
+residue/tension
+  what remains visible after the local receive read
+```
+
+That separation matches the larger Gojo rule: tension is information, not a
+hidden exception.
+
 ## Boundary Plus Flow Matrix
 
 The sixteen combinations are:

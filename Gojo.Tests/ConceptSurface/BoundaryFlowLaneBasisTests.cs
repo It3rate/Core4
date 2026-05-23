@@ -349,6 +349,115 @@ public sealed class BoundaryFlowLaneBasisTests
         Assert.Equal("50f", targetRead.Notation);
     }
 
+    [Fact]
+    public void TransferFullyAcceptsLegalProjectedLane()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        var sourceAxis = CarrierAxisSurface.SignedForward(new Carrier(), source);
+        var targetAxis = CarrierAxisSurface.SignedForward(new Carrier(), target);
+        var sourceValue = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            source,
+            5,
+            BoundaryFlowLane.NegativeForward,
+            sourceAxis);
+        var route = new Relation(
+            Relation.Segment(source, -10, 10),
+            Relation.Segment(target, -100, 100));
+
+        Assert.True(BoundaryFlowValueRoute.TryProject(
+            sourceValue,
+            route,
+            targetAxis,
+            target,
+            out var routeSurface));
+        Assert.True(BoundaryFlowValueTransfer.TryAccept(routeSurface, out var transfer));
+        Assert.True(BoundaryFlowValueTransfer.TryReadSummary(transfer, out var read));
+        Assert.True(read.IsFullyAccepted);
+        Assert.False(read.IsPartiallyAccepted);
+        Assert.Equal(BoundaryFlowLane.NegativeForward, read.Accepted.Lane);
+        Assert.Equal(50, read.Accepted.Magnitude.Ticks);
+        Assert.Equal("-50f", read.Accepted.Notation);
+        Assert.Equal(0, read.Blocked.Magnitude.Ticks);
+    }
+
+    [Fact]
+    public void TransferBlocksIllegalProjectedLaneWithoutInventingAcceptedValue()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        var sourceAxis = CarrierAxisSurface.SignedBothFlows(new Carrier(), source);
+        var targetAxis = CarrierAxisSurface.SignedForward(new Carrier(), target);
+        var sourceValue = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            source,
+            5,
+            BoundaryFlowLane.NegativeInverse,
+            sourceAxis);
+        var route = new Relation(
+            Relation.Segment(source, -10, 10),
+            Relation.Segment(target, -10, 10));
+
+        Assert.True(BoundaryFlowValueRoute.TryProject(
+            sourceValue,
+            route,
+            targetAxis,
+            target,
+            out var routeSurface));
+        Assert.True(BoundaryFlowValueTransfer.TryAccept(routeSurface, out var transfer));
+        Assert.False(BoundaryFlowValueTransfer.TryReadAcceptedValue(transfer, out _));
+        Assert.True(BoundaryFlowValueTransfer.TryReadSummary(transfer, out var read));
+        Assert.True(read.IsFullyBlocked);
+        Assert.False(read.HasAccepted);
+        Assert.False(read.Blocked.IsLegal);
+        Assert.Equal(BoundaryFlowLane.NegativeInverse, read.Blocked.Lane);
+        Assert.Equal(5, read.Blocked.Magnitude.Ticks);
+        Assert.Equal("-5i", read.Blocked.Notation);
+        Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(read.Blocked.ResidueOrTension, out var residue));
+        Assert.Equal(-5, residue.Ticks);
+    }
+
+    [Fact]
+    public void TransferPartiallyAcceptsCapacityLimitedProjection()
+    {
+        var source = new Carrier();
+        var target = new Carrier();
+        var sourceAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), source);
+        var targetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), target);
+        var sourceValue = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            source,
+            5,
+            BoundaryFlowLane.PositiveForward,
+            sourceAxis);
+        var route = new Relation(
+            Relation.Segment(source, 0, 10),
+            Relation.Segment(target, 0, 100));
+        var capacity = Relation.Point(target, 30);
+
+        Assert.True(BoundaryFlowValueRoute.TryProject(
+            sourceValue,
+            route,
+            targetAxis,
+            target,
+            out var routeSurface));
+        Assert.True(BoundaryFlowValueTransfer.TryAccept(
+            routeSurface,
+            capacity,
+            out var transfer));
+        Assert.True(BoundaryFlowValueTransfer.TryReadSummary(transfer, out var read));
+        Assert.True(read.IsPartiallyAccepted);
+        Assert.Equal(BoundaryFlowLane.PositiveForward, read.Accepted.Lane);
+        Assert.Equal(30, read.Accepted.Magnitude.Ticks);
+        Assert.Equal("30f", read.Accepted.Notation);
+        Assert.Equal(BoundaryFlowLane.PositiveForward, read.Blocked.Lane);
+        Assert.Equal(20, read.Blocked.Magnitude.Ticks);
+        Assert.Equal("20f", read.Blocked.Notation);
+        Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(read.Blocked.ResidueOrTension, out var residue));
+        Assert.Equal(20, residue.Ticks);
+    }
+
     public static IEnumerable<object[]> SelectedLaneBasisStates()
     {
         yield return [BoundaryExposure.Positive, FlowExposure.Forward, "PF"];
