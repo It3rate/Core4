@@ -777,6 +777,67 @@ public static class BoundaryFlowLaneTransitionSurface
 }
 
 /// <summary>
+/// Small construction helpers for unit shapes whose tick character includes
+/// boundary/flow lane descriptors. The returned unit shape carries ordinary
+/// descriptor structure; the helper is not the source of meaning.
+/// </summary>
+public static class BoundaryFlowUnitShape
+{
+    public static UnitShape DescribedAtom(
+        BoundaryExposure boundary,
+        FlowExposure flow,
+        IElement? selected,
+        bool includeBoundaryDualTransitions)
+    {
+        var selectedSurface = selected ?? Relation.Point(new Carrier(), 1);
+        var basis = BoundaryFlowLaneBasis.Create(
+            new Carrier(),
+            boundary,
+            flow,
+            selectedSurface);
+        var descriptors = new List<IElement> { basis };
+
+        if (includeBoundaryDualTransitions)
+        {
+            descriptors.AddRange(BoundaryFlowLaneTransitionSurface.BoundaryDualTransitions(
+                new Carrier(),
+                boundary,
+                flow));
+        }
+
+        return UnitShape
+            .DescribedAtom(basis)
+            .WithDescriptors([.. descriptors]);
+    }
+
+    public static UnitShape DescribedAtom(
+        BoundaryExposure boundary,
+        FlowExposure flow,
+        IElement? selected = null) =>
+        DescribedAtom(boundary, flow, selected, includeBoundaryDualTransitions: false);
+
+    public static UnitShape PositiveForward(IElement? selected = null) =>
+        DescribedAtom(BoundaryExposure.Positive, FlowExposure.Forward, selected);
+
+    public static UnitShape SignedForward(IElement? selected = null) =>
+        DescribedAtom(
+            BoundaryExposure.FullSigned,
+            FlowExposure.Forward,
+            selected,
+            includeBoundaryDualTransitions: true);
+
+    public static UnitShape SignedBothFlows(IElement? selected = null) =>
+        DescribedAtom(
+            BoundaryExposure.FullSigned,
+            FlowExposure.Both,
+            selected,
+            includeBoundaryDualTransitions: true);
+
+    public static UnitShape BoundedWholeNoFlow(IElement? selected = null) =>
+        DescribedAtom(BoundaryExposure.BoundedWhole, FlowExposure.None, selected);
+}
+
+/// <summary>
 /// Attaches an unsigned magnitude point to one occupied boundary/flow lane.
 /// The magnitude carrier's unit shape normally supplies possible lanes; this
 /// structure describes where this value actually sits.
@@ -1860,15 +1921,34 @@ public static class BoundaryFlowRemainingCapacitySurface
         Relation targetCapacity,
         Relation targetValue,
         Relation remainingCapacity,
-        Relation overflow)
+        Relation overflow,
+        Relation effectiveCapacity,
+        Relation partitionResidue)
     {
         return Relation.OrderedGroup(
             ConceptSurface.RootOrNew(root),
             targetCapacity ?? ConceptSurface.UnknownPoint(),
             targetValue ?? ConceptSurface.UnknownPoint(),
             remainingCapacity ?? ConceptSurface.UnknownPoint(),
-            overflow ?? ConceptSurface.UnknownPoint());
+            overflow ?? ConceptSurface.UnknownPoint(),
+            effectiveCapacity ?? ConceptSurface.UnknownPoint(),
+            partitionResidue ?? ConceptSurface.UnknownPoint());
     }
+
+    public static Relation Create(
+        Carrier root,
+        Relation targetCapacity,
+        Relation targetValue,
+        Relation remainingCapacity,
+        Relation overflow) =>
+        Create(
+            root,
+            targetCapacity,
+            targetValue,
+            remainingCapacity,
+            overflow,
+            remainingCapacity,
+            ConceptSurface.UnknownPoint());
 
     public static bool TryCreate(
         Carrier root,
@@ -1888,14 +1968,17 @@ public static class BoundaryFlowRemainingCapacitySurface
         }
 
         var occupiedTicks = targetRead.Magnitude.Ticks;
-        var remainingTicks = Math.Max(0, checked(capacityRead.Capacity.Ticks - occupiedTicks));
-        var overflowTicks = Math.Max(0, checked(occupiedTicks - capacityRead.Capacity.Ticks));
+        var effectiveCapacity = EffectiveCapacityOf(targetCapacity, capacityRead.Capacity);
+        var remainingTicks = Math.Max(0, checked(effectiveCapacity.Capacity.Ticks - occupiedTicks));
+        var overflowTicks = Math.Max(0, checked(occupiedTicks - effectiveCapacity.Capacity.Ticks));
         remainingCapacitySurface = Create(
             root,
             targetCapacity,
             targetValue,
-            Relation.Point(capacityRead.Capacity.Carrier, remainingTicks),
-            Relation.Point(capacityRead.Capacity.Carrier, overflowTicks));
+            Relation.Point(effectiveCapacity.Capacity.Carrier, remainingTicks),
+            Relation.Point(effectiveCapacity.Capacity.Carrier, overflowTicks),
+            Relation.Point(effectiveCapacity.Capacity.Carrier, effectiveCapacity.Capacity.Ticks),
+            Relation.Point(effectiveCapacity.Residue.Carrier, effectiveCapacity.Residue.Ticks));
         return true;
     }
 
@@ -1931,6 +2014,41 @@ public static class BoundaryFlowRemainingCapacitySurface
         return false;
     }
 
+    public static bool TryReadEffectiveCapacity(
+        Relation surface,
+        out Relation effectiveCapacity,
+        out Relation partitionResidue)
+    {
+        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
+            elements.Length >= 6 &&
+            elements[4] is Relation effective &&
+            elements[5] is Relation residue &&
+            ConceptSurfaceReader.TryReadPoint(effective, out _) &&
+            ConceptSurfaceReader.TryReadPoint(residue, out _))
+        {
+            effectiveCapacity = effective;
+            partitionResidue = residue;
+            return true;
+        }
+
+        if (TryRead(
+                surface,
+                out var targetCapacity,
+                out _,
+                out _,
+                out _) &&
+            BoundaryFlowTargetCapacitySurface.TryReadCapacity(targetCapacity, out var capacityRead))
+        {
+            effectiveCapacity = Relation.Point(capacityRead.Capacity.Carrier, capacityRead.Capacity.Ticks);
+            partitionResidue = Relation.Point(capacityRead.Capacity.Carrier, 0);
+            return true;
+        }
+
+        effectiveCapacity = null!;
+        partitionResidue = null!;
+        return false;
+    }
+
     public static bool TryReadCapacity(
         Relation surface,
         out BoundaryFlowRemainingCapacityRead read)
@@ -1946,11 +2064,22 @@ public static class BoundaryFlowRemainingCapacitySurface
             ConceptSurfaceReader.TryReadPoint(remainingCapacity, out var remainingLocation) &&
             ConceptSurfaceReader.TryReadPoint(overflow, out var overflowLocation))
         {
+            var effective = TryReadEffectiveCapacity(
+                    surface,
+                    out var effectiveCapacity,
+                    out var partitionResidue) &&
+                ConceptSurfaceReader.TryReadPoint(effectiveCapacity, out var effectiveLocation) &&
+                ConceptSurfaceReader.TryReadPoint(partitionResidue, out var residueLocation)
+                    ? new EffectiveCapacityRead(effectiveLocation, residueLocation)
+                    : EffectiveCapacityOf(targetCapacity, capacityRead.Capacity);
+
             read = new BoundaryFlowRemainingCapacityRead(
                 capacityRead.Capacity,
+                effective.Capacity,
                 targetRead.Magnitude,
                 remainingLocation,
                 overflowLocation,
+                effective.Residue,
                 capacityRead.TargetCarrier,
                 capacityRead.TargetBasis);
             return true;
@@ -1959,15 +2088,47 @@ public static class BoundaryFlowRemainingCapacitySurface
         read = default;
         return false;
     }
+
+    private static EffectiveCapacityRead EffectiveCapacityOf(
+        Relation targetCapacity,
+        CarrierLocation wholeCapacity)
+    {
+        if (!BoundaryFlowTargetCapacitySurface.TryReadPartition(
+                targetCapacity,
+                out _,
+                out var partitionCount,
+                out var selectedPartition) ||
+            partitionCount <= 0 ||
+            !ConceptSurfaceReader.TryReadPoint(selectedPartition, out var selected))
+        {
+            return new EffectiveCapacityRead(
+                wholeCapacity,
+                new CarrierLocation(wholeCapacity.Carrier, 0));
+        }
+
+        var selectedTicks = Math.Clamp(selected.Ticks, 0, partitionCount);
+        var scaled = checked(wholeCapacity.Ticks * selectedTicks);
+        var effectiveTicks = scaled / partitionCount;
+        var residueTicks = scaled % partitionCount;
+        return new EffectiveCapacityRead(
+            new CarrierLocation(wholeCapacity.Carrier, effectiveTicks),
+            new CarrierLocation(selected.Carrier, residueTicks));
+    }
 }
 
 public readonly record struct BoundaryFlowRemainingCapacityRead(
     CarrierLocation WholeCapacity,
+    CarrierLocation EffectiveCapacity,
     CarrierLocation Occupied,
     CarrierLocation Remaining,
     CarrierLocation Overflow,
+    CarrierLocation PartitionResidue,
     Carrier TargetCarrier,
     BoundaryFlowExposure TargetBasis);
+
+internal readonly record struct EffectiveCapacityRead(
+    CarrierLocation Capacity,
+    CarrierLocation Residue);
 
 /// <summary>
 /// Accepts several projected routes against one shared capacity witness. Legal

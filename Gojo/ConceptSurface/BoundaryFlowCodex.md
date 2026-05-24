@@ -465,6 +465,21 @@ No value had to duplicate the transition rule. The values only carried their
 magnitude and occupied lane; the shared UnitShape supplied the possible lanes
 and the lane-crossing structure.
 
+`BoundaryFlowUnitShape` is only a construction helper for this descriptor
+bundle. For example:
+
+```text
+BoundaryFlowUnitShape.SignedForward()
+  creates UnitShape.DescribedAtom(...)
+  descriptor 0 = BoundaryFlowLaneBasis(PN:F)
+  descriptor 1 = BoundaryFlowLaneTransitionSurface(PF -> NF)
+  descriptor 2 = BoundaryFlowLaneTransitionSurface(NF -> PF)
+```
+
+If that helper disappeared, the UnitShape descriptors would still carry the
+meaning. This keeps it Gojo-native: the helper builds inspectable structure;
+it does not become a hidden unit-kind classifier.
+
 Carrier axis helpers can also expose transition evidence. `SignedForward`
 currently carries the conventional `PF -> NF` and `NF -> PF` transition pair
 as part of the surface, while a bare `BoundaryFlowLaneBasis(PN:F)` only says
@@ -1267,7 +1282,8 @@ rough opening percentage, or a manufacturing tolerance band.
 
 Target capacity by itself is the whole receiving amount. A target value can
 already occupy part of that amount. Remaining capacity is a separate local read
-that keeps all three pieces visible:
+that keeps the whole, effective opening, occupancy, remaining amount, overflow,
+and partition residue visible:
 
 ```text
 BoundaryFlowRemainingCapacitySurface
@@ -1275,6 +1291,8 @@ BoundaryFlowRemainingCapacitySurface
   current target value
   remaining capacity point
   overflow point
+  effective capacity point
+  partition residue point
 ```
 
 Example:
@@ -1287,9 +1305,32 @@ target capacity:
   whole = 40
 
 remaining read:
+  effective = 40
   occupied = 15
   remaining = 25
   overflow = 0
+  partition residue = 0
+```
+
+If the target capacity has a selected partition, the selected partition limits
+the effective receiving capacity without hiding the original whole:
+
+```text
+target capacity:
+  whole = 60
+  partition count = 3
+  selected partition = 2
+
+target value:
+  15PF
+
+remaining read:
+  whole = 60
+  effective = 40
+  occupied = 15
+  remaining = 25
+  overflow = 0
+  partition residue = 0
 ```
 
 If the current target already exceeds the whole capacity, the remaining read
@@ -1303,6 +1344,26 @@ target capacity:
   whole = 40
 
 remaining read:
+  effective = 40
+  occupied = 45
+  remaining = 0
+  overflow = 5
+```
+
+For partitioned targets, overflow is measured against the effective capacity:
+
+```text
+target capacity:
+  whole = 60
+  partition count = 3
+  selected partition = 2
+
+target value:
+  45PF
+
+remaining read:
+  whole = 60
+  effective = 40
   occupied = 45
   remaining = 0
   overflow = 5
@@ -1342,20 +1403,22 @@ them to the same target site or same capacity witness. Without that local
 structure, shared carrier identity is just a shared numeric substrate, not a
 claim that every value on the carrier contributes to one balance.
 
+The partition read is deliberately low resolution. `selected partition = 2`
+over `partition count = 3` means "the selected opening admits two of three
+addressable parts of this whole." It does not decide whether those parts are
+valve detents, throttle settings, gear stops, manufacturing tolerance buckets,
+or a UI slider. Those readings can be built as higher-resolution structures on
+top of the same partition evidence.
+
 ### Subsequent Steps
 
 The next steps should stay incremental:
 
-1. Use selected target-capacity partitions inside remaining-capacity reads, so
-   coarse valve/detent/opening positions can limit usable capacity.
-2. Explore whether `CarrierAxisSurface` should remain a concept-surface helper
+1. Explore whether `CarrierAxisSurface` should remain a concept-surface helper
    or become a core-adjacent axis/face split.
-3. Decide whether lane-transition descriptors should eventually move from
-   concept-surface helpers into a more core-adjacent UnitShape descriptor
-   constructor.
-4. Decide where target mismatch should settle: failed helper read, explicit
+2. Decide where target mismatch should settle: failed helper read, explicit
    tension surface, or blocked-capacity residue.
-5. Only after those behaviors are stable, consider core changes to
+3. Only after those behaviors are stable, consider core changes to
    `Carrier.Value`, `CarrierLocation`, or `Carrier.IsInverse`.
 
 ## Boundary Plus Flow Matrix

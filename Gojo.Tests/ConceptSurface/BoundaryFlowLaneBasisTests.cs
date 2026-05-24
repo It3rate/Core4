@@ -597,6 +597,33 @@ public sealed class BoundaryFlowLaneBasisTests
     }
 
     [Fact]
+    public void BoundaryFlowUnitShapeSignedForwardCarriesBasisAndTransitionPair()
+    {
+        var signedTickShape = BoundaryFlowUnitShape.SignedForward();
+
+        Assert.True(BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
+            signedTickShape,
+            out _,
+            out var exposure,
+            out _,
+            out var lanes));
+        Assert.Equal(new BoundaryFlowExposure(BoundaryExposure.FullSigned, FlowExposure.Forward), exposure);
+        Assert.Equal(
+            [BoundaryFlowLane.PositiveForward, BoundaryFlowLane.NegativeForward],
+            lanes);
+        Assert.True(BoundaryFlowLaneTransitionSurface.TryFindUnitShapeTransition(
+            signedTickShape,
+            BoundaryFlowLane.PositiveForward,
+            BoundaryFlowLane.NegativeForward,
+            out _));
+        Assert.True(BoundaryFlowLaneTransitionSurface.TryFindUnitShapeTransition(
+            signedTickShape,
+            BoundaryFlowLane.NegativeForward,
+            BoundaryFlowLane.PositiveForward,
+            out _));
+    }
+
+    [Fact]
     public void UnitShapeLaneTransitionsAllowSignedDeltaWithoutValueBasis()
     {
         var signedTickShape = SignedForwardUnitShapeWithTransitions();
@@ -1447,6 +1474,81 @@ public sealed class BoundaryFlowLaneBasisTests
     }
 
     [Fact]
+    public void RemainingCapacitySurfaceUsesSelectedTargetCapacityPartition()
+    {
+        var target = new Carrier();
+        var targetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), target);
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            15,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+        var selectedOpening = Relation.Point(new Carrier(), 2);
+
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryCreatePartitioned(
+            new Carrier(),
+            targetBefore,
+            60,
+            3,
+            selectedOpening,
+            out var capacity));
+        Assert.True(BoundaryFlowRemainingCapacitySurface.TryCreate(
+            new Carrier(),
+            capacity,
+            targetBefore,
+            out var remaining));
+        Assert.True(BoundaryFlowRemainingCapacitySurface.TryReadCapacity(remaining, out var read));
+        Assert.Equal(60, read.WholeCapacity.Ticks);
+        Assert.Equal(40, read.EffectiveCapacity.Ticks);
+        Assert.Equal(15, read.Occupied.Ticks);
+        Assert.Equal(25, read.Remaining.Ticks);
+        Assert.Equal(0, read.Overflow.Ticks);
+        Assert.Equal(0, read.PartitionResidue.Ticks);
+        Assert.True(BoundaryFlowRemainingCapacitySurface.TryReadEffectiveCapacity(
+            remaining,
+            out var effectiveCapacity,
+            out var partitionResidue));
+        Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(effectiveCapacity, out var effectiveRead));
+        Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(partitionResidue, out var residueRead));
+        Assert.Equal(40, effectiveRead.Ticks);
+        Assert.Equal(0, residueRead.Ticks);
+    }
+
+    [Fact]
+    public void RemainingCapacitySurfaceLeavesOverflowAgainstSelectedPartition()
+    {
+        var target = new Carrier();
+        var targetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), target);
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            45,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+        var selectedOpening = Relation.Point(new Carrier(), 2);
+
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryCreatePartitioned(
+            new Carrier(),
+            targetBefore,
+            60,
+            3,
+            selectedOpening,
+            out var capacity));
+        Assert.True(BoundaryFlowRemainingCapacitySurface.TryCreate(
+            new Carrier(),
+            capacity,
+            targetBefore,
+            out var remaining));
+        Assert.True(BoundaryFlowRemainingCapacitySurface.TryReadCapacity(remaining, out var read));
+        Assert.Equal(60, read.WholeCapacity.Ticks);
+        Assert.Equal(40, read.EffectiveCapacity.Ticks);
+        Assert.Equal(45, read.Occupied.Ticks);
+        Assert.Equal(0, read.Remaining.Ticks);
+        Assert.Equal(5, read.Overflow.Ticks);
+    }
+
+    [Fact]
     public void RemainingCapacitySurfaceLeavesOverflowWhenTargetAlreadyExceedsCapacity()
     {
         var target = new Carrier();
@@ -1470,6 +1572,7 @@ public sealed class BoundaryFlowLaneBasisTests
             out var remaining));
         Assert.True(BoundaryFlowRemainingCapacitySurface.TryReadCapacity(remaining, out var read));
         Assert.Equal(40, read.WholeCapacity.Ticks);
+        Assert.Equal(40, read.EffectiveCapacity.Ticks);
         Assert.Equal(45, read.Occupied.Ticks);
         Assert.Equal(0, read.Remaining.Ticks);
         Assert.Equal(5, read.Overflow.Ticks);
@@ -1563,6 +1666,44 @@ public sealed class BoundaryFlowLaneBasisTests
     }
 
     [Fact]
+    public void SharedCapacityCanUsePartitionedRemainingTargetCapacity()
+    {
+        var target = new Carrier();
+        var targetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), target);
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            15,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+        var firstRoute = PositiveRouteTo(target, targetAxis, sourceMagnitude: 3);
+        var secondRoute = PositiveRouteTo(target, targetAxis, sourceMagnitude: 3);
+        var selectedOpening = Relation.Point(new Carrier(), 2);
+
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryCreatePartitioned(
+            new Carrier(),
+            targetBefore,
+            60,
+            3,
+            selectedOpening,
+            out var capacity));
+        Assert.True(BoundaryFlowRemainingCapacitySurface.TryCreate(
+            new Carrier(),
+            capacity,
+            targetBefore,
+            out var remaining));
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryAccept(
+            remaining,
+            [firstRoute, secondRoute],
+            out var shared));
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryReadTotals(shared, out var totals));
+        Assert.Equal(25, totals.CapacityMagnitude);
+        Assert.Equal(25, totals.AcceptedMagnitude);
+        Assert.Equal(35, totals.BlockedMagnitude);
+        Assert.Equal(0, totals.UnusedCapacity);
+    }
+
+    [Fact]
     public void TargetLocalCapacityRejectsRoutesForOtherTargetCarriers()
     {
         var capacityTarget = new Carrier();
@@ -1602,6 +1743,11 @@ public sealed class BoundaryFlowLaneBasisTests
 
     private static UnitShape SignedForwardUnitShapeWithTransitions(bool includeReverse = true)
     {
+        if (includeReverse)
+        {
+            return BoundaryFlowUnitShape.SignedForward();
+        }
+
         var possibleLanes = BoundaryFlowLaneBasis.Create(
             new Carrier(),
             BoundaryExposure.FullSigned,
@@ -1611,17 +1757,9 @@ public sealed class BoundaryFlowLaneBasisTests
             new Carrier(),
             BoundaryFlowLane.PositiveForward,
             BoundaryFlowLane.NegativeForward);
-        var negativeToPositive = BoundaryFlowLaneTransitionSurface.Create(
-            new Carrier(),
-            BoundaryFlowLane.NegativeForward,
-            BoundaryFlowLane.PositiveForward);
-        return includeReverse
-            ? UnitShape
-                .DescribedAtom(possibleLanes)
-                .WithDescriptors(possibleLanes, positiveToNegative, negativeToPositive)
-            : UnitShape
-                .DescribedAtom(possibleLanes)
-                .WithDescriptors(possibleLanes, positiveToNegative);
+        return UnitShape
+            .DescribedAtom(possibleLanes)
+            .WithDescriptors(possibleLanes, positiveToNegative);
     }
 
     private static Relation PositiveTransferTo(Carrier target, Relation targetAxis, long sourceMagnitude)
