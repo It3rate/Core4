@@ -599,22 +599,7 @@ public sealed class BoundaryFlowLaneBasisTests
     [Fact]
     public void UnitShapeLaneTransitionsAllowSignedDeltaWithoutValueBasis()
     {
-        var possibleLanes = BoundaryFlowLaneBasis.Create(
-            new Carrier(),
-            BoundaryExposure.FullSigned,
-            FlowExposure.Forward,
-            Relation.Point(new Carrier(), 1));
-        var positiveToNegative = BoundaryFlowLaneTransitionSurface.Create(
-            new Carrier(),
-            BoundaryFlowLane.PositiveForward,
-            BoundaryFlowLane.NegativeForward);
-        var negativeToPositive = BoundaryFlowLaneTransitionSurface.Create(
-            new Carrier(),
-            BoundaryFlowLane.NegativeForward,
-            BoundaryFlowLane.PositiveForward);
-        var signedTickShape = UnitShape
-            .DescribedAtom(possibleLanes)
-            .WithDescriptors(possibleLanes, positiveToNegative, negativeToPositive);
+        var signedTickShape = SignedForwardUnitShapeWithTransitions();
         var firstCarrier = new Carrier(signedTickShape);
         var secondCarrier = new Carrier(signedTickShape);
         var firstValue = BoundaryFlowValueSurface.CreateOccupied(
@@ -649,6 +634,79 @@ public sealed class BoundaryFlowLaneBasisTests
         Assert.Equal(BoundaryFlowLane.PositiveForward, secondRead.Lane);
         Assert.Equal(3, secondRead.Magnitude.Ticks);
         Assert.Equal("3f", secondRead.Notation);
+    }
+
+    [Fact]
+    public void OneWayUnitShapeLaneTransitionOnlySettlesItsDirection()
+    {
+        var signedTickShape = SignedForwardUnitShapeWithTransitions(includeReverse: false);
+        var firstCarrier = new Carrier(signedTickShape);
+        var secondCarrier = new Carrier(signedTickShape);
+        var firstValue = BoundaryFlowValueSurface.CreateOccupied(
+            new Carrier(),
+            firstCarrier,
+            5,
+            BoundaryFlowLane.PositiveForward);
+        var secondValue = BoundaryFlowValueSurface.CreateOccupied(
+            new Carrier(),
+            secondCarrier,
+            2,
+            BoundaryFlowLane.NegativeForward);
+
+        Assert.True(BoundaryFlowValueSettlement.TryApplySignedDelta(
+            firstValue,
+            -8,
+            out var firstSettled));
+        Assert.True(BoundaryFlowValueSettlement.TryApplySignedDelta(
+            secondValue,
+            5,
+            out var secondSettled));
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(firstSettled, out var firstRead));
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(secondSettled, out var secondRead));
+        Assert.Equal(BoundaryFlowLane.NegativeForward, firstRead.Lane);
+        Assert.Equal(3, firstRead.Magnitude.Ticks);
+        Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(firstRead.ResidueOrTension, out var firstResidue));
+        Assert.Equal(0, firstResidue.Ticks);
+        Assert.Equal(BoundaryFlowLane.NegativeForward, secondRead.Lane);
+        Assert.Equal(0, secondRead.Magnitude.Ticks);
+        Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(secondRead.ResidueOrTension, out var secondResidue));
+        Assert.Equal(3, secondResidue.Ticks);
+    }
+
+    [Fact]
+    public void RouteCanResolveTargetBasisFromCarrierUnitShape()
+    {
+        var source = new Carrier();
+        var target = new Carrier(SignedForwardUnitShapeWithTransitions());
+        var sourceAxis = CarrierAxisSurface.SignedForward(new Carrier(), source);
+        var sourceValue = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            source,
+            5,
+            BoundaryFlowLane.NegativeForward,
+            sourceAxis);
+        var route = new Relation(
+            Relation.Segment(source, -10, 10),
+            Relation.Segment(target, -100, 100));
+
+        Assert.True(BoundaryFlowValueRoute.TryProject(
+            sourceValue,
+            route,
+            target,
+            out var routeSurface));
+        Assert.True(BoundaryFlowValueRoute.TryRead(
+            routeSurface,
+            out _,
+            out _,
+            out var targetBasis,
+            out var targetValue,
+            out _));
+        Assert.True(BoundaryFlowLaneBasis.TryRead(targetBasis, out var exposure, out _, out _));
+        Assert.Equal(new BoundaryFlowExposure(BoundaryExposure.FullSigned, FlowExposure.Forward), exposure);
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(targetValue, out var targetRead));
+        Assert.True(targetRead.IsLegal);
+        Assert.Equal(BoundaryFlowLane.NegativeForward, targetRead.Lane);
+        Assert.Equal("-50f", targetRead.Notation);
     }
 
     [Fact]
@@ -1031,6 +1089,44 @@ public sealed class BoundaryFlowLaneBasisTests
     }
 
     [Fact]
+    public void TargetSettlementUsesUnitShapeLaneTransitionsForOccupiedTarget()
+    {
+        var source = new Carrier();
+        var target = new Carrier(SignedForwardUnitShapeWithTransitions());
+        var sourceAxis = CarrierAxisSurface.SignedForward(new Carrier(), source);
+        var sourceValue = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            source,
+            5,
+            BoundaryFlowLane.NegativeForward,
+            sourceAxis);
+        var targetBefore = BoundaryFlowValueSurface.CreateOccupied(
+            new Carrier(),
+            target,
+            20,
+            BoundaryFlowLane.PositiveForward);
+        var route = new Relation(
+            Relation.Segment(source, -10, 10),
+            Relation.Segment(target, -100, 100));
+
+        Assert.True(BoundaryFlowValueRoute.TryProject(
+            sourceValue,
+            route,
+            target,
+            out var routeSurface));
+        Assert.True(BoundaryFlowValueTransfer.TryAccept(routeSurface, out var transfer));
+        Assert.True(BoundaryFlowTargetSettlement.TrySettle(
+            targetBefore,
+            transfer,
+            out var settlement));
+        Assert.True(BoundaryFlowTargetSettlement.TryReadAfter(settlement, out var afterRead));
+        Assert.True(afterRead.IsLegal);
+        Assert.Equal(BoundaryFlowLane.NegativeForward, afterRead.Lane);
+        Assert.Equal(30, afterRead.Magnitude.Ticks);
+        Assert.Equal("-30f", afterRead.Notation);
+    }
+
+    [Fact]
     public void SettlementRunChainsAcceptedTransfersIntoOneTimeline()
     {
         var target = new Carrier();
@@ -1259,6 +1355,27 @@ public sealed class BoundaryFlowLaneBasisTests
     }
 
     [Fact]
+    public void TargetCapacityCanResolveBasisFromUnitShapeOccupiedTarget()
+    {
+        var target = new Carrier(SignedForwardUnitShapeWithTransitions());
+        var targetBefore = BoundaryFlowValueSurface.CreateOccupied(
+            new Carrier(),
+            target,
+            0,
+            BoundaryFlowLane.PositiveForward);
+
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryCreate(
+            new Carrier(),
+            targetBefore,
+            40,
+            out var capacity));
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryReadCapacity(capacity, out var read));
+        Assert.True(read.TargetCarrier.SameIdentityAs(target));
+        Assert.Equal(40, read.Capacity.Ticks);
+        Assert.Equal(new BoundaryFlowExposure(BoundaryExposure.FullSigned, FlowExposure.Forward), read.TargetBasis);
+    }
+
+    [Fact]
     public void TargetCapacitySurfaceCanExposeCoarsePartitions()
     {
         var target = new Carrier();
@@ -1481,6 +1598,30 @@ public sealed class BoundaryFlowLaneBasisTests
         yield return [BoundaryExposure.FullSigned, FlowExposure.Both, "PF|PI|NF|NI"];
         yield return [BoundaryExposure.BoundedWhole, FlowExposure.None, "S:None"];
         yield return [BoundaryExposure.BoundedWhole, FlowExposure.Both, "SF|SI"];
+    }
+
+    private static UnitShape SignedForwardUnitShapeWithTransitions(bool includeReverse = true)
+    {
+        var possibleLanes = BoundaryFlowLaneBasis.Create(
+            new Carrier(),
+            BoundaryExposure.FullSigned,
+            FlowExposure.Forward,
+            Relation.Point(new Carrier(), 1));
+        var positiveToNegative = BoundaryFlowLaneTransitionSurface.Create(
+            new Carrier(),
+            BoundaryFlowLane.PositiveForward,
+            BoundaryFlowLane.NegativeForward);
+        var negativeToPositive = BoundaryFlowLaneTransitionSurface.Create(
+            new Carrier(),
+            BoundaryFlowLane.NegativeForward,
+            BoundaryFlowLane.PositiveForward);
+        return includeReverse
+            ? UnitShape
+                .DescribedAtom(possibleLanes)
+                .WithDescriptors(possibleLanes, positiveToNegative, negativeToPositive)
+            : UnitShape
+                .DescribedAtom(possibleLanes)
+                .WithDescriptors(possibleLanes, positiveToNegative);
     }
 
     private static Relation PositiveTransferTo(Carrier target, Relation targetAxis, long sourceMagnitude)

@@ -1222,6 +1222,27 @@ public static class BoundaryFlowValueRoute
     public static bool TryProject(
         Relation sourceValue,
         Relation projectionRoute,
+        Carrier targetCarrier,
+        out Relation routeSurface)
+    {
+        if (targetCarrier is null ||
+            !BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
+                targetCarrier.UnitShape,
+                out var targetBasis,
+                out _,
+                out _,
+                out _))
+        {
+            routeSurface = null!;
+            return false;
+        }
+
+        return TryProject(sourceValue, projectionRoute, targetBasis, targetCarrier, out routeSurface);
+    }
+
+    public static bool TryProject(
+        Relation sourceValue,
+        Relation projectionRoute,
         Relation targetBasis,
         Carrier targetCarrier,
         out Relation routeSurface)
@@ -1609,14 +1630,10 @@ public static class BoundaryFlowTargetCapacitySurface
         out Relation targetCapacitySurface)
     {
         if (capacityTicks < 0 ||
-            !BoundaryFlowValueSurface.TryRead(
+            !BoundaryFlowValueSurface.TryReadCompleteValue(
                 targetValue,
-                out var magnitude,
-                out _,
-                out _,
-                out var laneBasis,
-                out _) ||
-            laneBasis is not Relation targetBasis)
+                out var targetRead,
+                out var targetBasis))
         {
             targetCapacitySurface = null!;
             return false;
@@ -1626,7 +1643,7 @@ public static class BoundaryFlowTargetCapacitySurface
             root,
             targetValue,
             targetBasis,
-            Relation.Point(magnitude.Carrier, capacityTicks));
+            Relation.Point(targetRead.Magnitude.Carrier, capacityTicks));
         return true;
     }
 
@@ -1639,20 +1656,16 @@ public static class BoundaryFlowTargetCapacitySurface
         out Relation targetCapacitySurface)
     {
         if (capacityTicks < 0 ||
-            !BoundaryFlowValueSurface.TryRead(
+            !BoundaryFlowValueSurface.TryReadCompleteValue(
                 targetValue,
-                out var magnitude,
-                out _,
-                out _,
-                out var laneBasis,
-                out _) ||
-            laneBasis is not Relation targetBasis)
+                out var targetRead,
+                out var targetBasis))
         {
             targetCapacitySurface = null!;
             return false;
         }
 
-        var capacityPoint = Relation.Point(magnitude.Carrier, capacityTicks);
+        var capacityPoint = Relation.Point(targetRead.Magnitude.Carrier, capacityTicks);
         var partition = ConceptPartition.Create(
             new Carrier(),
             capacityPoint,
@@ -2378,14 +2391,10 @@ public static class BoundaryFlowTargetSettlement
         Relation transferSurface,
         out Relation settlementSurface)
     {
-        if (!BoundaryFlowValueSurface.TryRead(
+        if (!BoundaryFlowValueSurface.TryReadCompleteValue(
                 targetBefore,
                 out _,
-                out _,
-                out _,
-                out var laneBasis,
-                out _) ||
-            laneBasis is not Relation targetBasis ||
+                out var targetBasis) ||
             !BoundaryFlowValueTransfer.TryReadSummary(transferSurface, out var transferRead))
         {
             settlementSurface = null!;

@@ -799,6 +799,26 @@ target basis says what can be received
 residue says what could not settle
 ```
 
+When the route target is a carrier with a lane-aware unit shape, the route can
+resolve its target basis from that carrier instead of requiring a duplicate
+host basis:
+
+```text
+target carrier UnitShape descriptors:
+  BoundaryFlowLaneBasis(PN:F)
+  BoundaryFlowLaneTransitionSurface(PF -> NF)
+  BoundaryFlowLaneTransitionSurface(NF -> PF)
+
+BoundaryFlowValueRoute.TryProject(source, projection, target carrier)
+  reads target basis from target.UnitShape
+  creates target value against the resolved basis
+```
+
+The transition descriptors are not consumed by projection. Projection only
+asks where the incoming coordinate lands and whether the target lane is legal.
+Lane transitions matter when accepted flow is later settled into an existing
+target value.
+
 ## Lane-Aware Transfer Acceptance
 
 Projection is still not the same as accepted transfer. A projected route can
@@ -892,7 +912,9 @@ BoundaryFlowTargetSettlement
 ```
 
 The target settlement uses the target value's resolved basis. A legal accepted
-value can move the target across lanes only when that basis admits the result:
+value can move the target across lanes only when the target basis admits the
+result and a directed lane transition is visible on the target UnitShape or the
+host basis:
 
 ```text
 target before:
@@ -904,8 +926,36 @@ accepted transfer:
 target basis:
   PN:F
 
+transition evidence:
+  PF -> NF
+
 target after:
   30NF
+```
+
+If `PN:F` is present but `PF -> NF` is not, the target lane is legal but the
+crossing does not settle. The target remains at the closest held lane and the
+unsettled part is visible as residue or blocked evidence.
+
+This is the reusable UnitShape path:
+
+```text
+target carrier UnitShape descriptors:
+  BoundaryFlowLaneBasis(PN:F)
+  BoundaryFlowLaneTransitionSurface(PF -> NF)
+  BoundaryFlowLaneTransitionSurface(NF -> PF)
+
+target before:
+  magnitude 20
+  occupied lane PF
+  no duplicated basis on the value
+
+accepted transfer:
+  50NF
+
+settlement:
+  resolves PN:F and transitions from target.UnitShape
+  writes target after = 30NF
 ```
 
 Blocked transfer does not invent an accepted value or update the target:
@@ -1162,6 +1212,22 @@ shared read:
   blocked = 10PF + 10PF
 ```
 
+Target-local capacity construction also uses complete basis resolution. A
+target value can therefore be a normal carrier-backed occupied value:
+
+```text
+target carrier UnitShape:
+  BoundaryFlowLaneBasis(PN:F)
+
+target value:
+  0PF
+  basis slot unresolved
+
+BoundaryFlowTargetCapacitySurface.TryCreate(target value, 40)
+  resolves PN:F from target.UnitShape
+  attaches capacity to that target basis
+```
+
 The same shared-capacity transfer can still read a bare point for low-resolution
 experiments, but when the capacity witness is target-local it also checks that
 the incoming routes are local to the same target carrier and compatible basis:
@@ -1280,13 +1346,16 @@ claim that every value on the carrier contributes to one balance.
 
 The next steps should stay incremental:
 
-1. Decide where target mismatch should settle: failed helper read, explicit
-   tension surface, or blocked-capacity residue.
-2. Use selected target-capacity partitions inside remaining-capacity reads, so
+1. Use selected target-capacity partitions inside remaining-capacity reads, so
    coarse valve/detent/opening positions can limit usable capacity.
-3. Explore whether `CarrierAxisSurface` should remain a concept-surface helper
+2. Explore whether `CarrierAxisSurface` should remain a concept-surface helper
    or become a core-adjacent axis/face split.
-4. Only after those behaviors are stable, consider core changes to
+3. Decide whether lane-transition descriptors should eventually move from
+   concept-surface helpers into a more core-adjacent UnitShape descriptor
+   constructor.
+4. Decide where target mismatch should settle: failed helper read, explicit
+   tension surface, or blocked-capacity residue.
+5. Only after those behaviors are stable, consider core changes to
    `Carrier.Value`, `CarrierLocation`, or `Carrier.IsInverse`.
 
 ## Boundary Plus Flow Matrix
