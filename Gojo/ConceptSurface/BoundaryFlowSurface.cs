@@ -352,6 +352,33 @@ public static class BoundaryFlowLaneBasis
         return false;
     }
 
+    public static bool TryReadUnitShapeBasis(
+        UnitShape unitShape,
+        out Relation basis,
+        out BoundaryFlowExposure exposure,
+        out IElement selected,
+        out BoundaryFlowLane[] lanes)
+    {
+        if (unitShape is not null)
+        {
+            foreach (var descriptor in unitShape.DescriptorSurfaces)
+            {
+                if (descriptor is Relation candidate &&
+                    TryRead(candidate, out exposure, out selected, out lanes))
+                {
+                    basis = candidate;
+                    return true;
+                }
+            }
+        }
+
+        basis = null!;
+        exposure = default;
+        selected = default!;
+        lanes = [];
+        return false;
+    }
+
     internal static bool TryReadExposure(Relation surface, out BoundaryFlowExposure exposure)
     {
         if (BoundaryFlowSurface.TryRead(surface, out exposure) ||
@@ -684,6 +711,37 @@ public static class BoundaryFlowValueSurface
         valueSurface = Create(
             ConceptSurface.RootOrNew(root),
             magnitudePoint,
+            lane,
+            laneBasis,
+            ConceptSurface.UnknownPoint());
+        return true;
+    }
+
+    public static bool TryCreateFromCarrierUnitShape(
+        Carrier root,
+        Carrier valueCarrier,
+        ulong magnitude,
+        BoundaryFlowLane lane,
+        out Relation valueSurface)
+    {
+        if (valueCarrier is null ||
+            !BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
+                valueCarrier.UnitShape,
+                out var laneBasis,
+                out _,
+                out _,
+                out _) ||
+            !BoundaryFlowLaneBasis.TryReadExposure(laneBasis, out var exposure) ||
+            !BoundaryFlowLaneBasis.Allows(exposure, lane))
+        {
+            valueSurface = null!;
+            return false;
+        }
+
+        valueSurface = Create(
+            ConceptSurface.RootOrNew(root),
+            valueCarrier,
+            magnitude,
             lane,
             laneBasis,
             ConceptSurface.UnknownPoint());

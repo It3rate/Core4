@@ -305,6 +305,36 @@ That is the current best route for tick-character meaning. The carrier can keep
 its unsigned live value, while the unit shape says how one tick should be read
 when this concept surface asks about boundary/flow lanes.
 
+For complete boundary-flow values, the split is:
+
+```text
+unit shape descriptor
+  possible lanes
+
+value surface
+  occupied lane
+```
+
+Example:
+
+```text
+Carrier.UnitShape descriptor:
+  BoundaryFlowLaneBasis(PN:F)
+  legal lanes = PF, NF
+
+value:
+  magnitude = 6
+  occupied lane = NF
+
+read:
+  -6f
+```
+
+The same unsigned carrier magnitude could occupy `PF` or `NF`, but it must say
+which one. If the carrier unit shape has no lane-basis descriptor, then a helper
+that claims to create a complete boundary-flow value should fail or produce
+unresolved structure. It should not silently guess `P:F`, `PN:F`, or `S:None`.
+
 So the emerging split is:
 
 ```text

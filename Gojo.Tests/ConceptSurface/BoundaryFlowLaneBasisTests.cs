@@ -141,6 +141,82 @@ public sealed class BoundaryFlowLaneBasisTests
     }
 
     [Fact]
+    public void CarrierUnitShapeCanSupplyPossibleLanesForCompleteValue()
+    {
+        var tickSource = Relation.Point(new Carrier(), 1);
+        var possibleLanes = BoundaryFlowLaneBasis.Create(
+            new Carrier(),
+            BoundaryExposure.FullSigned,
+            FlowExposure.Forward,
+            tickSource);
+        var signedTickShape = UnitShape.DescribedAtom(possibleLanes);
+        var valueCarrier = new Carrier(signedTickShape);
+
+        Assert.True(BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
+            valueCarrier.UnitShape,
+            out var laneBasis,
+            out var exposure,
+            out _,
+            out var lanes));
+        Assert.True(BoundaryFlowLaneBasis.TryRead(laneBasis, out var basisExposure, out _, out _));
+        Assert.Equal(exposure, basisExposure);
+        Assert.Equal("PN:F", exposure.Label);
+        Assert.Equal("PF|NF", string.Join("|", lanes.Select(lane => lane.Label)));
+
+        Assert.True(BoundaryFlowValueSurface.TryCreateFromCarrierUnitShape(
+            new Carrier(),
+            valueCarrier,
+            6,
+            BoundaryFlowLane.NegativeForward,
+            out var value));
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(value, out var read));
+        Assert.True(read.IsLegal);
+        Assert.Equal(exposure, read.Basis);
+        Assert.Equal(BoundaryFlowLane.NegativeForward, read.Lane);
+        Assert.Equal(-6, read.SignedTicks);
+        Assert.Equal("-6f", read.Notation);
+    }
+
+    [Fact]
+    public void CarrierUnitShapeRejectsOccupiedLaneOutsidePossibleLanes()
+    {
+        var tickSource = Relation.Point(new Carrier(), 1);
+        var possibleLanes = BoundaryFlowLaneBasis.Create(
+            new Carrier(),
+            BoundaryExposure.FullSigned,
+            FlowExposure.Forward,
+            tickSource);
+        var signedTickShape = UnitShape.DescribedAtom(possibleLanes);
+        var valueCarrier = new Carrier(signedTickShape);
+
+        Assert.False(BoundaryFlowValueSurface.TryCreateFromCarrierUnitShape(
+            new Carrier(),
+            valueCarrier,
+            6,
+            BoundaryFlowLane.NegativeInverse,
+            out _));
+    }
+
+    [Fact]
+    public void CarrierWithoutLaneDescriptorCannotCreateCompleteBoundaryFlowValue()
+    {
+        var valueCarrier = new Carrier();
+
+        Assert.False(BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
+            valueCarrier.UnitShape,
+            out _,
+            out _,
+            out _,
+            out _));
+        Assert.False(BoundaryFlowValueSurface.TryCreateFromCarrierUnitShape(
+            new Carrier(),
+            valueCarrier,
+            6,
+            BoundaryFlowLane.PositiveForward,
+            out _));
+    }
+
+    [Fact]
     public void CarrierAxisSurfaceCanExposeLegalLanesWithoutDuplicatingValues()
     {
         var carrier = new Carrier();
