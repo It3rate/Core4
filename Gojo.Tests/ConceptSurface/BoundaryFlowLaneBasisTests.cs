@@ -713,6 +713,357 @@ public sealed class BoundaryFlowLaneBasisTests
         Assert.Equal(30, afterRead.Magnitude.Ticks);
     }
 
+    [Fact]
+    public void SharedCapacitySplitsBetweenCompetingLegalRoutes()
+    {
+        var target = new Carrier();
+        var targetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), target);
+        var firstRoute = PositiveRouteTo(target, targetAxis, sourceMagnitude: 3);
+        var secondRoute = PositiveRouteTo(target, targetAxis, sourceMagnitude: 3);
+        var capacity = Relation.Point(target, 40);
+
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryAccept(
+            capacity,
+            [firstRoute, secondRoute],
+            out var shared));
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryReadTotals(shared, out var totals));
+        Assert.Equal(40, totals.CapacityMagnitude);
+        Assert.Equal(40, totals.AcceptedMagnitude);
+        Assert.Equal(20, totals.BlockedMagnitude);
+        Assert.Equal(0, totals.UnusedCapacity);
+        Assert.Equal(2, totals.TransferCount);
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryReadSummaries(shared, out var summaries));
+        Assert.Equal(2, summaries.Length);
+        Assert.All(summaries, summary =>
+        {
+            Assert.True(summary.IsPartiallyAccepted);
+            Assert.Equal(20, summary.Accepted.Magnitude.Ticks);
+            Assert.Equal(10, summary.Blocked.Magnitude.Ticks);
+        });
+
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryReadTransfers(shared, out var transfers));
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            0,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+        Assert.True(BoundaryFlowTargetSettlementRun.TrySettle(
+            targetBefore,
+            transfers,
+            out var run));
+        Assert.True(BoundaryFlowTargetSettlementRun.TryReadFinal(run, out var finalRead));
+        Assert.Equal(40, finalRead.Magnitude.Ticks);
+        Assert.Equal("40f", finalRead.Notation);
+    }
+
+    [Fact]
+    public void SharedCapacityKeepsIllegalLaneBlockedAndCapacityUnused()
+    {
+        var target = new Carrier();
+        var targetAxis = CarrierAxisSurface.SignedForward(new Carrier(), target);
+        var legalRoute = SignedForwardRouteTo(
+            target,
+            targetAxis,
+            sourceMagnitude: 3,
+            BoundaryFlowLane.PositiveForward);
+        var illegalRoute = SignedBothFlowRouteTo(
+            target,
+            targetAxis,
+            sourceMagnitude: 5,
+            BoundaryFlowLane.NegativeInverse);
+        var capacity = Relation.Point(target, 40);
+
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryAccept(
+            capacity,
+            [legalRoute, illegalRoute],
+            out var shared));
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryReadTotals(shared, out var totals));
+        Assert.Equal(40, totals.CapacityMagnitude);
+        Assert.Equal(30, totals.AcceptedMagnitude);
+        Assert.Equal(5, totals.BlockedMagnitude);
+        Assert.Equal(10, totals.UnusedCapacity);
+        Assert.Equal(2, totals.TransferCount);
+
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryReadSummaries(shared, out var summaries));
+        Assert.True(summaries[0].IsFullyAccepted);
+        Assert.Equal(30, summaries[0].Accepted.Magnitude.Ticks);
+        Assert.True(summaries[1].IsFullyBlocked);
+        Assert.False(summaries[1].Blocked.IsLegal);
+        Assert.Equal(BoundaryFlowLane.NegativeInverse, summaries[1].Blocked.Lane);
+        Assert.Equal(5, summaries[1].Blocked.Magnitude.Ticks);
+
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryReadTransfers(shared, out var transfers));
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            0,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+        Assert.True(BoundaryFlowTargetSettlementRun.TrySettle(
+            targetBefore,
+            transfers,
+            out var run));
+        Assert.True(BoundaryFlowTargetSettlementRun.TryReadFinal(run, out var finalRead));
+        Assert.Equal(30, finalRead.Magnitude.Ticks);
+        Assert.Equal("30f", finalRead.Notation);
+    }
+
+    [Fact]
+    public void TargetCapacitySurfaceKeepsCapacityAttachedToTargetBasis()
+    {
+        var target = new Carrier();
+        var targetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), target);
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            0,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryCreate(
+            new Carrier(),
+            targetBefore,
+            40,
+            out var capacity));
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryRead(
+            capacity,
+            out var targetSite,
+            out var targetBasis,
+            out var capacitySurface,
+            out var capacityPoint,
+            out _,
+            out _));
+        Assert.Equal(targetBefore, targetSite);
+        Assert.Equal(targetAxis, targetBasis);
+        Assert.True(ConceptCapacity.TryRead(
+            capacitySurface,
+            out var capacityPassage,
+            out var wholeCapacity,
+            out _,
+            out _));
+        Assert.Equal(targetBefore, capacityPassage);
+        Assert.Equal(capacityPoint, wholeCapacity);
+
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryReadCapacity(capacity, out var read));
+        Assert.Equal(40, read.Capacity.Ticks);
+        Assert.True(read.TargetCarrier.SameIdentityAs(target));
+        Assert.Equal(new BoundaryFlowExposure(BoundaryExposure.Positive, FlowExposure.Forward), read.TargetBasis);
+    }
+
+    [Fact]
+    public void TargetCapacitySurfaceCanExposeCoarsePartitions()
+    {
+        var target = new Carrier();
+        var targetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), target);
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            0,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+        var selectedOpening = Relation.Point(new Carrier(), 2);
+
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryCreatePartitioned(
+            new Carrier(),
+            targetBefore,
+            60,
+            3,
+            selectedOpening,
+            out var capacity));
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryReadCapacity(capacity, out var read));
+        Assert.Equal(60, read.Capacity.Ticks);
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryReadPartition(
+            capacity,
+            out var partition,
+            out var partitionCount,
+            out var selectedPartition));
+        Assert.Equal(3, partitionCount);
+        Assert.Equal(selectedOpening, selectedPartition);
+        Assert.True(ConceptPartition.TryRead(
+            partition,
+            out var whole,
+            out _,
+            out _,
+            out _,
+            out _));
+        Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(Assert.IsType<Relation>(whole), out var wholeRead));
+        Assert.Equal(60, wholeRead.Ticks);
+    }
+
+    [Fact]
+    public void RemainingCapacitySurfaceSubtractsCurrentTargetOccupancy()
+    {
+        var target = new Carrier();
+        var targetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), target);
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            15,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryCreate(
+            new Carrier(),
+            targetBefore,
+            40,
+            out var capacity));
+        Assert.True(BoundaryFlowRemainingCapacitySurface.TryCreate(
+            new Carrier(),
+            capacity,
+            targetBefore,
+            out var remaining));
+        Assert.True(BoundaryFlowRemainingCapacitySurface.TryReadCapacity(remaining, out var read));
+        Assert.Equal(40, read.WholeCapacity.Ticks);
+        Assert.Equal(15, read.Occupied.Ticks);
+        Assert.Equal(25, read.Remaining.Ticks);
+        Assert.Equal(0, read.Overflow.Ticks);
+        Assert.True(read.TargetCarrier.SameIdentityAs(target));
+        Assert.Equal(new BoundaryFlowExposure(BoundaryExposure.Positive, FlowExposure.Forward), read.TargetBasis);
+    }
+
+    [Fact]
+    public void RemainingCapacitySurfaceLeavesOverflowWhenTargetAlreadyExceedsCapacity()
+    {
+        var target = new Carrier();
+        var targetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), target);
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            45,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryCreate(
+            new Carrier(),
+            targetBefore,
+            40,
+            out var capacity));
+        Assert.True(BoundaryFlowRemainingCapacitySurface.TryCreate(
+            new Carrier(),
+            capacity,
+            targetBefore,
+            out var remaining));
+        Assert.True(BoundaryFlowRemainingCapacitySurface.TryReadCapacity(remaining, out var read));
+        Assert.Equal(40, read.WholeCapacity.Ticks);
+        Assert.Equal(45, read.Occupied.Ticks);
+        Assert.Equal(0, read.Remaining.Ticks);
+        Assert.Equal(5, read.Overflow.Ticks);
+    }
+
+    [Fact]
+    public void SharedCapacityCanUseTargetLocalCapacitySurface()
+    {
+        var target = new Carrier();
+        var targetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), target);
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            0,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+        var firstRoute = PositiveRouteTo(target, targetAxis, sourceMagnitude: 3);
+        var secondRoute = PositiveRouteTo(target, targetAxis, sourceMagnitude: 3);
+
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryCreate(
+            new Carrier(),
+            targetBefore,
+            40,
+            out var capacity));
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryAccept(
+            capacity,
+            [firstRoute, secondRoute],
+            out var shared));
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryRead(
+            shared,
+            out var capacityWitness,
+            out _,
+            out _,
+            out _,
+            out _));
+        Assert.Equal(capacity, capacityWitness);
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryReadTotals(shared, out var totals));
+        Assert.Equal(40, totals.CapacityMagnitude);
+        Assert.Equal(40, totals.AcceptedMagnitude);
+        Assert.Equal(20, totals.BlockedMagnitude);
+    }
+
+    [Fact]
+    public void SharedCapacityCanUseRemainingTargetCapacity()
+    {
+        var target = new Carrier();
+        var targetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), target);
+        var targetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            target,
+            15,
+            BoundaryFlowLane.PositiveForward,
+            targetAxis);
+        var firstRoute = PositiveRouteTo(target, targetAxis, sourceMagnitude: 3);
+        var secondRoute = PositiveRouteTo(target, targetAxis, sourceMagnitude: 3);
+
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryCreate(
+            new Carrier(),
+            targetBefore,
+            40,
+            out var capacity));
+        Assert.True(BoundaryFlowRemainingCapacitySurface.TryCreate(
+            new Carrier(),
+            capacity,
+            targetBefore,
+            out var remaining));
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryAccept(
+            remaining,
+            [firstRoute, secondRoute],
+            out var shared));
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryReadTotals(shared, out var totals));
+        Assert.Equal(25, totals.CapacityMagnitude);
+        Assert.Equal(25, totals.AcceptedMagnitude);
+        Assert.Equal(35, totals.BlockedMagnitude);
+        Assert.Equal(0, totals.UnusedCapacity);
+
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryReadSummaries(shared, out var summaries));
+        Assert.Equal(13, summaries[0].Accepted.Magnitude.Ticks);
+        Assert.Equal(17, summaries[0].Blocked.Magnitude.Ticks);
+        Assert.Equal(12, summaries[1].Accepted.Magnitude.Ticks);
+        Assert.Equal(18, summaries[1].Blocked.Magnitude.Ticks);
+
+        Assert.True(BoundaryFlowSharedCapacityTransfer.TryReadTransfers(shared, out var transfers));
+        Assert.True(BoundaryFlowTargetSettlementRun.TrySettle(
+            targetBefore,
+            transfers,
+            out var run));
+        Assert.True(BoundaryFlowTargetSettlementRun.TryReadFinal(run, out var finalRead));
+        Assert.Equal(40, finalRead.Magnitude.Ticks);
+        Assert.Equal("40f", finalRead.Notation);
+    }
+
+    [Fact]
+    public void TargetLocalCapacityRejectsRoutesForOtherTargetCarriers()
+    {
+        var capacityTarget = new Carrier();
+        var capacityTargetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), capacityTarget);
+        var capacityTargetBefore = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            capacityTarget,
+            0,
+            BoundaryFlowLane.PositiveForward,
+            capacityTargetAxis);
+        var routeTarget = new Carrier();
+        var routeTargetAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), routeTarget);
+        var route = PositiveRouteTo(routeTarget, routeTargetAxis, sourceMagnitude: 3);
+
+        Assert.True(BoundaryFlowTargetCapacitySurface.TryCreate(
+            new Carrier(),
+            capacityTargetBefore,
+            40,
+            out var capacity));
+        Assert.False(BoundaryFlowSharedCapacityTransfer.TryAccept(
+            capacity,
+            [route],
+            out _));
+    }
+
     public static IEnumerable<object[]> SelectedLaneBasisStates()
     {
         yield return [BoundaryExposure.Positive, FlowExposure.Forward, "PF"];
@@ -727,9 +1078,41 @@ public sealed class BoundaryFlowLaneBasisTests
 
     private static Relation PositiveTransferTo(Carrier target, Relation targetAxis, long sourceMagnitude)
     {
+        var route = PositiveRouteTo(target, targetAxis, sourceMagnitude);
+
+        Assert.True(BoundaryFlowValueTransfer.TryAccept(route, out var transfer));
+        return transfer;
+    }
+
+    private static Relation SignedForwardTransferTo(
+        Carrier target,
+        Relation targetAxis,
+        long sourceMagnitude,
+        BoundaryFlowLane sourceLane)
+    {
+        var route = SignedForwardRouteTo(target, targetAxis, sourceMagnitude, sourceLane);
+
+        Assert.True(BoundaryFlowValueTransfer.TryAccept(route, out var transfer));
+        return transfer;
+    }
+
+    private static Relation SignedBothFlowTransferTo(
+        Carrier target,
+        Relation targetAxis,
+        long sourceMagnitude,
+        BoundaryFlowLane sourceLane)
+    {
+        var route = SignedBothFlowRouteTo(target, targetAxis, sourceMagnitude, sourceLane);
+
+        Assert.True(BoundaryFlowValueTransfer.TryAccept(route, out var transfer));
+        return transfer;
+    }
+
+    private static Relation PositiveRouteTo(Carrier target, Relation targetAxis, long sourceMagnitude)
+    {
         var source = new Carrier();
         var sourceAxis = CarrierAxisSurface.PositiveUnit(new Carrier(), source);
-        return ProjectedTransferTo(
+        return ProjectedRouteTo(
             source,
             target,
             sourceAxis,
@@ -740,7 +1123,7 @@ public sealed class BoundaryFlowLaneBasisTests
             Relation.Segment(target, 0, 100));
     }
 
-    private static Relation SignedForwardTransferTo(
+    private static Relation SignedForwardRouteTo(
         Carrier target,
         Relation targetAxis,
         long sourceMagnitude,
@@ -748,7 +1131,7 @@ public sealed class BoundaryFlowLaneBasisTests
     {
         var source = new Carrier();
         var sourceAxis = CarrierAxisSurface.SignedForward(new Carrier(), source);
-        return ProjectedTransferTo(
+        return ProjectedRouteTo(
             source,
             target,
             sourceAxis,
@@ -759,7 +1142,7 @@ public sealed class BoundaryFlowLaneBasisTests
             Relation.Segment(target, -100, 100));
     }
 
-    private static Relation SignedBothFlowTransferTo(
+    private static Relation SignedBothFlowRouteTo(
         Carrier target,
         Relation targetAxis,
         long sourceMagnitude,
@@ -767,7 +1150,7 @@ public sealed class BoundaryFlowLaneBasisTests
     {
         var source = new Carrier();
         var sourceAxis = CarrierAxisSurface.SignedBothFlows(new Carrier(), source);
-        return ProjectedTransferTo(
+        return ProjectedRouteTo(
             source,
             target,
             sourceAxis,
@@ -778,7 +1161,7 @@ public sealed class BoundaryFlowLaneBasisTests
             Relation.Segment(target, -10, 10));
     }
 
-    private static Relation ProjectedTransferTo(
+    private static Relation ProjectedRouteTo(
         Carrier source,
         Carrier target,
         Relation sourceAxis,
@@ -802,9 +1185,9 @@ public sealed class BoundaryFlowLaneBasisTests
             targetAxis,
             target,
             out var routeSurface));
-        Assert.True(BoundaryFlowValueTransfer.TryAccept(routeSurface, out var transfer));
-        return transfer;
+        return routeSurface;
     }
+
 }
 
 internal static class ConceptSurfaceReaderForTests

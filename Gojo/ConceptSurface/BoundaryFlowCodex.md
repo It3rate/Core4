@@ -818,14 +818,259 @@ The important property is that the run does not summarize away tension. The
 final target is readable, but every transition and every blocked lane is still
 inspectable in the timeline.
 
+## Shared Capacity Across Competing Routes
+
+Sequential settlement is not enough for target-local capacity. If two routes
+arrive at the same target at the same resolution step, they should compete for
+one visible capacity witness instead of each receiving its own independent
+capacity.
+
+The shared-capacity surface records:
+
+```text
+BoundaryFlowSharedCapacityTransfer
+  shared capacity witness
+  ordered route candidates
+  ordered transfer surfaces
+  ordered residue surfaces
+  unused capacity witness
+```
+
+Only legal projected lanes compete for capacity. Illegal projected lanes remain
+blocked, but they do not consume target capacity:
+
+```text
+route A:
+  projected 30PF
+  legal
+
+route B:
+  projected 30PF
+  legal
+
+shared capacity:
+  40
+
+accepted:
+  A = 20PF
+  B = 20PF
+
+blocked:
+  A = 10PF
+  B = 10PF
+
+unused capacity:
+  0
+```
+
+If one incoming lane is illegal:
+
+```text
+route A:
+  projected 30PF
+  legal
+
+route B:
+  projected 5NI
+  illegal against PN:F
+
+shared capacity:
+  40
+
+accepted:
+  A = 30PF
+  B = absent / 0
+
+blocked:
+  A = 0PF
+  B = 5NI
+
+unused capacity:
+  10
+```
+
+This keeps the capacity question local to the target while still preserving
+per-route lane residue:
+
+```text
+capacity decides how much legal incoming flow can be received
+lane basis decides which incoming lanes are legal
+blocked residue records what could not enter
+unused capacity records what remained available
+```
+
+The current allocation is fair by route demand, matching the spirit of the
+runtime route settlement splitter:
+
+```text
+capacity is distributed across active legal routes
+routes whose demand is satisfied leave the active set
+remaining capacity continues through the remaining active routes
+```
+
+## Target-Local Capacity
+
+A bare capacity point is useful for first tests, but it is too detached for a
+real target surface. A capacity belongs to a site: a bridge throat, slot,
+collector, reservoir, or target value. The target-local capacity surface keeps
+that attachment visible.
+
+```text
+BoundaryFlowTargetCapacitySurface
+  target site
+  target lane basis
+  ConceptCapacity
+    passage/site
+    whole capacity point
+    partition/resolution witness
+    overflow witness
+```
+
+The capacity point remains ordinary numeric structure. The new surface does not
+turn capacity into a code-side property; it makes the local attachment
+traversable:
+
+```text
+target value:
+  0PF on target axis P:F
+
+target capacity:
+  site = target value
+  basis = target axis P:F
+  capacity = point(target carrier, 40)
+
+incoming routes:
+  30PF
+  30PF
+
+shared read:
+  capacity = 40 from the target-local capacity surface
+  accepted = 20PF + 20PF
+  blocked = 10PF + 10PF
+```
+
+The same shared-capacity transfer can still read a bare point for low-resolution
+experiments, but when the capacity witness is target-local it also checks that
+the incoming routes are local to the same target carrier and compatible basis:
+
+```text
+capacity target:
+  carrier A, basis P:F
+
+route target:
+  carrier B, basis P:F
+
+read:
+  rejected before capacity allocation
+```
+
+That rejection is intentionally different from lane blocking. Lane blocking
+means "this route reached the target but the occupied lane is not legal there."
+Target mismatch means "this capacity witness does not belong to that target."
+Future work can make that mismatch a tension surface instead of a failed helper
+read.
+
+Target capacity can also carry a partition surface:
+
+```text
+target capacity:
+  capacity = 60
+  partition count = 3
+  selected partition = 2
+```
+
+This is intentionally not a valve enum. It says the whole receiving capacity is
+being read through three addressable parts. A later, higher-resolution surface
+can decide whether those partitions mean closed/low/high, detents on a knob,
+rough opening percentage, or a manufacturing tolerance band.
+
+## Remaining Capacity
+
+Target capacity by itself is the whole receiving amount. A target value can
+already occupy part of that amount. Remaining capacity is a separate local read
+that keeps all three pieces visible:
+
+```text
+BoundaryFlowRemainingCapacitySurface
+  target capacity surface
+  current target value
+  remaining capacity point
+  overflow point
+```
+
+Example:
+
+```text
+target value:
+  15PF
+
+target capacity:
+  whole = 40
+
+remaining read:
+  occupied = 15
+  remaining = 25
+  overflow = 0
+```
+
+If the current target already exceeds the whole capacity, the remaining read
+does not hide that:
+
+```text
+target value:
+  45PF
+
+target capacity:
+  whole = 40
+
+remaining read:
+  occupied = 45
+  remaining = 0
+  overflow = 5
+```
+
+Shared transfer can use this remaining-capacity surface as its capacity witness.
+That changes the meaning from "this target can receive 40 in this pass" to
+"this target has 40 total capacity, 15 already present, so only 25 can enter
+now."
+
+```text
+target before:
+  15PF
+
+remaining capacity:
+  25
+
+incoming routes:
+  30PF
+  30PF
+
+accepted:
+  13PF
+  12PF
+
+blocked:
+  17PF
+  18PF
+
+target after settlement:
+  40PF
+```
+
+This also clarifies the carrier/value distinction. A carrier can host many
+values. They only compete for one capacity when relation structure attaches
+them to the same target site or same capacity witness. Without that local
+structure, shared carrier identity is just a shared numeric substrate, not a
+claim that every value on the carrier contributes to one balance.
+
 ### Subsequent Steps
 
 The next steps should stay incremental:
 
-1. Add competing-route tests where two transfers try to enter the same target
-   capacity, preserving blocked residue per incoming lane.
-2. Decide whether capacity should be expressed as a target-local surface, a
-   transfer-local gate, or both, then keep the accepted/blocked split visible.
+1. Decide where target mismatch should settle: failed helper read, explicit
+   tension surface, or blocked-capacity residue.
+2. Use selected target-capacity partitions inside remaining-capacity reads, so
+   coarse valve/detent/opening positions can limit usable capacity.
 3. Explore whether `CarrierAxisSurface` should remain a concept-surface helper
    or become a core-adjacent axis/face split.
 4. Only after those behaviors are stable, consider core changes to
