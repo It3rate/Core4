@@ -398,6 +398,9 @@ So the emerging split is:
 BoundaryFlowLaneBasis
   lane grammar for a selected structure
 
+BoundaryFlowLaneTransitionSurface
+  directed evidence that one occupied lane can move into another
+
 CarrierAxisSurface
   carrier-hosted convenience using that lane grammar
 
@@ -407,6 +410,65 @@ BoundaryFlowValueSurface
 
 This lets the unsigned live carrier value remain small while lane meaning is
 expressed by surrounding structure when needed.
+
+## Lane Transitions
+
+Possible lanes and lane transitions are separate.
+
+```text
+BoundaryFlowLaneBasis(PN:F)
+  legal lanes: PF, NF
+
+BoundaryFlowLaneTransitionSurface(PF -> NF)
+  tension may move from positive-forward into negative-forward
+```
+
+The first surface says a value is allowed to occupy either lane. The second
+surface says an overflow, underflow, or accepted transfer may actually cross
+from one occupied lane into the other. Without the transition, a read can still
+see the target lane as legal, but settlement leaves the crossing as residue.
+
+Direction is explicit. `PF -> NF` does not imply `NF -> PF`.
+
+```text
+two-way signed scalar:
+  BoundaryFlowLaneTransitionSurface(PF -> NF)
+  BoundaryFlowLaneTransitionSurface(NF -> PF)
+
+one-way signed drain:
+  BoundaryFlowLaneTransitionSurface(PF -> NF)
+  no reverse transition
+```
+
+This matches the lower Gojo relation behavior: ordinary route settlement uses
+the ordered relation faces, and reversible traversal is represented by both
+directions being present. Projection reads may search either matching frame,
+but that is a read convenience, not a claim that one physical settlement route
+is automatically reversible.
+
+The normal reusable home for conventional tick behavior is the unit shape:
+
+```text
+meter-like UnitShape descriptors:
+  BoundaryFlowLaneBasis(PN:F)
+  BoundaryFlowLaneTransitionSurface(PF -> NF)
+  BoundaryFlowLaneTransitionSurface(NF -> PF)
+
+carrier A with that UnitShape:
+  value 5PF + delta -8 -> 3NF
+
+carrier B with that same UnitShape:
+  value 2NF + delta +5 -> 3PF
+```
+
+No value had to duplicate the transition rule. The values only carried their
+magnitude and occupied lane; the shared UnitShape supplied the possible lanes
+and the lane-crossing structure.
+
+Carrier axis helpers can also expose transition evidence. `SignedForward`
+currently carries the conventional `PF -> NF` and `NF -> PF` transition pair
+as part of the surface, while a bare `BoundaryFlowLaneBasis(PN:F)` only says
+both lanes are legal.
 
 Useful coordinate notation:
 
@@ -620,8 +682,16 @@ over this structure. It is not core carrier settlement yet.
 PN:F value 5PF, delta -8
   target read = -3f
   NF is legal
+  PF -> NF transition is present
   settled value = 3NF
   residue = 0
+
+PN:F value 5PF, delta -8
+  target read = -3f
+  NF is legal
+  no PF -> NF transition is present
+  settled value = 0PF
+  residue = -3
 
 P:F value 5PF, delta -8
   target read = -3f
@@ -633,8 +703,8 @@ P:F value 5PF, delta -8
 This is the behavior we want before touching core:
 
 ```text
-surfaces with the right lane basis can cross sides
-surfaces without that lane keep visible residue/tension
+surfaces with legal target lanes and visible transition evidence can cross
+surfaces without the target lane or transition keep visible residue/tension
 ```
 
 ## Lane-Aware Route Projection

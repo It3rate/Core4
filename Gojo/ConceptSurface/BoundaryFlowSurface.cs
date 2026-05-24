@@ -397,11 +397,43 @@ public static class BoundaryFlowLaneBasis
         {
             foreach (var descriptor in unitShape.DescriptorSurfaces)
             {
-                if (descriptor is Relation candidate &&
-                    TryRead(candidate, out exposure, out selected, out lanes))
+                if (TryReadDescriptorBasis(descriptor, out basis, out exposure, out selected, out lanes))
                 {
-                    basis = candidate;
                     return true;
+                }
+            }
+        }
+
+        basis = null!;
+        exposure = default;
+        selected = default!;
+        lanes = [];
+        return false;
+    }
+
+    private static bool TryReadDescriptorBasis(
+        IElement descriptor,
+        out Relation basis,
+        out BoundaryFlowExposure exposure,
+        out IElement selected,
+        out BoundaryFlowLane[] lanes)
+    {
+        if (descriptor is Relation candidate)
+        {
+            if (TryRead(candidate, out exposure, out selected, out lanes))
+            {
+                basis = candidate;
+                return true;
+            }
+
+            if (ConceptSurfaceReader.TryReadRootElements(candidate, out var elements))
+            {
+                foreach (var element in elements)
+                {
+                    if (TryReadDescriptorBasis(element, out basis, out exposure, out selected, out lanes))
+                    {
+                        return true;
+                    }
                 }
             }
         }
@@ -587,6 +619,161 @@ public static class BoundaryFlowLaneSurface
         flowLaneSurface = null!;
         return false;
     }
+}
+
+public readonly record struct BoundaryFlowLaneTransitionRead(
+    BoundaryFlowLane Source,
+    BoundaryFlowLane Target,
+    IElement Transition,
+    IElement Witness);
+
+/// <summary>
+/// Directed evidence that tension may move from one occupied lane to another.
+/// Possible lanes make a lane legal; this surface makes a lane-to-lane move
+/// traversable.
+/// </summary>
+public static class BoundaryFlowLaneTransitionSurface
+{
+    public static Relation Create(
+        Carrier root,
+        BoundaryFlowLane source,
+        BoundaryFlowLane target) =>
+        Create(root, source, target, LaneRoute(source, target), ConceptSurface.UnknownPoint());
+
+    public static Relation Create(
+        Carrier root,
+        BoundaryFlowLane source,
+        BoundaryFlowLane target,
+        IElement transition,
+        IElement witness)
+    {
+        var sourceSurface = BoundaryFlowLaneSurface.Create(new Carrier(), source);
+        var targetSurface = BoundaryFlowLaneSurface.Create(new Carrier(), target);
+        return Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            sourceSurface,
+            targetSurface,
+            transition ?? LaneRoute(source, target),
+            witness ?? ConceptSurface.UnknownPoint());
+    }
+
+    public static Relation[] BoundaryDualTransitions(
+        Carrier root,
+        BoundaryExposure boundary,
+        FlowExposure flow)
+    {
+        if (!boundary.IsFullSigned)
+        {
+            return [];
+        }
+
+        var transitions = new List<Relation>();
+        foreach (var flowLane in BoundaryFlowLaneBasis.FlowLanes(flow).Where(lane => !lane.IsNone))
+        {
+            var positive = new BoundaryFlowLane(BoundaryLane.Positive, flowLane);
+            var negative = new BoundaryFlowLane(BoundaryLane.Negative, flowLane);
+            transitions.Add(Create(ConceptSurface.RootOrNew(root), positive, negative));
+            transitions.Add(Create(new Carrier(), negative, positive));
+        }
+
+        return [.. transitions];
+    }
+
+    public static bool TryRead(
+        Relation surface,
+        out BoundaryFlowLaneTransitionRead read)
+    {
+        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
+            elements.Length >= 4 &&
+            elements[0] is Relation sourceSurface &&
+            elements[1] is Relation targetSurface &&
+            BoundaryFlowLaneSurface.TryRead(sourceSurface, out var source, out _, out _) &&
+            BoundaryFlowLaneSurface.TryRead(targetSurface, out var target, out _, out _))
+        {
+            read = new BoundaryFlowLaneTransitionRead(source, target, elements[2], elements[3]);
+            return true;
+        }
+
+        read = default;
+        return false;
+    }
+
+    public static bool TryFindTransition(
+        IElement structure,
+        BoundaryFlowLane source,
+        BoundaryFlowLane target,
+        out BoundaryFlowLaneTransitionRead read)
+    {
+        foreach (var candidate in ReadAll(structure))
+        {
+            if (candidate.Source.Equals(source) &&
+                candidate.Target.Equals(target))
+            {
+                read = candidate;
+                return true;
+            }
+        }
+
+        read = default;
+        return false;
+    }
+
+    public static bool TryFindUnitShapeTransition(
+        UnitShape unitShape,
+        BoundaryFlowLane source,
+        BoundaryFlowLane target,
+        out BoundaryFlowLaneTransitionRead read)
+    {
+        if (unitShape is not null)
+        {
+            foreach (var descriptor in unitShape.DescriptorSurfaces)
+            {
+                if (TryFindTransition(descriptor, source, target, out read))
+                {
+                    return true;
+                }
+            }
+        }
+
+        read = default;
+        return false;
+    }
+
+    public static BoundaryFlowLaneTransitionRead[] ReadAll(IElement structure)
+    {
+        var reads = new List<BoundaryFlowLaneTransitionRead>();
+        Collect(structure, reads);
+        return [.. reads];
+    }
+
+    private static void Collect(
+        IElement structure,
+        List<BoundaryFlowLaneTransitionRead> reads)
+    {
+        if (structure is not Relation relation)
+        {
+            return;
+        }
+
+        if (TryRead(relation, out var read))
+        {
+            reads.Add(read);
+            return;
+        }
+
+        if (ConceptSurfaceReader.TryReadRootElements(relation, out var elements))
+        {
+            foreach (var element in elements)
+            {
+                Collect(element, reads);
+            }
+        }
+    }
+
+    private static Relation LaneRoute(BoundaryFlowLane source, BoundaryFlowLane target) =>
+        new(
+            BoundaryFlowLaneSurface.Create(new Carrier(), source),
+            BoundaryFlowLaneSurface.Create(new Carrier(), target));
 }
 
 /// <summary>
@@ -930,6 +1117,20 @@ public static class BoundaryFlowValueSettlement
 {
     public static bool TryApplySignedDelta(
         Relation valueSurface,
+        long deltaTicks,
+        out Relation settledValue)
+    {
+        if (!BoundaryFlowValueSurface.TryReadCompleteValue(valueSurface, out _, out var laneBasis))
+        {
+            settledValue = null!;
+            return false;
+        }
+
+        return TryApplySignedDelta(valueSurface, laneBasis, deltaTicks, out settledValue);
+    }
+
+    public static bool TryApplySignedDelta(
+        Relation valueSurface,
         Relation laneBasis,
         long deltaTicks,
         out Relation settledValue)
@@ -944,11 +1145,16 @@ public static class BoundaryFlowValueSettlement
 
         var target = checked(read.SignedTicks + deltaTicks);
         var targetLane = new BoundaryFlowLane(
-            target < 0 ? BoundaryLane.Negative : BoundaryLane.Positive,
+            target < 0
+                ? BoundaryLane.Negative
+                : target > 0
+                    ? BoundaryLane.Positive
+                    : read.Lane.Boundary,
             read.Lane.Flow);
         var targetMagnitude = AbsAsLong(target);
 
-        if (BoundaryFlowLaneBasis.Allows(read.Basis, targetLane))
+        if (BoundaryFlowLaneBasis.Allows(read.Basis, targetLane) &&
+            CanMoveToLane(read.Magnitude.Carrier.UnitShape, laneBasis, read.Lane, targetLane))
         {
             settledValue = BoundaryFlowValueSurface.Create(
                 new Carrier(),
@@ -968,6 +1174,15 @@ public static class BoundaryFlowValueSettlement
             Relation.Point(read.Magnitude.Carrier, target));
         return true;
     }
+
+    private static bool CanMoveToLane(
+        UnitShape unitShape,
+        Relation laneBasis,
+        BoundaryFlowLane source,
+        BoundaryFlowLane target) =>
+        source.Equals(target) ||
+        BoundaryFlowLaneTransitionSurface.TryFindUnitShapeTransition(unitShape, source, target, out _) ||
+        BoundaryFlowLaneTransitionSurface.TryFindTransition(laneBasis, source, target, out _);
 
     private static long AbsAsLong(long value)
     {
@@ -3006,11 +3221,13 @@ public static class CarrierAxisSurface
             flowWitness ?? ConceptSurface.UnknownPoint(),
             flowWitness ?? ConceptSurface.UnknownPoint());
 
+        var transitions = BoundaryFlowLaneTransitionSurface.BoundaryDualTransitions(
+            new Carrier(),
+            boundary,
+            flow);
         return Relation.OrderedGroup(
             ConceptSurface.RootOrNew(root),
-            selected,
-            boundarySurface,
-            flowSurface);
+            [selected, boundarySurface, flowSurface, .. transitions]);
     }
 
     public static Relation Create(
