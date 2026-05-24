@@ -318,31 +318,6 @@ public sealed class BoundaryFlowLaneBasisTests
     }
 
     [Fact]
-    public void ResolvedUnitShapeBasisDoesNotCreateMissingBasisTension()
-    {
-        var tickSource = Relation.Point(new Carrier(), 1);
-        var possibleLanes = BoundaryFlowLaneBasis.Create(
-            new Carrier(),
-            BoundaryExposure.FullSigned,
-            FlowExposure.Forward,
-            tickSource);
-        var signedTickShape = UnitShape.DescribedAtom(possibleLanes);
-        var valueCarrier = new Carrier(signedTickShape);
-        var value = BoundaryFlowValueSurface.Create(
-            new Carrier(),
-            valueCarrier,
-            6,
-            BoundaryFlowLane.NegativeForward,
-            Relation.Point(Carrier.Unknown, 0));
-
-        Assert.True(BoundaryFlowValueSurface.TryReadCompleteValue(value, out _, out _));
-        Assert.False(BoundaryFlowValueBasisTension.TryCreate(
-            new Carrier(),
-            value,
-            out _));
-    }
-
-    [Fact]
     public void CarrierUnitShapeRejectsOccupiedLaneOutsidePossibleLanes()
     {
         var tickSource = Relation.Point(new Carrier(), 1);

@@ -387,21 +387,10 @@ read:
   legal = false
 ```
 
-If the unit-shape basis cannot be read at all, that incomplete state can still
-be made visible:
-
-```text
-BoundaryFlowValueBasisTension
-  value surface
-  magnitude point
-  occupied lane marker
-  unresolved basis
-  placeholder witness
-```
-
-This is the structural version of "no lane basis found." It is not a default
-and not an exception. In ordinary carrier-backed values this should be rare,
-because the unit-shape default provides `S:None`.
+Because every carrier has a unit shape and the unit-shape read defaults to
+`S:None`, "no lane basis found" is not the normal incomplete state anymore.
+The ordinary tension case is now an occupied lane that is illegal against the
+resolved basis, for example `PF` against `S:None`.
 
 So the emerging split is:
 
@@ -433,11 +422,12 @@ carrier face plus signed carrier location.
 
 ## Legal Lane Basis And Occupied Values
 
-Boundary-flow exposure describes the legal lane basis for a carrier-like
-surface. It does not by itself choose where an individual value sits.
+Boundary-flow exposure describes the legal lane basis for a selected structure,
+usually through its unit shape or host surface. It does not by itself choose
+where an individual value sits.
 
 ```text
-carrier / axis surface:
+unit shape / host surface:
   says which lanes are legal
 
 value surface:
@@ -586,7 +576,7 @@ The executable shape is:
 BoundaryFlowValueSurface
   magnitude point
   occupied lane marker
-  lane basis
+  optional explicit host/witness basis
   residue / tension witness
 ```
 
@@ -831,9 +821,8 @@ BoundaryFlowTargetSettlement
   TimeStepSequence witness
 ```
 
-The target settlement uses the target value's own lane basis. A legal accepted
-value can move the target across lanes only when the target basis admits the
-result:
+The target settlement uses the target value's resolved basis. A legal accepted
+value can move the target across lanes only when that basis admits the result:
 
 ```text
 target before:
@@ -1485,7 +1474,8 @@ Values should be represented as:
 ```text
 unsigned magnitude point
 occupied lane marker
-lane basis / residue witness
+optional explicit host/witness basis
+residue witness
 ```
 
 In code, this is the role of:

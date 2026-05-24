@@ -352,6 +352,10 @@ public static class BoundaryFlowLaneBasis
         return false;
     }
 
+    /// <summary>
+    /// Reads possible lanes from a unit-shape descriptor, or returns the
+    /// low-resolution whole/no-flow default for descriptor-free unit shapes.
+    /// </summary>
     public static bool TryReadUnitShapeBasis(
         UnitShape unitShape,
         out Relation basis,
@@ -381,6 +385,7 @@ public static class BoundaryFlowLaneBasis
         return false;
     }
 
+    /// <summary>Reads only explicit lane-basis descriptors, without applying the default.</summary>
     internal static bool TryReadUnitShapeDescriptorBasis(
         UnitShape unitShape,
         out Relation basis,
@@ -586,11 +591,16 @@ public static class BoundaryFlowLaneSurface
 
 /// <summary>
 /// Attaches an unsigned magnitude point to one occupied boundary/flow lane.
-/// The carrier/domain surface describes what lanes are legal; this structure
-/// describes where this value actually sits.
+/// The magnitude carrier's unit shape normally supplies possible lanes; this
+/// structure describes where this value actually sits.
 /// </summary>
 public static class BoundaryFlowValueSurface
 {
+    /// <summary>
+    /// Creates a value with an explicit basis witness. Prefer
+    /// <see cref="CreateOccupied(Carrier,Carrier,ulong,BoundaryFlowLane)"/> for
+    /// ordinary carrier-backed values whose possible lanes live on UnitShape.
+    /// </summary>
     public static Relation Create(
         Carrier root,
         Carrier valueCarrier,
@@ -612,6 +622,10 @@ public static class BoundaryFlowValueSurface
         IElement laneBasis) =>
         Create(root, valueCarrier, magnitude, lane, laneBasis, ConceptSurface.UnknownPoint());
 
+    /// <summary>
+    /// Creates the normal occupied value shape: magnitude plus occupied lane,
+    /// with possible lanes resolved from the magnitude carrier's unit shape.
+    /// </summary>
     public static Relation CreateOccupied(
         Carrier root,
         Carrier valueCarrier,
@@ -646,6 +660,10 @@ public static class BoundaryFlowValueSurface
             residueOrTension ?? ConceptSurface.UnknownPoint());
     }
 
+    /// <summary>
+    /// Creates a value with an explicit basis witness or route/target context.
+    /// This is not the normal home for possible lanes.
+    /// </summary>
     public static Relation Create(
         Carrier root,
         Relation magnitudePoint,
@@ -722,6 +740,10 @@ public static class BoundaryFlowValueSurface
         return TryReadCompleteValue(valueSurface, out read, out _);
     }
 
+    /// <summary>
+    /// Reads a value through possible lanes resolved from the carrier unit-shape
+    /// descriptor, then explicit basis witness, then the unit-shape default.
+    /// </summary>
     public static bool TryReadCompleteValue(
         Relation valueSurface,
         out BoundaryFlowValueRead read,
@@ -798,11 +820,10 @@ public static class BoundaryFlowValueSurface
         if (valueCarrier is null ||
             !BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
                 valueCarrier.UnitShape,
-                out var laneBasis,
                 out _,
+                out var exposure,
                 out _,
                 out _) ||
-            !BoundaryFlowLaneBasis.TryReadExposure(laneBasis, out var exposure) ||
             !BoundaryFlowLaneBasis.Allows(exposure, lane))
         {
             valueSurface = null!;
@@ -857,92 +878,8 @@ public static class BoundaryFlowValueSurface
 }
 
 /// <summary>
-/// Visible witness for a value that has magnitude and occupied lane structure
-/// but no resolvable possible-lane basis.
-/// </summary>
-public static class BoundaryFlowValueBasisTension
-{
-    public static Relation Create(
-        Carrier root,
-        Relation valueSurface,
-        Relation magnitudePoint,
-        Relation laneMarker,
-        IElement unresolvedBasis,
-        IElement witness)
-    {
-        return Relation.OrderedGroup(
-            ConceptSurface.RootOrNew(root),
-            valueSurface ?? ConceptSurface.UnknownPoint(),
-            magnitudePoint ?? ConceptSurface.UnknownPoint(),
-            laneMarker ?? ConceptSurface.UnknownPoint(),
-            unresolvedBasis ?? ConceptSurface.UnknownPoint(),
-            witness ?? new Placeholder());
-    }
-
-    public static bool TryCreate(
-        Carrier root,
-        Relation valueSurface,
-        out Relation basisTension)
-    {
-        if (!BoundaryFlowValueSurface.TryRead(
-                valueSurface,
-                out var magnitude,
-                out _,
-                out var laneMarker,
-                out var laneBasis,
-                out _) ||
-            BoundaryFlowValueSurface.TryReadCompleteValue(valueSurface, out _, out _))
-        {
-            basisTension = null!;
-            return false;
-        }
-
-        basisTension = Create(
-            root,
-            valueSurface,
-            Relation.Point(magnitude.Carrier, magnitude.Ticks),
-            laneMarker,
-            laneBasis,
-            new Placeholder());
-        return true;
-    }
-
-    public static bool TryRead(
-        Relation basisTension,
-        out Relation valueSurface,
-        out Relation magnitudePoint,
-        out Relation laneMarker,
-        out IElement unresolvedBasis,
-        out IElement witness)
-    {
-        if (ConceptSurfaceReader.TryReadRootElements(basisTension, out var elements) &&
-            elements.Length >= 5 &&
-            elements[0] is Relation value &&
-            elements[1] is Relation magnitude &&
-            elements[2] is Relation marker &&
-            ConceptSurfaceReader.TryReadPoint(magnitude, out _) &&
-            BoundaryFlowLaneSurface.TryRead(marker, out _, out _, out _))
-        {
-            valueSurface = value;
-            magnitudePoint = magnitude;
-            laneMarker = marker;
-            unresolvedBasis = elements[3];
-            witness = elements[4];
-            return true;
-        }
-
-        valueSurface = null!;
-        magnitudePoint = null!;
-        laneMarker = null!;
-        unresolvedBasis = default!;
-        witness = default!;
-        return false;
-    }
-}
-
-/// <summary>
-/// Compact read of a value surface through a lane basis. The raw magnitude and
-/// occupied lane remain visible in the source structure.
+/// Compact read of a value surface through its resolved possible-lane basis.
+/// The raw magnitude and occupied lane remain visible in the source structure.
 /// </summary>
 public readonly record struct BoundaryFlowValueRead(
     CarrierLocation Magnitude,
