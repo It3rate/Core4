@@ -169,12 +169,177 @@ public sealed class BoundaryFlowLaneBasisTests
             6,
             BoundaryFlowLane.NegativeForward,
             out var value));
+        Assert.True(BoundaryFlowValueSurface.TryRead(
+            value,
+            out _,
+            out _,
+            out _,
+            out var valueBasisSlot,
+            out _));
+        Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(valueBasisSlot, out var basisSlot));
+        Assert.True(basisSlot.Carrier.IsUnknown);
+        Assert.Equal(0, basisSlot.Ticks);
         Assert.True(BoundaryFlowValueSurface.TryReadValue(value, out var read));
         Assert.True(read.IsLegal);
         Assert.Equal(exposure, read.Basis);
         Assert.Equal(BoundaryFlowLane.NegativeForward, read.Lane);
         Assert.Equal(-6, read.SignedTicks);
         Assert.Equal("-6f", read.Notation);
+    }
+
+    [Fact]
+    public void UnitShapeBasisWinsOverExplicitValueWitness()
+    {
+        var tickSource = Relation.Point(new Carrier(), 1);
+        var possibleLanes = BoundaryFlowLaneBasis.Create(
+            new Carrier(),
+            BoundaryExposure.FullSigned,
+            FlowExposure.Forward,
+            tickSource);
+        var signedTickShape = UnitShape.DescribedAtom(possibleLanes);
+        var valueCarrier = new Carrier(signedTickShape);
+        var conflictingWitness = BoundaryFlowLaneBasis.Create(
+            new Carrier(),
+            BoundaryExposure.Positive,
+            FlowExposure.Inverse,
+            tickSource);
+        var value = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            valueCarrier,
+            6,
+            BoundaryFlowLane.NegativeForward,
+            conflictingWitness);
+
+        Assert.True(BoundaryFlowValueSurface.TryReadCompleteValue(
+            value,
+            out var read,
+            out var resolvedBasis));
+        Assert.Equal(possibleLanes, resolvedBasis);
+        Assert.Equal("PN:F", read.Basis.Label);
+        Assert.True(read.IsLegal);
+        Assert.Equal("-6f", read.Notation);
+    }
+
+    [Fact]
+    public void ValueReadCanResolveMissingBasisFromCarrierUnitShape()
+    {
+        var tickSource = Relation.Point(new Carrier(), 1);
+        var possibleLanes = BoundaryFlowLaneBasis.Create(
+            new Carrier(),
+            BoundaryExposure.FullSigned,
+            FlowExposure.Forward,
+            tickSource);
+        var signedTickShape = UnitShape.DescribedAtom(possibleLanes);
+        var valueCarrier = new Carrier(signedTickShape);
+        var value = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            valueCarrier,
+            6,
+            BoundaryFlowLane.NegativeForward,
+            Relation.Point(Carrier.Unknown, 0));
+
+        Assert.True(BoundaryFlowValueSurface.TryReadCompleteValue(
+            value,
+            out var read,
+            out var resolvedBasis));
+        Assert.True(BoundaryFlowLaneBasis.TryRead(resolvedBasis, out var exposure, out _, out var lanes));
+        Assert.Equal("PN:F", exposure.Label);
+        Assert.Equal("PF|NF", string.Join("|", lanes.Select(lane => lane.Label)));
+        Assert.True(read.IsLegal);
+        Assert.Equal(BoundaryFlowLane.NegativeForward, read.Lane);
+        Assert.Equal(-6, read.SignedTicks);
+        Assert.Equal("-6f", read.Notation);
+    }
+
+    [Fact]
+    public void ValueReadStillShowsIllegalOccupiedLaneAgainstUnitShapeBasis()
+    {
+        var tickSource = Relation.Point(new Carrier(), 1);
+        var possibleLanes = BoundaryFlowLaneBasis.Create(
+            new Carrier(),
+            BoundaryExposure.FullSigned,
+            FlowExposure.Forward,
+            tickSource);
+        var signedTickShape = UnitShape.DescribedAtom(possibleLanes);
+        var valueCarrier = new Carrier(signedTickShape);
+        var value = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            valueCarrier,
+            6,
+            BoundaryFlowLane.NegativeInverse,
+            Relation.Point(Carrier.Unknown, 0));
+
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(value, out var read));
+        Assert.False(read.IsLegal);
+        Assert.Equal(BoundaryFlowLane.NegativeInverse, read.Lane);
+        Assert.Equal("-6i", read.Notation);
+    }
+
+    [Fact]
+    public void PlainCarrierUnitShapeDefaultsToWholeNoFlowBasis()
+    {
+        var valueCarrier = new Carrier();
+        var value = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            valueCarrier,
+            6,
+            BoundaryFlowLane.PositiveForward,
+            Relation.Point(Carrier.Unknown, 0));
+
+        Assert.True(BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
+            valueCarrier.UnitShape,
+            out var basis,
+            out var exposure,
+            out _,
+            out var lanes));
+        Assert.True(BoundaryFlowLaneBasis.TryRead(basis, out _, out _, out _));
+        Assert.Equal("S:None", exposure.Label);
+        Assert.Equal("S:None", string.Join("|", lanes.Select(lane => lane.Label)));
+
+        Assert.True(BoundaryFlowValueSurface.TryReadCompleteValue(value, out var read, out _));
+        Assert.False(read.IsLegal);
+        Assert.Equal(BoundaryFlowLane.PositiveForward, read.Lane);
+    }
+
+    [Fact]
+    public void DefaultWholeNoFlowValueReadsAsLegalOnPlainCarrier()
+    {
+        var valueCarrier = new Carrier();
+        var value = BoundaryFlowValueSurface.CreateOccupied(
+            new Carrier(),
+            valueCarrier,
+            6,
+            BoundaryFlowLane.WholeNone);
+
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(value, out var read));
+        Assert.True(read.IsLegal);
+        Assert.Equal(BoundaryFlowLane.WholeNone, read.Lane);
+        Assert.Equal("6s", read.Notation);
+    }
+
+    [Fact]
+    public void ResolvedUnitShapeBasisDoesNotCreateMissingBasisTension()
+    {
+        var tickSource = Relation.Point(new Carrier(), 1);
+        var possibleLanes = BoundaryFlowLaneBasis.Create(
+            new Carrier(),
+            BoundaryExposure.FullSigned,
+            FlowExposure.Forward,
+            tickSource);
+        var signedTickShape = UnitShape.DescribedAtom(possibleLanes);
+        var valueCarrier = new Carrier(signedTickShape);
+        var value = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            valueCarrier,
+            6,
+            BoundaryFlowLane.NegativeForward,
+            Relation.Point(Carrier.Unknown, 0));
+
+        Assert.True(BoundaryFlowValueSurface.TryReadCompleteValue(value, out _, out _));
+        Assert.False(BoundaryFlowValueBasisTension.TryCreate(
+            new Carrier(),
+            value,
+            out _));
     }
 
     [Fact]
@@ -198,22 +363,34 @@ public sealed class BoundaryFlowLaneBasisTests
     }
 
     [Fact]
-    public void CarrierWithoutLaneDescriptorCannotCreateCompleteBoundaryFlowValue()
+    public void CarrierWithoutLaneDescriptorUsesDefaultWholeNoFlowBasis()
     {
         var valueCarrier = new Carrier();
 
-        Assert.False(BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
+        Assert.True(BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
             valueCarrier.UnitShape,
+            out var basis,
+            out var exposure,
             out _,
-            out _,
-            out _,
-            out _));
+            out var lanes));
+        Assert.True(BoundaryFlowLaneBasis.TryRead(basis, out _, out _, out _));
+        Assert.Equal("S:None", exposure.Label);
+        Assert.Equal("S:None", string.Join("|", lanes.Select(lane => lane.Label)));
         Assert.False(BoundaryFlowValueSurface.TryCreateFromCarrierUnitShape(
             new Carrier(),
             valueCarrier,
             6,
             BoundaryFlowLane.PositiveForward,
             out _));
+        Assert.True(BoundaryFlowValueSurface.TryCreateFromCarrierUnitShape(
+            new Carrier(),
+            valueCarrier,
+            6,
+            BoundaryFlowLane.WholeNone,
+            out var value));
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(value, out var read));
+        Assert.True(read.IsLegal);
+        Assert.Equal("6s", read.Notation);
     }
 
     [Fact]

@@ -359,6 +359,35 @@ public static class BoundaryFlowLaneBasis
         out IElement selected,
         out BoundaryFlowLane[] lanes)
     {
+        if (TryReadUnitShapeDescriptorBasis(unitShape, out basis, out exposure, out selected, out lanes))
+        {
+            return true;
+        }
+
+        if (unitShape is not null)
+        {
+            basis = Create(
+                new Carrier(),
+                BoundaryExposure.BoundedWhole,
+                FlowExposure.None,
+                unitShape.Surface);
+            return TryRead(basis, out exposure, out selected, out lanes);
+        }
+
+        basis = null!;
+        exposure = default;
+        selected = default!;
+        lanes = [];
+        return false;
+    }
+
+    internal static bool TryReadUnitShapeDescriptorBasis(
+        UnitShape unitShape,
+        out Relation basis,
+        out BoundaryFlowExposure exposure,
+        out IElement selected,
+        out BoundaryFlowLane[] lanes)
+    {
         if (unitShape is not null)
         {
             foreach (var descriptor in unitShape.DescriptorSurfaces)
@@ -583,6 +612,40 @@ public static class BoundaryFlowValueSurface
         IElement laneBasis) =>
         Create(root, valueCarrier, magnitude, lane, laneBasis, ConceptSurface.UnknownPoint());
 
+    public static Relation CreateOccupied(
+        Carrier root,
+        Carrier valueCarrier,
+        ulong magnitude,
+        BoundaryFlowLane lane,
+        IElement residueOrTension)
+    {
+        var carrier = valueCarrier ?? Carrier.Unknown;
+        var point = Relation.Point(carrier, checked((long)magnitude));
+        return CreateOccupied(root, point, lane, residueOrTension);
+    }
+
+    public static Relation CreateOccupied(
+        Carrier root,
+        Carrier valueCarrier,
+        ulong magnitude,
+        BoundaryFlowLane lane) =>
+        CreateOccupied(root, valueCarrier, magnitude, lane, ConceptSurface.UnknownPoint());
+
+    public static Relation CreateOccupied(
+        Carrier root,
+        Relation magnitudePoint,
+        BoundaryFlowLane lane,
+        IElement residueOrTension)
+    {
+        var marker = BoundaryFlowLaneSurface.Create(new Carrier(), lane);
+        return Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            magnitudePoint ?? ConceptSurface.UnknownPoint(),
+            marker,
+            ConceptSurface.UnknownPoint(),
+            residueOrTension ?? ConceptSurface.UnknownPoint());
+    }
+
     public static Relation Create(
         Carrier root,
         Relation magnitudePoint,
@@ -656,11 +719,19 @@ public static class BoundaryFlowValueSurface
         Relation valueSurface,
         out BoundaryFlowValueRead read)
     {
-        if (!TryRead(valueSurface, out var magnitude, out var lane, out _, out var laneBasis, out var residueOrTension) ||
-            laneBasis is not Relation basisRelation ||
-            !BoundaryFlowLaneBasis.TryReadExposure(basisRelation, out var exposure))
+        return TryReadCompleteValue(valueSurface, out read, out _);
+    }
+
+    public static bool TryReadCompleteValue(
+        Relation valueSurface,
+        out BoundaryFlowValueRead read,
+        out Relation laneBasis)
+    {
+        if (!TryRead(valueSurface, out var magnitude, out var lane, out _, out var basisElement, out var residueOrTension) ||
+            !TryResolveLaneBasis(magnitude, basisElement, out laneBasis, out var exposure))
         {
             read = default;
+            laneBasis = null!;
             return false;
         }
 
@@ -738,14 +809,134 @@ public static class BoundaryFlowValueSurface
             return false;
         }
 
-        valueSurface = Create(
+        valueSurface = CreateOccupied(
             ConceptSurface.RootOrNew(root),
             valueCarrier,
             magnitude,
-            lane,
-            laneBasis,
-            ConceptSurface.UnknownPoint());
+            lane);
         return true;
+    }
+
+    private static bool TryResolveLaneBasis(
+        CarrierLocation magnitude,
+        IElement explicitBasis,
+        out Relation laneBasis,
+        out BoundaryFlowExposure exposure)
+    {
+        if (BoundaryFlowLaneBasis.TryReadUnitShapeDescriptorBasis(
+                magnitude.Carrier.UnitShape,
+                out laneBasis,
+                out exposure,
+                out _,
+                out _))
+        {
+            return true;
+        }
+
+        if (explicitBasis is Relation basisRelation &&
+            BoundaryFlowLaneBasis.TryReadExposure(basisRelation, out exposure))
+        {
+            laneBasis = basisRelation;
+            return true;
+        }
+
+        if (BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
+                magnitude.Carrier.UnitShape,
+                out laneBasis,
+                out exposure,
+                out _,
+                out _))
+        {
+            return true;
+        }
+
+        laneBasis = null!;
+        exposure = default;
+        return false;
+    }
+}
+
+/// <summary>
+/// Visible witness for a value that has magnitude and occupied lane structure
+/// but no resolvable possible-lane basis.
+/// </summary>
+public static class BoundaryFlowValueBasisTension
+{
+    public static Relation Create(
+        Carrier root,
+        Relation valueSurface,
+        Relation magnitudePoint,
+        Relation laneMarker,
+        IElement unresolvedBasis,
+        IElement witness)
+    {
+        return Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            valueSurface ?? ConceptSurface.UnknownPoint(),
+            magnitudePoint ?? ConceptSurface.UnknownPoint(),
+            laneMarker ?? ConceptSurface.UnknownPoint(),
+            unresolvedBasis ?? ConceptSurface.UnknownPoint(),
+            witness ?? new Placeholder());
+    }
+
+    public static bool TryCreate(
+        Carrier root,
+        Relation valueSurface,
+        out Relation basisTension)
+    {
+        if (!BoundaryFlowValueSurface.TryRead(
+                valueSurface,
+                out var magnitude,
+                out _,
+                out var laneMarker,
+                out var laneBasis,
+                out _) ||
+            BoundaryFlowValueSurface.TryReadCompleteValue(valueSurface, out _, out _))
+        {
+            basisTension = null!;
+            return false;
+        }
+
+        basisTension = Create(
+            root,
+            valueSurface,
+            Relation.Point(magnitude.Carrier, magnitude.Ticks),
+            laneMarker,
+            laneBasis,
+            new Placeholder());
+        return true;
+    }
+
+    public static bool TryRead(
+        Relation basisTension,
+        out Relation valueSurface,
+        out Relation magnitudePoint,
+        out Relation laneMarker,
+        out IElement unresolvedBasis,
+        out IElement witness)
+    {
+        if (ConceptSurfaceReader.TryReadRootElements(basisTension, out var elements) &&
+            elements.Length >= 5 &&
+            elements[0] is Relation value &&
+            elements[1] is Relation magnitude &&
+            elements[2] is Relation marker &&
+            ConceptSurfaceReader.TryReadPoint(magnitude, out _) &&
+            BoundaryFlowLaneSurface.TryRead(marker, out _, out _, out _))
+        {
+            valueSurface = value;
+            magnitudePoint = magnitude;
+            laneMarker = marker;
+            unresolvedBasis = elements[3];
+            witness = elements[4];
+            return true;
+        }
+
+        valueSurface = null!;
+        magnitudePoint = null!;
+        laneMarker = null!;
+        unresolvedBasis = default!;
+        witness = default!;
+        return false;
     }
 }
 

@@ -331,9 +331,77 @@ read:
 ```
 
 The same unsigned carrier magnitude could occupy `PF` or `NF`, but it must say
-which one. If the carrier unit shape has no lane-basis descriptor, then a helper
-that claims to create a complete boundary-flow value should fail or produce
-unresolved structure. It should not silently guess `P:F`, `PN:F`, or `S:None`.
+which one. If the carrier unit shape has no lane-basis descriptor, the unit
+shape read supplies the low-resolution default:
+
+```text
+boundary = S
+flow = None
+legal lane = S:None
+```
+
+So a plain carrier does not have "no possible lanes"; it has a default
+whole/no-flow basis. A `PF` value on that carrier is readable, but illegal
+against the default basis.
+
+The normal carrier-backed value does not duplicate the basis:
+
+```text
+value surface
+  magnitude point on carrier C
+  occupied lane = NF
+  basis slot = unresolved
+
+carrier C unit shape descriptor
+  BoundaryFlowLaneBasis(PN:F)
+
+complete value read
+  resolved basis = PN:F
+  occupied lane = NF
+  value = -6f
+```
+
+Complete value reads resolve basis in this order:
+
+```text
+1. explicit UnitShape lane-basis descriptor
+2. explicit value/host/witness basis
+3. UnitShape default S:None basis
+```
+
+That keeps `UnitShape` as the normal home when it says something specific,
+while preserving old route/target surfaces that intentionally carry a local
+host basis. The explicit value/host basis can be useful as a snapshot, route
+target, or conflict record, but it is not the ordinary home for a carrier's
+tick basis.
+
+If the occupied lane is not legal for the resolved basis, the read still
+succeeds and exposes lane tension:
+
+```text
+resolved basis = PN:F
+occupied lane = NI
+
+read:
+  value = -6i
+  legal = false
+```
+
+If the unit-shape basis cannot be read at all, that incomplete state can still
+be made visible:
+
+```text
+BoundaryFlowValueBasisTension
+  value surface
+  magnitude point
+  occupied lane marker
+  unresolved basis
+  placeholder witness
+```
+
+This is the structural version of "no lane basis found." It is not a default
+and not an exception. In ordinary carrier-backed values this should be rare,
+because the unit-shape default provides `S:None`.
 
 So the emerging split is:
 
