@@ -69,6 +69,78 @@ public sealed class BoundaryFlowLaneBasisTests
     }
 
     [Fact]
+    public void LaneBasisCanAttachToUnitShapeWithoutCarrierAxis()
+    {
+        var unitCarrier = new Carrier();
+        var selectedTickShape = UnitShape.ResolutionOf(unitCarrier.UnitShape, 4).Surface;
+        var basis = BoundaryFlowLaneBasis.Create(
+            new Carrier(),
+            BoundaryExposure.BoundedWhole,
+            FlowExposure.None,
+            selectedTickShape);
+
+        Assert.True(BoundaryFlowLaneBasis.TryRead(
+            basis,
+            out var exposure,
+            out var selected,
+            out var lanes));
+        Assert.Equal(selectedTickShape, selected);
+        Assert.True(exposure.Boundary.IsBoundedWhole);
+        Assert.True(exposure.Flow.IsNone);
+        Assert.Equal("S:None", string.Join("|", lanes.Select(lane => lane.Label)));
+    }
+
+    [Fact]
+    public void LaneOnlyBasisCanReadWholeNoFlowValueWithoutOwningCarrier()
+    {
+        var whole = Relation.Segment(new Carrier(), 0, 100);
+        var basis = BoundaryFlowLaneBasis.Create(
+            new Carrier(),
+            BoundaryExposure.BoundedWhole,
+            FlowExposure.None,
+            whole);
+        var magnitudeCarrier = new Carrier();
+        var value = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            magnitudeCarrier,
+            2,
+            BoundaryFlowLane.WholeNone,
+            basis);
+
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(value, out var read));
+        Assert.True(read.IsLegal);
+        Assert.True(read.IsWholeBoundary);
+        Assert.True(read.IsNoFlow);
+        Assert.Equal(new CarrierLocation(magnitudeCarrier, 2), read.Magnitude);
+        Assert.Equal("2s", read.Notation);
+
+        Assert.False(CarrierAxisSurface.TryRead(basis, out _, out _, out _, out _, out _));
+    }
+
+    [Fact]
+    public void UnitShapeDescriptorCanCarryLaneBasisAsTickCharacter()
+    {
+        var tickSource = Relation.Point(new Carrier(), 1);
+        var tickBasis = BoundaryFlowLaneBasis.Create(
+            new Carrier(),
+            BoundaryExposure.Positive,
+            FlowExposure.Forward,
+            tickSource);
+        var tickShape = UnitShape.DescribedAtom(tickBasis);
+
+        var descriptor = Assert.Single(tickShape.DescriptorSurfaces);
+        Assert.True(BoundaryFlowLaneBasis.TryRead(
+            Assert.IsType<Relation>(descriptor),
+            out var exposure,
+            out var selected,
+            out var lanes));
+        Assert.Equal("P:F", exposure.Label);
+        Assert.True(ConceptSurfaceReaderForTests.TryReadPoint(selected, out var selectedTick));
+        Assert.Equal(1, selectedTick.Ticks);
+        Assert.Equal("PF", string.Join("|", lanes.Select(lane => lane.Label)));
+    }
+
+    [Fact]
     public void CarrierAxisSurfaceCanExposeLegalLanesWithoutDuplicatingValues()
     {
         var carrier = new Carrier();

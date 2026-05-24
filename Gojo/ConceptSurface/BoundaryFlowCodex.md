@@ -265,6 +265,62 @@ from materializing or selecting a different `Carrier` face with
 core, `CarrierBoundarySurface` and `RelationFlowSurface` can become the
 migration path.
 
+Lane basis is not carrier-owned. `BoundaryFlowLaneBasis` can attach the same
+legal lane shape to any selected structure:
+
+```text
+BoundaryFlowLaneBasis(root)
+  BoundaryFlowSurface
+  selected structure
+  explicit legal lane surfaces
+```
+
+The selected structure can be a carrier axis, but it can also be a unit-shape
+surface, a bounded whole, a bridge opening, or any other inspectable Gojo
+structure. This matters because some lane reads are tick-character reads rather
+than live carrier-balance reads:
+
+```text
+unit-shape resolution surface
+  selected by S:None
+  legal lane = whole/no-flow
+
+bounded whole segment
+  selected by S:None
+  value 2 on lane S:None reads as a whole-partition style value
+  no CarrierAxisSurface is required
+```
+
+Lane basis can also travel as a unit-shape descriptor:
+
+```text
+UnitShape.DescribedAtom(
+  BoundaryFlowLaneBasis(
+    selected tick source,
+    boundary = P,
+    flow = F))
+```
+
+That is the current best route for tick-character meaning. The carrier can keep
+its unsigned live value, while the unit shape says how one tick should be read
+when this concept surface asks about boundary/flow lanes.
+
+So the emerging split is:
+
+```text
+BoundaryFlowLaneBasis
+  lane grammar for a selected structure
+
+CarrierAxisSurface
+  carrier-hosted convenience using that lane grammar
+
+BoundaryFlowValueSurface
+  one unsigned magnitude occupying one lane against a basis
+```
+
+This lets the unsigned live carrier value remain small while lane meaning is
+expressed by surrounding structure when needed.
+
 Useful coordinate notation:
 
 ```text
