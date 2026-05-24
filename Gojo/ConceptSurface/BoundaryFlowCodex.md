@@ -248,7 +248,8 @@ RelationFlowSurface
   which traversal/transfer faces this relation exposes: Ø, F, I, or FI
 ```
 
-Inverting an axis surface swaps boundary sides and flow exposure:
+Dualing an axis surface swaps boundary sides and flow exposure. `Invert` remains
+an alias in a few helper names, but the concept is duality:
 
 ```text
 P:F   -> N:I
@@ -484,6 +485,93 @@ Carrier axis helpers can also expose transition evidence. `SignedForward`
 currently carries the conventional `PF -> NF` and `NF -> PF` transition pair
 as part of the surface, while a bare `BoundaryFlowLaneBasis(PN:F)` only says
 both lanes are legal.
+
+## Duals And Flow Phase Steps
+
+There are several distinct operations that used to be partially hidden behind
+`Carrier.IsInverse`.
+
+Boundary dual:
+
+```text
+PF <-> NF
+PI <-> NI
+P  <-> N
+S  -> S
+```
+
+Flow dual:
+
+```text
+PF <-> PI
+NF <-> NI
+F  <-> I
+None -> None
+```
+
+Full lane dual:
+
+```text
+PF <-> NI
+PI <-> NF
+```
+
+When the structure only exposes an unordered availability set, `PN` still reads
+as `PN` after dualing, and `FI` still reads as `FI`. If the structure preserves
+ordered evidence, the dual can be read at higher resolution:
+
+```text
+PN -> NP
+FI -> IF
+```
+
+The value changes when its occupied lane changes:
+
+```text
+value:
+  5NF = -5f
+
+boundary dual:
+  5PF = 5f
+```
+
+The i-like operation is not treated as a geometric turn, because the same
+ordered phase step can appear on one-dimensional directed segments and other
+non-circular structures. It is a flow phase step over signed flow lanes:
+
+```text
+PF -> PI -> NF -> NI -> PF
+```
+
+Equivalently:
+
+```text
+flow bit flips every step
+boundary side flips every second step
+```
+
+That keeps these operations separate:
+
+```text
+BoundaryFlowLane.DualBoundary()
+  flips P/N only
+
+BoundaryFlowLane.DualFlow()
+  flips F/I only
+
+BoundaryFlowLane.Dual()
+  flips both boundary and flow
+
+BoundaryFlowLane.TryStepFlowPhase(...)
+  advances PF -> PI -> NF -> NI -> PF
+```
+
+No-flow lanes do not phase-step:
+
+```text
+S:None
+  no forward/inverse flow face to step through
+```
 
 Useful coordinate notation:
 

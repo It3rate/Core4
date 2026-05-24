@@ -48,6 +48,63 @@ public sealed class BoundaryFlowLaneBasisTests
     }
 
     [Fact]
+    public void BoundaryAndFlowDualsAreSeparateLaneReads()
+    {
+        Assert.Equal(BoundaryFlowLane.NegativeForward, BoundaryFlowLane.PositiveForward.DualBoundary());
+        Assert.Equal(BoundaryFlowLane.PositiveInverse, BoundaryFlowLane.PositiveForward.DualFlow());
+        Assert.Equal(BoundaryFlowLane.NegativeInverse, BoundaryFlowLane.PositiveForward.Dual());
+        Assert.Equal(BoundaryFlowLane.PositiveForward, BoundaryFlowLane.NegativeInverse.Dual());
+        Assert.Equal(BoundaryFlowLane.WholeNone, BoundaryFlowLane.WholeNone.Dual());
+        Assert.Equal(FlowExposure.Inverse, FlowExposure.Forward.Dual());
+        Assert.Equal(FlowExposure.Forward, FlowExposure.Inverse.Dual());
+        Assert.Equal(FlowExposure.None, FlowExposure.None.Dual());
+        Assert.Equal(FlowExposure.Both, FlowExposure.Both.Dual());
+    }
+
+    [Fact]
+    public void FlowPhaseStepAdvancesAcrossBoundaryAndFlowLanes()
+    {
+        Assert.True(BoundaryFlowLane.PositiveForward.TryStepFlowPhase(out var first));
+        Assert.Equal(BoundaryFlowLane.PositiveInverse, first);
+        Assert.True(first.TryStepFlowPhase(out var second));
+        Assert.Equal(BoundaryFlowLane.NegativeForward, second);
+        Assert.True(second.TryStepFlowPhase(out var third));
+        Assert.Equal(BoundaryFlowLane.NegativeInverse, third);
+        Assert.True(third.TryStepFlowPhase(out var fourth));
+        Assert.Equal(BoundaryFlowLane.PositiveForward, fourth);
+        Assert.False(BoundaryFlowLane.WholeNone.TryStepFlowPhase(out _));
+    }
+
+    [Fact]
+    public void FlowPhaseStepTransitionsAreInspectableStructure()
+    {
+        var transitions = BoundaryFlowLaneTransitionSurface.FlowPhaseStepTransitions(new Carrier());
+        var group = Relation.OrderedGroup(new Carrier(), transitions);
+
+        Assert.Equal(4, transitions.Length);
+        Assert.True(BoundaryFlowLaneTransitionSurface.TryFindTransition(
+            group,
+            BoundaryFlowLane.PositiveForward,
+            BoundaryFlowLane.PositiveInverse,
+            out _));
+        Assert.True(BoundaryFlowLaneTransitionSurface.TryFindTransition(
+            group,
+            BoundaryFlowLane.PositiveInverse,
+            BoundaryFlowLane.NegativeForward,
+            out _));
+        Assert.True(BoundaryFlowLaneTransitionSurface.TryFindTransition(
+            group,
+            BoundaryFlowLane.NegativeForward,
+            BoundaryFlowLane.NegativeInverse,
+            out _));
+        Assert.True(BoundaryFlowLaneTransitionSurface.TryFindTransition(
+            group,
+            BoundaryFlowLane.NegativeInverse,
+            BoundaryFlowLane.PositiveForward,
+            out _));
+    }
+
+    [Fact]
     public void LaneBasisSurfaceKeepsExplicitLegalLaneMarkers()
     {
         var selected = Relation.Segment(new Carrier(), -4, 4);

@@ -70,7 +70,10 @@ public readonly record struct FlowExposure(bool ForwardFlow, bool InverseFlow)
     };
 
     /// <summary>Swaps forward and inverse flow exposure while preserving none and both.</summary>
-    public FlowExposure Invert() => new(InverseFlow, ForwardFlow);
+    public FlowExposure Dual() => new(InverseFlow, ForwardFlow);
+
+    /// <summary>Alias for <see cref="Dual"/> while older code still uses invert language.</summary>
+    public FlowExposure Invert() => Dual();
 
     public override string ToString() => Label;
 }
@@ -84,9 +87,11 @@ public readonly record struct BoundaryFlowExposure(BoundaryExposure Boundary, Fl
 
     public BoundaryFlowExposure DualBoundary() => new(Boundary.Dual(), Flow);
 
-    public BoundaryFlowExposure InvertFlow() => new(Boundary, Flow.Invert());
+    public BoundaryFlowExposure DualFlow() => new(Boundary, Flow.Dual());
 
-    public BoundaryFlowExposure Dual() => new(Boundary.Dual(), Flow.Invert());
+    public BoundaryFlowExposure InvertFlow() => DualFlow();
+
+    public BoundaryFlowExposure Dual() => new(Boundary.Dual(), Flow.Dual());
 
     public override string ToString() => Label;
 }
@@ -119,6 +124,12 @@ public readonly record struct BoundaryLane(bool PositiveSide, bool NegativeSide,
         _ => "Invalid"
     };
 
+    public BoundaryLane Dual() => IsPositive
+        ? Negative
+        : IsNegative
+            ? Positive
+            : Whole;
+
     public override string ToString() => Label;
 }
 
@@ -150,6 +161,12 @@ public readonly record struct FlowLane(bool ForwardFace, bool InverseFace, bool 
         _ => "Invalid"
     };
 
+    public FlowLane Dual() => IsForward
+        ? Inverse
+        : IsInverse
+            ? Forward
+            : None;
+
     public override string ToString() => Label;
 }
 
@@ -179,11 +196,53 @@ public readonly record struct BoundaryFlowLane(BoundaryLane Boundary, FlowLane F
 
     public bool IsValid => Boundary.IsValid && Flow.IsValid;
 
+    public bool IsSignedFlowPhase =>
+        (Boundary.IsPositive || Boundary.IsNegative) &&
+        (Flow.IsForward || Flow.IsInverse);
+
     public string Label => !IsValid
         ? "Invalid"
         : Flow.IsNone
             ? $"{Boundary}:None"
             : $"{Boundary}{Flow}";
+
+    public BoundaryFlowLane DualBoundary() => new(Boundary.Dual(), Flow);
+
+    public BoundaryFlowLane DualFlow() => new(Boundary, Flow.Dual());
+
+    public BoundaryFlowLane InvertFlow() => DualFlow();
+
+    public BoundaryFlowLane Dual() => new(Boundary.Dual(), Flow.Dual());
+
+    public bool TryStepFlowPhase(out BoundaryFlowLane next)
+    {
+        if (Boundary.IsPositive && Flow.IsForward)
+        {
+            next = PositiveInverse;
+            return true;
+        }
+
+        if (Boundary.IsPositive && Flow.IsInverse)
+        {
+            next = NegativeForward;
+            return true;
+        }
+
+        if (Boundary.IsNegative && Flow.IsForward)
+        {
+            next = NegativeInverse;
+            return true;
+        }
+
+        if (Boundary.IsNegative && Flow.IsInverse)
+        {
+            next = PositiveForward;
+            return true;
+        }
+
+        next = default;
+        return false;
+    }
 
     public override string ToString() => Label;
 }
@@ -674,6 +733,29 @@ public static class BoundaryFlowLaneTransitionSurface
             var negative = new BoundaryFlowLane(BoundaryLane.Negative, flowLane);
             transitions.Add(Create(ConceptSurface.RootOrNew(root), positive, negative));
             transitions.Add(Create(new Carrier(), negative, positive));
+        }
+
+        return [.. transitions];
+    }
+
+    public static Relation[] FlowPhaseStepTransitions(Carrier root)
+    {
+        var transitions = new List<Relation>();
+        foreach (var source in new[]
+                 {
+                     BoundaryFlowLane.PositiveForward,
+                     BoundaryFlowLane.PositiveInverse,
+                     BoundaryFlowLane.NegativeForward,
+                     BoundaryFlowLane.NegativeInverse
+                 })
+        {
+            if (source.TryStepFlowPhase(out var target))
+            {
+                transitions.Add(Create(
+                    transitions.Count == 0 ? ConceptSurface.RootOrNew(root) : new Carrier(),
+                    source,
+                    target));
+            }
         }
 
         return [.. transitions];
