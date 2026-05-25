@@ -252,6 +252,50 @@ public static class FlowFaceSurface
 }
 
 /// <summary>
+/// Explicit no-flow evidence: selected structure plus a zero-difference flow
+/// witness. This is not primitive grade-0 flow; it is an inspectable statement
+/// that no F/I face is exposed at this read.
+/// </summary>
+public static class NoFlowSurface
+{
+    public static Relation Create(Carrier root, IElement selected, IElement witness) =>
+        Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            Relation.Segment(new Carrier(), 0, 0),
+            selected ?? ConceptSurface.UnknownPoint(),
+            witness ?? ConceptSurface.UnknownPoint());
+
+    public static Relation Create(Carrier root, IElement selected) =>
+        Create(root, selected, ConceptSurface.UnknownPoint());
+
+    public static bool TryRead(
+        Relation surface,
+        out IElement selected,
+        out IElement witness)
+    {
+        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
+            elements.Length == 3 &&
+            elements[0] is Relation marker &&
+            marker.Left is Relation start &&
+            marker.Right is Relation end &&
+            ConceptSurfaceReader.TryReadPoint(start, out var startLocation) &&
+            ConceptSurfaceReader.TryReadPoint(end, out var endLocation) &&
+            startLocation.Carrier.SameIdentityAs(endLocation.Carrier) &&
+            startLocation.Ticks == 0 &&
+            endLocation.Ticks == 0)
+        {
+            selected = elements[1];
+            witness = elements[2];
+            return true;
+        }
+
+        selected = default!;
+        witness = default!;
+        return false;
+    }
+}
+
+/// <summary>
 /// Compatibility bridge from today's materialized carrier face to primitive
 /// flow-face evidence. This reads <see cref="Carrier.IsInverse"/> only to build
 /// an inspectable <see cref="FlowFaceSurface"/>; the surface is the portable
@@ -536,6 +580,65 @@ public static class StrippedBoundarySideSurface
         return false;
     }
 
+    public static bool TryReadExposure(
+        IElement structure,
+        out BoundaryExposure exposure,
+        out IElement selected,
+        out Relation positiveSide,
+        out Relation negativeSide)
+    {
+        var sides = new List<(BoundarySide Side, Relation Surface, IElement Selected)>();
+        CollectSides(structure, sides);
+        if (sides.Count == 0)
+        {
+            exposure = default;
+            selected = default!;
+            positiveSide = null!;
+            negativeSide = null!;
+            return false;
+        }
+
+        var positive = sides.FirstOrDefault(side => side.Side == BoundarySide.Positive);
+        var negative = sides.FirstOrDefault(side => side.Side == BoundarySide.Negative);
+        exposure = (positive.Surface is not null, negative.Surface is not null) switch
+        {
+            (true, true) => BoundaryExposure.FullSigned,
+            (true, false) => BoundaryExposure.Positive,
+            (false, true) => BoundaryExposure.Negative,
+            _ => default
+        };
+        selected = positive.Surface is not null
+            ? positive.Selected
+            : negative.Selected;
+        positiveSide = positive.Surface ?? ConceptSurface.UnknownPoint();
+        negativeSide = negative.Surface ?? ConceptSurface.UnknownPoint();
+        return true;
+    }
+
+    private static void CollectSides(
+        IElement structure,
+        List<(BoundarySide Side, Relation Surface, IElement Selected)> sides)
+    {
+        if (structure is not Relation relation)
+        {
+            return;
+        }
+
+        if (TryRead(relation, out var side, out _, out var selected, out _))
+        {
+            sides.Add((side, relation, selected));
+            return;
+        }
+
+        if (ConceptSurfaceReader.TryReadRootElements(relation, out var elements))
+        {
+            foreach (var element in elements)
+            {
+                CollectSides(element, sides);
+            }
+        }
+    }
+
     private static Relation SidePoint(BoundarySide side) =>
         Relation.Point(new Carrier(), side.IsNegative ? 1 : 0);
 
@@ -669,6 +772,142 @@ public static class BoundedWholeSurface
         rightBoundary = null!;
         partition = default!;
         return false;
+    }
+}
+
+/// <summary>
+/// Builds the lowest currently available structural evidence for a boundary
+/// exposure over a flow exposure. The helper only assembles carrier/relation
+/// structure; the boundary/flow meaning remains inspectable after construction.
+/// </summary>
+public static class BoundaryFlowPrimitiveEvidence
+{
+    public static bool TryCreate(
+        Carrier root,
+        BoundaryExposure boundary,
+        FlowExposure flow,
+        IElement selected,
+        out Relation boundaryEvidence,
+        out Relation flowEvidence) =>
+        TryCreate(
+            root,
+            boundary,
+            flow,
+            selected,
+            ConceptSurface.UnknownPoint(),
+            ConceptSurface.UnknownPoint(),
+            out boundaryEvidence,
+            out flowEvidence);
+
+    public static bool TryCreate(
+        Carrier root,
+        BoundaryExposure boundary,
+        FlowExposure flow,
+        IElement selected,
+        IElement boundaryWitness,
+        IElement flowWitness,
+        out Relation boundaryEvidence,
+        out Relation flowEvidence)
+    {
+        var selectedSurface = selected ?? ConceptSurface.UnknownPoint();
+        flowEvidence = CreateFlowEvidence(flow, selectedSurface, flowWitness);
+
+        if (boundary.IsBoundedWhole)
+        {
+            boundaryEvidence = BoundedWholeSurface.Create(
+                ConceptSurface.RootOrNew(root),
+                selectedSurface);
+            return true;
+        }
+
+        if (flow.IsNone)
+        {
+            boundaryEvidence = null!;
+            return false;
+        }
+
+        var flowFaces = CreateFlowFaces(flow, selectedSurface, flowWitness);
+        var boundarySides = CreateBoundarySides(boundary, flowFaces, boundaryWitness);
+        if (boundarySides.Length == 0)
+        {
+            boundaryEvidence = null!;
+            return false;
+        }
+
+        boundaryEvidence = Relation.OrderedGroup(ConceptSurface.RootOrNew(root), boundarySides);
+        return true;
+    }
+
+    public static Relation CreateFlowEvidence(
+        FlowExposure flow,
+        IElement selected,
+        IElement witness)
+    {
+        var flowFaces = CreateFlowFaces(flow, selected, witness);
+        if (flowFaces.Length == 0)
+        {
+            return NoFlowSurface.Create(new Carrier(), selected, witness ?? ConceptSurface.UnknownPoint());
+        }
+
+        return flowFaces.Length == 1
+            ? flowFaces[0]
+            : Relation.OrderedGroup(new Carrier(), flowFaces);
+    }
+
+    public static Relation[] CreateFlowFaces(
+        FlowExposure flow,
+        IElement selected,
+        IElement witness)
+    {
+        var faces = new List<Relation>(2);
+        if (flow.ForwardFlow)
+        {
+            faces.Add(FlowFaceSurface.Forward(
+                new Carrier(),
+                selected ?? ConceptSurface.UnknownPoint(),
+                witness ?? ConceptSurface.UnknownPoint()));
+        }
+
+        if (flow.InverseFlow)
+        {
+            faces.Add(FlowFaceSurface.Inverse(
+                new Carrier(),
+                selected ?? ConceptSurface.UnknownPoint(),
+                witness ?? ConceptSurface.UnknownPoint()));
+        }
+
+        return [.. faces];
+    }
+
+    public static Relation[] CreateBoundarySides(
+        BoundaryExposure boundary,
+        Relation[] flowFaces,
+        IElement witness)
+    {
+        var sides = new List<Relation>();
+        var includePositive = boundary.IsPositive || boundary.IsFullSigned;
+        var includeNegative = boundary.IsNegative || boundary.IsFullSigned;
+
+        foreach (var flowFace in flowFaces)
+        {
+            if (includePositive)
+            {
+                sides.Add(BoundarySideSurface.Positive(
+                    new Carrier(),
+                    flowFace,
+                    witness ?? ConceptSurface.UnknownPoint()));
+            }
+
+            if (includeNegative)
+            {
+                sides.Add(BoundarySideSurface.Negative(
+                    new Carrier(),
+                    flowFace,
+                    witness ?? ConceptSurface.UnknownPoint()));
+            }
+        }
+
+        return [.. sides];
     }
 }
 
@@ -1660,35 +1899,19 @@ public static class BoundaryFlowUnitShape
         IElement selected,
         out Relation basis)
     {
-        if (boundary.IsBoundedWhole)
-        {
-            basis = CreateBoundedWholeBasis(root, flow, selected);
-            return true;
-        }
-
-        if (flow.IsNone)
-        {
-            basis = null!;
-            return false;
-        }
-
         var selectedSurface = selected ?? Relation.Point(new Carrier(), 1);
-        var flowFaces = CreateFlowFaces(flow, selectedSurface);
-        if (flowFaces.Length == 0)
+        if (!BoundaryFlowPrimitiveEvidence.TryCreate(
+                new Carrier(),
+                boundary,
+                flow,
+                selectedSurface,
+                out var boundaryEvidence,
+                out var flowEvidence))
         {
             basis = null!;
             return false;
         }
 
-        var boundarySides = CreateBoundarySides(boundary, flowFaces);
-        if (boundarySides.Length == 0)
-        {
-            basis = null!;
-            return false;
-        }
-
-        var boundaryEvidence = Relation.OrderedGroup(new Carrier(), boundarySides);
-        var flowEvidence = Relation.OrderedGroup(new Carrier(), flowFaces);
         var boundaryFlowSurface = BoundaryFlowSurface.Create(
             new Carrier(),
             boundaryEvidence,
@@ -1698,75 +1921,6 @@ public static class BoundaryFlowUnitShape
             boundaryFlowSurface,
             selectedSurface);
         return true;
-    }
-
-    private static Relation CreateBoundedWholeBasis(
-        Carrier root,
-        FlowExposure flow,
-        IElement selected)
-    {
-        var selectedSurface = selected ?? Relation.Point(new Carrier(), 1);
-        var boundaryEvidence = BoundedWholeSurface.Create(new Carrier(), selectedSurface);
-        var flowEvidence = CreateFlowSurfaceFromPrimitiveFaces(flow, selectedSurface);
-        var boundaryFlowSurface = BoundaryFlowSurface.Create(
-            new Carrier(),
-            boundaryEvidence,
-            flowEvidence);
-        return BoundaryFlowLaneBasis.Create(
-            ConceptSurface.RootOrNew(root),
-            boundaryFlowSurface,
-            selectedSurface);
-    }
-
-    private static Relation CreateFlowSurfaceFromPrimitiveFaces(
-        FlowExposure flow,
-        IElement selected)
-    {
-        var flowFaces = CreateFlowFaces(flow, selected);
-        if (flowFaces.Length == 0)
-        {
-            return FlowSurface.None(new Carrier(), selected);
-        }
-
-        return Relation.OrderedGroup(new Carrier(), flowFaces);
-    }
-
-    private static Relation[] CreateFlowFaces(FlowExposure flow, IElement selected)
-    {
-        var faces = new List<Relation>(2);
-        if (flow.ForwardFlow)
-        {
-            faces.Add(FlowFaceSurface.Forward(new Carrier(), selected));
-        }
-
-        if (flow.InverseFlow)
-        {
-            faces.Add(FlowFaceSurface.Inverse(new Carrier(), selected));
-        }
-
-        return [.. faces];
-    }
-
-    private static Relation[] CreateBoundarySides(BoundaryExposure boundary, Relation[] flowFaces)
-    {
-        var sides = new List<Relation>();
-        var includePositive = boundary.IsPositive || boundary.IsFullSigned;
-        var includeNegative = boundary.IsNegative || boundary.IsFullSigned;
-
-        foreach (var flowFace in flowFaces)
-        {
-            if (includePositive)
-            {
-                sides.Add(BoundarySideSurface.Positive(new Carrier(), flowFace));
-            }
-
-            if (includeNegative)
-            {
-                sides.Add(BoundarySideSurface.Negative(new Carrier(), flowFace));
-            }
-        }
-
-        return [.. sides];
     }
 }
 
@@ -3847,13 +4001,34 @@ public static class BoundarySurface
         IElement leftBoundary,
         IElement rightBoundary)
     {
-        return Relation.OrderedGroup(
-            ConceptSurface.RootOrNew(root),
-            BoundaryBit(exposure.LeftBoundary),
-            BoundaryBit(exposure.RightBoundary),
-            wholeOrAxis ?? ConceptSurface.UnknownPoint(),
-            exposure.LeftBoundary ? leftBoundary ?? ConceptSurface.UnknownPoint() : ConceptSurface.UnknownPoint(),
-            exposure.RightBoundary ? rightBoundary ?? ConceptSurface.UnknownPoint() : ConceptSurface.UnknownPoint());
+        var selected = wholeOrAxis ?? ConceptSurface.UnknownPoint();
+        if (exposure.IsBoundedWhole)
+        {
+            return BoundedWholeSurface.Create(
+                ConceptSurface.RootOrNew(root),
+                selected,
+                leftBoundary as Relation ?? ConceptSurface.UnknownPoint(),
+                rightBoundary as Relation ?? ConceptSurface.UnknownPoint());
+        }
+
+        var sides = new List<Relation>(2);
+        if (exposure.IsPositive || exposure.IsFullSigned)
+        {
+            sides.Add(StrippedBoundarySideSurface.Positive(
+                ConceptSurface.RootOrNew(root),
+                selected,
+                leftBoundary ?? ConceptSurface.UnknownPoint()));
+        }
+
+        if (exposure.IsNegative || exposure.IsFullSigned)
+        {
+            sides.Add(StrippedBoundarySideSurface.Negative(
+                sides.Count == 0 ? ConceptSurface.RootOrNew(root) : new Carrier(),
+                selected,
+                rightBoundary ?? ConceptSurface.UnknownPoint()));
+        }
+
+        return Relation.OrderedGroup(ConceptSurface.RootOrNew(root), [.. sides]);
     }
 
     public static Relation Create(
@@ -3940,15 +4115,17 @@ public static class BoundarySurface
             return true;
         }
 
-        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
-            elements.Length >= 5 &&
-            TryReadBit(elements[0], out var hasLeft) &&
-            TryReadBit(elements[1], out var hasRight))
+        if (StrippedBoundarySideSurface.TryReadExposure(
+                surface,
+                out var strippedExposure,
+                out var strippedSelected,
+                out var strippedPositive,
+                out var strippedNegative))
         {
-            exposure = new BoundaryExposure(hasLeft, hasRight);
-            wholeOrAxis = elements[2];
-            leftBoundary = elements[3];
-            rightBoundary = elements[4];
+            exposure = strippedExposure;
+            wholeOrAxis = strippedSelected;
+            leftBoundary = strippedPositive;
+            rightBoundary = strippedNegative;
             return true;
         }
 
@@ -3956,22 +4133,6 @@ public static class BoundarySurface
         wholeOrAxis = default!;
         leftBoundary = default!;
         rightBoundary = default!;
-        return false;
-    }
-
-    private static Relation BoundaryBit(bool isPresent) =>
-        Relation.Point(new Carrier(), isPresent ? 1 : 0);
-
-    private static bool TryReadBit(IElement element, out bool isPresent)
-    {
-        if (ConceptSurfaceReader.TryReadPoint(element, out var location) &&
-            (location.Ticks == 0 || location.Ticks == 1))
-        {
-            isPresent = location.Ticks == 1;
-            return true;
-        }
-
-        isPresent = false;
         return false;
     }
 }
@@ -3989,13 +4150,34 @@ public static class FlowSurface
         IElement forwardFlow,
         IElement inverseFlow)
     {
-        return Relation.OrderedGroup(
-            ConceptSurface.RootOrNew(root),
-            FlowBit(exposure.ForwardFlow),
-            FlowBit(exposure.InverseFlow),
-            selected ?? ConceptSurface.UnknownPoint(),
-            exposure.ForwardFlow ? forwardFlow ?? ConceptSurface.UnknownPoint() : ConceptSurface.UnknownPoint(),
-            exposure.InverseFlow ? inverseFlow ?? ConceptSurface.UnknownPoint() : ConceptSurface.UnknownPoint());
+        var selectedSurface = selected ?? ConceptSurface.UnknownPoint();
+        if (exposure.IsNone)
+        {
+            return NoFlowSurface.Create(
+                ConceptSurface.RootOrNew(root),
+                selectedSurface);
+        }
+
+        var faces = new List<Relation>(2);
+        if (exposure.ForwardFlow)
+        {
+            faces.Add(CreateFace(
+                FlowFace.Forward,
+                selectedSurface,
+                forwardFlow ?? ConceptSurface.UnknownPoint()));
+        }
+
+        if (exposure.InverseFlow)
+        {
+            faces.Add(CreateFace(
+                FlowFace.Inverse,
+                selectedSurface,
+                inverseFlow ?? ConceptSurface.UnknownPoint()));
+        }
+
+        return faces.Count == 1
+            ? faces[0]
+            : Relation.OrderedGroup(ConceptSurface.RootOrNew(root), [.. faces]);
     }
 
     public static Relation Create(
@@ -4034,12 +4216,7 @@ public static class FlowSurface
                 out var forwardFlow,
                 out var inverseFlow))
         {
-            surface = Create(
-                root,
-                exposure,
-                selected ?? faceSelected,
-                forwardFlow,
-                inverseFlow);
+            surface = Relation.OrderedGroup(ConceptSurface.RootOrNew(root), [.. flowFaces]);
             return true;
         }
 
@@ -4068,15 +4245,12 @@ public static class FlowSurface
             return true;
         }
 
-        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
-            elements.Length >= 5 &&
-            TryReadBit(elements[0], out var hasForward) &&
-            TryReadBit(elements[1], out var hasInverse))
+        if (NoFlowSurface.TryRead(surface, out var noFlowSelected, out _))
         {
-            exposure = new FlowExposure(hasForward, hasInverse);
-            selected = elements[2];
-            forwardFlow = elements[3];
-            inverseFlow = elements[4];
+            exposure = FlowExposure.None;
+            selected = noFlowSelected;
+            forwardFlow = ConceptSurface.UnknownPoint();
+            inverseFlow = ConceptSurface.UnknownPoint();
             return true;
         }
 
@@ -4087,20 +4261,16 @@ public static class FlowSurface
         return false;
     }
 
-    private static Relation FlowBit(bool isPresent) =>
-        Relation.Point(new Carrier(), isPresent ? 1 : 0);
-
-    private static bool TryReadBit(IElement element, out bool isPresent)
+    private static Relation CreateFace(FlowFace face, IElement selected, IElement evidence)
     {
-        if (ConceptSurfaceReader.TryReadPoint(element, out var location) &&
-            (location.Ticks == 0 || location.Ticks == 1))
+        if (evidence is Relation existingFace &&
+            FlowFaceSurface.TryRead(existingFace, out var readFace, out _, out _) &&
+            readFace.Equals(face))
         {
-            isPresent = location.Ticks == 1;
-            return true;
+            return existingFace;
         }
 
-        isPresent = false;
-        return false;
+        return FlowFaceSurface.Create(new Carrier(), face, selected, evidence);
     }
 }
 
@@ -4134,6 +4304,17 @@ public static class BoundaryFlowSurface
         FlowExposure flow,
         IElement selected)
     {
+        if (BoundaryFlowPrimitiveEvidence.TryCreate(
+                new Carrier(),
+                boundary,
+                flow,
+                selected,
+                out var primitiveBoundary,
+                out var primitiveFlow))
+        {
+            return Create(root, primitiveBoundary, primitiveFlow);
+        }
+
         var boundarySurface = BoundarySurface.Create(new Carrier(), boundary, selected);
         var flowSurface = FlowSurface.Create(new Carrier(), flow, selected);
         return Create(root, boundarySurface, flowSurface);
@@ -4407,18 +4588,29 @@ public static class CarrierAxisSurface
         var selected = axisCarrier.IsUnknown
             ? (IElement)ConceptSurface.UnknownPoint()
             : axisCarrier;
-        var boundarySurface = BoundarySurface.Create(
-            new Carrier(),
-            boundary,
-            selected,
-            boundaryWitness ?? ConceptSurface.UnknownPoint(),
-            boundaryWitness ?? ConceptSurface.UnknownPoint());
-        var flowSurface = FlowSurface.Create(
-            new Carrier(),
-            flow,
-            selected,
-            flowWitness ?? ConceptSurface.UnknownPoint(),
-            flowWitness ?? ConceptSurface.UnknownPoint());
+        if (!BoundaryFlowPrimitiveEvidence.TryCreate(
+                new Carrier(),
+                boundary,
+                flow,
+                selected,
+                boundaryWitness ?? ConceptSurface.UnknownPoint(),
+                flowWitness ?? ConceptSurface.UnknownPoint(),
+                out var boundarySurface,
+                out var flowSurface))
+        {
+            boundarySurface = BoundarySurface.Create(
+                new Carrier(),
+                boundary,
+                selected,
+                boundaryWitness ?? ConceptSurface.UnknownPoint(),
+                boundaryWitness ?? ConceptSurface.UnknownPoint());
+            flowSurface = FlowSurface.Create(
+                new Carrier(),
+                flow,
+                selected,
+                flowWitness ?? ConceptSurface.UnknownPoint(),
+                flowWitness ?? ConceptSurface.UnknownPoint());
+        }
 
         var transitions = BoundaryFlowLaneTransitionSurface.BoundaryDualTransitions(
             new Carrier(),

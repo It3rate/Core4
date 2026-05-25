@@ -10,7 +10,7 @@ public sealed class BoundaryFlowSurfaceTests
     [InlineData(true, false, "P")]
     [InlineData(false, true, "N")]
     [InlineData(true, true, "S")]
-    public void BoundarySurfaceReadsBoundaryBits(bool left, bool right, string label)
+    public void BoundarySurfaceReadsSummaryExposure(bool left, bool right, string label)
     {
         var axis = Relation.Segment(new Carrier(), -10, 10);
         var surface = BoundarySurface.Create(
@@ -35,7 +35,7 @@ public sealed class BoundaryFlowSurfaceTests
     [InlineData(true, false, "F")]
     [InlineData(false, true, "I")]
     [InlineData(true, true, "FI")]
-    public void FlowSurfaceReadsFlowBits(bool forward, bool inverse, string label)
+    public void FlowSurfaceReadsSummaryExposure(bool forward, bool inverse, string label)
     {
         var selected = Relation.Segment(new Carrier(), 0, 1);
         var surface = FlowSurface.Create(
@@ -67,6 +67,31 @@ public sealed class BoundaryFlowSurfaceTests
         Assert.True(BoundaryFlowSurface.TryRead(surface, out var exposure));
         Assert.Equal(boundary, exposure.Boundary);
         Assert.Equal(flow, exposure.Flow);
+    }
+
+    [Fact]
+    public void BoundaryFlowSurfaceCreatePairsBoundarySidesWithPrimitiveFlow()
+    {
+        var selected = Relation.Segment(new Carrier(), -3, 3);
+        var surface = BoundaryFlowSurface.Create(
+            new Carrier(),
+            BoundaryExposure.FullSigned,
+            FlowExposure.Forward,
+            selected);
+
+        Assert.True(BoundaryFlowSurface.TryRead(
+            surface,
+            out var boundary,
+            out var flow,
+            out var boundarySurface,
+            out var flowSurface,
+            out _));
+        Assert.True(boundary.IsFullSigned);
+        Assert.True(flow.IsForwardOnly);
+        Assert.True(BoundarySideSurface.TryReadExposure(boundarySurface, out var sideExposure));
+        Assert.True(sideExposure.IsFullSigned);
+        Assert.Equal(FlowExposure.Forward, FlowFaceSurface.ReadExposure(boundarySurface));
+        Assert.Equal(FlowExposure.Forward, FlowFaceSurface.ReadExposure(flowSurface));
     }
 
     [Fact]
@@ -135,8 +160,8 @@ public sealed class BoundaryFlowSurfaceTests
             out _,
             out var forwardRead,
             out var inverseRead));
-        Assert.Equal(forward, forwardRead);
-        Assert.Equal(inverse, inverseRead);
+        AssertFlowFace(forwardRead, FlowFace.Forward, forward);
+        AssertFlowFace(inverseRead, FlowFace.Inverse, inverse);
     }
 
     [Fact]
@@ -239,6 +264,48 @@ public sealed class BoundaryFlowSurfaceTests
     }
 
     [Fact]
+    public void CarrierAxisSurfaceSignedForwardPairsBoundarySidesWithFlowFace()
+    {
+        var carrier = new Carrier();
+        var surface = CarrierAxisSurface.SignedForward(new Carrier(), carrier);
+
+        Assert.True(CarrierAxisSurface.TryRead(
+            surface,
+            out _,
+            out var boundary,
+            out var flow,
+            out var boundarySurface,
+            out var flowSurface));
+        Assert.True(boundary.IsFullSigned);
+        Assert.True(flow.IsForwardOnly);
+        Assert.True(BoundarySideSurface.TryReadExposure(boundarySurface, out var sideExposure));
+        Assert.True(sideExposure.IsFullSigned);
+        Assert.Equal(FlowExposure.Forward, FlowFaceSurface.ReadExposure(boundarySurface));
+        Assert.Equal(FlowExposure.Forward, FlowFaceSurface.ReadExposure(flowSurface));
+    }
+
+    [Fact]
+    public void CarrierAxisSurfaceBoundedWholeNoFlowCarriesWholeAndNoFlowEvidence()
+    {
+        var carrier = new Carrier();
+        var surface = CarrierAxisSurface.BoundedWholeNoFlow(new Carrier(), carrier);
+
+        Assert.True(CarrierAxisSurface.TryRead(
+            surface,
+            out _,
+            out var boundary,
+            out var flow,
+            out var boundarySurface,
+            out var flowSurface));
+        Assert.True(boundary.IsBoundedWhole);
+        Assert.True(flow.IsNone);
+        Assert.True(BoundedWholeSurface.TryRead(boundarySurface, out var whole, out _, out _, out _));
+        Assert.Same(carrier, whole);
+        Assert.True(FlowSurface.TryRead(flowSurface, out var flowRead, out _, out _, out _));
+        Assert.True(flowRead.IsNone);
+    }
+
+    [Fact]
     public void CarrierBoundarySurfaceHoldsDomainWithoutFlowExposure()
     {
         var carrier = new Carrier();
@@ -279,7 +346,7 @@ public sealed class BoundaryFlowSurfaceTests
             out _));
         Assert.Equal(relation, readRelation);
         Assert.True(flow.IsForwardOnly);
-        Assert.Equal(relation, forwardFlow);
+        AssertFlowFace(forwardFlow, FlowFace.Forward, relation);
         Assert.NotEqual(relation.Reverse(), inverseFlow);
     }
 
@@ -305,8 +372,8 @@ public sealed class BoundaryFlowSurfaceTests
             out var inverseFlow,
             out _));
         Assert.True(flow.IsBoth);
-        Assert.Equal(forward, forwardFlow);
-        Assert.Equal(inverse, inverseFlow);
+        AssertFlowFace(forwardFlow, FlowFace.Forward, forward);
+        AssertFlowFace(inverseFlow, FlowFace.Inverse, inverse);
     }
 
     [Fact]
@@ -326,7 +393,7 @@ public sealed class BoundaryFlowSurfaceTests
             out var inverseFlow,
             out _));
         Assert.True(flow.IsInverseOnly);
-        Assert.Equal(forward, inverseFlow);
+        AssertFlowFace(inverseFlow, FlowFace.Inverse);
         Assert.NotEqual(forward, forwardFlow);
     }
 
@@ -353,6 +420,24 @@ public sealed class BoundaryFlowSurfaceTests
             {
                 yield return [boundary, flow];
             }
+        }
+    }
+
+    private static void AssertFlowFace(
+        IElement flowSurface,
+        FlowFace expectedFace,
+        IElement? expectedEvidence = null)
+    {
+        var surface = Assert.IsType<Relation>(flowSurface);
+        Assert.True(FlowFaceSurface.TryRead(
+            surface,
+            out var face,
+            out _,
+            out var evidence));
+        Assert.Equal(expectedFace, face);
+        if (expectedEvidence is not null)
+        {
+            Assert.Equal(expectedEvidence, evidence);
         }
     }
 }

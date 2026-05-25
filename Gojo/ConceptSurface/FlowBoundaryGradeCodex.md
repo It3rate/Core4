@@ -155,9 +155,9 @@ root
 
 The helper read `FlowFace` is compact. The meaning is the surface.
 
-The face marker is a tiny directed segment rather than a one-bit point. That is
+The face marker is a tiny directed segment rather than a single point. That is
 intentional: flow is ordered difference, and the segment shape keeps primitive
-flow faces from colliding with later one-bit side markers during broad local
+flow faces from colliding with boundary side points during broad local
 traversal.
 
 ### Why None Is Not Primitive Flow
@@ -262,7 +262,7 @@ root
   selected
 ```
 
-Then it can read that physical pair as the older occupied-lane vocabulary:
+Then it can read that physical pair as the compact occupied-lane vocabulary:
 
 ```text
 P over F -> BoundaryFlowLane.PositiveForward
@@ -276,11 +276,11 @@ moving the primitive evidence toward lower-grade physical surfaces.
 
 ## Boundary Exposure Reads
 
-The compact `BoundaryExposure` record still uses the older bit vocabulary:
+The compact `BoundaryExposure` record keeps the two-side summary vocabulary:
 
 ```text
-left boundary present
-right boundary present
+positive-side evidence present
+negative-side evidence present
 ```
 
 That gives:
@@ -292,8 +292,8 @@ FT -> N
 TT -> S
 ```
 
-That table remains useful for the current API, but the grade interpretation is
-more precise:
+That table remains useful for the current API, but it is now a summary read
+over structural evidence. The grade interpretation is more precise:
 
 ```text
 P  = only positive side is present in this local read
@@ -926,9 +926,9 @@ Current second pass:
 
 ```text
 FlowSurface.TryRead can summarize FlowFaceSurface evidence
-FlowSurface.TryCreateFromPrimitiveFaces builds the older summary surface from faces
+FlowSurface.TryCreateFromPrimitiveFaces builds structural flow evidence from faces
 BoundarySurface.TryRead can summarize BoundarySideSurface evidence
-BoundarySurface.TryCreateFromPrimitiveSides builds the older summary surface from sides
+BoundarySurface.TryCreateFromPrimitiveSides builds structural boundary evidence from sides
 BoundaryFlowSurface.TryRead can pair primitive boundary evidence with primitive flow evidence
 ```
 
@@ -938,15 +938,26 @@ evidence become the preferred source underneath it.
 Current consolidation pass:
 
 ```text
-FlowSurface.TryRead prefers primitive FlowFaceSurface evidence over legacy bits
-BoundarySurface.TryRead prefers BoundarySideSurface or BoundedWholeSurface evidence over legacy bits
-legacy bit reads remain compatibility fallback when no primitive evidence is present
+FlowSurface.Create emits FlowFaceSurface or NoFlowSurface evidence
+BoundarySurface.Create emits BoundarySideSurface, StrippedBoundarySideSurface, or BoundedWholeSurface evidence
+FlowSurface.TryRead reads FlowFaceSurface and NoFlowSurface evidence
+BoundarySurface.TryRead reads BoundarySideSurface, StrippedBoundarySideSurface, or BoundedWholeSurface evidence
+old marker-row fallback has been removed from these summary surfaces
 ```
 
-If a mixed surface says `None` in its old flow bits but carries a real `F`
-surface, the local read is `F`. If a mixed boundary surface's old bits say `N`
-but it carries a real positive side, the local read is `P`. Structure wins over
-summary claims.
+Current paired-evidence pass:
+
+```text
+BoundaryFlowPrimitiveEvidence builds paired boundary/flow evidence from one exposure read
+BoundaryFlowSurface.Create uses paired primitive evidence when flow is present or the boundary is a bounded whole
+BoundaryFlowUnitShape primitive-basis construction shares the same paired evidence builder
+CarrierAxisSurface uses paired primitive evidence before falling back to stripped/no-flow boundary surfaces
+```
+
+If a mixed surface carries both compact summary language and lower-grade
+physical evidence, the physical evidence should win. A real `F` face is a
+flow face even if some external note calls the read `None`. A real positive
+side is a positive side even if a stale summary note calls it `N`.
 
 ### Stage 3: Unit Shape Basis
 
@@ -1003,8 +1014,9 @@ These are not primitive grade-1 sides. They are derived surfaces for side
 structure whose flow has been stripped, ignored, or left unresolved.
 
 The old lane bit marker fallback has been removed from the occupied-lane
-surface path. Legacy summary bits still exist for broader boundary/flow
-surfaces, but value occupancy is now carried by physical lane evidence.
+surface path. The compact summary records still exist as helper reads, but
+surface constructors no longer emit bit marker rows for lane, boundary, or
+flow evidence.
 
 ### Stage 4: Transition-First Signed Behavior
 
@@ -1113,7 +1125,7 @@ important thing is that a local traversal can find the physical pieces.
 
 ## Current Status
 
-This document matches the first additive implementation pass in
+This document tracks the current experimental implementation in
 `BoundaryFlowSurface.cs`.
 
 Implemented in this pass:
@@ -1121,11 +1133,16 @@ Implemented in this pass:
 ```text
 FlowFace
 FlowFaceSurface
+NoFlowSurface
 BoundarySide
 BoundarySideSurface
 FlowBoundaryGradeLaneSurface
-FlowSurface primitive-face bridge
-BoundarySurface primitive-side bridge
+BoundaryFlowPrimitiveEvidence
+StrippedBoundarySideSurface
+FlowSurface structural construction/read
+BoundarySurface structural construction/read
+BoundaryFlowSurface paired primitive construction/read
+CarrierAxisSurface primitive evidence construction
 CarrierFlowFaceSurface adapter
 BoundaryFlowUnitShape primitive-basis construction
 BoundedWholeSurface
@@ -1142,4 +1159,4 @@ core carrier axis/face split
 ```
 
 The safe direction is to keep adding inspectable evidence and only then reduce
-the older bit-style summary surfaces.
+the remaining compatibility surfaces.

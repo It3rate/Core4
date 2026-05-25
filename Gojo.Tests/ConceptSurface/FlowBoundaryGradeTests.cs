@@ -70,11 +70,11 @@ public sealed class FlowBoundaryGradeTests
     }
 
     [Fact]
-    public void FlowSurfacePrefersPrimitiveEvidenceOverLegacyBits()
+    public void FlowSurfaceReadsPrimitiveEvidenceInsideStaleSummaryShape()
     {
         var selected = Relation.Point(new Carrier(), 1);
         var forward = FlowFaceSurface.Forward(new Carrier(), selected);
-        var legacyNoneWithForwardEvidence = Relation.OrderedGroup(
+        var staleNoneWithForwardEvidence = Relation.OrderedGroup(
             new Carrier(),
             Relation.Point(new Carrier(), 0),
             Relation.Point(new Carrier(), 0),
@@ -83,7 +83,7 @@ public sealed class FlowBoundaryGradeTests
             Relation.Point(Carrier.Unknown, 0));
 
         Assert.True(FlowSurface.TryRead(
-            legacyNoneWithForwardEvidence,
+            staleNoneWithForwardEvidence,
             out var exposure,
             out var readSelected,
             out var forwardRead,
@@ -236,12 +236,12 @@ public sealed class FlowBoundaryGradeTests
     }
 
     [Fact]
-    public void BoundarySurfacePrefersPrimitiveEvidenceOverLegacyBits()
+    public void BoundarySurfaceReadsPrimitiveEvidenceInsideStaleSummaryShape()
     {
         var selected = Relation.Point(new Carrier(), 4);
         var flowFace = FlowFaceSurface.Forward(new Carrier(), selected);
         var positive = BoundarySideSurface.Positive(new Carrier(), flowFace);
-        var legacyNegativeWithPositiveEvidence = Relation.OrderedGroup(
+        var staleNegativeWithPositiveEvidence = Relation.OrderedGroup(
             new Carrier(),
             Relation.Point(new Carrier(), 0),
             Relation.Point(new Carrier(), 1),
@@ -250,7 +250,7 @@ public sealed class FlowBoundaryGradeTests
             Relation.Point(Carrier.Unknown, 0));
 
         Assert.True(BoundarySurface.TryRead(
-            legacyNegativeWithPositiveEvidence,
+            staleNegativeWithPositiveEvidence,
             out var exposure,
             out var readSelected,
             out var positiveRead,
