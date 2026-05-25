@@ -331,6 +331,60 @@ public sealed class FlowBoundaryGradeTests
     }
 
     [Fact]
+    public void OccupiedLaneSurfaceUsesPrimitiveBoundaryAndFlowEvidence()
+    {
+        var selected = Relation.Point(new Carrier(), 5);
+        var laneSurface = BoundaryFlowLaneSurface.Create(
+            new Carrier(),
+            BoundaryFlowLane.PositiveForward,
+            selected,
+            selected);
+
+        Assert.True(BoundaryFlowLaneSurface.TryRead(
+            laneSurface,
+            out var lane,
+            out var boundarySurface,
+            out var flowSurface));
+        Assert.Equal(BoundaryFlowLane.PositiveForward, lane);
+        Assert.True(FlowFaceSurface.TryRead(flowSurface, out var flowFace, out _, out _));
+        Assert.Equal(FlowFace.Forward, flowFace);
+        Assert.True(BoundarySideSurface.TryRead(
+            boundarySurface,
+            out var boundarySide,
+            out var sideFlow,
+            out _));
+        Assert.Equal(BoundarySide.Positive, boundarySide);
+        Assert.Equal(flowSurface, sideFlow);
+    }
+
+    [Fact]
+    public void WholeNoFlowLaneSurfaceUsesBoundedWholeAndNoFlowEvidence()
+    {
+        var selected = Relation.Point(new Carrier(), 5);
+        var laneSurface = BoundaryFlowLaneSurface.Create(
+            new Carrier(),
+            BoundaryFlowLane.WholeNone,
+            selected,
+            selected);
+
+        Assert.True(BoundaryFlowLaneSurface.TryRead(
+            laneSurface,
+            out var lane,
+            out var boundarySurface,
+            out var flowSurface));
+        Assert.Equal(BoundaryFlowLane.WholeNone, lane);
+        Assert.True(BoundedWholeSurface.TryRead(
+            boundarySurface,
+            out var whole,
+            out _,
+            out _,
+            out _));
+        Assert.Equal(selected, whole);
+        Assert.True(FlowSurface.TryRead(flowSurface, out var flow, out _, out _, out _));
+        Assert.Equal(FlowExposure.None, flow);
+    }
+
+    [Fact]
     public void BoundaryFlowSurfaceCanPairPrimitiveBoundaryAndFlowEvidence()
     {
         var selected = Relation.Point(new Carrier(), 8);

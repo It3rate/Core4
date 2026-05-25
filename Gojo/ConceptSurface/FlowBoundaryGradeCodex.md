@@ -978,6 +978,20 @@ Bounded whole with flow pairs BoundedWholeSurface with primitive FlowFaceSurface
 BoundaryFlowLaneBasis.TryReadPrimitiveEvidence exposes the local boundary and flow evidence behind a basis
 ```
 
+Occupied lane surfaces now follow the same rule:
+
+```text
+FlowLaneSurface.Create(F/I) builds FlowFaceSurface evidence
+FlowLaneSurface.Create(None) builds explicit no-flow summary evidence
+BoundaryLaneSurface.Create(P/N over a flow face) builds BoundarySideSurface evidence
+BoundaryLaneSurface.Create(S) builds BoundedWholeSurface evidence
+BoundaryFlowLaneSurface.Create pairs those physical boundary and flow lane surfaces
+```
+
+For example, a `PF` occupied lane is not just a two-letter marker. It is a
+forward flow face plus a positive side cut over that exact face. A `S:None`
+occupied lane is a bounded whole plus an explicit no-flow read.
+
 ### Stage 4: Transition-First Signed Behavior
 
 Do not assume `PN` means automatic crossing.
@@ -1103,6 +1117,7 @@ BoundaryFlowUnitShape primitive-basis construction
 BoundedWholeSurface
 primitive-first summary read precedence
 lane-basis primitive evidence read
+occupied-lane primitive evidence surfaces
 ```
 
 Still experimental:

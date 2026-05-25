@@ -1121,19 +1121,67 @@ public static class BoundaryFlowLaneBasis
 /// </summary>
 public static class BoundaryLaneSurface
 {
-    public static Relation Create(Carrier root, BoundaryLane lane, IElement evidence) =>
-        Relation.OrderedGroup(
+    public static Relation Create(Carrier root, BoundaryLane lane, IElement evidence)
+    {
+        if (lane.IsWhole)
+        {
+            return BoundedWholeSurface.Create(
+                ConceptSurface.RootOrNew(root),
+                evidence ?? ConceptSurface.UnknownPoint());
+        }
+
+        return Relation.OrderedGroup(
             ConceptSurface.RootOrNew(root),
             LaneBit(lane.PositiveSide),
             LaneBit(lane.NegativeSide),
             LaneBit(lane.WholeSegment),
             evidence ?? ConceptSurface.UnknownPoint());
+    }
+
+    public static Relation Create(
+        Carrier root,
+        BoundaryLane lane,
+        Relation flowFace,
+        IElement evidence)
+    {
+        if (lane.IsPositive)
+        {
+            return BoundarySideSurface.Positive(
+                ConceptSurface.RootOrNew(root),
+                flowFace,
+                evidence ?? ConceptSurface.UnknownPoint());
+        }
+
+        if (lane.IsNegative)
+        {
+            return BoundarySideSurface.Negative(
+                ConceptSurface.RootOrNew(root),
+                flowFace,
+                evidence ?? ConceptSurface.UnknownPoint());
+        }
+
+        return Create(root, lane, evidence);
+    }
 
     public static bool TryRead(
         Relation surface,
         out BoundaryLane lane,
         out IElement evidence)
     {
+        if (BoundarySideSurface.TryRead(surface, out var side, out _, out var sideEvidence))
+        {
+            lane = side.ToLane();
+            evidence = sideEvidence;
+            return true;
+        }
+
+        if (BoundedWholeSurface.TryRead(surface, out _, out _, out _, out var partition))
+        {
+            lane = BoundaryLane.Whole;
+            evidence = partition;
+            return true;
+        }
+
         if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
             elements.Length >= 4 &&
             TryReadBit(elements[0], out var positive) &&
@@ -1172,19 +1220,62 @@ public static class BoundaryLaneSurface
 /// </summary>
 public static class FlowLaneSurface
 {
-    public static Relation Create(Carrier root, FlowLane lane, IElement evidence) =>
-        Relation.OrderedGroup(
+    public static Relation Create(Carrier root, FlowLane lane, IElement evidence)
+    {
+        if (lane.IsForward)
+        {
+            return FlowFaceSurface.Forward(
+                ConceptSurface.RootOrNew(root),
+                evidence ?? ConceptSurface.UnknownPoint());
+        }
+
+        if (lane.IsInverse)
+        {
+            return FlowFaceSurface.Inverse(
+                ConceptSurface.RootOrNew(root),
+                evidence ?? ConceptSurface.UnknownPoint());
+        }
+
+        if (lane.IsNone)
+        {
+            return FlowSurface.None(
+                ConceptSurface.RootOrNew(root),
+                evidence ?? ConceptSurface.UnknownPoint());
+        }
+
+        return Relation.OrderedGroup(
             ConceptSurface.RootOrNew(root),
             LaneBit(lane.ForwardFace),
             LaneBit(lane.InverseFace),
             LaneBit(lane.NoFlowFace),
             evidence ?? ConceptSurface.UnknownPoint());
+    }
 
     public static bool TryRead(
         Relation surface,
         out FlowLane lane,
         out IElement evidence)
     {
+        if (FlowFaceSurface.TryRead(surface, out var face, out _, out var faceEvidence))
+        {
+            lane = face.ToLane();
+            evidence = faceEvidence;
+            return true;
+        }
+
+        if (FlowSurface.TryRead(
+                surface,
+                out var flow,
+                out _,
+                out _,
+                out _) &&
+            flow.IsNone)
+        {
+            lane = FlowLane.None;
+            evidence = surface;
+            return true;
+        }
+
         if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
             elements.Length >= 4 &&
             TryReadBit(elements[0], out var forward) &&
@@ -1229,14 +1320,20 @@ public static class BoundaryFlowLaneSurface
         IElement boundaryEvidence,
         IElement flowEvidence)
     {
-        var boundaryLaneSurface = BoundaryLaneSurface.Create(
-            new Carrier(),
-            lane.Boundary,
-            boundaryEvidence ?? ConceptSurface.UnknownPoint());
         var flowLaneSurface = FlowLaneSurface.Create(
             new Carrier(),
             lane.Flow,
             flowEvidence ?? ConceptSurface.UnknownPoint());
+        var boundaryLaneSurface = lane.Flow.IsForward || lane.Flow.IsInverse
+            ? BoundaryLaneSurface.Create(
+                new Carrier(),
+                lane.Boundary,
+                flowLaneSurface,
+                boundaryEvidence ?? ConceptSurface.UnknownPoint())
+            : BoundaryLaneSurface.Create(
+                new Carrier(),
+                lane.Boundary,
+                boundaryEvidence ?? ConceptSurface.UnknownPoint());
 
         return Relation.OrderedGroup(
             ConceptSurface.RootOrNew(root),
