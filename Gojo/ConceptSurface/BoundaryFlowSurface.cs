@@ -97,6 +97,314 @@ public readonly record struct BoundaryFlowExposure(BoundaryExposure Boundary, Fl
 }
 
 /// <summary>
+/// Primitive grade-0 flow face. This is a helper read over a face surface:
+/// the physical meaning lives in <see cref="FlowFaceSurface"/>.
+/// </summary>
+public readonly record struct FlowFace(bool IsInverse)
+{
+    public static FlowFace Forward => new(false);
+
+    public static FlowFace Inverse => new(true);
+
+    public string Label => IsInverse ? "I" : "F";
+
+    public FlowFace Dual() => new(!IsInverse);
+
+    public FlowLane ToLane() => IsInverse ? FlowLane.Inverse : FlowLane.Forward;
+
+    public override string ToString() => Label;
+}
+
+/// <summary>
+/// Physical grade-0 flow face evidence. None and FI are not primitive here:
+/// they are summary reads over absent or combined face surfaces.
+/// </summary>
+public static class FlowFaceSurface
+{
+    public static Relation Create(
+        Carrier root,
+        FlowFace face,
+        IElement selected,
+        IElement evidence) =>
+        Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            FacePoint(face),
+            selected ?? ConceptSurface.UnknownPoint(),
+            evidence ?? ConceptSurface.UnknownPoint());
+
+    public static Relation Forward(Carrier root, IElement selected, IElement evidence) =>
+        Create(root, FlowFace.Forward, selected, evidence);
+
+    public static Relation Forward(Carrier root, IElement selected) =>
+        Forward(root, selected, ConceptSurface.UnknownPoint());
+
+    public static Relation Inverse(Carrier root, IElement selected, IElement evidence) =>
+        Create(root, FlowFace.Inverse, selected, evidence);
+
+    public static Relation Inverse(Carrier root, IElement selected) =>
+        Inverse(root, selected, ConceptSurface.UnknownPoint());
+
+    public static bool TryRead(
+        Relation surface,
+        out FlowFace face,
+        out IElement selected,
+        out IElement evidence)
+    {
+        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
+            elements.Length >= 3 &&
+            TryReadFace(elements[0], out var read))
+        {
+            face = read;
+            selected = elements[1];
+            evidence = elements[2];
+            return true;
+        }
+
+        face = default;
+        selected = default!;
+        evidence = default!;
+        return false;
+    }
+
+    public static FlowExposure ReadExposure(IElement structure)
+    {
+        var faces = new HashSet<FlowFace>();
+        CollectFaces(structure, faces);
+        return new FlowExposure(
+            faces.Contains(FlowFace.Forward),
+            faces.Contains(FlowFace.Inverse));
+    }
+
+    private static Relation FacePoint(FlowFace face) =>
+        Relation.Point(new Carrier(), face.IsInverse ? 1 : 0);
+
+    private static bool TryReadFace(IElement element, out FlowFace face)
+    {
+        if (ConceptSurfaceReader.TryReadPoint(element, out var location) &&
+            (location.Ticks == 0 || location.Ticks == 1))
+        {
+            face = new FlowFace(location.Ticks == 1);
+            return true;
+        }
+
+        face = default;
+        return false;
+    }
+
+    private static void CollectFaces(IElement structure, HashSet<FlowFace> faces)
+    {
+        if (structure is not Relation relation)
+        {
+            return;
+        }
+
+        if (TryRead(relation, out var face, out _, out _))
+        {
+            faces.Add(face);
+            return;
+        }
+
+        if (ConceptSurfaceReader.TryReadRootElements(relation, out var elements))
+        {
+            foreach (var element in elements)
+            {
+                CollectFaces(element, faces);
+            }
+        }
+    }
+}
+
+/// <summary>
+/// Primitive grade-1 boundary side. A side is born over a primitive flow face;
+/// detached/no-flow boundary reads are later abstractions.
+/// </summary>
+public readonly record struct BoundarySide(bool IsNegative)
+{
+    public static BoundarySide Positive => new(false);
+
+    public static BoundarySide Negative => new(true);
+
+    public string Label => IsNegative ? "N" : "P";
+
+    public BoundarySide Dual() => new(!IsNegative);
+
+    public BoundaryLane ToLane() => IsNegative ? BoundaryLane.Negative : BoundaryLane.Positive;
+
+    public override string ToString() => Label;
+}
+
+/// <summary>
+/// Physical grade-1 boundary side evidence. A valid side carries the flow face
+/// it was cut over, so P/N are not born as flowless primitives.
+/// </summary>
+public static class BoundarySideSurface
+{
+    public static Relation Create(
+        Carrier root,
+        BoundarySide side,
+        Relation flowFace,
+        IElement cutEvidence) =>
+        Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            SidePoint(side),
+            flowFace ?? ConceptSurface.UnknownPoint(),
+            cutEvidence ?? ConceptSurface.UnknownPoint());
+
+    public static Relation Positive(Carrier root, Relation flowFace, IElement cutEvidence) =>
+        Create(root, BoundarySide.Positive, flowFace, cutEvidence);
+
+    public static Relation Positive(Carrier root, Relation flowFace) =>
+        Positive(root, flowFace, ConceptSurface.UnknownPoint());
+
+    public static Relation Negative(Carrier root, Relation flowFace, IElement cutEvidence) =>
+        Create(root, BoundarySide.Negative, flowFace, cutEvidence);
+
+    public static Relation Negative(Carrier root, Relation flowFace) =>
+        Negative(root, flowFace, ConceptSurface.UnknownPoint());
+
+    public static bool TryRead(
+        Relation surface,
+        out BoundarySide side,
+        out Relation flowFace,
+        out IElement cutEvidence)
+    {
+        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
+            elements.Length >= 3 &&
+            TryReadSide(elements[0], out var read) &&
+            elements[1] is Relation flowCandidate &&
+            FlowFaceSurface.TryRead(flowCandidate, out _, out _, out _))
+        {
+            side = read;
+            flowFace = flowCandidate;
+            cutEvidence = elements[2];
+            return true;
+        }
+
+        side = default;
+        flowFace = null!;
+        cutEvidence = default!;
+        return false;
+    }
+
+    public static bool TryReadExposure(IElement structure, out BoundaryExposure exposure)
+    {
+        var sides = new HashSet<BoundarySide>();
+        CollectSides(structure, sides);
+        if (sides.Count == 0)
+        {
+            exposure = default;
+            return false;
+        }
+
+        exposure = (sides.Contains(BoundarySide.Positive), sides.Contains(BoundarySide.Negative)) switch
+        {
+            (true, true) => BoundaryExposure.FullSigned,
+            (true, false) => BoundaryExposure.Positive,
+            (false, true) => BoundaryExposure.Negative,
+            _ => default
+        };
+        return true;
+    }
+
+    private static Relation SidePoint(BoundarySide side) =>
+        Relation.Point(new Carrier(), side.IsNegative ? 1 : 0);
+
+    private static bool TryReadSide(IElement element, out BoundarySide side)
+    {
+        if (ConceptSurfaceReader.TryReadPoint(element, out var location) &&
+            (location.Ticks == 0 || location.Ticks == 1))
+        {
+            side = new BoundarySide(location.Ticks == 1);
+            return true;
+        }
+
+        side = default;
+        return false;
+    }
+
+    private static void CollectSides(IElement structure, HashSet<BoundarySide> sides)
+    {
+        if (structure is not Relation relation)
+        {
+            return;
+        }
+
+        if (TryRead(relation, out var side, out _, out _))
+        {
+            sides.Add(side);
+            return;
+        }
+
+        if (ConceptSurfaceReader.TryReadRootElements(relation, out var elements))
+        {
+            foreach (var element in elements)
+            {
+                CollectSides(element, sides);
+            }
+        }
+    }
+}
+
+/// <summary>
+/// Fuses one primitive flow face with one boundary side cut over it and reads
+/// the result as the existing occupied-lane vocabulary.
+/// </summary>
+public static class FlowBoundaryGradeLaneSurface
+{
+    public static Relation Create(
+        Carrier root,
+        FlowFace flow,
+        BoundarySide side,
+        IElement selected,
+        IElement cutEvidence)
+    {
+        var flowFace = FlowFaceSurface.Create(new Carrier(), flow, selected, ConceptSurface.UnknownPoint());
+        var sideSurface = BoundarySideSurface.Create(new Carrier(), side, flowFace, cutEvidence);
+        return Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            flowFace,
+            sideSurface,
+            selected ?? ConceptSurface.UnknownPoint());
+    }
+
+    public static Relation Create(
+        Carrier root,
+        FlowFace flow,
+        BoundarySide side,
+        IElement selected) =>
+        Create(root, flow, side, selected, ConceptSurface.UnknownPoint());
+
+    public static bool TryRead(
+        Relation surface,
+        out BoundaryFlowLane lane,
+        out Relation flowFace,
+        out Relation boundarySide,
+        out IElement selected)
+    {
+        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
+            elements.Length >= 3 &&
+            elements[0] is Relation flowCandidate &&
+            elements[1] is Relation sideCandidate &&
+            FlowFaceSurface.TryRead(flowCandidate, out var flow, out _, out _) &&
+            BoundarySideSurface.TryRead(sideCandidate, out var side, out var sideFlow, out _) &&
+            sideFlow.Equals(flowCandidate))
+        {
+            lane = new BoundaryFlowLane(side.ToLane(), flow.ToLane());
+            flowFace = flowCandidate;
+            boundarySide = sideCandidate;
+            selected = elements[2];
+            return true;
+        }
+
+        lane = default;
+        flowFace = null!;
+        boundarySide = null!;
+        selected = default!;
+        return false;
+    }
+}
+
+/// <summary>
 /// Local read value for the boundary side occupied by one value. This is a
 /// compact read over lane-marker structure, not a concept tag.
 /// </summary>

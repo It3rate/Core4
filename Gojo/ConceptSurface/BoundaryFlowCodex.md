@@ -18,6 +18,12 @@ This should be implemented as inspectable Gojo structure, not as a word enum.
 The labels below are compact design names for local reads over boundary and
 flow surfaces.
 
+The lower-grade bootstrap model is detailed in
+`FlowBoundaryGradeCodex.md`. That note treats primitive flow as `F` or `I`,
+primitive boundary as `P` or `N` cut over a flow face, and this document's
+sixteen boundary/flow states as summary reads over present, absent, or composed
+structure.
+
 ## Boundary Axis
 
 The boundary axis answers:
