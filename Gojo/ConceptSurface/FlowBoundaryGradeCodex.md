@@ -935,6 +935,19 @@ BoundaryFlowSurface.TryRead can pair primitive boundary evidence with primitive 
 This keeps the old surface vocabulary useful while letting lower-grade physical
 evidence become the preferred source underneath it.
 
+Current consolidation pass:
+
+```text
+FlowSurface.TryRead prefers primitive FlowFaceSurface evidence over legacy bits
+BoundarySurface.TryRead prefers BoundarySideSurface or BoundedWholeSurface evidence over legacy bits
+legacy bit reads remain compatibility fallback when no primitive evidence is present
+```
+
+If a mixed surface says `None` in its old flow bits but carries a real `F`
+surface, the local read is `F`. If a mixed boundary surface's old bits say `N`
+but it carries a real positive side, the local read is `P`. Structure wins over
+summary claims.
+
 ### Stage 3: Unit Shape Basis
 
 Keep the rule:
@@ -962,6 +975,7 @@ BoundaryFlowUnitShape.TryCreatePrimitiveBasis builds basis from FlowFaceSurface 
 Positive/signed forward/signed both-flow unit shapes now preserve primitive evidence in descriptors
 Bounded whole/no-flow now preserves BoundedWholeSurface evidence with no primitive flow face
 Bounded whole with flow pairs BoundedWholeSurface with primitive FlowFaceSurface evidence
+BoundaryFlowLaneBasis.TryReadPrimitiveEvidence exposes the local boundary and flow evidence behind a basis
 ```
 
 ### Stage 4: Transition-First Signed Behavior
@@ -1087,6 +1101,8 @@ BoundarySurface primitive-side bridge
 CarrierFlowFaceSurface adapter
 BoundaryFlowUnitShape primitive-basis construction
 BoundedWholeSurface
+primitive-first summary read precedence
+lane-basis primitive evidence read
 ```
 
 Still experimental:

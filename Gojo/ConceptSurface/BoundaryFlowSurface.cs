@@ -972,6 +972,38 @@ public static class BoundaryFlowLaneBasis
         return false;
     }
 
+    public static bool TryReadPrimitiveEvidence(
+        Relation basis,
+        out BoundaryFlowExposure exposure,
+        out IElement selected,
+        out Relation boundaryEvidence,
+        out Relation flowEvidence)
+    {
+        if (ConceptSurfaceReader.TryReadRootElements(basis, out var elements) &&
+            elements.Length >= 2 &&
+            elements[0] is Relation boundaryFlowSurface &&
+            BoundaryFlowSurface.TryRead(
+                boundaryFlowSurface,
+                out var boundary,
+                out var flow,
+                out var boundarySurface,
+                out var flowSurface,
+                out _))
+        {
+            exposure = new BoundaryFlowExposure(boundary, flow);
+            selected = elements[1];
+            boundaryEvidence = boundarySurface;
+            flowEvidence = flowSurface;
+            return true;
+        }
+
+        exposure = default;
+        selected = default!;
+        boundaryEvidence = null!;
+        flowEvidence = null!;
+        return false;
+    }
+
     /// <summary>
     /// Reads possible lanes from a unit-shape descriptor, or returns the
     /// low-resolution whole/no-flow default for descriptor-free unit shapes.
@@ -3745,18 +3777,6 @@ public static class BoundarySurface
         out IElement leftBoundary,
         out IElement rightBoundary)
     {
-        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
-            elements.Length >= 5 &&
-            TryReadBit(elements[0], out var hasLeft) &&
-            TryReadBit(elements[1], out var hasRight))
-        {
-            exposure = new BoundaryExposure(hasLeft, hasRight);
-            wholeOrAxis = elements[2];
-            leftBoundary = elements[3];
-            rightBoundary = elements[4];
-            return true;
-        }
-
         if (BoundarySideSurface.TryReadExposure(
                 surface,
                 out var sideExposure,
@@ -3782,6 +3802,18 @@ public static class BoundarySurface
             wholeOrAxis = whole;
             leftBoundary = left;
             rightBoundary = right;
+            return true;
+        }
+
+        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
+            elements.Length >= 5 &&
+            TryReadBit(elements[0], out var hasLeft) &&
+            TryReadBit(elements[1], out var hasRight))
+        {
+            exposure = new BoundaryExposure(hasLeft, hasRight);
+            wholeOrAxis = elements[2];
+            leftBoundary = elements[3];
+            rightBoundary = elements[4];
             return true;
         }
 
@@ -3887,18 +3919,6 @@ public static class FlowSurface
         out IElement forwardFlow,
         out IElement inverseFlow)
     {
-        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
-            elements.Length >= 5 &&
-            TryReadBit(elements[0], out var hasForward) &&
-            TryReadBit(elements[1], out var hasInverse))
-        {
-            exposure = new FlowExposure(hasForward, hasInverse);
-            selected = elements[2];
-            forwardFlow = elements[3];
-            inverseFlow = elements[4];
-            return true;
-        }
-
         if (FlowFaceSurface.TryReadExposure(
                 surface,
                 out var faceExposure,
@@ -3910,6 +3930,18 @@ public static class FlowSurface
             selected = faceSelected;
             forwardFlow = forwardFace;
             inverseFlow = inverseFace;
+            return true;
+        }
+
+        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
+            elements.Length >= 5 &&
+            TryReadBit(elements[0], out var hasForward) &&
+            TryReadBit(elements[1], out var hasInverse))
+        {
+            exposure = new FlowExposure(hasForward, hasInverse);
+            selected = elements[2];
+            forwardFlow = elements[3];
+            inverseFlow = elements[4];
             return true;
         }
 

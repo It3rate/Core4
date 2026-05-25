@@ -70,6 +70,30 @@ public sealed class FlowBoundaryGradeTests
     }
 
     [Fact]
+    public void FlowSurfacePrefersPrimitiveEvidenceOverLegacyBits()
+    {
+        var selected = Relation.Point(new Carrier(), 1);
+        var forward = FlowFaceSurface.Forward(new Carrier(), selected);
+        var legacyNoneWithForwardEvidence = Relation.OrderedGroup(
+            new Carrier(),
+            Relation.Point(new Carrier(), 0),
+            Relation.Point(new Carrier(), 0),
+            selected,
+            forward,
+            Relation.Point(Carrier.Unknown, 0));
+
+        Assert.True(FlowSurface.TryRead(
+            legacyNoneWithForwardEvidence,
+            out var exposure,
+            out var readSelected,
+            out var forwardRead,
+            out _));
+        Assert.Equal(FlowExposure.Forward, exposure);
+        Assert.Equal(selected, readSelected);
+        Assert.Equal(forward, forwardRead);
+    }
+
+    [Fact]
     public void CarrierFlowFaceSurfaceAdaptsMaterializedCarrierFaces()
     {
         var forwardCarrier = new Carrier();
@@ -212,6 +236,31 @@ public sealed class FlowBoundaryGradeTests
     }
 
     [Fact]
+    public void BoundarySurfacePrefersPrimitiveEvidenceOverLegacyBits()
+    {
+        var selected = Relation.Point(new Carrier(), 4);
+        var flowFace = FlowFaceSurface.Forward(new Carrier(), selected);
+        var positive = BoundarySideSurface.Positive(new Carrier(), flowFace);
+        var legacyNegativeWithPositiveEvidence = Relation.OrderedGroup(
+            new Carrier(),
+            Relation.Point(new Carrier(), 0),
+            Relation.Point(new Carrier(), 1),
+            selected,
+            positive,
+            Relation.Point(Carrier.Unknown, 0));
+
+        Assert.True(BoundarySurface.TryRead(
+            legacyNegativeWithPositiveEvidence,
+            out var exposure,
+            out var readSelected,
+            out var positiveRead,
+            out _));
+        Assert.Equal(BoundaryExposure.Positive, exposure);
+        Assert.Equal(selected, readSelected);
+        Assert.Equal(positive, positiveRead);
+    }
+
+    [Fact]
     public void BoundedWholeSurfaceCarriesWholeBoundaryPairAndPartition()
     {
         var wholeCarrier = new Carrier();
@@ -322,6 +371,16 @@ public sealed class FlowBoundaryGradeTests
         Assert.True(BoundarySideSurface.TryReadExposure(basis, out var sideExposure));
         Assert.Equal(BoundaryExposure.FullSigned, sideExposure);
         Assert.Equal(FlowExposure.Forward, FlowFaceSurface.ReadExposure(basis));
+        Assert.True(BoundaryFlowLaneBasis.TryReadPrimitiveEvidence(
+            basis,
+            out var primitiveExposure,
+            out _,
+            out var boundaryEvidence,
+            out var flowEvidence));
+        Assert.Equal(exposure, primitiveExposure);
+        Assert.True(BoundarySideSurface.TryReadExposure(boundaryEvidence, out var boundaryRead));
+        Assert.Equal(BoundaryExposure.FullSigned, boundaryRead);
+        Assert.Equal(FlowExposure.Forward, FlowFaceSurface.ReadExposure(flowEvidence));
     }
 
     [Fact]
@@ -375,6 +434,17 @@ public sealed class FlowBoundaryGradeTests
         Assert.Equal(FlowExposure.None, FlowFaceSurface.ReadExposure(basis));
         Assert.True(BoundedWholeSurface.TryFind(basis, out _, out var whole, out _, out _, out _));
         Assert.Equal(selected, whole);
+        Assert.True(BoundaryFlowLaneBasis.TryReadPrimitiveEvidence(
+            basis,
+            out var primitiveExposure,
+            out _,
+            out var boundaryEvidence,
+            out var flowEvidence));
+        Assert.Equal(exposure, primitiveExposure);
+        Assert.True(BoundedWholeSurface.TryRead(boundaryEvidence, out var wholeEvidence, out _, out _, out _));
+        Assert.Equal(selected, wholeEvidence);
+        Assert.True(FlowSurface.TryRead(flowEvidence, out var flowRead, out _, out _, out _));
+        Assert.Equal(FlowExposure.None, flowRead);
     }
 
     [Fact]
