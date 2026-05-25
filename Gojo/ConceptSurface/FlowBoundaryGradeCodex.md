@@ -904,6 +904,19 @@ BoundarySideSurface.TryReadExposure
 FlowBoundaryGradeLaneSurface.TryRead
 ```
 
+Current second pass:
+
+```text
+FlowSurface.TryRead can summarize FlowFaceSurface evidence
+FlowSurface.TryCreateFromPrimitiveFaces builds the older summary surface from faces
+BoundarySurface.TryRead can summarize BoundarySideSurface evidence
+BoundarySurface.TryCreateFromPrimitiveSides builds the older summary surface from sides
+BoundaryFlowSurface.TryRead can pair primitive boundary evidence with primitive flow evidence
+```
+
+This keeps the old surface vocabulary useful while letting lower-grade physical
+evidence become the preferred source underneath it.
+
 ### Stage 3: Unit Shape Basis
 
 Keep the rule:
@@ -956,6 +969,18 @@ carrier.IsInverse == true  -> I face evidence
 ```
 
 This should be a compatibility read, not the new source of meaning.
+
+Current pass:
+
+```text
+CarrierFlowFaceSurface.TryCreate builds FlowFaceSurface evidence from a known carrier face
+CarrierFlowFaceSurface.TryReadFace reads F/I from Carrier.IsInverse for compatibility
+CarrierFlowFaceSurface.TryRead reads the carrier selected by that flow-face surface
+Carrier.Unknown is not treated as forward flow
+```
+
+This is a bridge, not the destination. Once a `FlowFaceSurface` exists, readers
+should prefer the surface over rereading `Carrier.IsInverse`.
 
 ### Stage 6: Core-Adjacent Axis/Face Split
 
@@ -1029,13 +1054,14 @@ FlowFaceSurface
 BoundarySide
 BoundarySideSurface
 FlowBoundaryGradeLaneSurface
+FlowSurface primitive-face bridge
+BoundarySurface primitive-side bridge
+CarrierFlowFaceSurface adapter
 ```
 
 Still experimental:
 
 ```text
-automatic reads from old FlowSurface/BoundarySurface into new primitive evidence
-carrier inverse adapters
 core carrier axis/face split
 explicit bounded-whole primitive surface beyond existing boundary exposure
 unit-shape builders that construct every basis from primitive grade surfaces

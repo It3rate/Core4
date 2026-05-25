@@ -168,11 +168,40 @@ public static class FlowFaceSurface
 
     public static FlowExposure ReadExposure(IElement structure)
     {
-        var faces = new HashSet<FlowFace>();
+        var faces = new List<(FlowFace Face, Relation Surface, IElement Selected)>();
         CollectFaces(structure, faces);
         return new FlowExposure(
-            faces.Contains(FlowFace.Forward),
-            faces.Contains(FlowFace.Inverse));
+            faces.Any(face => face.Face == FlowFace.Forward),
+            faces.Any(face => face.Face == FlowFace.Inverse));
+    }
+
+    public static bool TryReadExposure(
+        IElement structure,
+        out FlowExposure exposure,
+        out IElement selected,
+        out Relation forwardFlow,
+        out Relation inverseFlow)
+    {
+        var faces = new List<(FlowFace Face, Relation Surface, IElement Selected)>();
+        CollectFaces(structure, faces);
+        if (faces.Count == 0)
+        {
+            exposure = default;
+            selected = default!;
+            forwardFlow = null!;
+            inverseFlow = null!;
+            return false;
+        }
+
+        var forward = faces.FirstOrDefault(face => face.Face == FlowFace.Forward);
+        var inverse = faces.FirstOrDefault(face => face.Face == FlowFace.Inverse);
+        exposure = new FlowExposure(forward.Surface is not null, inverse.Surface is not null);
+        selected = forward.Surface is not null
+            ? forward.Selected
+            : inverse.Selected;
+        forwardFlow = forward.Surface ?? ConceptSurface.UnknownPoint();
+        inverseFlow = inverse.Surface ?? ConceptSurface.UnknownPoint();
+        return true;
     }
 
     private static Relation FacePoint(FlowFace face) =>
@@ -191,16 +220,18 @@ public static class FlowFaceSurface
         return false;
     }
 
-    private static void CollectFaces(IElement structure, HashSet<FlowFace> faces)
+    private static void CollectFaces(
+        IElement structure,
+        List<(FlowFace Face, Relation Surface, IElement Selected)> faces)
     {
         if (structure is not Relation relation)
         {
             return;
         }
 
-        if (TryRead(relation, out var face, out _, out _))
+        if (TryRead(relation, out var face, out var selected, out _))
         {
-            faces.Add(face);
+            faces.Add((face, relation, selected));
             return;
         }
 
@@ -211,6 +242,75 @@ public static class FlowFaceSurface
                 CollectFaces(element, faces);
             }
         }
+    }
+}
+
+/// <summary>
+/// Compatibility bridge from today's materialized carrier face to primitive
+/// flow-face evidence. This reads <see cref="Carrier.IsInverse"/> only to build
+/// an inspectable <see cref="FlowFaceSurface"/>; the surface is the portable
+/// evidence after construction.
+/// </summary>
+public static class CarrierFlowFaceSurface
+{
+    public static bool TryCreate(
+        Carrier root,
+        Carrier carrier,
+        IElement evidence,
+        out Relation surface)
+    {
+        if (!TryReadFace(carrier, out var face))
+        {
+            surface = null!;
+            return false;
+        }
+
+        surface = FlowFaceSurface.Create(
+            root,
+            face,
+            carrier,
+            evidence ?? carrier);
+        return true;
+    }
+
+    public static bool TryCreate(
+        Carrier root,
+        Carrier carrier,
+        out Relation surface) =>
+        TryCreate(root, carrier, carrier, out surface);
+
+    public static bool TryReadFace(Carrier carrier, out FlowFace face)
+    {
+        if (carrier is null || carrier.IsUnknown)
+        {
+            face = default;
+            return false;
+        }
+
+        face = carrier.IsInverse ? FlowFace.Inverse : FlowFace.Forward;
+        return true;
+    }
+
+    public static bool TryRead(
+        Relation surface,
+        out Carrier carrier,
+        out FlowFace face,
+        out IElement evidence)
+    {
+        if (FlowFaceSurface.TryRead(surface, out var readFace, out var selected, out var readEvidence) &&
+            selected is Carrier selectedCarrier &&
+            !selectedCarrier.IsUnknown)
+        {
+            carrier = selectedCarrier;
+            face = readFace;
+            evidence = readEvidence;
+            return true;
+        }
+
+        carrier = null!;
+        face = default;
+        evidence = default!;
+        return false;
     }
 }
 
@@ -288,21 +388,46 @@ public static class BoundarySideSurface
 
     public static bool TryReadExposure(IElement structure, out BoundaryExposure exposure)
     {
-        var sides = new HashSet<BoundarySide>();
+        return TryReadExposure(
+            structure,
+            out exposure,
+            out _,
+            out _,
+            out _);
+    }
+
+    public static bool TryReadExposure(
+        IElement structure,
+        out BoundaryExposure exposure,
+        out IElement selected,
+        out Relation positiveSide,
+        out Relation negativeSide)
+    {
+        var sides = new List<(BoundarySide Side, Relation Surface, IElement Selected)>();
         CollectSides(structure, sides);
         if (sides.Count == 0)
         {
             exposure = default;
+            selected = default!;
+            positiveSide = null!;
+            negativeSide = null!;
             return false;
         }
 
-        exposure = (sides.Contains(BoundarySide.Positive), sides.Contains(BoundarySide.Negative)) switch
+        var positive = sides.FirstOrDefault(side => side.Side == BoundarySide.Positive);
+        var negative = sides.FirstOrDefault(side => side.Side == BoundarySide.Negative);
+        exposure = (positive.Surface is not null, negative.Surface is not null) switch
         {
             (true, true) => BoundaryExposure.FullSigned,
             (true, false) => BoundaryExposure.Positive,
             (false, true) => BoundaryExposure.Negative,
             _ => default
         };
+        selected = positive.Surface is not null
+            ? positive.Selected
+            : negative.Selected;
+        positiveSide = positive.Surface ?? ConceptSurface.UnknownPoint();
+        negativeSide = negative.Surface ?? ConceptSurface.UnknownPoint();
         return true;
     }
 
@@ -322,16 +447,19 @@ public static class BoundarySideSurface
         return false;
     }
 
-    private static void CollectSides(IElement structure, HashSet<BoundarySide> sides)
+    private static void CollectSides(
+        IElement structure,
+        List<(BoundarySide Side, Relation Surface, IElement Selected)> sides)
     {
         if (structure is not Relation relation)
         {
             return;
         }
 
-        if (TryRead(relation, out var side, out _, out _))
+        if (TryRead(relation, out var side, out var flowFace, out _))
         {
-            sides.Add(side);
+            FlowFaceSurface.TryRead(flowFace, out _, out var selected, out _);
+            sides.Add((side, relation, selected));
             return;
         }
 
@@ -3335,6 +3463,33 @@ public static class BoundarySurface
         IElement rightBoundary) =>
         Create(root, BoundaryExposure.BoundedWhole, whole, leftBoundary, rightBoundary);
 
+    public static bool TryCreateFromPrimitiveSides(
+        Carrier root,
+        IElement wholeOrAxis,
+        IEnumerable<Relation> boundarySides,
+        out Relation surface)
+    {
+        var sideGroup = Relation.OrderedGroup(new Carrier(), [.. boundarySides]);
+        if (BoundarySideSurface.TryReadExposure(
+                sideGroup,
+                out var exposure,
+                out var selected,
+                out var positiveSide,
+                out var negativeSide))
+        {
+            surface = Create(
+                root,
+                exposure,
+                wholeOrAxis ?? selected,
+                positiveSide,
+                negativeSide);
+            return true;
+        }
+
+        surface = null!;
+        return false;
+    }
+
     public static bool TryRead(
         Relation surface,
         out BoundaryExposure exposure,
@@ -3351,6 +3506,20 @@ public static class BoundarySurface
             wholeOrAxis = elements[2];
             leftBoundary = elements[3];
             rightBoundary = elements[4];
+            return true;
+        }
+
+        if (BoundarySideSurface.TryReadExposure(
+                surface,
+                out var sideExposure,
+                out var selected,
+                out var positiveSide,
+                out var negativeSide))
+        {
+            exposure = sideExposure;
+            wholeOrAxis = selected;
+            leftBoundary = positiveSide;
+            rightBoundary = negativeSide;
             return true;
         }
 
@@ -3422,6 +3591,33 @@ public static class FlowSurface
         IElement inverseFlow) =>
         Create(root, FlowExposure.Both, selected, forwardFlow, inverseFlow);
 
+    public static bool TryCreateFromPrimitiveFaces(
+        Carrier root,
+        IElement selected,
+        IEnumerable<Relation> flowFaces,
+        out Relation surface)
+    {
+        var faceGroup = Relation.OrderedGroup(new Carrier(), [.. flowFaces]);
+        if (FlowFaceSurface.TryReadExposure(
+                faceGroup,
+                out var exposure,
+                out var faceSelected,
+                out var forwardFlow,
+                out var inverseFlow))
+        {
+            surface = Create(
+                root,
+                exposure,
+                selected ?? faceSelected,
+                forwardFlow,
+                inverseFlow);
+            return true;
+        }
+
+        surface = null!;
+        return false;
+    }
+
     public static bool TryRead(
         Relation surface,
         out FlowExposure exposure,
@@ -3438,6 +3634,20 @@ public static class FlowSurface
             selected = elements[2];
             forwardFlow = elements[3];
             inverseFlow = elements[4];
+            return true;
+        }
+
+        if (FlowFaceSurface.TryReadExposure(
+                surface,
+                out var faceExposure,
+                out var faceSelected,
+                out var forwardFace,
+                out var inverseFace))
+        {
+            exposure = faceExposure;
+            selected = faceSelected;
+            forwardFlow = forwardFace;
+            inverseFlow = inverseFace;
             return true;
         }
 
