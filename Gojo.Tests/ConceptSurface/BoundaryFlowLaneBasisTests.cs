@@ -126,6 +126,82 @@ public sealed class BoundaryFlowLaneBasisTests
     }
 
     [Fact]
+    public void LaneBasisLegalReadHonorsExplicitLaneEvidence()
+    {
+        var selected = Relation.Segment(new Carrier(), -4, 4);
+        var boundaryFlowSurface = BoundaryFlowSurface.Create(
+            new Carrier(),
+            BoundaryExposure.FullSigned,
+            FlowExposure.Forward,
+            selected);
+        Assert.True(BoundaryFlowSurface.TryRead(
+            boundaryFlowSurface,
+            out _,
+            out _,
+            out var boundaryEvidence,
+            out var flowEvidence,
+            out _));
+        var positiveOnly = BoundaryFlowLaneSurface.Create(
+            new Carrier(),
+            BoundaryFlowLane.PositiveForward,
+            boundaryEvidence,
+            flowEvidence);
+        var basis = Relation.OrderedGroup(
+            new Carrier(),
+            boundaryFlowSurface,
+            selected,
+            positiveOnly);
+
+        Assert.True(BoundaryFlowLaneBasis.TryReadLegalLanes(
+            basis,
+            out var exposure,
+            out var lanes));
+        Assert.Equal(new BoundaryFlowExposure(BoundaryExposure.FullSigned, FlowExposure.Forward), exposure);
+        Assert.Equal("PF", string.Join("|", lanes.Select(lane => lane.Label)));
+        Assert.True(BoundaryFlowLaneBasis.Allows(basis, BoundaryFlowLane.PositiveForward));
+        Assert.False(BoundaryFlowLaneBasis.Allows(basis, BoundaryFlowLane.NegativeForward));
+    }
+
+    [Fact]
+    public void InferredValueUsesExplicitLaneEvidenceBeforeExposureRecipe()
+    {
+        var selected = Relation.Segment(new Carrier(), -4, 4);
+        var boundaryFlowSurface = BoundaryFlowSurface.Create(
+            new Carrier(),
+            BoundaryExposure.FullSigned,
+            FlowExposure.Forward,
+            selected);
+        Assert.True(BoundaryFlowSurface.TryRead(
+            boundaryFlowSurface,
+            out _,
+            out _,
+            out var boundaryEvidence,
+            out var flowEvidence,
+            out _));
+        var positiveOnly = BoundaryFlowLaneSurface.Create(
+            new Carrier(),
+            BoundaryFlowLane.PositiveForward,
+            boundaryEvidence,
+            flowEvidence);
+        var basis = Relation.OrderedGroup(
+            new Carrier(),
+            boundaryFlowSurface,
+            selected,
+            positiveOnly);
+        var magnitudeCarrier = new Carrier();
+        var magnitude = Relation.Point(magnitudeCarrier, 7);
+
+        Assert.True(BoundaryFlowValueSurface.TryCreateInferred(
+            new Carrier(),
+            magnitude,
+            basis,
+            out var value));
+        Assert.True(BoundaryFlowValueSurface.TryReadValue(value, basis, out var read));
+        Assert.Equal(BoundaryFlowLane.PositiveForward, read.Lane);
+        Assert.True(read.IsLegal);
+    }
+
+    [Fact]
     public void LaneBasisCanAttachToUnitShapeWithoutCarrierAxis()
     {
         var unitCarrier = new Carrier();

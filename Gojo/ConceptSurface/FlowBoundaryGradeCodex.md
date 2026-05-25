@@ -1143,6 +1143,7 @@ BoundaryFlowSurface paired primitive construction/read
 CarrierAxisSurface primitive evidence construction
 CarrierBoundarySurface structure-first adapter construction
 RelationFlowSurface structure-first adapter construction
+BoundaryFlowLaneBasis structure-first legal-lane reads
 CarrierFlowFaceSurface adapter
 BoundaryFlowUnitShape primitive-basis construction
 BoundedWholeSurface

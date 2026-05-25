@@ -1195,14 +1195,64 @@ public static class BoundaryFlowLaneBasis
         out BoundaryFlowExposure exposure,
         out BoundaryFlowLane[] lanes)
     {
+        if (TryRead(boundaryFlowSurface, out exposure, out _, out lanes))
+        {
+            return true;
+        }
+
         if (BoundaryFlowSurface.TryRead(boundaryFlowSurface, out exposure))
         {
             lanes = LegalLanes(exposure);
             return true;
         }
 
+        if (CarrierAxisSurface.TryRead(boundaryFlowSurface, out _, out var boundary, out var flow, out _, out _))
+        {
+            exposure = new BoundaryFlowExposure(boundary, flow);
+            lanes = LegalLanes(exposure);
+            return true;
+        }
+
         exposure = default;
         lanes = [];
+        return false;
+    }
+
+    public static bool TryReadLegalLanes(
+        Relation boundaryEvidence,
+        Relation flowEvidence,
+        out BoundaryFlowExposure exposure,
+        out BoundaryFlowLane[] lanes)
+    {
+        if (BoundarySurface.TryRead(boundaryEvidence, out var boundary, out _, out _, out _) &&
+            FlowSurface.TryRead(flowEvidence, out var flow, out _, out _, out _))
+        {
+            exposure = new BoundaryFlowExposure(boundary, flow);
+            lanes = LegalLanes(exposure);
+            return true;
+        }
+
+        exposure = default;
+        lanes = [];
+        return false;
+    }
+
+    public static bool Allows(Relation laneBasis, BoundaryFlowLane lane) =>
+        TryReadLegalLanes(laneBasis, out _, out var lanes) &&
+        lanes.Contains(lane);
+
+    public static bool TryInferSingleLane(
+        Relation laneBasis,
+        out BoundaryFlowLane lane)
+    {
+        if (TryReadLegalLanes(laneBasis, out _, out var lanes) &&
+            lanes.Length == 1)
+        {
+            lane = lanes[0];
+            return true;
+        }
+
+        lane = default;
         return false;
     }
 
@@ -2058,13 +2108,13 @@ public static class BoundaryFlowValueSurface
         out bool isLegal)
     {
         if (!TryRead(valueSurface, out magnitude, out lane, out _, out _, out _) ||
-            !BoundaryFlowLaneBasis.TryReadExposure(laneBasis, out var exposure))
+            !BoundaryFlowLaneBasis.TryReadLegalLanes(laneBasis, out _, out var lanes))
         {
             isLegal = false;
             return false;
         }
 
-        isLegal = BoundaryFlowLaneBasis.Allows(exposure, lane);
+        isLegal = lanes.Contains(lane);
         return true;
     }
 
@@ -2085,7 +2135,7 @@ public static class BoundaryFlowValueSurface
         out Relation laneBasis)
     {
         if (!TryRead(valueSurface, out var magnitude, out var lane, out _, out var basisElement, out var residueOrTension) ||
-            !TryResolveLaneBasis(magnitude, basisElement, out laneBasis, out var exposure))
+            !TryResolveLaneBasis(magnitude, basisElement, out laneBasis, out var exposure, out var lanes))
         {
             read = default;
             laneBasis = null!;
@@ -2096,7 +2146,7 @@ public static class BoundaryFlowValueSurface
             magnitude,
             lane,
             exposure,
-            BoundaryFlowLaneBasis.Allows(exposure, lane),
+            lanes.Contains(lane),
             residueOrTension);
         return true;
     }
@@ -2107,7 +2157,7 @@ public static class BoundaryFlowValueSurface
         out BoundaryFlowValueRead read)
     {
         if (!TryRead(valueSurface, out var magnitude, out var lane, out _, out _, out var residueOrTension) ||
-            !BoundaryFlowLaneBasis.TryReadExposure(laneBasis, out var exposure))
+            !BoundaryFlowLaneBasis.TryReadLegalLanes(laneBasis, out var exposure, out var lanes))
         {
             read = default;
             return false;
@@ -2117,7 +2167,7 @@ public static class BoundaryFlowValueSurface
             magnitude,
             lane,
             exposure,
-            BoundaryFlowLaneBasis.Allows(exposure, lane),
+            lanes.Contains(lane),
             residueOrTension);
         return true;
     }
@@ -2129,8 +2179,7 @@ public static class BoundaryFlowValueSurface
         out Relation valueSurface)
     {
         if (!ConceptSurfaceReader.TryReadPoint(magnitudePoint, out _) ||
-            !BoundaryFlowLaneBasis.TryReadExposure(laneBasis, out var exposure) ||
-            !BoundaryFlowLaneBasis.TryInferSingleLane(exposure.Boundary, exposure.Flow, out var lane))
+            !BoundaryFlowLaneBasis.TryInferSingleLane(laneBasis, out var lane))
         {
             valueSurface = null!;
             return false;
@@ -2156,10 +2205,10 @@ public static class BoundaryFlowValueSurface
             !BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
                 valueCarrier.UnitShape,
                 out _,
-                out var exposure,
                 out _,
-                out _) ||
-            !BoundaryFlowLaneBasis.Allows(exposure, lane))
+                out _,
+                out var lanes) ||
+            !lanes.Contains(lane))
         {
             valueSurface = null!;
             return false;
@@ -2177,20 +2226,21 @@ public static class BoundaryFlowValueSurface
         CarrierLocation magnitude,
         IElement explicitBasis,
         out Relation laneBasis,
-        out BoundaryFlowExposure exposure)
+        out BoundaryFlowExposure exposure,
+        out BoundaryFlowLane[] lanes)
     {
         if (BoundaryFlowLaneBasis.TryReadUnitShapeDescriptorBasis(
                 magnitude.Carrier.UnitShape,
                 out laneBasis,
                 out exposure,
                 out _,
-                out _))
+                out lanes))
         {
             return true;
         }
 
         if (explicitBasis is Relation basisRelation &&
-            BoundaryFlowLaneBasis.TryReadExposure(basisRelation, out exposure))
+            BoundaryFlowLaneBasis.TryReadLegalLanes(basisRelation, out exposure, out lanes))
         {
             laneBasis = basisRelation;
             return true;
@@ -2201,13 +2251,14 @@ public static class BoundaryFlowValueSurface
                 out laneBasis,
                 out exposure,
                 out _,
-                out _))
+                out lanes))
         {
             return true;
         }
 
         laneBasis = null!;
         exposure = default;
+        lanes = [];
         return false;
     }
 }
@@ -2301,7 +2352,7 @@ public static class BoundaryFlowValueSettlement
             read.Lane.Flow);
         var targetMagnitude = AbsAsLong(target);
 
-        if (BoundaryFlowLaneBasis.Allows(read.Basis, targetLane) &&
+        if (BoundaryFlowLaneBasis.Allows(laneBasis, targetLane) &&
             CanMoveToLane(read.Magnitude.Carrier.UnitShape, laneBasis, read.Lane, targetLane))
         {
             settledValue = BoundaryFlowValueSurface.Create(
@@ -2409,8 +2460,7 @@ public static class BoundaryFlowValueRoute
         }
 
         var targetLane = ProjectedTargetLane(sourceRead, targetLocation, targetBasis);
-        var isAllowed = BoundaryFlowLaneBasis.TryReadExposure(targetBasis, out var targetExposure) &&
-            BoundaryFlowLaneBasis.Allows(targetExposure, targetLane);
+        var isAllowed = BoundaryFlowLaneBasis.Allows(targetBasis, targetLane);
         var residueOrTension = isAllowed
             ? Relation.Point(projectionResidue.Carrier, projectionResidue.Ticks)
             : Relation.Point(targetLocation.Carrier, targetLocation.Ticks);
@@ -2503,14 +2553,14 @@ public static class BoundaryFlowValueRoute
 
     private static BoundaryLane ZeroBoundaryLane(BoundaryLane sourceBoundary, Relation targetBasis)
     {
-        if (BoundaryFlowLaneBasis.TryReadExposure(targetBasis, out var exposure) &&
-            BoundaryFlowLaneBasis.BoundaryLanes(exposure.Boundary).Contains(sourceBoundary))
+        if (BoundaryFlowLaneBasis.TryReadLegalLanes(targetBasis, out _, out var lanes) &&
+            lanes.Select(lane => lane.Boundary).Distinct().Contains(sourceBoundary))
         {
             return sourceBoundary;
         }
 
-        if (BoundaryFlowLaneBasis.TryReadExposure(targetBasis, out exposure) &&
-            BoundaryFlowLaneBasis.BoundaryLanes(exposure.Boundary) is [var only])
+        if (BoundaryFlowLaneBasis.TryReadLegalLanes(targetBasis, out _, out lanes) &&
+            lanes.Select(lane => lane.Boundary).Distinct().ToArray() is [var only])
         {
             return only;
         }
@@ -2897,7 +2947,7 @@ public static class BoundaryFlowTargetCapacitySurface
                 out _,
                 out _) &&
             ConceptSurfaceReader.TryReadPoint(capacityPoint, out var capacityLocation) &&
-            BoundaryFlowLaneBasis.TryReadExposure(targetBasis, out var exposure) &&
+            BoundaryFlowLaneBasis.TryReadLegalLanes(targetBasis, out var exposure, out _) &&
             TryReadTargetCarrier(surface, out var targetCarrier))
         {
             read = new BoundaryFlowTargetCapacityRead(
@@ -3536,8 +3586,8 @@ public static class BoundaryFlowSharedCapacityTransfer
                 out var routeTargetBasis,
                 out var routeTargetValue,
                 out _) ||
-            !BoundaryFlowLaneBasis.TryReadExposure(targetBasis, out var targetExposure) ||
-            !BoundaryFlowLaneBasis.TryReadExposure(routeTargetBasis, out var routeExposure) ||
+            !BoundaryFlowLaneBasis.TryReadLegalLanes(targetBasis, out var targetExposure, out _) ||
+            !BoundaryFlowLaneBasis.TryReadLegalLanes(routeTargetBasis, out var routeExposure, out _) ||
             !targetExposure.Equals(routeExposure))
         {
             return false;
