@@ -2122,7 +2122,14 @@ public static class BoundaryFlowValueSurface
         Relation valueSurface,
         out BoundaryFlowValueRead read)
     {
-        return TryReadCompleteValue(valueSurface, out read, out _);
+        if (TryReadValueWithBasis(valueSurface, out var basisRead))
+        {
+            read = basisRead.ToCompactRead();
+            return true;
+        }
+
+        read = default;
+        return false;
     }
 
     /// <summary>
@@ -2134,27 +2141,59 @@ public static class BoundaryFlowValueSurface
         out BoundaryFlowValueRead read,
         out Relation laneBasis)
     {
-        if (!TryRead(valueSurface, out var magnitude, out var lane, out _, out var basisElement, out var residueOrTension) ||
-            !TryResolveLaneBasis(magnitude, basisElement, out laneBasis, out var exposure, out var lanes))
+        if (TryReadValueWithBasis(valueSurface, out var basisRead))
         {
-            read = default;
-            laneBasis = null!;
-            return false;
+            read = basisRead.ToCompactRead();
+            laneBasis = basisRead.LaneBasis;
+            return true;
         }
 
-        read = new BoundaryFlowValueRead(
-            magnitude,
-            lane,
-            exposure,
-            lanes.Contains(lane),
-            residueOrTension);
-        return true;
+        read = default;
+        laneBasis = null!;
+        return false;
     }
 
     public static bool TryReadValue(
         Relation valueSurface,
         Relation laneBasis,
         out BoundaryFlowValueRead read)
+    {
+        if (TryReadValueWithBasis(valueSurface, laneBasis, out var basisRead))
+        {
+            read = basisRead.ToCompactRead();
+            return true;
+        }
+
+        read = default;
+        return false;
+    }
+
+    public static bool TryReadValueWithBasis(
+        Relation valueSurface,
+        out BoundaryFlowValueBasisRead read)
+    {
+        if (!TryRead(valueSurface, out var magnitude, out var lane, out _, out var basisElement, out var residueOrTension) ||
+            !TryResolveLaneBasis(magnitude, basisElement, out var laneBasis, out var exposure, out var lanes))
+        {
+            read = default;
+            return false;
+        }
+
+        read = new BoundaryFlowValueBasisRead(
+            magnitude,
+            lane,
+            laneBasis,
+            exposure,
+            lanes,
+            lanes.Contains(lane),
+            residueOrTension);
+        return true;
+    }
+
+    public static bool TryReadValueWithBasis(
+        Relation valueSurface,
+        Relation laneBasis,
+        out BoundaryFlowValueBasisRead read)
     {
         if (!TryRead(valueSurface, out var magnitude, out var lane, out _, out _, out var residueOrTension) ||
             !BoundaryFlowLaneBasis.TryReadLegalLanes(laneBasis, out var exposure, out var lanes))
@@ -2163,10 +2202,12 @@ public static class BoundaryFlowValueSurface
             return false;
         }
 
-        read = new BoundaryFlowValueRead(
+        read = new BoundaryFlowValueBasisRead(
             magnitude,
             lane,
+            laneBasis,
             exposure,
+            lanes,
             lanes.Contains(lane),
             residueOrTension);
         return true;
@@ -2306,6 +2347,40 @@ public readonly record struct BoundaryFlowValueRead(
             return $"{sign}{Magnitude.Ticks}{suffix}";
         }
     }
+}
+
+/// <summary>
+/// Structural read of a value surface through its resolved possible-lane basis.
+/// This keeps the physical basis surface and visible legal lanes available
+/// alongside the compact exposure read.
+/// </summary>
+public readonly record struct BoundaryFlowValueBasisRead(
+    CarrierLocation Magnitude,
+    BoundaryFlowLane Lane,
+    Relation LaneBasis,
+    BoundaryFlowExposure Basis,
+    BoundaryFlowLane[] LegalLanes,
+    bool IsLegal,
+    IElement ResidueOrTension)
+{
+    public BoundaryFlowValueRead ToCompactRead() =>
+        new(Magnitude, Lane, Basis, IsLegal, ResidueOrTension);
+
+    public bool IsUnsignedMagnitude => ToCompactRead().IsUnsignedMagnitude;
+
+    public bool IsSignedBoundary => ToCompactRead().IsSignedBoundary;
+
+    public bool IsWholeBoundary => ToCompactRead().IsWholeBoundary;
+
+    public bool IsNoFlow => ToCompactRead().IsNoFlow;
+
+    public bool IsForwardFlow => ToCompactRead().IsForwardFlow;
+
+    public bool IsInverseFlow => ToCompactRead().IsInverseFlow;
+
+    public long SignedTicks => ToCompactRead().SignedTicks;
+
+    public string Notation => ToCompactRead().Notation;
 }
 
 /// <summary>

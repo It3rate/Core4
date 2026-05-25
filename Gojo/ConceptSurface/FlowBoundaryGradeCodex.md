@@ -1144,6 +1144,7 @@ CarrierAxisSurface primitive evidence construction
 CarrierBoundarySurface structure-first adapter construction
 RelationFlowSurface structure-first adapter construction
 BoundaryFlowLaneBasis structure-first legal-lane reads
+BoundaryFlowValueBasisRead structural value-basis read
 CarrierFlowFaceSurface adapter
 BoundaryFlowUnitShape primitive-basis construction
 BoundedWholeSurface

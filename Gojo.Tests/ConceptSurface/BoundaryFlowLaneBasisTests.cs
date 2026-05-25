@@ -202,6 +202,55 @@ public sealed class BoundaryFlowLaneBasisTests
     }
 
     [Fact]
+    public void ValueBasisReadKeepsResolvedBasisAndVisibleLegalLanes()
+    {
+        var selected = Relation.Segment(new Carrier(), -4, 4);
+        var boundaryFlowSurface = BoundaryFlowSurface.Create(
+            new Carrier(),
+            BoundaryExposure.FullSigned,
+            FlowExposure.Forward,
+            selected);
+        Assert.True(BoundaryFlowSurface.TryRead(
+            boundaryFlowSurface,
+            out _,
+            out _,
+            out var boundaryEvidence,
+            out var flowEvidence,
+            out _));
+        var positiveOnly = BoundaryFlowLaneSurface.Create(
+            new Carrier(),
+            BoundaryFlowLane.PositiveForward,
+            boundaryEvidence,
+            flowEvidence);
+        var basis = Relation.OrderedGroup(
+            new Carrier(),
+            boundaryFlowSurface,
+            selected,
+            positiveOnly);
+        var magnitudeCarrier = new Carrier();
+        var value = BoundaryFlowValueSurface.Create(
+            new Carrier(),
+            Relation.Point(magnitudeCarrier, 7),
+            BoundaryFlowLane.NegativeForward,
+            basis,
+            Relation.Point(Carrier.Unknown, 0));
+
+        Assert.True(BoundaryFlowValueSurface.TryReadValueWithBasis(value, out var read));
+        Assert.Equal(basis, read.LaneBasis);
+        Assert.Equal(new BoundaryFlowExposure(BoundaryExposure.FullSigned, FlowExposure.Forward), read.Basis);
+        Assert.Equal("PF", string.Join("|", read.LegalLanes.Select(lane => lane.Label)));
+        Assert.Equal(BoundaryFlowLane.NegativeForward, read.Lane);
+        Assert.False(read.IsLegal);
+        Assert.Equal("-7f", read.Notation);
+        Assert.Equal(read.ToCompactRead(), new BoundaryFlowValueRead(
+            read.Magnitude,
+            read.Lane,
+            read.Basis,
+            read.IsLegal,
+            read.ResidueOrTension));
+    }
+
+    [Fact]
     public void LaneBasisCanAttachToUnitShapeWithoutCarrierAxis()
     {
         var unitCarrier = new Carrier();
