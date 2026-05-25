@@ -4326,6 +4326,30 @@ public static class CarrierBoundarySurface
     public static Relation Create(
         Carrier root,
         Carrier carrier,
+        Relation boundarySurface,
+        IElement partition)
+    {
+        var axisCarrier = carrier ?? Carrier.Unknown;
+        var selected = axisCarrier.IsUnknown
+            ? (IElement)ConceptSurface.UnknownPoint()
+            : axisCarrier;
+
+        return Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            selected,
+            boundarySurface ?? ConceptSurface.UnknownPoint(),
+            partition ?? ConceptSurface.UnknownPoint());
+    }
+
+    public static Relation Create(
+        Carrier root,
+        Carrier carrier,
+        Relation boundarySurface) =>
+        Create(root, carrier, boundarySurface, ConceptSurface.UnknownPoint());
+
+    public static Relation Create(
+        Carrier root,
+        Carrier carrier,
         BoundaryExposure boundary,
         IElement leftBoundary,
         IElement rightBoundary,
@@ -4342,11 +4366,7 @@ public static class CarrierBoundarySurface
             leftBoundary ?? ConceptSurface.UnknownPoint(),
             rightBoundary ?? ConceptSurface.UnknownPoint());
 
-        return Relation.OrderedGroup(
-            ConceptSurface.RootOrNew(root),
-            selected,
-            boundarySurface,
-            partition ?? ConceptSurface.UnknownPoint());
+        return Create(root, axisCarrier, boundarySurface, partition);
     }
 
     public static Relation Create(
@@ -4415,6 +4435,27 @@ public static class RelationFlowSurface
     public static Relation Create(
         Carrier root,
         Relation relation,
+        Relation flowSurface,
+        IElement gateOrCapacity)
+    {
+        var selected = relation ?? ConceptSurface.UnknownPoint();
+
+        return Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            selected,
+            flowSurface ?? ConceptSurface.UnknownPoint(),
+            gateOrCapacity ?? ConceptSurface.UnknownPoint());
+    }
+
+    public static Relation Create(
+        Carrier root,
+        Relation relation,
+        Relation flowSurface) =>
+        Create(root, relation, flowSurface, ConceptSurface.UnknownPoint());
+
+    public static Relation Create(
+        Carrier root,
+        Relation relation,
         FlowExposure flow,
         IElement forwardFlow,
         IElement inverseFlow,
@@ -4428,11 +4469,7 @@ public static class RelationFlowSurface
             forwardFlow ?? ConceptSurface.UnknownPoint(),
             inverseFlow ?? ConceptSurface.UnknownPoint());
 
-        return Relation.OrderedGroup(
-            ConceptSurface.RootOrNew(root),
-            selected,
-            flowSurface,
-            gateOrCapacity ?? ConceptSurface.UnknownPoint());
+        return Create(root, selected, flowSurface, gateOrCapacity);
     }
 
     public static Relation Create(Carrier root, Relation relation, FlowExposure flow) =>
@@ -4530,6 +4567,33 @@ public static class CarrierAxisSurface
     public static Relation Create(
         Carrier root,
         Carrier carrier,
+        Relation boundarySurface,
+        Relation flowSurface,
+        IReadOnlyList<Relation> transitions)
+    {
+        var axisCarrier = carrier ?? Carrier.Unknown;
+        var selected = axisCarrier.IsUnknown
+            ? (IElement)ConceptSurface.UnknownPoint()
+            : axisCarrier;
+        var cleanTransitions = transitions is null
+            ? []
+            : transitions.Where(transition => transition is not null).Cast<IElement>().ToArray();
+
+        return Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            [selected, boundarySurface ?? ConceptSurface.UnknownPoint(), flowSurface ?? ConceptSurface.UnknownPoint(), .. cleanTransitions]);
+    }
+
+    public static Relation Create(
+        Carrier root,
+        Carrier carrier,
+        Relation boundarySurface,
+        Relation flowSurface) =>
+        Create(root, carrier, boundarySurface, flowSurface, []);
+
+    public static Relation Create(
+        Carrier root,
+        Carrier carrier,
         BoundaryExposure boundary,
         FlowExposure flow,
         IElement boundaryWitness,
@@ -4567,9 +4631,7 @@ public static class CarrierAxisSurface
             new Carrier(),
             boundary,
             flow);
-        return Relation.OrderedGroup(
-            ConceptSurface.RootOrNew(root),
-            [selected, boundarySurface, flowSurface, .. transitions]);
+        return Create(root, axisCarrier, boundarySurface, flowSurface, transitions);
     }
 
     public static Relation Create(

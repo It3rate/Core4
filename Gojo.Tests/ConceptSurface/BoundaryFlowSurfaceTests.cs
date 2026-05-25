@@ -330,6 +330,30 @@ public sealed class BoundaryFlowSurfaceTests
     }
 
     [Fact]
+    public void CarrierBoundarySurfaceCanPackageExistingBoundaryEvidence()
+    {
+        var carrier = new Carrier();
+        var boundarySurface = BoundedWholeSurface.Create(new Carrier(), carrier);
+        var partition = Relation.Point(new Carrier(), 4);
+        var surface = CarrierBoundarySurface.Create(
+            new Carrier(),
+            carrier,
+            boundarySurface,
+            partition);
+
+        Assert.True(CarrierBoundarySurface.TryRead(
+            surface,
+            out var readCarrier,
+            out var boundary,
+            out var readBoundarySurface,
+            out var readPartition));
+        Assert.Same(carrier, readCarrier);
+        Assert.True(boundary.IsBoundedWhole);
+        Assert.Equal(boundarySurface, readBoundarySurface);
+        Assert.Equal(partition, readPartition);
+    }
+
+    [Fact]
     public void RelationFlowSurfaceHoldsTraversalWithoutBoundaryExposure()
     {
         var route = new Carrier();
@@ -348,6 +372,30 @@ public sealed class BoundaryFlowSurfaceTests
         Assert.True(flow.IsForwardOnly);
         AssertFlowFace(forwardFlow, FlowFace.Forward, relation);
         Assert.NotEqual(relation.Reverse(), inverseFlow);
+    }
+
+    [Fact]
+    public void RelationFlowSurfaceCanPackageExistingFlowEvidence()
+    {
+        var route = new Carrier();
+        var relation = Relation.Segment(route, 0, 1);
+        var flowSurface = FlowFaceSurface.Forward(new Carrier(), relation, relation);
+        var gate = Relation.Point(new Carrier(), 1);
+        var surface = RelationFlowSurface.Create(new Carrier(), relation, flowSurface, gate);
+
+        Assert.True(RelationFlowSurface.TryRead(
+            surface,
+            out var readRelation,
+            out var flow,
+            out var readFlowSurface,
+            out var forwardFlow,
+            out _,
+            out var readGate));
+        Assert.Equal(relation, readRelation);
+        Assert.True(flow.IsForwardOnly);
+        Assert.Equal(flowSurface, readFlowSurface);
+        Assert.Equal(flowSurface, forwardFlow);
+        Assert.Equal(gate, readGate);
     }
 
     [Fact]
@@ -374,6 +422,34 @@ public sealed class BoundaryFlowSurfaceTests
         Assert.True(flow.IsBoth);
         AssertFlowFace(forwardFlow, FlowFace.Forward, forward);
         AssertFlowFace(inverseFlow, FlowFace.Inverse, inverse);
+    }
+
+    [Fact]
+    public void CarrierAxisSurfaceCanPackageExistingBoundaryAndFlowEvidence()
+    {
+        var carrier = new Carrier();
+        var flowSurface = FlowFaceSurface.Forward(new Carrier(), carrier);
+        var positive = BoundarySideSurface.Positive(new Carrier(), flowSurface);
+        var negative = BoundarySideSurface.Negative(new Carrier(), flowSurface);
+        var boundarySurface = Relation.OrderedGroup(new Carrier(), positive, negative);
+        var surface = CarrierAxisSurface.Create(
+            new Carrier(),
+            carrier,
+            boundarySurface,
+            flowSurface);
+
+        Assert.True(CarrierAxisSurface.TryRead(
+            surface,
+            out var readCarrier,
+            out var boundary,
+            out var flow,
+            out var readBoundarySurface,
+            out var readFlowSurface));
+        Assert.Same(carrier, readCarrier);
+        Assert.True(boundary.IsFullSigned);
+        Assert.True(flow.IsForwardOnly);
+        Assert.Equal(boundarySurface, readBoundarySurface);
+        Assert.Equal(flowSurface, readFlowSurface);
     }
 
     [Fact]

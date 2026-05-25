@@ -1141,6 +1141,8 @@ FlowSurface structural construction/read
 BoundarySurface structural construction/read
 BoundaryFlowSurface paired primitive construction/read
 CarrierAxisSurface primitive evidence construction
+CarrierBoundarySurface structure-first adapter construction
+RelationFlowSurface structure-first adapter construction
 CarrierFlowFaceSurface adapter
 BoundaryFlowUnitShape primitive-basis construction
 BoundedWholeSurface
