@@ -42,7 +42,7 @@ public sealed class FlowBoundaryGradeTests
     }
 
     [Fact]
-    public void FlowSurfaceCanSummarizePrimitiveFaceEvidence()
+    public void FlowSurfaceReadsPrimitiveFaceEvidence()
     {
         var selected = Relation.Point(new Carrier(), 1);
         var forward = FlowFaceSurface.Forward(new Carrier(), selected);
@@ -60,13 +60,9 @@ public sealed class FlowBoundaryGradeTests
         Assert.Equal(forward, forwardRead);
         Assert.Equal(inverse, inverseRead);
 
-        Assert.True(FlowSurface.TryCreateFromPrimitiveFaces(
-            new Carrier(),
-            selected,
-            [forward, inverse],
-            out var summary));
-        Assert.True(FlowSurface.TryRead(summary, out var summaryExposure, out _, out _, out _));
-        Assert.Equal(FlowExposure.Both, summaryExposure);
+        var directGroup = Relation.OrderedGroup(new Carrier(), forward, inverse);
+        Assert.True(FlowSurface.TryRead(directGroup, out var directExposure, out _, out _, out _));
+        Assert.Equal(FlowExposure.Both, directExposure);
     }
 
     [Fact]
@@ -207,7 +203,7 @@ public sealed class FlowBoundaryGradeTests
     }
 
     [Fact]
-    public void BoundarySurfaceCanSummarizePrimitiveSideEvidence()
+    public void BoundarySurfaceReadsPrimitiveSideEvidence()
     {
         var selected = Relation.Point(new Carrier(), 4);
         var flowFace = FlowFaceSurface.Forward(new Carrier(), selected);
@@ -226,13 +222,9 @@ public sealed class FlowBoundaryGradeTests
         Assert.Equal(positive, positiveRead);
         Assert.Equal(negative, negativeRead);
 
-        Assert.True(BoundarySurface.TryCreateFromPrimitiveSides(
-            new Carrier(),
-            selected,
-            [positive, negative],
-            out var summary));
-        Assert.True(BoundarySurface.TryRead(summary, out var summaryExposure, out _, out _, out _));
-        Assert.Equal(BoundaryExposure.FullSigned, summaryExposure);
+        var directGroup = Relation.OrderedGroup(new Carrier(), positive, negative);
+        Assert.True(BoundarySurface.TryRead(directGroup, out var directExposure, out _, out _, out _));
+        Assert.Equal(BoundaryExposure.FullSigned, directExposure);
     }
 
     [Fact]

@@ -4053,33 +4053,6 @@ public static class BoundarySurface
         IElement rightBoundary) =>
         Create(root, BoundaryExposure.BoundedWhole, whole, leftBoundary, rightBoundary);
 
-    public static bool TryCreateFromPrimitiveSides(
-        Carrier root,
-        IElement wholeOrAxis,
-        IEnumerable<Relation> boundarySides,
-        out Relation surface)
-    {
-        var sideGroup = Relation.OrderedGroup(new Carrier(), [.. boundarySides]);
-        if (BoundarySideSurface.TryReadExposure(
-                sideGroup,
-                out var exposure,
-                out var selected,
-                out var positiveSide,
-                out var negativeSide))
-        {
-            surface = Create(
-                root,
-                exposure,
-                wholeOrAxis ?? selected,
-                positiveSide,
-                negativeSide);
-            return true;
-        }
-
-        surface = null!;
-        return false;
-    }
-
     public static bool TryRead(
         Relation surface,
         out BoundaryExposure exposure,
@@ -4201,28 +4174,6 @@ public static class FlowSurface
         IElement forwardFlow,
         IElement inverseFlow) =>
         Create(root, FlowExposure.Both, selected, forwardFlow, inverseFlow);
-
-    public static bool TryCreateFromPrimitiveFaces(
-        Carrier root,
-        IElement selected,
-        IEnumerable<Relation> flowFaces,
-        out Relation surface)
-    {
-        var faceGroup = Relation.OrderedGroup(new Carrier(), [.. flowFaces]);
-        if (FlowFaceSurface.TryReadExposure(
-                faceGroup,
-                out var exposure,
-                out var faceSelected,
-                out var forwardFlow,
-                out var inverseFlow))
-        {
-            surface = Relation.OrderedGroup(ConceptSurface.RootOrNew(root), [.. flowFaces]);
-            return true;
-        }
-
-        surface = null!;
-        return false;
-    }
 
     public static bool TryRead(
         Relation surface,

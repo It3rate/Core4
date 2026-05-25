@@ -271,8 +271,8 @@ N over F -> BoundaryFlowLane.NegativeForward
 N over I -> BoundaryFlowLane.NegativeInverse
 ```
 
-This keeps compatibility with the current value and lane-basis code while
-moving the primitive evidence toward lower-grade physical surfaces.
+This lets the current value and lane-basis code continue to read compact lane
+terms while the evidence moves toward lower-grade physical surfaces.
 
 ## Boundary Exposure Reads
 
@@ -926,14 +926,12 @@ Current second pass:
 
 ```text
 FlowSurface.TryRead can summarize FlowFaceSurface evidence
-FlowSurface.TryCreateFromPrimitiveFaces builds structural flow evidence from faces
 BoundarySurface.TryRead can summarize BoundarySideSurface evidence
-BoundarySurface.TryCreateFromPrimitiveSides builds structural boundary evidence from sides
 BoundaryFlowSurface.TryRead can pair primitive boundary evidence with primitive flow evidence
 ```
 
-This keeps the old surface vocabulary useful while letting lower-grade physical
-evidence become the preferred source underneath it.
+This keeps the compact surface vocabulary useful while letting lower-grade
+physical evidence become the preferred source underneath it.
 
 Current consolidation pass:
 
@@ -942,7 +940,7 @@ FlowSurface.Create emits FlowFaceSurface or NoFlowSurface evidence
 BoundarySurface.Create emits BoundarySideSurface, StrippedBoundarySideSurface, or BoundedWholeSurface evidence
 FlowSurface.TryRead reads FlowFaceSurface and NoFlowSurface evidence
 BoundarySurface.TryRead reads BoundarySideSurface, StrippedBoundarySideSurface, or BoundedWholeSurface evidence
-old marker-row fallback has been removed from these summary surfaces
+fallback to compact construction rows has been removed from these exposure surfaces
 ```
 
 Current paired-evidence pass:
@@ -1013,10 +1011,10 @@ N:None -> StrippedBoundarySideSurface(N) plus explicit no-flow evidence
 These are not primitive grade-1 sides. They are derived surfaces for side
 structure whose flow has been stripped, ignored, or left unresolved.
 
-The old lane bit marker fallback has been removed from the occupied-lane
+Fallback to compact lane markers has been removed from the occupied-lane
 surface path. The compact summary records still exist as helper reads, but
-surface constructors no longer emit bit marker rows for lane, boundary, or
-flow evidence.
+surface constructors no longer emit marker rows for lane, boundary, or flow
+evidence.
 
 ### Stage 4: Transition-First Signed Behavior
 
@@ -1159,4 +1157,4 @@ core carrier axis/face split
 ```
 
 The safe direction is to keep adding inspectable evidence and only then reduce
-the remaining compatibility surfaces.
+the remaining adapter surfaces.

@@ -33,7 +33,7 @@ does this position surface have a boundary on the left,
 on the right, on both sides, or on neither side?
 ```
 
-Use two structural bits:
+Read two structural presences:
 
 ```text
 left boundary present
@@ -49,7 +49,7 @@ The four combinations are:
 | `N` | false | true | right-bounded negative surface; deficit, retreat, distance-from-goal, negative-only amount. |
 | `S` | true | true | bounded whole segment; whole-instance surface, interval, percent/ratio object. |
 
-The implementation bit order can be:
+The compact read order is:
 
 ```text
 (leftBoundary, rightBoundary)
@@ -114,7 +114,7 @@ The flow axis answers:
 which calibrated flow/tension faces are exposed?
 ```
 
-Use two structural bits:
+Read two structural presences:
 
 ```text
 forward flow present
@@ -130,7 +130,7 @@ The four combinations are:
 | `I` | false | true | inverse/opposed calibrated flow only. |
 | `FI` | true | true | both calibrated flow faces explicitly present. |
 
-The implementation bit order can be:
+The compact read order is:
 
 ```text
 (forwardFlow, inverseFlow)
@@ -552,8 +552,8 @@ PF -> PI -> NF -> NI -> PF
 Equivalently:
 
 ```text
-flow bit flips every step
-boundary side flips every second step
+flow face duals every step
+boundary side duals every second step
 ```
 
 That keeps these operations separate:
@@ -1793,7 +1793,7 @@ P:F value on NI
 
 ### 5. Keep Open Separate
 
-Open/unresolved flow should not be encoded as a fifth flow bit. Use existing
+Open/unresolved flow should not be encoded as a fifth flow state. Use existing
 open structure:
 
 ```text
