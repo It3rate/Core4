@@ -480,6 +480,80 @@ public static class BoundarySideSurface
 }
 
 /// <summary>
+/// Derived boundary-side evidence after flow has been stripped or deliberately
+/// ignored. Primitive P/N sides should use <see cref="BoundarySideSurface"/>
+/// over a concrete flow face; this shape keeps P:None and N:None inspectable
+/// without pretending they were born as grade-1 primitives.
+/// </summary>
+public static class StrippedBoundarySideSurface
+{
+    public static Relation Create(
+        Carrier root,
+        BoundarySide side,
+        IElement selected,
+        IElement residue)
+    {
+        var noFlow = FlowSurface.None(new Carrier(), selected ?? ConceptSurface.UnknownPoint());
+        return Relation.OrderedGroup(
+            ConceptSurface.RootOrNew(root),
+            SidePoint(side),
+            noFlow,
+            selected ?? ConceptSurface.UnknownPoint(),
+            residue ?? ConceptSurface.UnknownPoint());
+    }
+
+    public static Relation Positive(Carrier root, IElement selected, IElement residue) =>
+        Create(root, BoundarySide.Positive, selected, residue);
+
+    public static Relation Negative(Carrier root, IElement selected, IElement residue) =>
+        Create(root, BoundarySide.Negative, selected, residue);
+
+    public static bool TryRead(
+        Relation surface,
+        out BoundarySide side,
+        out Relation noFlowSurface,
+        out IElement selected,
+        out IElement residue)
+    {
+        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
+            elements.Length == 4 &&
+            TryReadSide(elements[0], out var read) &&
+            elements[1] is Relation flowCandidate &&
+            FlowSurface.TryRead(flowCandidate, out var flow, out _, out _, out _) &&
+            flow.IsNone)
+        {
+            side = read;
+            noFlowSurface = flowCandidate;
+            selected = elements[2];
+            residue = elements[3];
+            return true;
+        }
+
+        side = default;
+        noFlowSurface = null!;
+        selected = default!;
+        residue = default!;
+        return false;
+    }
+
+    private static Relation SidePoint(BoundarySide side) =>
+        Relation.Point(new Carrier(), side.IsNegative ? 1 : 0);
+
+    private static bool TryReadSide(IElement element, out BoundarySide side)
+    {
+        if (ConceptSurfaceReader.TryReadPoint(element, out var location) &&
+            (location.Ticks == 0 || location.Ticks == 1))
+        {
+            side = new BoundarySide(location.Ticks == 1);
+            return true;
+        }
+
+        side = default;
+        return false;
+    }
+}
+
+/// <summary>
 /// Physical bounded-whole evidence: a selected whole, its boundary pair, and an
 /// optional partition/resolution witness. This is the primitive foothold for
 /// the `S` boundary read.
@@ -1123,6 +1197,22 @@ public static class BoundaryLaneSurface
 {
     public static Relation Create(Carrier root, BoundaryLane lane, IElement evidence)
     {
+        if (lane.IsPositive)
+        {
+            return StrippedBoundarySideSurface.Positive(
+                ConceptSurface.RootOrNew(root),
+                evidence ?? ConceptSurface.UnknownPoint(),
+                ConceptSurface.UnknownPoint());
+        }
+
+        if (lane.IsNegative)
+        {
+            return StrippedBoundarySideSurface.Negative(
+                ConceptSurface.RootOrNew(root),
+                evidence ?? ConceptSurface.UnknownPoint(),
+                ConceptSurface.UnknownPoint());
+        }
+
         if (lane.IsWhole)
         {
             return BoundedWholeSurface.Create(
@@ -1130,12 +1220,7 @@ public static class BoundaryLaneSurface
                 evidence ?? ConceptSurface.UnknownPoint());
         }
 
-        return Relation.OrderedGroup(
-            ConceptSurface.RootOrNew(root),
-            LaneBit(lane.PositiveSide),
-            LaneBit(lane.NegativeSide),
-            LaneBit(lane.WholeSegment),
-            evidence ?? ConceptSurface.UnknownPoint());
+        return Relation.OrderedGroup(ConceptSurface.RootOrNew(root));
     }
 
     public static Relation Create(
@@ -1182,35 +1267,20 @@ public static class BoundaryLaneSurface
             return true;
         }
 
-        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
-            elements.Length >= 4 &&
-            TryReadBit(elements[0], out var positive) &&
-            TryReadBit(elements[1], out var negative) &&
-            TryReadBit(elements[2], out var whole))
+        if (StrippedBoundarySideSurface.TryRead(
+                surface,
+                out var strippedSide,
+                out _,
+                out var strippedSelected,
+                out var strippedResidue))
         {
-            lane = new BoundaryLane(positive, negative, whole);
-            evidence = elements[3];
-            return lane.IsValid;
+            lane = strippedSide.ToLane();
+            evidence = strippedSelected ?? strippedResidue;
+            return true;
         }
 
         lane = default;
         evidence = default!;
-        return false;
-    }
-
-    private static Relation LaneBit(bool isPresent) =>
-        Relation.Point(new Carrier(), isPresent ? 1 : 0);
-
-    private static bool TryReadBit(IElement element, out bool isPresent)
-    {
-        if (ConceptSurfaceReader.TryReadPoint(element, out var location) &&
-            (location.Ticks == 0 || location.Ticks == 1))
-        {
-            isPresent = location.Ticks == 1;
-            return true;
-        }
-
-        isPresent = false;
         return false;
     }
 }
@@ -1243,12 +1313,7 @@ public static class FlowLaneSurface
                 evidence ?? ConceptSurface.UnknownPoint());
         }
 
-        return Relation.OrderedGroup(
-            ConceptSurface.RootOrNew(root),
-            LaneBit(lane.ForwardFace),
-            LaneBit(lane.InverseFace),
-            LaneBit(lane.NoFlowFace),
-            evidence ?? ConceptSurface.UnknownPoint());
+        return Relation.OrderedGroup(ConceptSurface.RootOrNew(root));
     }
 
     public static bool TryRead(
@@ -1276,35 +1341,8 @@ public static class FlowLaneSurface
             return true;
         }
 
-        if (ConceptSurfaceReader.TryReadRootElements(surface, out var elements) &&
-            elements.Length >= 4 &&
-            TryReadBit(elements[0], out var forward) &&
-            TryReadBit(elements[1], out var inverse) &&
-            TryReadBit(elements[2], out var none))
-        {
-            lane = new FlowLane(forward, inverse, none);
-            evidence = elements[3];
-            return lane.IsValid;
-        }
-
         lane = default;
         evidence = default!;
-        return false;
-    }
-
-    private static Relation LaneBit(bool isPresent) =>
-        Relation.Point(new Carrier(), isPresent ? 1 : 0);
-
-    private static bool TryReadBit(IElement element, out bool isPresent)
-    {
-        if (ConceptSurfaceReader.TryReadPoint(element, out var location) &&
-            (location.Ticks == 0 || location.Ticks == 1))
-        {
-            isPresent = location.Ticks == 1;
-            return true;
-        }
-
-        isPresent = false;
         return false;
     }
 }

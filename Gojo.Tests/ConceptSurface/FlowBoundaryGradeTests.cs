@@ -385,6 +385,36 @@ public sealed class FlowBoundaryGradeTests
     }
 
     [Fact]
+    public void PositiveNoFlowLaneSurfaceUsesStrippedBoundarySideEvidence()
+    {
+        var selected = Relation.Point(new Carrier(), 5);
+        var laneSurface = BoundaryFlowLaneSurface.Create(
+            new Carrier(),
+            BoundaryFlowLane.PositiveNone,
+            selected,
+            selected);
+
+        Assert.True(BoundaryFlowLaneSurface.TryRead(
+            laneSurface,
+            out var lane,
+            out var boundarySurface,
+            out var flowSurface));
+        Assert.Equal(BoundaryFlowLane.PositiveNone, lane);
+        Assert.True(StrippedBoundarySideSurface.TryRead(
+            boundarySurface,
+            out var side,
+            out var sideFlow,
+            out var strippedSelected,
+            out _));
+        Assert.Equal(BoundarySide.Positive, side);
+        Assert.Equal(selected, strippedSelected);
+        Assert.True(FlowSurface.TryRead(sideFlow, out var sideFlowRead, out _, out _, out _));
+        Assert.Equal(FlowExposure.None, sideFlowRead);
+        Assert.True(FlowSurface.TryRead(flowSurface, out var flow, out _, out _, out _));
+        Assert.Equal(FlowExposure.None, flow);
+    }
+
+    [Fact]
     public void BoundaryFlowSurfaceCanPairPrimitiveBoundaryAndFlowEvidence()
     {
         var selected = Relation.Point(new Carrier(), 8);

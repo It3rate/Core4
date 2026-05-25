@@ -992,6 +992,20 @@ For example, a `PF` occupied lane is not just a two-letter marker. It is a
 forward flow face plus a positive side cut over that exact face. A `S:None`
 occupied lane is a bounded whole plus an explicit no-flow read.
 
+The remaining no-flow side lanes are also structural:
+
+```text
+P:None -> StrippedBoundarySideSurface(P) plus explicit no-flow evidence
+N:None -> StrippedBoundarySideSurface(N) plus explicit no-flow evidence
+```
+
+These are not primitive grade-1 sides. They are derived surfaces for side
+structure whose flow has been stripped, ignored, or left unresolved.
+
+The old lane bit marker fallback has been removed from the occupied-lane
+surface path. Legacy summary bits still exist for broader boundary/flow
+surfaces, but value occupancy is now carried by physical lane evidence.
+
 ### Stage 4: Transition-First Signed Behavior
 
 Do not assume `PN` means automatic crossing.
@@ -1118,6 +1132,7 @@ BoundedWholeSurface
 primitive-first summary read precedence
 lane-basis primitive evidence read
 occupied-lane primitive evidence surfaces
+stripped boundary side evidence for P/N no-flow lanes
 ```
 
 Still experimental:
