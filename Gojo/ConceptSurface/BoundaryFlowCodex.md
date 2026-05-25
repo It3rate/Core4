@@ -182,16 +182,10 @@ This distinction lets Gojo express:
 
 without collapsing them into one sign marker.
 
-## Relationship To Carrier Faces
+## Relationship To Carrier-Like Axes
 
-Current `Carrier` exposes a face through `IsInverse`. That means a current
-carrier is close to:
-
-```text
-axis + one exposed flow face
-```
-
-The boundary/flow model suggests a lower-level split:
+The boundary/flow model treats the axis/domain and the traversal/transfer face
+as separate pieces of evidence:
 
 ```text
 axis / position surface
@@ -209,12 +203,11 @@ into a net scalar. If both forward and inverse participation exist at once,
 Gojo should preserve opposed participation and tension until an explicit read
 cancels, projects, or settles it.
 
-The first implementation does not remove `Carrier.IsInverse`. Instead it adds
-two narrower hosts:
+The current concept-surface layer uses two narrower hosts:
 
 ```text
 CarrierBoundarySurface(root)
-  selected carrier
+  selected carrier-like axis
   BoundarySurface(...)
   optional partition / domain witness
 
@@ -244,9 +237,6 @@ CarrierAxisSurface(root)
 These helpers make the distinction explicit:
 
 ```text
-Carrier.IsInverse
-  which materialized face object this carrier is today
-
 CarrierBoundarySurface
   what boundary/domain the carrier-like axis exposes: P, N, PN, or S
 
@@ -254,8 +244,7 @@ RelationFlowSurface
   which traversal/transfer faces this relation exposes: Ø, F, I, or FI
 ```
 
-Dualing an axis surface swaps boundary sides and flow exposure. `Invert` remains
-an alias in a few helper names, but the concept is duality:
+Dualing an axis surface swaps boundary sides and flow exposure:
 
 ```text
 P:F   -> N:I
@@ -265,12 +254,11 @@ S:Ø   -> S:Ø
 S:FI  -> S:FI
 ```
 
-The selected carrier does not change during this read. This is deliberate for
-the first pass: inversion of the axis/domain or traversal promise is separate
-from materializing or selecting a different `Carrier` face with
-`carrier.Inverse()`. Later, if Gojo splits carrier axis from carrier face in
-core, `CarrierBoundarySurface` and `RelationFlowSurface` can become the
-migration path.
+The selected carrier-like axis does not change during this read. The dual
+surface is new explicit evidence around the same selected axis. If Gojo later
+splits carrier axis from carrier face in core, `CarrierBoundarySurface` and
+`RelationFlowSurface` are the migration path because they already keep those
+pieces distinct.
 
 Lane basis is not carrier-owned. `BoundaryFlowLaneBasis` can attach the same
 legal lane shape to any selected structure:
@@ -377,10 +365,10 @@ Complete value reads resolve basis in this order:
 ```
 
 That keeps `UnitShape` as the normal home when it says something specific,
-while preserving old route/target surfaces that intentionally carry a local
-host basis. The explicit value/host basis can be useful as a snapshot, route
-target, or conflict record, but it is not the ordinary home for a carrier's
-tick basis.
+while still allowing route and target surfaces to carry a local host basis when
+that local structure is the thing being modeled. The explicit value/host basis
+can be useful as a snapshot, route target, or conflict record, but it is not the
+ordinary home for a carrier's tick basis.
 
 If the occupied lane is not legal for the resolved basis, the read still
 succeeds and exposes lane tension:
@@ -494,8 +482,8 @@ both lanes are legal.
 
 ## Duals And Flow Phase Steps
 
-There are several distinct operations that used to be partially hidden behind
-`Carrier.IsInverse`.
+There are several distinct dual operations that should remain visible as
+separate boundary and flow evidence.
 
 Boundary dual:
 
@@ -1512,8 +1500,8 @@ The next steps should stay incremental:
    or become a core-adjacent axis/face split.
 2. Decide where target mismatch should settle: failed helper read, explicit
    tension surface, or blocked-capacity residue.
-3. Only after those behaviors are stable, consider core changes to
-   `Carrier.Value`, `CarrierLocation`, or `Carrier.IsInverse`.
+3. Only after those behaviors are stable, consider core changes to value lanes,
+   carrier locations, or carrier axis/face structure.
 
 ## Boundary Plus Flow Matrix
 
@@ -1814,17 +1802,14 @@ open flow
   unresolved future flow site
 ```
 
-### 6. Preserve Carrier Compatibility
+### 6. Keep Axis/Face Evidence Explicit
 
-Do not immediately rewrite `Carrier.IsInverse`.
-
-First pass:
+Current pass:
 
 - represent boundary/flow states in ConceptSurface helpers
 - use `CarrierBoundarySurface` to package carrier/domain boundary exposure
 - use `RelationFlowSurface` to package relation/traversal flow exposure
 - keep `CarrierAxisSurface` as a composed convenience for local notes/tests
-- continue to use current `Carrier` and `carrier.Inverse()`
 - treat `FI` as a surface containing both faces or both routes
 - treat `Ø` flow as no exposed flow relation
 
@@ -1834,8 +1819,9 @@ Later core exploration:
 split carrier axis from carrier face
 ```
 
-Current `Carrier` can remain the default forward face until that deeper split
-is justified by tests.
+Until that deeper split is justified by tests, concept surfaces should build
+the explicit evidence they need instead of reading a carrier face as a hidden
+source of flow meaning.
 
 ### 7. Add Tests Around Structural Reads
 

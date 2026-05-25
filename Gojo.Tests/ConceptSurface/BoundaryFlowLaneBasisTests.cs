@@ -392,11 +392,10 @@ public sealed class BoundaryFlowLaneBasisTests
             BoundaryFlowLane.NegativeForward,
             conflictingWitness);
 
-        Assert.True(BoundaryFlowValueSurface.TryReadCompleteValue(
+        Assert.True(BoundaryFlowValueSurface.TryReadValueWithBasis(
             value,
-            out var read,
-            out var resolvedBasis));
-        Assert.Equal(possibleLanes, resolvedBasis);
+            out var read));
+        Assert.Equal(possibleLanes, read.LaneBasis);
         Assert.Equal("PN:F", read.Basis.Label);
         Assert.True(read.IsLegal);
         Assert.Equal("-6f", read.Notation);
@@ -420,11 +419,10 @@ public sealed class BoundaryFlowLaneBasisTests
             BoundaryFlowLane.NegativeForward,
             Relation.Point(Carrier.Unknown, 0));
 
-        Assert.True(BoundaryFlowValueSurface.TryReadCompleteValue(
+        Assert.True(BoundaryFlowValueSurface.TryReadValueWithBasis(
             value,
-            out var read,
-            out var resolvedBasis));
-        Assert.True(BoundaryFlowLaneBasis.TryRead(resolvedBasis, out var exposure, out _, out var lanes));
+            out var read));
+        Assert.True(BoundaryFlowLaneBasis.TryRead(read.LaneBasis, out var exposure, out _, out var lanes));
         Assert.Equal("PN:F", exposure.Label);
         Assert.Equal("PF|NF", string.Join("|", lanes.Select(lane => lane.Label)));
         Assert.True(read.IsLegal);
@@ -478,7 +476,7 @@ public sealed class BoundaryFlowLaneBasisTests
         Assert.Equal("S:None", exposure.Label);
         Assert.Equal("S:None", string.Join("|", lanes.Select(lane => lane.Label)));
 
-        Assert.True(BoundaryFlowValueSurface.TryReadCompleteValue(value, out var read, out _));
+        Assert.True(BoundaryFlowValueSurface.TryReadValueWithBasis(value, out var read));
         Assert.False(read.IsLegal);
         Assert.Equal(BoundaryFlowLane.PositiveForward, read.Lane);
     }

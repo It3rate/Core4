@@ -72,9 +72,6 @@ public readonly record struct FlowExposure(bool ForwardFlow, bool InverseFlow)
     /// <summary>Swaps forward and inverse flow exposure while preserving none and both.</summary>
     public FlowExposure Dual() => new(InverseFlow, ForwardFlow);
 
-    /// <summary>Alias for <see cref="Dual"/> while older code still uses invert language.</summary>
-    public FlowExposure Invert() => Dual();
-
     public override string ToString() => Label;
 }
 
@@ -88,8 +85,6 @@ public readonly record struct BoundaryFlowExposure(BoundaryExposure Boundary, Fl
     public BoundaryFlowExposure DualBoundary() => new(Boundary.Dual(), Flow);
 
     public BoundaryFlowExposure DualFlow() => new(Boundary, Flow.Dual());
-
-    public BoundaryFlowExposure InvertFlow() => DualFlow();
 
     public BoundaryFlowExposure Dual() => new(Boundary.Dual(), Flow.Dual());
 
@@ -291,75 +286,6 @@ public static class NoFlowSurface
 
         selected = default!;
         witness = default!;
-        return false;
-    }
-}
-
-/// <summary>
-/// Compatibility bridge from today's materialized carrier face to primitive
-/// flow-face evidence. This reads <see cref="Carrier.IsInverse"/> only to build
-/// an inspectable <see cref="FlowFaceSurface"/>; the surface is the portable
-/// evidence after construction.
-/// </summary>
-public static class CarrierFlowFaceSurface
-{
-    public static bool TryCreate(
-        Carrier root,
-        Carrier carrier,
-        IElement evidence,
-        out Relation surface)
-    {
-        if (!TryReadFace(carrier, out var face))
-        {
-            surface = null!;
-            return false;
-        }
-
-        surface = FlowFaceSurface.Create(
-            root,
-            face,
-            carrier,
-            evidence ?? carrier);
-        return true;
-    }
-
-    public static bool TryCreate(
-        Carrier root,
-        Carrier carrier,
-        out Relation surface) =>
-        TryCreate(root, carrier, carrier, out surface);
-
-    public static bool TryReadFace(Carrier carrier, out FlowFace face)
-    {
-        if (carrier is null || carrier.IsUnknown)
-        {
-            face = default;
-            return false;
-        }
-
-        face = carrier.IsInverse ? FlowFace.Inverse : FlowFace.Forward;
-        return true;
-    }
-
-    public static bool TryRead(
-        Relation surface,
-        out Carrier carrier,
-        out FlowFace face,
-        out IElement evidence)
-    {
-        if (FlowFaceSurface.TryRead(surface, out var readFace, out var selected, out var readEvidence) &&
-            selected is Carrier selectedCarrier &&
-            !selectedCarrier.IsUnknown)
-        {
-            carrier = selectedCarrier;
-            face = readFace;
-            evidence = readEvidence;
-            return true;
-        }
-
-        carrier = null!;
-        face = default;
-        evidence = default!;
         return false;
     }
 }
@@ -1084,8 +1010,6 @@ public readonly record struct BoundaryFlowLane(BoundaryLane Boundary, FlowLane F
 
     public BoundaryFlowLane DualFlow() => new(Boundary, Flow.Dual());
 
-    public BoundaryFlowLane InvertFlow() => DualFlow();
-
     public BoundaryFlowLane Dual() => new(Boundary.Dual(), Flow.Dual());
 
     public bool TryStepFlowPhase(out BoundaryFlowLane next)
@@ -1332,38 +1256,6 @@ public static class BoundaryFlowLaneBasis
         exposure = default;
         selected = default!;
         lanes = [];
-        return false;
-    }
-
-    public static bool TryReadPrimitiveEvidence(
-        Relation basis,
-        out BoundaryFlowExposure exposure,
-        out IElement selected,
-        out Relation boundaryEvidence,
-        out Relation flowEvidence)
-    {
-        if (ConceptSurfaceReader.TryReadRootElements(basis, out var elements) &&
-            elements.Length >= 2 &&
-            elements[0] is Relation boundaryFlowSurface &&
-            BoundaryFlowSurface.TryRead(
-                boundaryFlowSurface,
-                out var boundary,
-                out var flow,
-                out var boundarySurface,
-                out var flowSurface,
-                out _))
-        {
-            exposure = new BoundaryFlowExposure(boundary, flow);
-            selected = elements[1];
-            boundaryEvidence = boundarySurface;
-            flowEvidence = flowSurface;
-            return true;
-        }
-
-        exposure = default;
-        selected = default!;
-        boundaryEvidence = null!;
-        flowEvidence = null!;
         return false;
     }
 
@@ -2136,23 +2028,6 @@ public static class BoundaryFlowValueSurface
     /// Reads a value through possible lanes resolved from the carrier unit-shape
     /// descriptor, then explicit basis witness, then the unit-shape default.
     /// </summary>
-    public static bool TryReadCompleteValue(
-        Relation valueSurface,
-        out BoundaryFlowValueRead read,
-        out Relation laneBasis)
-    {
-        if (TryReadValueWithBasis(valueSurface, out var basisRead))
-        {
-            read = basisRead.ToCompactRead();
-            laneBasis = basisRead.LaneBasis;
-            return true;
-        }
-
-        read = default;
-        laneBasis = null!;
-        return false;
-    }
-
     public static bool TryReadValue(
         Relation valueSurface,
         Relation laneBasis,
@@ -2394,13 +2269,13 @@ public static class BoundaryFlowValueSettlement
         long deltaTicks,
         out Relation settledValue)
     {
-        if (!BoundaryFlowValueSurface.TryReadCompleteValue(valueSurface, out _, out var laneBasis))
+        if (!BoundaryFlowValueSurface.TryReadValueWithBasis(valueSurface, out var basisRead))
         {
             settledValue = null!;
             return false;
         }
 
-        return TryApplySignedDelta(valueSurface, laneBasis, deltaTicks, out settledValue);
+        return TryApplySignedDelta(valueSurface, basisRead.LaneBasis, deltaTicks, out settledValue);
     }
 
     public static bool TryApplySignedDelta(
@@ -2903,10 +2778,9 @@ public static class BoundaryFlowTargetCapacitySurface
         out Relation targetCapacitySurface)
     {
         if (capacityTicks < 0 ||
-            !BoundaryFlowValueSurface.TryReadCompleteValue(
+            !BoundaryFlowValueSurface.TryReadValueWithBasis(
                 targetValue,
-                out var targetRead,
-                out var targetBasis))
+                out var targetRead))
         {
             targetCapacitySurface = null!;
             return false;
@@ -2915,7 +2789,7 @@ public static class BoundaryFlowTargetCapacitySurface
         targetCapacitySurface = Create(
             root,
             targetValue,
-            targetBasis,
+            targetRead.LaneBasis,
             Relation.Point(targetRead.Magnitude.Carrier, capacityTicks));
         return true;
     }
@@ -2929,10 +2803,9 @@ public static class BoundaryFlowTargetCapacitySurface
         out Relation targetCapacitySurface)
     {
         if (capacityTicks < 0 ||
-            !BoundaryFlowValueSurface.TryReadCompleteValue(
+            !BoundaryFlowValueSurface.TryReadValueWithBasis(
                 targetValue,
-                out var targetRead,
-                out var targetBasis))
+                out var targetRead))
         {
             targetCapacitySurface = null!;
             return false;
@@ -2948,7 +2821,7 @@ public static class BoundaryFlowTargetCapacitySurface
         targetCapacitySurface = Create(
             root,
             targetValue,
-            targetBasis,
+            targetRead.LaneBasis,
             capacityPoint,
             partition,
             ConceptSurface.UnknownPoint());
@@ -3764,10 +3637,9 @@ public static class BoundaryFlowTargetSettlement
         Relation transferSurface,
         out Relation settlementSurface)
     {
-        if (!BoundaryFlowValueSurface.TryReadCompleteValue(
+        if (!BoundaryFlowValueSurface.TryReadValueWithBasis(
                 targetBefore,
-                out _,
-                out var targetBasis) ||
+                out var beforeRead) ||
             !BoundaryFlowValueTransfer.TryReadSummary(transferSurface, out var transferRead))
         {
             settlementSurface = null!;
@@ -3785,7 +3657,7 @@ public static class BoundaryFlowTargetSettlement
             if (!CanApplyAcceptedToTarget(targetBefore, transferRead.Accepted, out var deltaTicks) ||
                 !BoundaryFlowValueSettlement.TryApplySignedDelta(
                     targetBefore,
-                    targetBasis,
+                    beforeRead.LaneBasis,
                     deltaTicks,
                     out targetAfter))
             {
@@ -4655,7 +4527,7 @@ public static class RelationFlowSurface
         return false;
     }
 
-    public static bool TryInvert(Relation surface, out Relation inverted)
+    public static bool TryDual(Relation surface, out Relation dual)
     {
         if (!TryRead(
                 surface,
@@ -4666,14 +4538,14 @@ public static class RelationFlowSurface
                 out var inverseFlow,
                 out var gateOrCapacity))
         {
-            inverted = null!;
+            dual = null!;
             return false;
         }
 
-        inverted = Create(
+        dual = Create(
             new Carrier(),
             relation,
-            flow.Invert(),
+            flow.Dual(),
             inverseFlow,
             forwardFlow,
             gateOrCapacity);
@@ -4828,19 +4700,19 @@ public static class CarrierAxisSurface
     }
 
     /// <summary>
-    /// Reads a structurally inverted axis surface without mutating the source.
-    /// Boundary sides are dualed and flow exposure is inverted; no-flow and
-    /// both-flow remain stable under inversion.
+    /// Reads a structurally dualed axis surface without mutating the source.
+    /// Boundary sides and flow exposure are dualed; no-flow and both-flow
+    /// remain stable under flow dualing.
     /// </summary>
-    public static bool TryInvert(Relation surface, out Relation inverted)
+    public static bool TryDual(Relation surface, out Relation dual)
     {
         if (!TryRead(surface, out var carrier, out var boundary, out var flow, out _, out _))
         {
-            inverted = null!;
+            dual = null!;
             return false;
         }
 
-        inverted = Create(new Carrier(), carrier, boundary.Dual(), flow.Invert());
+        dual = Create(new Carrier(), carrier, boundary.Dual(), flow.Dual());
         return true;
     }
 }

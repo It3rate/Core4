@@ -208,12 +208,12 @@ public sealed class BoundaryFlowSurfaceTests
     }
 
     [Fact]
-    public void BoundaryAndFlowExposureCanBeDualedWithoutChangingCarrierFaceIdentity()
+    public void BoundaryAndFlowExposureCanBeDualedWithoutChangingSelectedCarrier()
     {
         var carrier = new Carrier();
         var surface = CarrierAxisSurface.PositiveUnit(new Carrier(), carrier);
 
-        Assert.True(CarrierAxisSurface.TryInvert(surface, out var inverted));
+        Assert.True(CarrierAxisSurface.TryDual(surface, out var inverted));
         Assert.True(CarrierAxisSurface.TryRead(
             inverted,
             out var readCarrier,
@@ -224,16 +224,15 @@ public sealed class BoundaryFlowSurfaceTests
         Assert.Same(carrier, readCarrier);
         Assert.True(boundary.IsNegative);
         Assert.True(flow.IsInverseOnly);
-        Assert.False(carrier.IsInverse);
     }
 
     [Fact]
-    public void BothFlowExposureInvertsToItself()
+    public void BothFlowExposureDualsToItself()
     {
         var carrier = new Carrier();
         var surface = CarrierAxisSurface.SignedBothFlows(new Carrier(), carrier);
 
-        Assert.True(CarrierAxisSurface.TryInvert(surface, out var inverted));
+        Assert.True(CarrierAxisSurface.TryDual(surface, out var inverted));
         Assert.True(CarrierAxisSurface.TryRead(
             inverted,
             out _,
@@ -246,12 +245,12 @@ public sealed class BoundaryFlowSurfaceTests
     }
 
     [Fact]
-    public void NoFlowBoundedWholeInvertsToNoFlowBoundedWhole()
+    public void NoFlowBoundedWholeDualsToNoFlowBoundedWhole()
     {
         var carrier = new Carrier();
         var surface = CarrierAxisSurface.BoundedWholeNoFlow(new Carrier(), carrier);
 
-        Assert.True(CarrierAxisSurface.TryInvert(surface, out var inverted));
+        Assert.True(CarrierAxisSurface.TryDual(surface, out var inverted));
         Assert.True(CarrierAxisSurface.TryRead(
             inverted,
             out _,
@@ -453,13 +452,13 @@ public sealed class BoundaryFlowSurfaceTests
     }
 
     [Fact]
-    public void RelationFlowSurfaceInvertSwapsFlowExposureAndEvidence()
+    public void RelationFlowSurfaceDualSwapsFlowExposureAndEvidence()
     {
         var route = new Carrier();
         var forward = Relation.Segment(route, 0, 1);
         var surface = RelationFlowSurface.Forward(new Carrier(), forward, forward);
 
-        Assert.True(RelationFlowSurface.TryInvert(surface, out var inverted));
+        Assert.True(RelationFlowSurface.TryDual(surface, out var inverted));
         Assert.True(RelationFlowSurface.TryRead(
             inverted,
             out _,

@@ -66,91 +66,6 @@ public sealed class FlowBoundaryGradeTests
     }
 
     [Fact]
-    public void FlowSurfaceReadsPrimitiveEvidenceInsideStaleSummaryShape()
-    {
-        var selected = Relation.Point(new Carrier(), 1);
-        var forward = FlowFaceSurface.Forward(new Carrier(), selected);
-        var staleNoneWithForwardEvidence = Relation.OrderedGroup(
-            new Carrier(),
-            Relation.Point(new Carrier(), 0),
-            Relation.Point(new Carrier(), 0),
-            selected,
-            forward,
-            Relation.Point(Carrier.Unknown, 0));
-
-        Assert.True(FlowSurface.TryRead(
-            staleNoneWithForwardEvidence,
-            out var exposure,
-            out var readSelected,
-            out var forwardRead,
-            out _));
-        Assert.Equal(FlowExposure.Forward, exposure);
-        Assert.Equal(selected, readSelected);
-        Assert.Equal(forward, forwardRead);
-    }
-
-    [Fact]
-    public void CarrierFlowFaceSurfaceAdaptsMaterializedCarrierFaces()
-    {
-        var forwardCarrier = new Carrier();
-        var inverseCarrier = forwardCarrier.Inverse();
-
-        Assert.True(CarrierFlowFaceSurface.TryCreate(
-            new Carrier(),
-            forwardCarrier,
-            out var forwardSurface));
-        Assert.True(CarrierFlowFaceSurface.TryRead(
-            forwardSurface,
-            out var readForwardCarrier,
-            out var forwardFace,
-            out var forwardEvidence));
-        Assert.Same(forwardCarrier, readForwardCarrier);
-        Assert.Equal(FlowFace.Forward, forwardFace);
-        Assert.Same(forwardCarrier, forwardEvidence);
-
-        Assert.True(CarrierFlowFaceSurface.TryCreate(
-            new Carrier(),
-            inverseCarrier,
-            out var inverseSurface));
-        Assert.True(CarrierFlowFaceSurface.TryRead(
-            inverseSurface,
-            out var readInverseCarrier,
-            out var inverseFace,
-            out _));
-        Assert.Same(inverseCarrier, readInverseCarrier);
-        Assert.Equal(FlowFace.Inverse, inverseFace);
-        Assert.False(forwardCarrier.IsInverse);
-        Assert.True(inverseCarrier.IsInverse);
-    }
-
-    [Fact]
-    public void CarrierFlowFaceEvidenceCanFeedSummaryFlowRead()
-    {
-        var carrier = new Carrier();
-        Assert.True(CarrierFlowFaceSurface.TryCreate(new Carrier(), carrier, out var forward));
-        Assert.True(CarrierFlowFaceSurface.TryCreate(new Carrier(), carrier.Inverse(), out var inverse));
-        var group = Relation.OrderedGroup(new Carrier(), forward, inverse);
-
-        Assert.True(FlowSurface.TryRead(
-            group,
-            out var exposure,
-            out var selected,
-            out var forwardRead,
-            out var inverseRead));
-        Assert.Equal(FlowExposure.Both, exposure);
-        Assert.Same(carrier, selected);
-        Assert.Equal(forward, forwardRead);
-        Assert.Equal(inverse, inverseRead);
-    }
-
-    [Fact]
-    public void CarrierFlowFaceSurfaceDoesNotInventFaceForUnknownCarrier()
-    {
-        Assert.False(CarrierFlowFaceSurface.TryReadFace(Carrier.Unknown, out _));
-        Assert.False(CarrierFlowFaceSurface.TryCreate(new Carrier(), Carrier.Unknown, out _));
-    }
-
-    [Fact]
     public void BoundarySideSurfaceRequiresPrimitiveFlowFace()
     {
         var selected = Relation.Point(new Carrier(), 2);
@@ -225,31 +140,6 @@ public sealed class FlowBoundaryGradeTests
         var directGroup = Relation.OrderedGroup(new Carrier(), positive, negative);
         Assert.True(BoundarySurface.TryRead(directGroup, out var directExposure, out _, out _, out _));
         Assert.Equal(BoundaryExposure.FullSigned, directExposure);
-    }
-
-    [Fact]
-    public void BoundarySurfaceReadsPrimitiveEvidenceInsideStaleSummaryShape()
-    {
-        var selected = Relation.Point(new Carrier(), 4);
-        var flowFace = FlowFaceSurface.Forward(new Carrier(), selected);
-        var positive = BoundarySideSurface.Positive(new Carrier(), flowFace);
-        var staleNegativeWithPositiveEvidence = Relation.OrderedGroup(
-            new Carrier(),
-            Relation.Point(new Carrier(), 0),
-            Relation.Point(new Carrier(), 1),
-            selected,
-            positive,
-            Relation.Point(Carrier.Unknown, 0));
-
-        Assert.True(BoundarySurface.TryRead(
-            staleNegativeWithPositiveEvidence,
-            out var exposure,
-            out var readSelected,
-            out var positiveRead,
-            out _));
-        Assert.Equal(BoundaryExposure.Positive, exposure);
-        Assert.Equal(selected, readSelected);
-        Assert.Equal(positive, positiveRead);
     }
 
     [Fact]
@@ -447,16 +337,6 @@ public sealed class FlowBoundaryGradeTests
         Assert.True(BoundarySideSurface.TryReadExposure(basis, out var sideExposure));
         Assert.Equal(BoundaryExposure.FullSigned, sideExposure);
         Assert.Equal(FlowExposure.Forward, FlowFaceSurface.ReadExposure(basis));
-        Assert.True(BoundaryFlowLaneBasis.TryReadPrimitiveEvidence(
-            basis,
-            out var primitiveExposure,
-            out _,
-            out var boundaryEvidence,
-            out var flowEvidence));
-        Assert.Equal(exposure, primitiveExposure);
-        Assert.True(BoundarySideSurface.TryReadExposure(boundaryEvidence, out var boundaryRead));
-        Assert.Equal(BoundaryExposure.FullSigned, boundaryRead);
-        Assert.Equal(FlowExposure.Forward, FlowFaceSurface.ReadExposure(flowEvidence));
     }
 
     [Fact]
@@ -510,17 +390,6 @@ public sealed class FlowBoundaryGradeTests
         Assert.Equal(FlowExposure.None, FlowFaceSurface.ReadExposure(basis));
         Assert.True(BoundedWholeSurface.TryFind(basis, out _, out var whole, out _, out _, out _));
         Assert.Equal(selected, whole);
-        Assert.True(BoundaryFlowLaneBasis.TryReadPrimitiveEvidence(
-            basis,
-            out var primitiveExposure,
-            out _,
-            out var boundaryEvidence,
-            out var flowEvidence));
-        Assert.Equal(exposure, primitiveExposure);
-        Assert.True(BoundedWholeSurface.TryRead(boundaryEvidence, out var wholeEvidence, out _, out _, out _));
-        Assert.Equal(selected, wholeEvidence);
-        Assert.True(FlowSurface.TryRead(flowEvidence, out var flowRead, out _, out _, out _));
-        Assert.Equal(FlowExposure.None, flowRead);
     }
 
     [Fact]

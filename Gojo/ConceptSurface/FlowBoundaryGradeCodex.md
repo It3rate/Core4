@@ -29,7 +29,7 @@ they come from different structural situations.
 
 ## Why This Exists
 
-The older boundary/flow table was useful because it gave us the sixteen compact
+The earlier boundary/flow table was useful because it gave us the sixteen compact
 states:
 
 ```text
@@ -435,8 +435,8 @@ transition structures as descriptors.
 
 Use the word `dual` for the core idea.
 
-`inverse`, `invert`, and `IsInverse` remain useful compatibility names in the
-current code, but the conceptual rule is duality.
+Use `dual` for the structural operation. `Inverse` remains a flow-face name;
+`invert` is not a separate concept in this layer.
 
 There are multiple duals because there are multiple grades.
 
@@ -494,36 +494,6 @@ BoundaryFlowLaneTransitionSurface.FlowPhaseStepTransitions
 is a read/build convenience for that four-step pattern. The physical meaning is
 the transition surfaces.
 
-## Relation To Carrier.IsInverse
-
-Current carriers have `IsInverse`. That was reasonable when a carrier mostly
-needed to choose between forward and inverse faces.
-
-The new model makes `Carrier.IsInverse` too coarse to be the root of all dual
-meaning.
-
-It now reads best as:
-
-```text
-legacy/materialized opposed carrier face
-```
-
-That is still useful. We should not throw away duality. But the lower model is:
-
-```text
-flow face dual:
-  F <-> I
-
-boundary side dual:
-  P <-> N
-
-lane duals:
-  boundary dual, flow dual, full dual
-```
-
-Over time, carrier inverse behavior should become an adapter over explicit
-flow-face evidence rather than the only source of inverse meaning.
-
 ## Axis And Face Split
 
 The likely core-adjacent shape is:
@@ -552,9 +522,8 @@ transition
   relation that allows movement from one occupied lane to another
 ```
 
-This is the "axis/face split" direction. It is a migration, not a single rename,
-because existing code often treats a carrier as both axis and face. The safer
-path is to add physical evidence first, then migrate reads.
+This is the axis/face split direction. Concept surfaces should build explicit
+evidence first and let compact reads summarize that evidence only afterward.
 
 ## Old Sixteen States As Summary Reads
 
@@ -897,8 +866,8 @@ BoundarySideSurface
 FlowBoundaryGradeLaneSurface
 ```
 
-This stage is additive. It does not remove `Carrier.IsInverse`, and it does not
-rewrite existing boundary/flow helpers.
+This stage uses explicit concept-surface evidence instead of carrier-face
+adapters.
 
 ### Stage 2: Summary Reads Over Primitive Evidence
 
@@ -955,7 +924,7 @@ CarrierAxisSurface uses paired primitive evidence before falling back to strippe
 If a mixed surface carries both compact summary language and lower-grade
 physical evidence, the physical evidence should win. A real `F` face is a
 flow face even if some external note calls the read `None`. A real positive
-side is a positive side even if a stale summary note calls it `N`.
+side is a positive side even if a conflicting compact note calls it `N`.
 
 ### Stage 3: Unit Shape Basis
 
@@ -984,7 +953,6 @@ BoundaryFlowUnitShape.TryCreatePrimitiveBasis builds basis from FlowFaceSurface 
 Positive/signed forward/signed both-flow unit shapes now preserve primitive evidence in descriptors
 Bounded whole/no-flow now preserves BoundedWholeSurface evidence with no primitive flow face
 Bounded whole with flow pairs BoundedWholeSurface with primitive FlowFaceSurface evidence
-BoundaryFlowLaneBasis.TryReadPrimitiveEvidence exposes the local boundary and flow evidence behind a basis
 ```
 
 Occupied lane surfaces now follow the same rule:
@@ -1038,31 +1006,7 @@ NI -> PF
 
 One-way transitions remain valid and leave residue in the blocked direction.
 
-### Stage 5: Carrier Adapter
-
-Add an adapter that can read current carrier inverse behavior as flow-face
-evidence:
-
-```text
-carrier.IsInverse == false -> F face evidence
-carrier.IsInverse == true  -> I face evidence
-```
-
-This should be a compatibility read, not the new source of meaning.
-
-Current pass:
-
-```text
-CarrierFlowFaceSurface.TryCreate builds FlowFaceSurface evidence from a known carrier face
-CarrierFlowFaceSurface.TryReadFace reads F/I from Carrier.IsInverse for compatibility
-CarrierFlowFaceSurface.TryRead reads the carrier selected by that flow-face surface
-Carrier.Unknown is not treated as forward flow
-```
-
-This is a bridge, not the destination. Once a `FlowFaceSurface` exists, readers
-should prefer the surface over rereading `Carrier.IsInverse`.
-
-### Stage 6: Core-Adjacent Axis/Face Split
+### Stage 5: Core-Adjacent Axis/Face Split
 
 After enough ConceptSurface tests exist, consider moving the split closer to
 core:
@@ -1092,10 +1036,9 @@ automatic cancellation of opposed participation
 integer behavior implied by P and N merely being visible
 ```
 
-It extends, rather than immediately replaces:
+It extends:
 
 ```text
-Carrier.IsInverse
 BoundaryExposure
 FlowExposure
 BoundaryFlowLane
@@ -1145,11 +1088,9 @@ CarrierBoundarySurface structure-first adapter construction
 RelationFlowSurface structure-first adapter construction
 BoundaryFlowLaneBasis structure-first legal-lane reads
 BoundaryFlowValueBasisRead structural value-basis read
-CarrierFlowFaceSurface adapter
 BoundaryFlowUnitShape primitive-basis construction
 BoundedWholeSurface
 primitive-first summary read precedence
-lane-basis primitive evidence read
 occupied-lane primitive evidence surfaces
 stripped boundary side evidence for P/N no-flow lanes
 ```

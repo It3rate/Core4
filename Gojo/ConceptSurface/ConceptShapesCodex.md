@@ -161,7 +161,7 @@ The strict primitive alphabet starts with what Gojo already has or nearly has.
 | Primitive | Current Gojo shape | Concept role |
 | --- | --- | --- |
 | Carrier | `new Carrier()` | participating axis, reservoir, line, contour, value site, or conceptual basis. |
-| Inverse carrier face | `carrier.Inverse()` | opposed participation, not negative value. |
+| Flow face evidence | `FlowFaceSurface.Forward/Inverse(...)` | opposed participation carried as explicit face structure, not negative value. |
 | Signed location | `new CarrierLocation(C,n)` | site on a face; negative location is not inverse face. |
 | Shared coordinate | same `TickRef` | same physical site, not coincidence of equal values. |
 | Point | `Relation.Point(C,n)` | grounded site, landmark, focus, endpoint, boundary. |
