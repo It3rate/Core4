@@ -148,12 +148,17 @@ A `FlowFaceSurface` is ordinary ordered Gojo structure:
 
 ```text
 root
-  face point      0 for F, 1 for I
+  face segment    0 -> 1 for F, 0 -> -1 for I
   selected        the thing this face is exposed on
   evidence        local witness, unknown point if unresolved
 ```
 
 The helper read `FlowFace` is compact. The meaning is the surface.
+
+The face marker is a tiny directed segment rather than a one-bit point. That is
+intentional: flow is ordered difference, and the segment shape keeps primitive
+flow faces from colliding with later one-bit side markers during broad local
+traversal.
 
 ### Why None Is Not Primitive Flow
 
@@ -304,6 +309,19 @@ structure between sides.
 `S` is also not "nothing." It is a bounded whole. It belongs to interval,
 ratio, percent, range, selected segment, valve opening, tolerance band, and
 non-count whole concepts.
+
+`S` now has an explicit primitive foothold:
+
+```text
+BoundedWholeSurface
+  whole
+  boundary pair: left boundary, right boundary
+  partition/resolution witness
+```
+
+This lets `S:None` preserve bounded-whole structure without inventing a
+primitive no-flow face. If flow is later attached, the same bounded-whole
+surface can pair with primitive `F` or `I` face evidence.
 
 ## Signed Scalars Need Coupling
 
@@ -936,6 +954,16 @@ lane basis
 lane transition surfaces
 ```
 
+Current pass:
+
+```text
+BoundaryFlowUnitShape.DescribedAtom first tries primitive grade evidence
+BoundaryFlowUnitShape.TryCreatePrimitiveBasis builds basis from FlowFaceSurface and BoundarySideSurface
+Positive/signed forward/signed both-flow unit shapes now preserve primitive evidence in descriptors
+Bounded whole/no-flow now preserves BoundedWholeSurface evidence with no primitive flow face
+Bounded whole with flow pairs BoundedWholeSurface with primitive FlowFaceSurface evidence
+```
+
 ### Stage 4: Transition-First Signed Behavior
 
 Do not assume `PN` means automatic crossing.
@@ -1057,14 +1085,14 @@ FlowBoundaryGradeLaneSurface
 FlowSurface primitive-face bridge
 BoundarySurface primitive-side bridge
 CarrierFlowFaceSurface adapter
+BoundaryFlowUnitShape primitive-basis construction
+BoundedWholeSurface
 ```
 
 Still experimental:
 
 ```text
 core carrier axis/face split
-explicit bounded-whole primitive surface beyond existing boundary exposure
-unit-shape builders that construct every basis from primitive grade surfaces
 ```
 
 The safe direction is to keep adding inspectable evidence and only then reduce

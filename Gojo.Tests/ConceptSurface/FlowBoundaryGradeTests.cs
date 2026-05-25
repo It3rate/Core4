@@ -150,6 +150,17 @@ public sealed class FlowBoundaryGradeTests
     }
 
     [Fact]
+    public void FlowFaceSurfaceDoesNotReadBoundarySideAsFace()
+    {
+        var selected = Relation.Point(new Carrier(), 2);
+        var flowFace = FlowFaceSurface.Forward(new Carrier(), selected);
+        var negativeSide = BoundarySideSurface.Negative(new Carrier(), flowFace);
+
+        Assert.False(FlowFaceSurface.TryRead(negativeSide, out _, out _, out _));
+        Assert.Equal(FlowExposure.Forward, FlowFaceSurface.ReadExposure(negativeSide));
+    }
+
+    [Fact]
     public void BoundaryExposureReadsComposedSidesOverFlow()
     {
         var selected = Relation.Point(new Carrier(), 4);
@@ -198,6 +209,39 @@ public sealed class FlowBoundaryGradeTests
             out var summary));
         Assert.True(BoundarySurface.TryRead(summary, out var summaryExposure, out _, out _, out _));
         Assert.Equal(BoundaryExposure.FullSigned, summaryExposure);
+    }
+
+    [Fact]
+    public void BoundedWholeSurfaceCarriesWholeBoundaryPairAndPartition()
+    {
+        var wholeCarrier = new Carrier();
+        var whole = Relation.Segment(wholeCarrier, 0, 100);
+        var left = Relation.Point(wholeCarrier, 0);
+        var right = Relation.Point(wholeCarrier, 100);
+        var partition = ConceptPartition.Create(new Carrier(), whole, new Carrier(), 10);
+        var surface = BoundedWholeSurface.Create(new Carrier(), whole, left, right, partition);
+
+        Assert.True(BoundedWholeSurface.TryRead(
+            surface,
+            out var readWhole,
+            out var readLeft,
+            out var readRight,
+            out var readPartition));
+        Assert.Equal(whole, readWhole);
+        Assert.Equal(left, readLeft);
+        Assert.Equal(right, readRight);
+        Assert.Equal(partition, readPartition);
+
+        Assert.True(BoundarySurface.TryRead(
+            surface,
+            out var exposure,
+            out var selected,
+            out var selectedLeft,
+            out var selectedRight));
+        Assert.Equal(BoundaryExposure.BoundedWhole, exposure);
+        Assert.Equal(whole, selected);
+        Assert.Equal(left, selectedLeft);
+        Assert.Equal(right, selectedRight);
     }
 
     [Fact]
@@ -260,5 +304,98 @@ public sealed class FlowBoundaryGradeTests
         Assert.Equal(FlowExposure.Both, flow);
         Assert.Equal(boundaryEvidence, boundaryRead);
         Assert.Equal(flowEvidence, flowRead);
+    }
+
+    [Fact]
+    public void BoundaryFlowUnitShapeSignedForwardCarriesPrimitiveBasisEvidence()
+    {
+        var signedTickShape = BoundaryFlowUnitShape.SignedForward();
+
+        Assert.True(BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
+            signedTickShape,
+            out var basis,
+            out var exposure,
+            out _,
+            out var lanes));
+        Assert.Equal(new BoundaryFlowExposure(BoundaryExposure.FullSigned, FlowExposure.Forward), exposure);
+        Assert.Equal("PF|NF", string.Join("|", lanes.Select(lane => lane.Label)));
+        Assert.True(BoundarySideSurface.TryReadExposure(basis, out var sideExposure));
+        Assert.Equal(BoundaryExposure.FullSigned, sideExposure);
+        Assert.Equal(FlowExposure.Forward, FlowFaceSurface.ReadExposure(basis));
+    }
+
+    [Fact]
+    public void BoundaryFlowUnitShapeSignedBothFlowsCarriesBothPrimitiveFaces()
+    {
+        var signedTickShape = BoundaryFlowUnitShape.SignedBothFlows();
+
+        Assert.True(BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
+            signedTickShape,
+            out var basis,
+            out var exposure,
+            out _,
+            out var lanes));
+        Assert.Equal(new BoundaryFlowExposure(BoundaryExposure.FullSigned, FlowExposure.Both), exposure);
+        Assert.Equal("PF|PI|NF|NI", string.Join("|", lanes.Select(lane => lane.Label)));
+        Assert.True(BoundarySideSurface.TryReadExposure(basis, out var sideExposure));
+        Assert.Equal(BoundaryExposure.FullSigned, sideExposure);
+        Assert.Equal(FlowExposure.Both, FlowFaceSurface.ReadExposure(basis));
+    }
+
+    [Fact]
+    public void BoundaryFlowUnitShapeBoundedWholeNoFlowCarriesWholeEvidence()
+    {
+        var selected = Relation.Point(new Carrier(), 1);
+
+        Assert.True(BoundaryFlowUnitShape.TryCreatePrimitiveBasis(
+            new Carrier(),
+            BoundaryExposure.BoundedWhole,
+            FlowExposure.None,
+            selected,
+            out var primitiveBasis));
+        Assert.True(BoundedWholeSurface.TryFind(
+            primitiveBasis,
+            out _,
+            out var primitiveWhole,
+            out _,
+            out _,
+            out _));
+        Assert.Equal(selected, primitiveWhole);
+
+        var wholeTickShape = BoundaryFlowUnitShape.BoundedWholeNoFlow(selected);
+        Assert.True(BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
+            wholeTickShape,
+            out var basis,
+            out var exposure,
+            out _,
+            out var lanes));
+        Assert.Equal(new BoundaryFlowExposure(BoundaryExposure.BoundedWhole, FlowExposure.None), exposure);
+        Assert.Equal("S:None", string.Join("|", lanes.Select(lane => lane.Label)));
+        Assert.False(BoundarySideSurface.TryReadExposure(basis, out _));
+        Assert.Equal(FlowExposure.None, FlowFaceSurface.ReadExposure(basis));
+        Assert.True(BoundedWholeSurface.TryFind(basis, out _, out var whole, out _, out _, out _));
+        Assert.Equal(selected, whole);
+    }
+
+    [Fact]
+    public void BoundaryFlowUnitShapeBoundedWholeForwardCarriesWholeAndFlowEvidence()
+    {
+        var selected = Relation.Point(new Carrier(), 1);
+        var wholeForwardShape = BoundaryFlowUnitShape.DescribedAtom(
+            BoundaryExposure.BoundedWhole,
+            FlowExposure.Forward,
+            selected);
+
+        Assert.True(BoundaryFlowLaneBasis.TryReadUnitShapeBasis(
+            wholeForwardShape,
+            out var basis,
+            out var exposure,
+            out _,
+            out var lanes));
+        Assert.Equal(new BoundaryFlowExposure(BoundaryExposure.BoundedWhole, FlowExposure.Forward), exposure);
+        Assert.Equal("SF", string.Join("|", lanes.Select(lane => lane.Label)));
+        Assert.True(BoundedWholeSurface.TryFind(basis, out _, out var whole, out _, out _, out _));
+        Assert.Equal(selected, whole);
+        Assert.Equal(FlowExposure.Forward, FlowFaceSurface.ReadExposure(basis));
     }
 }
