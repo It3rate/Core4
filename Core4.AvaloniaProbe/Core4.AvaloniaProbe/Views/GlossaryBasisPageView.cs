@@ -53,7 +53,7 @@ public sealed class GlossaryBasisPageView : UserControl
 
         _slider = new GlossarySiteSliderControl
         {
-            Carrier = new Core4.Structure.Carrier(1L),
+            Carrier = new Carrier(1L),
             Minimum = 0,
             Maximum = GlossaryBasisDemoState.TotalTicks,
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch

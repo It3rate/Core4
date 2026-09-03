@@ -350,7 +350,7 @@ public sealed class RoutingStiffnessPageView : UserControl
 
     private static string DescribeLocal(
         string label,
-        Core4.Structure.Site site,
+        Core4.State.Site site,
         SiteSettlement? settlement,
         Ratio stiffness,
         Ratio routingGain,

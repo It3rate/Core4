@@ -289,7 +289,7 @@ public sealed class BoundaryLoopPageView : UserControl
 
         _autoRunning = true;
         _autoLooping = false;
-        _autoWave = PropagationWave.FromTrolleys(_frontiers, Core4.Numerics.Measure.One);
+        _autoWave = PropagationWave.FromTrolleys(_frontiers, CoreMeasure.One);
         _frontiers = _autoWave.VisibleTrolleys();
         SyncUi();
         AdvanceAuto();
@@ -352,8 +352,8 @@ public sealed class BoundaryLoopPageView : UserControl
             // If outbound motion has truly quiesced into a return phase for a non-continuous preset, stop at the
             // reached boundary instead of showing the broader wave return story here.
             _autoWave = new PropagationWave(
-                Core4.Numerics.Measure.Zero,
-                Core4.Numerics.Measure.Zero,
+                CoreMeasure.Zero,
+                CoreMeasure.Zero,
                 ImmutableArray<PropagationFrontier>.Empty,
                 step.After.Active);
             _frontiers = _autoWave.VisibleTrolleys();
@@ -610,7 +610,7 @@ public sealed class BoundaryLoopPageView : UserControl
             _trailText.Inlines?.Add(new Run($"frontier {index + 1}               "));
             AddTrailRuns(frontier);
 
-            if (frontier.ExactReentryPeriod != Core4.Numerics.Measure.Zero)
+            if (frontier.ExactReentryPeriod != CoreMeasure.Zero)
             {
                 _trailText.Inlines?.Add(new LineBreak());
                 _trailText.Inlines?.Add(new Run($"exact re-entry            {frontier.ExactReentryPeriod}"));
@@ -763,7 +763,7 @@ public sealed class BoundaryLoopPageView : UserControl
             if (SameNode(frontier.Site, site))
             {
                 var intensity = frontier.Intensity.Canonicalize();
-                return intensity == new Ratio(Core4.Numerics.Measure.One, Core4.Numerics.Measure.One)
+                return intensity == new Ratio(CoreMeasure.One, CoreMeasure.One)
                     ? string.Empty
                     : $" x{intensity}";
             }
@@ -1011,9 +1011,9 @@ public sealed class BoundaryLoopPageView : UserControl
         TopologyTrolley frontier,
         out TopologyTrolleyContinuation continuation)
     {
-        var positiveObservation = frontier.Observe(Core4.Numerics.Measure.One);
+        var positiveObservation = frontier.Observe(CoreMeasure.One);
 
-        if (positiveObservation.TryPreferred(Core4.Numerics.Measure.One, out var seamPreferred)
+        if (positiveObservation.TryPreferred(CoreMeasure.One, out var seamPreferred)
             && HasExplicitPinnedBasis(seamPreferred))
         {
             continuation = seamPreferred;
@@ -1027,7 +1027,7 @@ public sealed class BoundaryLoopPageView : UserControl
 
     private ImmutableArray<TopologyTrolleyContinuation> BoundaryForwardContinuations(TopologyTrolley frontier)
     {
-        var positive = frontier.Observe(Core4.Numerics.Measure.One).ForwardContinuationsIn(Core4.Numerics.Measure.One);
+        var positive = frontier.Observe(CoreMeasure.One).ForwardContinuationsIn(CoreMeasure.One);
         var explicitContinuations = ImmutableArray.CreateBuilder<TopologyTrolleyContinuation>();
 
         foreach (var continuation in positive)
@@ -1143,7 +1143,7 @@ public sealed class BoundaryLoopPageView : UserControl
 
     private static Measure PreferredPerspective(TopologyTrolley frontier) =>
         frontier.Signature.Perspective.Raw == 0L
-            ? Core4.Numerics.Measure.One
+            ? CoreMeasure.One
             : frontier.Signature.Perspective;
 
     private static bool HasExplicitPinnedBasis(TopologyTrolleyContinuation continuation)

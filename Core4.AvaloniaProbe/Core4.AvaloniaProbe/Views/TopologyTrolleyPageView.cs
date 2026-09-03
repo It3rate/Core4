@@ -369,7 +369,7 @@ public sealed class TopologyTrolleyPageView : UserControl
 
         foreach (var frontier in _frontiers)
         {
-            if (frontier.TryContinuePreferred(-Core4.Numerics.Measure.One, out var reversed))
+            if (frontier.TryContinuePreferred(-CoreMeasure.One, out var reversed))
             {
                 next.Add(reversed);
                 motions.Add(TrolleyMotion.Move(frontier, reversed, reversed.TrailRelations[^1], reversePerspective: true));
@@ -397,7 +397,7 @@ public sealed class TopologyTrolleyPageView : UserControl
             return;
         }
 
-        _autoWave = PropagationWave.FromTrolleys(_frontiers, Core4.Numerics.Measure.One);
+        _autoWave = PropagationWave.FromTrolleys(_frontiers, CoreMeasure.One);
         _frontiers = _autoWave.VisibleTrolleys();
         SyncUi();
         AdvanceAuto();
@@ -617,7 +617,7 @@ public sealed class TopologyTrolleyPageView : UserControl
             var observation = frontier.Observe();
             hasPreferred |= observation.TryPreferred(out _);
             hasForward |= observation.ForwardContinuations.Length > 0;
-            hasReverse |= frontier.Observe(-Core4.Numerics.Measure.One).ForwardContinuationsIn(-Core4.Numerics.Measure.One).Length > 0;
+            hasReverse |= frontier.Observe(-CoreMeasure.One).ForwardContinuationsIn(-CoreMeasure.One).Length > 0;
         }
 
         _continueButton.IsEnabled = hasPreferred;
@@ -790,7 +790,7 @@ public sealed class TopologyTrolleyPageView : UserControl
             if (ProbeSiteFormatting.SameNode(frontier.Site, site))
             {
                 var intensity = frontier.Intensity.Canonicalize();
-                return intensity == new Ratio(Core4.Numerics.Measure.One, Core4.Numerics.Measure.One)
+                return intensity == new Ratio(CoreMeasure.One, CoreMeasure.One)
                     ? string.Empty
                     : $" x{intensity}";
             }
